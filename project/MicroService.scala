@@ -22,7 +22,7 @@ trait MicroService {
         // Semicolon-separated list of regexs matching classes to exclude
         import scoverage.ScoverageKeys
         Seq(
-            ScoverageKeys.coverageExcludedPackages := "<empty>;Reverse.*;model/.data/..*/;view.*;uk.gov.hmrc.companyregistration;uk.gov.hmrc;model.*;config.*;.*(AuthService|BuildInfo|Routes).*",
+            ScoverageKeys.coverageExcludedPackages := "<empty>;Reverse.*;model/.data/..*/;view.*;uk.gov.hmrc.companyregistration;uk.gov.hmrc;model.*;uk.gov.hmrc.companyregistration.config.*;.*(AuthService|BuildInfo|Routes).*",
             ScoverageKeys.coverageMinimum := 80,
             ScoverageKeys.coverageFailOnMinimum := false,
             ScoverageKeys.coverageHighlighting := true
@@ -31,7 +31,7 @@ trait MicroService {
 
   lazy val microservice = Project(appName, file("."))
     .enablePlugins(Seq(play.PlayScala) ++ plugins : _*)
-    .settings(playSettings : _*)
+    .settings(playSettings ++ scoverageSettings : _*)
     .settings(scalaSettings: _*)
     .settings(publishingSettings: _*)
     .settings(defaultSettings(): _*)
