@@ -14,8 +14,21 @@
  * limitations under the License.
  */
 
-package repositories
+package models
 
-object Collections {
-  final lazy val CorporationTaxRegistration = "corporation-tax-registration-information"
+import play.api.libs.json.Json
+
+case class CorporationTaxRegistration(registrationID: String,
+                    formCreationTimestamp: String,
+                    language: String,
+                    link: Links)
+
+object CorporationTaxRegistration {
+  implicit val linksFormats = Json.format[Links]
+  implicit val formats = Json.format[CorporationTaxRegistration]
+
+  def empty: CorporationTaxRegistration = {
+    CorporationTaxRegistration("", "", "", Links(""))
+  }
 }
+case class Links(self: String)

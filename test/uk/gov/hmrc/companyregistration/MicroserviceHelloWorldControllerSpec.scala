@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.companyregistration.controllers
+package uk.gov.hmrc.CorporationTaxRegistration.controllers
 
 import play.api.http.Status
 import play.api.test.FakeRequest

@@ -18,40 +18,31 @@ package controllers
 
 import auth.{Authenticated, LoggedIn, NotLoggedIn}
 import connectors.AuthConnector
-import models.{CTRequest, Metadata}
+import models.Language
 import play.api.libs.json.JsValue
 import play.api.mvc.Action
-import services.MetadataService
+import services.CorporationTaxRegistrationService
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.Future
 
-object MetadataController extends MetadataController {
-  val metadataService = MetadataService
+object CorporationTaxRegistrationController extends CorporationTaxRegistrationController {
+  val ctService = CorporationTaxRegistrationService
   val auth = AuthConnector
 }
 
-trait MetadataController extends BaseController with Authenticated {
+trait CorporationTaxRegistrationController extends BaseController with Authenticated {
 
-  val metadataService: MetadataService
+  val ctService : CorporationTaxRegistrationService
 
-  def createMetadata: Action[JsValue] = Action.async(parse.json) {
+  def createCorporationTaxRegistration(registrationId: String): Action[JsValue] = Action.async(parse.json) {
     implicit request =>
       authenticated {
         case NotLoggedIn => Future.successful(Forbidden)
         case LoggedIn(context) =>
-          withJsonBody[CTRequest] {
-            metadata => metadataService.createMetadataRecord(Metadata.empty.copy(
-              OID = context.oid))
+          withJsonBody[Language] {
+            lang => ctService.createCorporationTaxRegistrationRecord(registrationId, lang)
           }
         }
-  }
-
-  def retrieveMetadata = Action.async {
-    implicit request =>
-      authenticated {
-        case NotLoggedIn => Future.successful(Forbidden)
-        case LoggedIn(context) => metadataService.retrieveMetadataRecord(context.oid)
-      }
   }
 }

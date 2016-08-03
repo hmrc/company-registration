@@ -24,5 +24,5 @@ object Repositories {
     ReactiveMongoPlugin.mongoConnector.db
   }
 
-  lazy val metadataRepository = new MetadataMongoRepository
+  lazy val ctDataRepository = new CorporationTaxRegistrationMongoRepository
 }

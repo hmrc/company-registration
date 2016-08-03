@@ -22,7 +22,7 @@ trait MicroService {
         // Semicolon-separated list of regexs matching classes to exclude
         import scoverage.ScoverageKeys
         Seq(
-            ScoverageKeys.coverageExcludedPackages := "<empty>;Reverse.*;model/.data/..*/;view.*;uk.gov.hmrc.companyregistration;uk.gov.hmrc;model.*;config.*;.*(AuthService|BuildInfo|Routes).*",
+            ScoverageKeys.coverageExcludedPackages := "<empty>;Reverse.*;model.*;config.*;.*(AuthService|BuildInfo|Routes).*",
             ScoverageKeys.coverageMinimum := 80,
             ScoverageKeys.coverageFailOnMinimum := false,
             ScoverageKeys.coverageHighlighting := true
@@ -33,6 +33,7 @@ trait MicroService {
     .enablePlugins(Seq(play.PlayScala) ++ plugins : _*)
     .settings(playSettings : _*)
     .settings(scalaSettings: _*)
+    .settings(scoverageSettings : _*)
     .settings(publishingSettings: _*)
     .settings(defaultSettings(): _*)
     .settings(

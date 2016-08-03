@@ -19,37 +19,37 @@ package services
 import java.text.SimpleDateFormat
 import java.util.{Date, TimeZone}
 
-import models.Metadata
+import models.{CorporationTaxRegistration, Language, Links}
 import org.joda.time.DateTime
 import play.api.libs.json.Json
 import play.api.mvc.Result
-import play.api.mvc.Results.{Ok, Created}
-import repositories.{Repositories, MetadataRepository}
+import play.api.mvc.Results.Created
+import repositories.{CorporationTaxRegistrationRepository, Repositories}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-
 import scala.concurrent.Future
 
-object MetadataService extends MetadataService {
-  override val metadataRepository = Repositories.metadataRepository
+object CorporationTaxRegistrationService extends CorporationTaxRegistrationService {
+  override val CorporationTaxRegistrationRepository = Repositories.ctDataRepository
 }
 
-trait MetadataService {
+trait CorporationTaxRegistrationService {
 
-  val metadataRepository: MetadataRepository
+  val CorporationTaxRegistrationRepository: CorporationTaxRegistrationRepository
 
-  def createMetadataRecord(metadata: Metadata): Future[Result] = {
-    val newMetadata = metadata.copy(
-      registrationID = generateRegistrationId,
-      formCreationTimestamp = generateTimestamp(new DateTime())
+  def createCorporationTaxRegistrationRecord(registrationId: String, language: Language): Future[Result] = {
+    val newCTdata = CorporationTaxRegistration(registrationId,
+      generateTimestamp(new DateTime()),
+      language.lang,
+      Links(s"/business-tax-registration/$registrationId")
     )
-    metadataRepository.createMetadata(newMetadata).map(res => Created(Json.toJson(res)))
+    CorporationTaxRegistrationRepository.createCorporationTaxRegistrationData(newCTdata).map(res => Created(Json.toJson(res)))
   }
-
-  private def generateRegistrationId: String = {
-    //todo: random number gen until we know how to create
-    scala.util.Random.nextInt("99999".toInt).toString
-  }
+//
+//  private def generateRegistrationId: String = {
+//    //todo: random number gen until we know how to create
+//    scala.util.Random.nextInt("99999".toInt).toString
+//  }
 
   private def generateTimestamp(timeStamp: DateTime) : String = {
     val timeStampFormat = "yyyy-MM-dd'T'HH:mm:ssXXX"
@@ -58,13 +58,13 @@ trait MetadataService {
     format.setTimeZone(UTC)
     format.format(new Date(timeStamp.getMillis))
   }
-
-  def retrieveMetadataRecord(oID: String): Future[Result] = {
-    metadataRepository.retrieveMetaData(oID).flatMap{
-      case Some(data) => Future.successful(Ok(Json.toJson(data)))
-      case _ => createMetadataRecord(Metadata.empty.copy(OID = oID))
-    }
-  }
+//
+//  def retrieveMetadataRecord(oID: String): Future[Result] = {
+//    metadataRepository.retrieveMetaData(oID).flatMap{
+//      case Some(data) => Future.successful(Ok(Json.toJson(data)))
+//      case _ => createMetadataRecord(Metadata.empty.copy(OID = oID))
+//    }
+//  }
 
   //todo: update function not currently needed - uncomment on later story when required
   //  private[services] def updateMetadataRecord(metadata: Metadata): Future[Result] = {
