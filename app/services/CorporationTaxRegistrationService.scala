@@ -23,7 +23,7 @@ import models.{CorporationTaxRegistration, Language, Links}
 import org.joda.time.DateTime
 import play.api.libs.json.Json
 import play.api.mvc.Result
-import play.api.mvc.Results.Created
+import play.api.mvc.Results.{Created, Ok, NotFound}
 import repositories.{CorporationTaxRegistrationRepository, Repositories}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -37,19 +37,15 @@ trait CorporationTaxRegistrationService {
 
   val CorporationTaxRegistrationRepository: CorporationTaxRegistrationRepository
 
-  def createCorporationTaxRegistrationRecord(registrationId: String, language: Language): Future[Result] = {
-    val newCTdata = CorporationTaxRegistration(registrationId,
+  def createCorporationTaxRegistrationRecord(OID: String, registrationId: String, language: Language): Future[Result] = {
+    val newCTdata = CorporationTaxRegistration(OID,
+      registrationId,
       generateTimestamp(new DateTime()),
       language.lang,
       Links(s"/business-tax-registration/$registrationId")
     )
     CorporationTaxRegistrationRepository.createCorporationTaxRegistrationData(newCTdata).map(res => Created(Json.toJson(res)))
   }
-//
-//  private def generateRegistrationId: String = {
-//    //todo: random number gen until we know how to create
-//    scala.util.Random.nextInt("99999".toInt).toString
-//  }
 
   private def generateTimestamp(timeStamp: DateTime) : String = {
     val timeStampFormat = "yyyy-MM-dd'T'HH:mm:ssXXX"
@@ -58,27 +54,11 @@ trait CorporationTaxRegistrationService {
     format.setTimeZone(UTC)
     format.format(new Date(timeStamp.getMillis))
   }
-//
-//  def retrieveMetadataRecord(oID: String): Future[Result] = {
-//    metadataRepository.retrieveMetaData(oID).flatMap{
-//      case Some(data) => Future.successful(Ok(Json.toJson(data)))
-//      case _ => createMetadataRecord(Metadata.empty.copy(OID = oID))
-//    }
-//  }
 
-  //todo: update function not currently needed - uncomment on later story when required
-  //  private[services] def updateMetadataRecord(metadata: Metadata): Future[Result] = {
-  //    metadataRepository.updateMetadata(metadata).map(res => Ok(Json.toJson(res)))
-  //  }
-  //  private[services] def metadataExists(OID: String): Future[Boolean] = {
-  //    metadataRepository.retrieveMetaData(OID).map{
-  //      case Some(_) => true
-  //      case _ => false
-  //    }
-  //  }
-  //  def createMetadata(metadata: Metadata): Future[Result] = {
-  //    metadataExists(metadata.OID).flatMap {
-  //      if (_) updateMetadataRecord(metadata) else createMetadataRecord(metadata)
-  //    }
-  //  }
+  def retrieveCTDataRecord(rID: String): Future[Result] = {
+    CorporationTaxRegistrationRepository.retrieveCTData(rID).map{
+      case Some(data) => Ok(Json.toJson(data))
+      case _ => NotFound
+    }
+  }
 }

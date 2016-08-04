@@ -54,7 +54,11 @@ trait SCRSMocks {
 
 	object CTServiceMocks {
 		def createCTDataRecord(result: Result): OngoingStubbing[Future[Result]] = {
-			when(mockCTDataService.createCorporationTaxRegistrationRecord(Matchers.any[String], Matchers.any[Language]))
+			when(mockCTDataService.createCorporationTaxRegistrationRecord(Matchers.any[String], Matchers.any[String], Matchers.any[Language]))
+				.thenReturn(Future.successful(result))
+		}
+		def retrieveCTDataRecord(regId: String, result: Result): OngoingStubbing[Future[Result]] = {
+			when(mockCTDataService.retrieveCTDataRecord(Matchers.eq(regId)))
 				.thenReturn(Future.successful(result))
 		}
 	}
@@ -67,8 +71,12 @@ trait SCRSMocks {
 	}
 
 	object CTDataRepositoryMocks {
-		def createMetadata(ctData: CorporationTaxRegistration): OngoingStubbing[Future[CorporationTaxRegistration]] = {
+		def createCTData(ctData: CorporationTaxRegistration): OngoingStubbing[Future[CorporationTaxRegistration]] = {
 			when(mockCTDataRepository.createCorporationTaxRegistrationData(Matchers.any[CorporationTaxRegistration]()))
+				.thenReturn(Future.successful(ctData))
+		}
+		def retrieveCTData(ctData: Option[CorporationTaxRegistration]): OngoingStubbing[Future[Option[CorporationTaxRegistration]]] = {
+			when(mockCTDataRepository.retrieveCTData(Matchers.any[String]))
 				.thenReturn(Future.successful(ctData))
 		}
 	}

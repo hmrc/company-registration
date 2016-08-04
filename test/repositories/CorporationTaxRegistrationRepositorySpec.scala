@@ -18,6 +18,7 @@ package repositories
 
 import java.util.UUID
 
+import fixtures.CorporationTaxRegistrationFixture
 import helpers.MongoMocks
 import models.CorporationTaxRegistration
 import org.mockito.ArgumentCaptor
@@ -31,7 +32,7 @@ import uk.gov.hmrc.mongo.MongoSpecSupport
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSupport with MongoMocks with MockitoSugar with BeforeAndAfter {
+class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSupport with MongoMocks with MockitoSugar with BeforeAndAfter with CorporationTaxRegistrationFixture {
 
 	class MockedCorporationTaxRegistrationRepository extends CorporationTaxRegistrationMongoRepository {
 		override lazy val collection = mockCollection()
@@ -62,33 +63,18 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
 			ctDataResult.registrationID shouldBe randomRegid
 		}
 
-//		"Log an error if RegID is not present" in {
-//
-//			val captor = ArgumentCaptor.forClass(classOf[CorporationTaxRegistration])
-//
-//			val ctData =
-//
-//			setupAnyInsertOn(repository.collection, fails = false)
-//
-//			val ctDataResult = await(repository.createCorporationTaxRegistrationData(ctData))
-//
-//			verifyInsertOn(repository.collection, captor)
-//
-//			captor.getValue.registrationID shouldBe randomRegid
-//			ctDataResult.registrationID shouldBe randomRegid
-//		}
-//		"return None when no document exists" in {
-//
-//			val ctDataModel = mock[CorporationTaxRegistration]
-//
-//			when(ctDataModel.registrationID) thenReturn randomRegid
-//
-//			val selector = BSONDocument("registrationID" -> BSONString(randomRegid))
-//			setupFindFor(repository.collection, selector, None)
-//
-//			val result = await(repository.getOid(randomRegid))
-//
-//			result should be(None)
-//		}
+		"return None when no document exists" in {
+
+			val ctDataModel = mock[CorporationTaxRegistration]
+
+			when(ctDataModel.registrationID) thenReturn randomRegid
+
+			val selector = BSONDocument("registrationID" -> BSONString(randomRegid))
+			setupFindFor(repository.collection, selector, None)
+
+			val result = await(repository.getOid(randomRegid))
+
+			result should be(None)
+		}
 	}
 }

@@ -16,6 +16,7 @@
 
 package repositories
 
+import auth.AuthorisationResource
 import models.CorporationTaxRegistration
 import play.api.Logger
 import reactivemongo.api.DB
@@ -28,13 +29,14 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegistration, BSONObjectID]{
   def createCorporationTaxRegistrationData(metadata: CorporationTaxRegistration): Future[CorporationTaxRegistration]
-//  def retrieveCTData(regI: String): Future[Option[CorporationTaxRegistration]]
-//  def regIDCTDataSelector(registrationID: String): BSONDocument
+  def retrieveCTData(regI: String): Future[Option[CorporationTaxRegistration]]
+  def regIDCTDataSelector(registrationID: String): BSONDocument
 }
 
 class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
   extends ReactiveRepository[CorporationTaxRegistration, BSONObjectID](Collections.CorporationTaxRegistration, mongo, CorporationTaxRegistration.formats, ReactiveMongoFormats.objectIdFormats)
-  with CorporationTaxRegistrationRepository {
+  with CorporationTaxRegistrationRepository
+  with AuthorisationResource[String] {
 
     override def createCorporationTaxRegistrationData(ctReg: CorporationTaxRegistration): Future[CorporationTaxRegistration] = {
       collection.insert(ctReg).map { res =>
@@ -45,19 +47,19 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
       }
     }
 
-//    override def regIDCTDataSelector(registrationID: String): BSONDocument = BSONDocument(
-//      "registrationID" -> BSONString(registrationID)
-//    )
-//
-//    override def retrieveCTData(registrationID: String): Future[Option[CorporationTaxRegistration]] = {
-//      val selector = regIDCTDataSelector(registrationID)
-//      collection.find(selector).one[CorporationTaxRegistration]
-//    }
-//
-//    def getOid(id: String): Future[Option[String]] = {
-//      retrieveCTData(id) map {
-//        case None => None
-//        case Some(m) => Some(m.registrationID)
-//      }
-//    }
+    override def regIDCTDataSelector(registrationID: String): BSONDocument = BSONDocument(
+      "registrationID" -> BSONString(registrationID)
+    )
+
+    override def retrieveCTData(registrationID: String): Future[Option[CorporationTaxRegistration]] = {
+      val selector = regIDCTDataSelector(registrationID)
+      collection.find(selector).one[CorporationTaxRegistration]
+    }
+
+    def getOid(id: String): Future[Option[(String, String)]] = {
+      retrieveCTData(id) map {
+        case None => None
+        case Some(m) => Some(m.registrationID, m.OID)
+      }
+    }
 }

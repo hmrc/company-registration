@@ -16,37 +16,24 @@
 
 package fixtures
 
-import models.{Links, CorporationTaxRegistration}
-import play.api.libs.json.{Json, JsValue}
+import models.{CorporationTaxRegistration, CorporationTaxRegistrationResponse, Links}
+import play.api.libs.json.{JsValue, Json}
 
 trait CorporationTaxRegistrationFixture {
 
 	lazy val validCTData = CorporationTaxRegistration(
+		OID = "9876543210",
 		registrationID = "0123456789",
 		formCreationTimestamp = "2001-12-31T12:00:00Z",
 		language = "en",
 		Links("/corporation-tax-registration/4815162342"))
 
-//	lazy val initialCTData = CorporationTaxRegistration(
-//		"0123456789",
-//		"2001-12-31T12:00:00Z",
-//		"en",
-//		Links("/corporation-tax-registration/4815162342")
-//	)
+	lazy val validCTDataResponse = CorporationTaxRegistrationResponse(
+		registrationID = "0123456789",
+		formCreationTimestamp = "2001-12-31T12:00:00Z",
+		language = "en",
+		Links("/corporation-tax-registration/4815162342"))
 
 	lazy val validCTDataJson: JsValue = Json.toJson(validCTData)
 
-	//todo: something here is wrong - use validMetadataJson instead
-//	lazy val validMetadataJsValue: JsValue =
-//		Json.toJson("""{
-//					  |    "OID": "0123456789",
-//					  |    "registrationID": "0123456789",
-//					  |    "formCreationTimestamp": "test",
-//					  |    "openIDContentId": "0123456789",
-//					  |    "language": "en",
-//					  |    "submissionResponseEmail": "test@email.co.uk",
-//					  |    "completionCapacity": "test",
-//					  |    "completionCapacityOther": "test",
-//					  |    "declareAccurateAndComplete": "test"
-//					  |}""".stripMargin)
 }
