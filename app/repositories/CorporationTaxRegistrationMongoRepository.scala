@@ -28,42 +28,36 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegistration, BSONObjectID]{
   def createCorporationTaxRegistrationData(metadata: CorporationTaxRegistration): Future[CorporationTaxRegistration]
+//  def retrieveCTData(regI: String): Future[Option[CorporationTaxRegistration]]
+//  def regIDCTDataSelector(registrationID: String): BSONDocument
 }
 
 class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
   extends ReactiveRepository[CorporationTaxRegistration, BSONObjectID](Collections.CorporationTaxRegistration, mongo, CorporationTaxRegistration.formats, ReactiveMongoFormats.objectIdFormats)
   with CorporationTaxRegistrationRepository {
-//
-//  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] =
-//    collection.indexesManager.ensure(Index(Seq("OID" -> IndexType.Ascending), name = Some("oidIndex"), unique = true))
-//    .map(Seq(_))
-//
-//  override def metadataSelector(oID: String): BSONDocument = BSONDocument(
-//    "OID" -> BSONString(oID)
-//  )
 
-  override def createCorporationTaxRegistrationData(ctReg: CorporationTaxRegistration): Future[CorporationTaxRegistration] = {
-    collection.insert(ctReg).map { res =>
-      if (res.hasErrors) {
-        Logger.error(s"Failed to store company registration data. Error: ${res.errmsg.getOrElse("")} for registration id ${ctReg.registrationID}")
+    override def createCorporationTaxRegistrationData(ctReg: CorporationTaxRegistration): Future[CorporationTaxRegistration] = {
+      collection.insert(ctReg).map { res =>
+        if (res.hasErrors) {
+          Logger.error(s"Failed to store company registration data. Error: ${res.errmsg.getOrElse("")} for registration id ${ctReg.registrationID}")
+        }
+        ctReg
       }
-      ctReg
     }
-  }
 
-//  override def retrieveMetaData(oID: String): Future[Option[Metadata]] = {
-//    val selector = metadataSelector(oID)
-//    collection.find(selector).one[Metadata]
-//  }
-
-//todo: update function not currently needed - uncomment on later story when required
-//  override def updateMetadata(metadata: Metadata): Future[Metadata] = {
-//    val selector = metadataSelector(metadata.OID)
-//    collection.update(selector, metadata, upsert = false).map{ res =>
-//      if(res.hasErrors){
-//        Logger.error(s"Failed to update metadata. Error: ${res.errmsg.getOrElse("")} for registration id ${metadata.registrationID}")
-//      }
-//      metadata
+//    override def regIDCTDataSelector(registrationID: String): BSONDocument = BSONDocument(
+//      "registrationID" -> BSONString(registrationID)
+//    )
+//
+//    override def retrieveCTData(registrationID: String): Future[Option[CorporationTaxRegistration]] = {
+//      val selector = regIDCTDataSelector(registrationID)
+//      collection.find(selector).one[CorporationTaxRegistration]
 //    }
-//  }
+//
+//    def getOid(id: String): Future[Option[String]] = {
+//      retrieveCTData(id) map {
+//        case None => None
+//        case Some(m) => Some(m.registrationID)
+//      }
+//    }
 }

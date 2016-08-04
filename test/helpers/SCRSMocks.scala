@@ -59,17 +59,17 @@ trait SCRSMocks {
 		}
 	}
 
-//	object MetadataRepositoryMocks {
-//		def createCTData(ctData: CorporationTaxRegistration): OngoingStubbing[Future[CorporationTaxRegistration]] = {
-//			when(mockCTDataRepository.createMetadata(Matchers.any[CorporationTaxRegistration]()))
-//				.thenReturn(Future.successful(ctData))
-//		}
-//	}
-
 	object AuthenticationMocks {
 		def getCurrentAuthority(authority: Option[Authority]): OngoingStubbing[Future[Option[Authority]]] = {
 			when(mockAuthConnector.getCurrentAuthority()(Matchers.any[HeaderCarrier]()))
 				.thenReturn(Future.successful(authority))
+		}
+	}
+
+	object CTDataRepositoryMocks {
+		def createMetadata(ctData: CorporationTaxRegistration): OngoingStubbing[Future[CorporationTaxRegistration]] = {
+			when(mockCTDataRepository.createCorporationTaxRegistrationData(Matchers.any[CorporationTaxRegistration]()))
+				.thenReturn(Future.successful(ctData))
 		}
 	}
 }

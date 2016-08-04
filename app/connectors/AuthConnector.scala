@@ -65,7 +65,9 @@ trait AuthConnector extends ServicesConfig with RawResponseReads {
 }
 
 object AuthConnector extends AuthConnector {
+  // $COVERAGE-OFF$
   lazy val serviceUrl = baseUrl("auth")
+  // $COVERAGE-ON$
   val authorityUri = "auth/authority"
   val http: HttpGet with HttpPost = WSHttp
 }
