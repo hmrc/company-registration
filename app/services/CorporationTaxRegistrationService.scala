@@ -37,11 +37,11 @@ trait CorporationTaxRegistrationService {
 
   val CorporationTaxRegistrationRepository: CorporationTaxRegistrationRepository
 
-  def createCorporationTaxRegistrationRecord(OID: String, registrationId: String, language: Language): Future[Result] = {
+  def createCorporationTaxRegistrationRecord(OID: String, registrationId: String, givenLanguage: Language): Future[Result] = {
     val newCTdata = CorporationTaxRegistration(OID,
       registrationId,
       generateTimestamp(new DateTime()),
-      language.lang,
+      givenLanguage.language,
       Links(s"/business-tax-registration/$registrationId")
     )
     CorporationTaxRegistrationRepository.createCorporationTaxRegistrationData(newCTdata).map(res => Created(Json.toJson(res)))
