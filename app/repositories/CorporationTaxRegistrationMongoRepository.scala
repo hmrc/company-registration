@@ -23,7 +23,6 @@ import play.mvc.Result
 import reactivemongo.api.DB
 import reactivemongo.bson._
 import reactivemongo.json.collection.JSONCollection
-import services.{Conflict, Conflicted, NoConflict}
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
 
@@ -39,8 +38,7 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
 class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
   extends ReactiveRepository[CorporationTaxRegistration, BSONObjectID](Collections.CorporationTaxRegistration, mongo, CorporationTaxRegistration.formats, ReactiveMongoFormats.objectIdFormats)
   with CorporationTaxRegistrationRepository
-  with AuthorisationResource[String]
-  with Conflict[CorporationTaxRegistration] {
+  with AuthorisationResource[String] {
 
     override def createCorporationTaxRegistrationData(ctReg: CorporationTaxRegistration): Future[CorporationTaxRegistration] = {
 
@@ -50,20 +48,6 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
             }
             ctReg
         }
-//        conflicted(ctReg.registrationID, ctReg) {
-//            case NoConflict(corpTaxReg) => collection.insert(ctReg).map { res =>
-//                if (res.hasErrors) {
-//                    Logger.error(s"Failed to store company registration data. Error: ${res.errmsg.getOrElse("")} for registration id ${ctReg.registrationID}")
-//                }
-//                ctReg
-//            }
-//            case Conflicted => collection.insert(ctReg).map { res =>
-//                if (res.hasErrors) {
-//                    Logger.error(s"Failed to store company registration data. Error: ${res.errmsg.getOrElse("")} for registration id ${ctReg.registrationID}")
-//                }
-//                ctReg
-//            }
-//        }
     }
 
     override def regIDCTDataSelector(registrationID: String): BSONDocument = BSONDocument(
