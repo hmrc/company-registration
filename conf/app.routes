@@ -1,3 +1,5 @@
 # microservice specific routes
 
 PUT        /corporation-tax-registration/:registrationId             controllers.CorporationTaxRegistrationController.createCorporationTaxRegistration(registrationId: String)
+
+GET        /corporation-tax-registration/:registrationId             controllers.CorporationTaxRegistrationController.retrieveCTData(registrationId: String)

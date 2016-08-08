@@ -19,8 +19,10 @@ package repositories
 import auth.AuthorisationResource
 import models.CorporationTaxRegistration
 import play.api.Logger
+import play.mvc.Result
 import reactivemongo.api.DB
 import reactivemongo.bson._
+import reactivemongo.json.collection.JSONCollection
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
 
@@ -39,12 +41,13 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
   with AuthorisationResource[String] {
 
     override def createCorporationTaxRegistrationData(ctReg: CorporationTaxRegistration): Future[CorporationTaxRegistration] = {
-      collection.insert(ctReg).map { res =>
-        if (res.hasErrors) {
-          Logger.error(s"Failed to store company registration data. Error: ${res.errmsg.getOrElse("")} for registration id ${ctReg.registrationID}")
+
+        collection.insert(ctReg).map { res =>
+            if (res.hasErrors) {
+                Logger.error(s"Failed to store company registration data. Error: ${res.errmsg.getOrElse("")} for registration id ${ctReg.registrationID}")
+            }
+            ctReg
         }
-        ctReg
-      }
     }
 
     override def regIDCTDataSelector(registrationID: String): BSONDocument = BSONDocument(
