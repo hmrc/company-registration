@@ -4,3 +4,4 @@ PUT        /corporation-tax-registration/:registrationId                   contr
 
 GET        /corporation-tax-registration/:registrationID/company-details   controllers.CompanyDetailsController.retrieveCompanyDetails(registrationID: String)
 PUT        /corporation-tax-registration/:registrationID/company-details   controllers.CompanyDetailsController.updateCompanyDetails(registrationID: String)
+

@@ -19,8 +19,10 @@ package repositories
 import auth.AuthorisationResource
 import models.{CompanyDetails, CorporationTaxRegistration}
 import play.api.Logger
+import play.mvc.Result
 import reactivemongo.api.DB
 import reactivemongo.bson._
+import reactivemongo.json.collection.JSONCollection
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
 
@@ -43,12 +45,12 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
       "registrationID" -> BSONString(registrationID)
     )
 
-    override def createCorporationTaxRegistration(cTRegistration: CorporationTaxRegistration): Future[CorporationTaxRegistration] = {
-      collection.insert(cTRegistration).map { res =>
+    override def createCorporationTaxRegistration(ctReg: CorporationTaxRegistration): Future[CorporationTaxRegistration] = {
+      collection.insert(ctReg).map { res =>
         if (res.hasErrors) {
-          Logger.error(s"Failed to store company registration data. Error: ${res.errmsg.getOrElse("")} for registration id ${cTRegistration.registrationID}")
+          Logger.error(s"Failed to store company registration data. Error: ${res.errmsg.getOrElse("")} for registration id ${ctReg.registrationID}")
         }
-        cTRegistration
+        ctReg
       }
     }
 
@@ -66,7 +68,7 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
     }
 
     override def retrieveCompanyDetails(registrationID: String): Future[Option[CompanyDetails]] = {
-      retrieveCorporationTaxRegistration(registrationID).map{
+      retrieveCorporationTaxRegistration(registrationID).map {
         case Some(cTRegistration) => cTRegistration.companyDetails
         case None => None
       }

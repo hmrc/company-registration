@@ -16,19 +16,25 @@
 
 package controllers
 
+import auth.AuthorisationResource
 import connectors.AuthConnector
 import fixtures.{CompanyDetailsFixture, AuthFixture}
 import helpers.SCRSSpec
+import org.mockito.Matchers
+import org.mockito.Mockito._
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers.{call, OK, FORBIDDEN, NOT_FOUND}
 import services.CompanyDetailsService
+
+import scala.concurrent.Future
 
 class CompanyDetailsControllerSpec extends SCRSSpec with AuthFixture with CompanyDetailsFixture {
 
   trait Setup {
     val controller = new CompanyDetailsController {
       override val auth = mockAuthConnector
+      override val resourceConn = mockCTDataRepository
       override val companyDetailsService = mockCompanyDetailsService
     }
   }
@@ -47,6 +53,7 @@ class CompanyDetailsControllerSpec extends SCRSSpec with AuthFixture with Compan
   "retrieveCompanyDetails" should {
     "return a 200 - Ok and a Company details record if one is found in the database" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+      when(mockCTDataRepository.getOid(Matchers.any())).thenReturn(Future.successful(Some("testRegID", "testOID")))
       CompanyDetailsServiceMocks.retrieveCompanyDetails(registrationID, Some(validCompanyDetailsResponse))
 
       val result = controller.retrieveCompanyDetails(registrationID)(FakeRequest())
@@ -56,6 +63,7 @@ class CompanyDetailsControllerSpec extends SCRSSpec with AuthFixture with Compan
 
     "return a 404 - Not Found if the record does not exist" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+      when(mockCTDataRepository.getOid(Matchers.any())).thenReturn(Future.successful(Some("testRegID", "testOID")))
       CompanyDetailsServiceMocks.retrieveCompanyDetails(registrationID, None)
 
       val result = controller.retrieveCompanyDetails(registrationID)(FakeRequest())
@@ -65,6 +73,7 @@ class CompanyDetailsControllerSpec extends SCRSSpec with AuthFixture with Compan
 
     "return a 403 - Forbidden if the user cannot be authenticated" in new Setup {
       AuthenticationMocks.getCurrentAuthority(None)
+      when(mockCTDataRepository.getOid(Matchers.any())).thenReturn(Future.successful(None))
 
       val result = controller.retrieveCompanyDetails(registrationID)(FakeRequest())
       status(result) shouldBe FORBIDDEN

@@ -16,12 +16,13 @@
 
 package controllers
 
-import auth.{LoggedIn, NotLoggedIn, Authenticated}
+import auth._
 import connectors.AuthConnector
 import models.{ErrorResponse, CompanyDetails}
+import play.api.Logger
 import play.api.libs.json.{Json, JsValue}
 import play.api.mvc.Action
-import services.CompanyDetailsService
+import services.{CorporationTaxRegistrationService, CompanyDetailsService}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.Future
@@ -29,22 +30,28 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 object CompanyDetailsController extends CompanyDetailsController {
   override val auth: AuthConnector = AuthConnector
+  val resourceConn = CorporationTaxRegistrationService.CorporationTaxRegistrationRepository
   override val companyDetailsService = CompanyDetailsService
 }
 
-trait CompanyDetailsController extends BaseController with Authenticated {
+trait CompanyDetailsController extends BaseController with Authenticated with Authorisation[String]{
 
   val companyDetailsService: CompanyDetailsService
 
   def retrieveCompanyDetails(registrationID: String) = Action.async {
     implicit request =>
-      authenticated{
-        case NotLoggedIn => Future.successful(Forbidden)
-        case LoggedIn(context) =>
-          companyDetailsService.retrieveCompanyDetails(registrationID).map{
-            case Some(res) => Ok(Json.toJson(res))
-            case _ => NotFound(ErrorResponse.companyDetailsNotFound)
-          }
+      authorised(registrationID){
+        case Authorised(_) => companyDetailsService.retrieveCompanyDetails(registrationID).map {
+          case Some(res) => Ok(Json.toJson(res))
+          case _ => NotFound(ErrorResponse.companyDetailsNotFound)
+        }
+        case NotLoggedInOrAuthorised =>
+          Logger.info(s"[CompanyDetailsController] [retrieveCompanyDetails] User not logged in")
+          Future.successful(Forbidden)
+        case NotAuthorised(_) =>
+          Logger.info(s"[CompanyDetailsController] [retrieveCompanyDetails] User logged in but not authorised for resource $registrationID")
+          Future.successful(Forbidden)
+        case AuthResourceNotFound(_) => Future.successful(NotFound)
       }
   }
 

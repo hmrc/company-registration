@@ -16,6 +16,7 @@
 
 package helpers
 
+import auth.AuthorisationResource
 import connectors.{AuthConnector, Authority}
 import models.{CompanyDetailsResponse, CompanyDetails, CorporationTaxRegistration, Language}
 import org.mockito.Matchers
@@ -54,6 +55,12 @@ trait SCRSMocks {
 				.thenReturn(Future.successful(authority))
 		}
 	}
+
+  object AuthorisationMocks {
+    def getOID(oid: String, thenReturn: Option[(String, String)]): OngoingStubbing[Future[Option[(String, String)]]] = {
+      when(mockCTDataRepository.getOid(oid)).thenReturn(Future.successful(thenReturn))
+    }
+  }
 
 	object CTDataRepositoryMocks {
 		def createCorporationTaxRegistration(ctData: CorporationTaxRegistration): OngoingStubbing[Future[CorporationTaxRegistration]] = {
