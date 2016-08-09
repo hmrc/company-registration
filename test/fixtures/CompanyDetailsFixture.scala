@@ -14,8 +14,33 @@
  * limitations under the License.
  */
 
-package repositories
+package fixtures
 
-object Collections {
-  final lazy val CorporationTaxRegistration = "corporation-tax-registration-information"
+import models._
+
+trait CompanyDetailsFixture {
+
+  lazy val validCompanyDetails = CompanyDetails(
+    "testCompanyName",
+    ROAddress(
+      "10",
+      "test street",
+      "test town",
+      "test area",
+      "test county",
+      "XX1 1ZZ",
+      "test country"
+    ),
+    PPOBAddress(
+      "10",
+      "test street",
+      "test town",
+      "test area",
+      "test county",
+      "XX1 1ZZ",
+      "test country"
+    )
+  )
+
+  lazy val validCompanyDetailsResponse = validCompanyDetails.toCompanyDetailsResponse("12345")
 }

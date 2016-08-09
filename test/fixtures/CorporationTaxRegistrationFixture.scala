@@ -17,23 +17,21 @@
 package fixtures
 
 import models.{CorporationTaxRegistration, CorporationTaxRegistrationResponse, Links}
-import play.api.libs.json.{JsValue, Json}
 
-trait CorporationTaxRegistrationFixture {
+trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture {
 
-	lazy val validCTData = CorporationTaxRegistration(
+	lazy val validCorporationTaxRegistration = CorporationTaxRegistration(
 		OID = "9876543210",
 		registrationID = "0123456789",
 		formCreationTimestamp = "2001-12-31T12:00:00Z",
 		language = "en",
-		Links("/corporation-tax-registration/4815162342"))
+		companyDetails = Some(validCompanyDetails)
+	)
 
-	lazy val validCTDataResponse = CorporationTaxRegistrationResponse(
+	lazy val validCorporationTaxRegistrationResponse = CorporationTaxRegistrationResponse(
 		registrationID = "0123456789",
 		formCreationTimestamp = "2001-12-31T12:00:00Z",
 		language = "en",
-		Links("/corporation-tax-registration/4815162342"))
-
-	lazy val validCTDataJson: JsValue = Json.toJson(validCTData)
-
+		Links.buildLinks("0123456789")
+  )
 }

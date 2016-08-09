@@ -32,32 +32,32 @@ final case class AuthResourceNotFound(authContext: Authority) extends Authorisat
 
 trait Authorisation[I] {
 
-	val auth: AuthConnector
-	val resourceConn : AuthorisationResource[I]
+  val auth: AuthConnector
+  val resourceConn : AuthorisationResource[I]
 
-	def authorised(id:I)(f: => AuthorisationResult => Future[Result])(implicit hc: HeaderCarrier) = {
-		Logger.debug(s"Current user id is ${hc.userId}") // always outputs NONE :-(
+  def authorised(id:I)(f: => AuthorisationResult => Future[Result])(implicit hc: HeaderCarrier) = {
+    Logger.debug(s"Current user id is ${hc.userId}") // always outputs NONE :-(
 
-		for {
-			authority <- auth.getCurrentAuthority()
-			resource <- resourceConn.getOid(id)
-			result <- f(mapToAuthResult(authority, resource))
-		} yield {
-			Logger.debug(s"Got authority = $authority")
-			result
-		}
-	}
+    for {
+      authority <- auth.getCurrentAuthority()
+      resource <- resourceConn.getOid(id)
+      result <- f(mapToAuthResult(authority, resource))
+    } yield {
+      Logger.debug(s"Got authority = $authority")
+      result
+    }
+  }
 
-	private def mapToAuthResult(authContext: Option[Authority], resource: Option[(I,String)] ) : AuthorisationResult = {
-		authContext match {
-			case None => NotLoggedInOrAuthorised
-			case Some(context) => {
-				resource match {
-					case None => AuthResourceNotFound(context)
-					case Some((_, context.oid)) => Authorised (context)
-					case Some((_, _)) => NotAuthorised (context)
-				}
-			}
-		}
-	}
+  private def mapToAuthResult(authContext: Option[Authority], resource: Option[(I,String)] ) : AuthorisationResult = {
+    authContext match {
+      case None => NotLoggedInOrAuthorised
+      case Some(context) => {
+        resource match {
+          case None => AuthResourceNotFound(context)
+          case Some((_, context.oid)) => Authorised (context)
+          case Some((_, _)) => NotAuthorised (context)
+        }
+      }
+    }
+  }
 }

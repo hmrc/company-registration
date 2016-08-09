@@ -17,7 +17,7 @@
 package repositories
 
 import auth.AuthorisationResource
-import models.CorporationTaxRegistration
+import models.{CompanyDetails, CorporationTaxRegistration}
 import play.api.Logger
 import reactivemongo.api.DB
 import reactivemongo.bson._
@@ -28,38 +28,54 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegistration, BSONObjectID]{
-  def createCorporationTaxRegistrationData(metadata: CorporationTaxRegistration): Future[CorporationTaxRegistration]
-  def retrieveCTData(regI: String): Future[Option[CorporationTaxRegistration]]
-  def regIDCTDataSelector(registrationID: String): BSONDocument
+  def createCorporationTaxRegistration(metadata: CorporationTaxRegistration): Future[CorporationTaxRegistration]
+  def retrieveCorporationTaxRegistration(regI: String): Future[Option[CorporationTaxRegistration]]
+  def retrieveCompanyDetails(registrationID: String): Future[Option[CompanyDetails]]
+  def updateCompanyDetails(registrationID: String, companyDetails: CompanyDetails): Future[Option[CompanyDetails]]
 }
 
 class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
-  extends ReactiveRepository[CorporationTaxRegistration, BSONObjectID](Collections.CorporationTaxRegistration, mongo, CorporationTaxRegistration.formats, ReactiveMongoFormats.objectIdFormats)
+  extends ReactiveRepository[CorporationTaxRegistration, BSONObjectID]("corporation-tax-registration-information", mongo, CorporationTaxRegistration.formats, ReactiveMongoFormats.objectIdFormats)
   with CorporationTaxRegistrationRepository
   with AuthorisationResource[String] {
 
-    override def createCorporationTaxRegistrationData(ctReg: CorporationTaxRegistration): Future[CorporationTaxRegistration] = {
-      collection.insert(ctReg).map { res =>
-        if (res.hasErrors) {
-          Logger.error(s"Failed to store company registration data. Error: ${res.errmsg.getOrElse("")} for registration id ${ctReg.registrationID}")
-        }
-        ctReg
-      }
-    }
-
-    override def regIDCTDataSelector(registrationID: String): BSONDocument = BSONDocument(
+    private def registrationIDSelector(registrationID: String): BSONDocument = BSONDocument(
       "registrationID" -> BSONString(registrationID)
     )
 
-    override def retrieveCTData(registrationID: String): Future[Option[CorporationTaxRegistration]] = {
-      val selector = regIDCTDataSelector(registrationID)
+    override def createCorporationTaxRegistration(cTRegistration: CorporationTaxRegistration): Future[CorporationTaxRegistration] = {
+      collection.insert(cTRegistration).map { res =>
+        if (res.hasErrors) {
+          Logger.error(s"Failed to store company registration data. Error: ${res.errmsg.getOrElse("")} for registration id ${cTRegistration.registrationID}")
+        }
+        cTRegistration
+      }
+    }
+
+    override def retrieveCorporationTaxRegistration(registrationID: String): Future[Option[CorporationTaxRegistration]] = {
+      val selector = registrationIDSelector(registrationID)
       collection.find(selector).one[CorporationTaxRegistration]
     }
 
-    def getOid(id: String): Future[Option[(String, String)]] = {
-      retrieveCTData(id) map {
+    override def updateCompanyDetails(registrationID: String, companyDetails: CompanyDetails): Future[Option[CompanyDetails]] = {
+      retrieveCorporationTaxRegistration(registrationID).flatMap {
+        case Some(data) => collection.update(registrationIDSelector(registrationID), data.copy(companyDetails = Some(companyDetails)), upsert = false)
+          .map(_ => Some(companyDetails))
+        case None => Future.successful(None)
+      }
+    }
+
+    override def retrieveCompanyDetails(registrationID: String): Future[Option[CompanyDetails]] = {
+      retrieveCorporationTaxRegistration(registrationID).map{
+        case Some(cTRegistration) => cTRegistration.companyDetails
         case None => None
-        case Some(m) => Some(m.registrationID, m.OID)
+      }
+    }
+
+    override def getOid(id: String): Future[Option[(String, String)]] = {
+      retrieveCorporationTaxRegistration(id) map {
+        case None => None
+        case Some(m) => Some(m.registrationID -> m.OID)
       }
     }
 }
