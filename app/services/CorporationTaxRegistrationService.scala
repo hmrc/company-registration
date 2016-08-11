@@ -30,21 +30,20 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object CorporationTaxRegistrationService extends CorporationTaxRegistrationService {
-  override val CorporationTaxRegistrationRepository = Repositories.ctDataRepository
+  override val CorporationTaxRegistrationRepository = Repositories.cTRepository
 }
 
 trait CorporationTaxRegistrationService {
 
   val CorporationTaxRegistrationRepository: CorporationTaxRegistrationRepository
 
-  def createCorporationTaxRegistrationRecord(OID: String, registrationId: String, givenLanguage: Language): Future[Result] = {
-    val newCTdata = CorporationTaxRegistration(OID,
+  def createCorporationTaxRegistrationRecord(OID: String, registrationId: String, language: Language): Future[Result] = {
+    val newCTdata = CorporationTaxRegistration.empty.copy(OID,
       registrationId,
       generateTimestamp(new DateTime()),
-      givenLanguage.language,
-      Links(s"/business-tax-registration/$registrationId")
-    )
-    CorporationTaxRegistrationRepository.createCorporationTaxRegistrationData(newCTdata).map(res => Created(Json.toJson(res)))
+      language.lang)
+
+    CorporationTaxRegistrationRepository.createCorporationTaxRegistration(newCTdata).map(res => Created(Json.toJson(res)))
   }
 
   private def generateTimestamp(timeStamp: DateTime) : String = {
@@ -56,7 +55,7 @@ trait CorporationTaxRegistrationService {
   }
 
   def retrieveCTDataRecord(rID: String): Future[Result] = {
-    CorporationTaxRegistrationRepository.retrieveCTData(rID).map{
+    CorporationTaxRegistrationRepository.retrieveCorporationTaxRegistration(rID).map{
       case Some(data) => Ok(Json.toJson(data))
       case _ => NotFound
     }

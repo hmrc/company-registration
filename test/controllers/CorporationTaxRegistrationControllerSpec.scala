@@ -14,22 +14,6 @@
  * limitations under the License.
  */
 
-/*
- * Copyright 2016 HM Revenue & Customs
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package controllers
 
 import connectors.AuthConnector
@@ -69,19 +53,19 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
 
 	"createCorporationTaxRegistration" should {
 		"return a 201 when a new entry is created from the parsed json" in new Setup {
-			CTServiceMocks.createCTDataRecord(Created(Json.toJson(validCTData)))
+			CTServiceMocks.createCTDataRecord(Created(Json.toJson(validCorporationTaxRegistration)))
 			AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
 
 			val request = FakeRequest().withJsonBody(validLanguage)
 			val result = call(controller.createCorporationTaxRegistration("0123456789"), request)
-			await(jsonBodyOf(result)).as[CorporationTaxRegistration] shouldBe validCTData
+			await(jsonBodyOf(result)).as[CorporationTaxRegistration] shouldBe validCorporationTaxRegistration
 			status(result) shouldBe CREATED
 		}
 
 		"return a 403 - forbidden when the user is not authenticated" in new Setup {
 			AuthenticationMocks.getCurrentAuthority(None)
 
-			val request = FakeRequest().withJsonBody(validCTDataJson)
+			val request = FakeRequest().withJsonBody(Json.toJson(validCorporationTaxRegistration))
 			val result = call(controller.createCorporationTaxRegistration("0123456789"), request)
 			status(result) shouldBe FORBIDDEN
 		}
@@ -90,7 +74,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
 	"retrieveMetadata" should {
 		"return a 200 and a metadata model is one is found" in new Setup {
 			val regId = "testRegId"
-			CTServiceMocks.retrieveCTDataRecord(regId, Ok(Json.toJson(Some(validCTDataResponse))))
+			CTServiceMocks.retrieveCTDataRecord(regId, Ok(Json.toJson(Some(validCorporationTaxRegistrationResponse))))
 			AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
 
 			when(mockCTDataRepository.getOid(Matchers.eq(regId))).
@@ -98,7 +82,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
 
 			val result = call(controller.retrieveCTData(regId), FakeRequest())
 			status(result) shouldBe OK
-			await(jsonBodyOf(result)).asOpt[CorporationTaxRegistrationResponse] shouldBe Some(validCTDataResponse)
+			await(jsonBodyOf(result)).asOpt[CorporationTaxRegistrationResponse] shouldBe Some(validCorporationTaxRegistrationResponse)
 		}
 
 		"return a 403 - forbidden when the user is not authenticated" in new Setup {

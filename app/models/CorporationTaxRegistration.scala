@@ -19,28 +19,107 @@ package models
 import play.api.libs.json.Json
 
 case class CorporationTaxRegistration(OID: String,
-                    registrationID: String,
-                    formCreationTimestamp: String,
-                    language: String,
-                    link: Links)
+                                      registrationID: String,
+                                      formCreationTimestamp: String,
+                                      language: String,
+                                      companyDetails: Option[CompanyDetails])
 
 object CorporationTaxRegistration {
-  implicit val linksFormats = Json.format[Links]
+  implicit val formatRO = Json.format[ROAddress]
+  implicit val formatPPOB = Json.format[PPOBAddress]
+  implicit val formatCompanyDetails = Json.format[CompanyDetails]
   implicit val formats = Json.format[CorporationTaxRegistration]
 
   def empty: CorporationTaxRegistration = {
-    CorporationTaxRegistration("", "", "", "", Links(""))
+    CorporationTaxRegistration("", "", "", "", None)
   }
 }
-case class Links(self: String)
+
 
 
 case class CorporationTaxRegistrationResponse(registrationID: String,
-                                      formCreationTimestamp: String,
-                                      language: String,
-                                      link: Links)
+                                              formCreationTimestamp: String,
+                                              language: String,
+                                              link: Links)
 
 object CorporationTaxRegistrationResponse {
   implicit val linksFormats = Json.format[Links]
   implicit val formats = Json.format[CorporationTaxRegistrationResponse]
 }
+
+case class CompanyDetails(companyName: String,
+                          rOAddress: ROAddress,
+                          pPOBAddress: PPOBAddress){
+
+  def toCompanyDetailsResponse(registrationID: String): CompanyDetailsResponse = {
+    CompanyDetailsResponse(
+      companyName,
+      rOAddress,
+      pPOBAddress,
+      Links.buildLinks(registrationID)
+    )
+  }
+}
+
+case class CompanyDetailsResponse(companyName: String,
+                                  rOAddress: ROAddress,
+                                  pPOBAddress: PPOBAddress,
+                                  links: Links)
+
+case class ROAddress(houseNameNumber: String,
+                     addressLine1: String,
+                     addressLine2: String,
+                     addressLine3: String,
+                     addressLine4: String,
+                     postCode: String,
+                     country: String)
+
+case class PPOBAddress(houseNameNumber: String,
+                       addressLine1: String,
+                       addressLine2: String,
+                       addressLine3: String,
+                       addressLine4: String,
+                       postCode: String,
+                       country: String)
+
+object CompanyDetails {
+  implicit val formatRO = Json.format[ROAddress]
+  implicit val formatPPOB = Json.format[PPOBAddress]
+  implicit val formats = Json.format[CompanyDetails]
+}
+
+object CompanyDetailsResponse {
+  implicit val formatRO = Json.format[ROAddress]
+  implicit val formatPPOB = Json.format[PPOBAddress]
+  implicit val formatLinks = Json.format[Links]
+  implicit val formats = Json.format[CompanyDetailsResponse]
+}
+
+object ROAddress {
+  implicit val format = Json.format[ROAddress]
+}
+
+object PPOBAddress {
+  implicit val format = Json.format[PPOBAddress]
+}
+
+case class Language(lang: String)
+
+object Language{
+  implicit val format = Json.format[Language]
+}
+
+case class Links(self: String,
+                 registration: String)
+
+object Links {
+  implicit val format = Json.format[Links]
+
+  def buildLinks(registrationID: String): Links = {
+    Links(
+      self = s"/corporation-tax-registration/$registrationID/company-details",
+      registration = s"corporation-tax-registration/$registrationID"
+    )
+  }
+}
+

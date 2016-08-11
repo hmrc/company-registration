@@ -30,24 +30,24 @@ final case class LoggedIn(authContext: Authority) extends AuthenticationResult
 
 trait Authenticated {
 
-	val auth: AuthConnector
+  val auth: AuthConnector
 
-	def authenticated(f: => AuthenticationResult => Future[Result])(implicit hc: HeaderCarrier) = {
-		Logger.debug(s"Current user id is ${hc.userId}") // always outputs NONE :-(
+  def authenticated(f: => AuthenticationResult => Future[Result])(implicit hc: HeaderCarrier): Future[Result] = {
+    Logger.debug(s"Current user id is ${hc.userId}") // always outputs NONE :-(
 
-		for {
-			authority <- auth.getCurrentAuthority()
-			result <- f(mapToAuthResult(authority))
-		} yield {
-			Logger.debug(s"Got authority = $authority")
-			result
-		}
-	}
+    for {
+      authority <- auth.getCurrentAuthority()
+      result <- f(mapToAuthResult(authority))
+    } yield {
+      Logger.debug(s"Got authority = $authority")
+      result
+    }
+  }
 
-	private def mapToAuthResult(authContext: Option[Authority]) : AuthenticationResult = {
-		authContext match {
-			case None => NotLoggedIn
-			case Some(context) => LoggedIn(context)
-		}
-	}
+  private def mapToAuthResult(authContext: Option[Authority]) : AuthenticationResult = {
+    authContext match {
+      case None => NotLoggedIn
+      case Some(context) => LoggedIn(context)
+    }
+  }
 }

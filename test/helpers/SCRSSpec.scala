@@ -27,5 +27,6 @@ trait SCRSSpec extends UnitSpec with MockitoSugar with WithFakeApplication with 
 		reset(mockCTDataService)
 		reset(mockCTDataRepository)
 		reset(mockAuthConnector)
+		reset(mockCompanyDetailsService)
 	}
 }
