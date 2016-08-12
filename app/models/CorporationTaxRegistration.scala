@@ -103,7 +103,7 @@ object PPOBAddress {
   implicit val format = Json.format[PPOBAddress]
 }
 
-case class Language(lang: String)
+case class Language(language: String)
 
 object Language{
   implicit val format = Json.format[Language]
