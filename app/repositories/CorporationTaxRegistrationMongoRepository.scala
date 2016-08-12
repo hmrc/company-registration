@@ -28,7 +28,7 @@ import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-
+// $COVERAGE-OFF$
 trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegistration, BSONObjectID]{
   def createCorporationTaxRegistration(metadata: CorporationTaxRegistration): Future[CorporationTaxRegistration]
   def retrieveCorporationTaxRegistration(regI: String): Future[Option[CorporationTaxRegistration]]
@@ -81,3 +81,4 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
       }
     }
 }
+// $COVERAGE-ON$
