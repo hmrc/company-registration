@@ -41,7 +41,7 @@ trait CorporationTaxRegistrationService {
     val newCTdata = CorporationTaxRegistration.empty.copy(OID,
       registrationId,
       generateTimestamp(new DateTime()),
-      language.lang)
+      language.language)
 
     CorporationTaxRegistrationRepository.createCorporationTaxRegistration(newCTdata).map(res => Created(Json.toJson(res)))
   }
