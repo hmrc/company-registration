@@ -78,6 +78,14 @@ class CompanyDetailsControllerSpec extends SCRSSpec with AuthFixture with Compan
       val result = controller.retrieveCompanyDetails(registrationID)(FakeRequest())
       status(result) shouldBe FORBIDDEN
     }
+
+    "return a 404 - Not found when an authority is found but nothing is returned from" in new Setup {
+      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+      when(mockCTDataRepository.getOid(Matchers.any())).thenReturn(Future.successful(None))
+
+      val result = controller.retrieveCompanyDetails(registrationID)(FakeRequest())
+      status(result) shouldBe NOT_FOUND
+    }
   }
 
   "updateCompanyDetails" should {
