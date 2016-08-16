@@ -18,15 +18,12 @@ package services
 
 import fixtures.{CorporationTaxRegistrationFixture, MongoFixture}
 import helpers.SCRSSpec
-import models.{CorporationTaxRegistration, Language}
 import play.api.test.Helpers._
 import repositories.{CorporationTaxRegistrationRepository, Repositories}
 
 class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTaxRegistrationFixture with MongoFixture{
 
 	implicit val mongo = mongoDB
-
-	val lang = Language("en")
 
 	class Setup {
 		val service = new CorporationTaxRegistrationService {
@@ -44,9 +41,8 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
 		"create a new ctData record and return a 201 - Created response" in new Setup {
 			CTDataRepositoryMocks.createCorporationTaxRegistration(validCorporationTaxRegistration)
 
-			val result = service.createCorporationTaxRegistrationRecord("54321", "12345", lang)
-			status(result) shouldBe CREATED
-			await(jsonBodyOf(result)).as[CorporationTaxRegistration] shouldBe validCorporationTaxRegistration
+			val result = service.createCorporationTaxRegistrationRecord("54321", "12345", "en")
+			await(result) shouldBe validCorporationTaxRegistrationResponse
 		}
 	}
 
@@ -54,16 +50,15 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
 		"return MetadataResponse Json and a 200 - Ok when a metadata record is retrieved" in new Setup {
 			CTDataRepositoryMocks.retrieveCorporationTaxRegistration(Some(validCorporationTaxRegistration))
 
-			val result = service.retrieveCTDataRecord("testRegID")
-			status(result) shouldBe OK
-			await(jsonBodyOf(result)).as[CorporationTaxRegistration] shouldBe validCorporationTaxRegistration
+			val result = service.retrieveCorporationTaxRegistrationRecord("testRegID")
+			await(result) shouldBe Some(validCorporationTaxRegistrationResponse)
 		}
 
 		"return a 404 - Not found when no record is retrieved" in new Setup {
 			CTDataRepositoryMocks.retrieveCorporationTaxRegistration(None)
 
-			val result = service.retrieveCTDataRecord("testRegID")
-			status(result) shouldBe NOT_FOUND
+			val result = service.retrieveCorporationTaxRegistrationRecord("testRegID")
+			await(result) shouldBe None
 		}
 	}
 }

@@ -19,11 +19,8 @@ package services
 import java.text.SimpleDateFormat
 import java.util.{Date, TimeZone}
 
-import models.{CorporationTaxRegistration, Language, Links}
+import models.{CorporationTaxRegistrationResponse, CorporationTaxRegistration}
 import org.joda.time.DateTime
-import play.api.libs.json.Json
-import play.api.mvc.Result
-import play.api.mvc.Results.{Created, Ok, NotFound}
 import repositories.{CorporationTaxRegistrationRepository, Repositories}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -37,13 +34,21 @@ trait CorporationTaxRegistrationService {
 
   val CorporationTaxRegistrationRepository: CorporationTaxRegistrationRepository
 
-  def createCorporationTaxRegistrationRecord(OID: String, registrationId: String, language: Language): Future[Result] = {
-    val newCTdata = CorporationTaxRegistration.empty.copy(OID,
+  def createCorporationTaxRegistrationRecord(OID: String, registrationId: String, language: String): Future[CorporationTaxRegistrationResponse] = {
+    val record = CorporationTaxRegistration.empty.copy(
+      OID,
       registrationId,
       generateTimestamp(new DateTime()),
-      language.language)
+      language)
 
-    CorporationTaxRegistrationRepository.createCorporationTaxRegistration(newCTdata).map(res => Created(Json.toJson(res)))
+    CorporationTaxRegistrationRepository.createCorporationTaxRegistration(record).map(_.toCTRegistrationResponse)
+  }
+
+  def retrieveCorporationTaxRegistrationRecord(rID: String): Future[Option[CorporationTaxRegistrationResponse]] = {
+    CorporationTaxRegistrationRepository.retrieveCorporationTaxRegistration(rID).map{
+      case Some(details) => Some(details.toCTRegistrationResponse)
+      case None => None
+    }
   }
 
   private def generateTimestamp(timeStamp: DateTime) : String = {
@@ -52,12 +57,5 @@ trait CorporationTaxRegistrationService {
     val format: SimpleDateFormat = new SimpleDateFormat(timeStampFormat)
     format.setTimeZone(UTC)
     format.format(new Date(timeStamp.getMillis))
-  }
-
-  def retrieveCTDataRecord(rID: String): Future[Result] = {
-    CorporationTaxRegistrationRepository.retrieveCorporationTaxRegistration(rID).map{
-      case Some(data) => Ok(Json.toJson(data))
-      case _ => NotFound
-    }
   }
 }

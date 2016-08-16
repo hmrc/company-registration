@@ -22,7 +22,15 @@ case class CorporationTaxRegistration(OID: String,
                                       registrationID: String,
                                       formCreationTimestamp: String,
                                       language: String,
-                                      companyDetails: Option[CompanyDetails])
+                                      companyDetails: Option[CompanyDetails]){
+  def toCTRegistrationResponse = {
+    CorporationTaxRegistrationResponse(
+      registrationID,
+      formCreationTimestamp,
+      Links(Some(s"/corporation-tax-registration/$registrationID"))
+    )
+  }
+}
 
 object CorporationTaxRegistration {
   implicit val formatRO = Json.format[ROAddress]
@@ -39,7 +47,6 @@ object CorporationTaxRegistration {
 
 case class CorporationTaxRegistrationResponse(registrationID: String,
                                               formCreationTimestamp: String,
-                                              language: String,
                                               link: Links)
 
 object CorporationTaxRegistrationResponse {
@@ -103,22 +110,22 @@ object PPOBAddress {
   implicit val format = Json.format[PPOBAddress]
 }
 
-case class Language(language: String)
+case class CorporationTaxRegistrationRequest(language: String)
 
-object Language{
-  implicit val format = Json.format[Language]
+object CorporationTaxRegistrationRequest{
+  implicit val format = Json.format[CorporationTaxRegistrationRequest]
 }
 
-case class Links(self: String,
-                 registration: String)
+case class Links(self: Option[String],
+                 registration: Option[String] = None)
 
 object Links {
   implicit val format = Json.format[Links]
 
   def buildLinks(registrationID: String): Links = {
     Links(
-      self = s"/corporation-tax-registration/$registrationID/company-details",
-      registration = s"corporation-tax-registration/$registrationID"
+      self = Some(s"/corporation-tax-registration/$registrationID/company-details"),
+      registration = Some(s"corporation-tax-registration/$registrationID")
     )
   }
 }
