@@ -18,14 +18,15 @@ package controllers
 
 import auth._
 import connectors.AuthConnector
-import models.Language
+import models.CorporationTaxRegistrationRequest
 import play.api.Logger
-import play.api.libs.json.JsValue
+import play.api.libs.json.{Json, JsValue}
 import play.api.mvc.Action
 import services.CorporationTaxRegistrationService
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 object CorporationTaxRegistrationController extends CorporationTaxRegistrationController {
   val ctService = CorporationTaxRegistrationService
@@ -42,16 +43,19 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
       authenticated {
         case NotLoggedIn => Future.successful(Forbidden)
         case LoggedIn(context) =>
-          withJsonBody[Language] {
-            language => ctService.createCorporationTaxRegistrationRecord(OID = context.oid, registrationId, language)
+          withJsonBody[CorporationTaxRegistrationRequest] {
+            request => ctService.createCorporationTaxRegistrationRecord(context.oid, registrationId, request.language).map(res => Created(Json.toJson(res)))
           }
         }
   }
 
-  def retrieveCTData(registrationID: String) = Action.async {
+  def retrieveCorporationTaxRegistration(registrationID: String) = Action.async {
     implicit request =>
       authorised(registrationID) {
-        case Authorised(_) => ctService.retrieveCTDataRecord(registrationID)
+        case Authorised(_) => ctService.retrieveCorporationTaxRegistrationRecord(registrationID).map{
+          case Some(data) => Ok(Json.toJson(data))
+          case _ => NotFound
+        }
         case NotLoggedInOrAuthorised =>
           Logger.info(s"[CorporationTaxRegistrationController] [retrieveCTData] User not logged in")
           Future.successful(Forbidden)

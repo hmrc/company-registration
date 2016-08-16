@@ -16,9 +16,8 @@
 
 package helpers
 
-import auth.AuthorisationResource
 import connectors.{AuthConnector, Authority}
-import models.{CompanyDetailsResponse, CompanyDetails, CorporationTaxRegistration, Language}
+import models.{CorporationTaxRegistrationResponse, CompanyDetailsResponse, CompanyDetails, CorporationTaxRegistration}
 import org.mockito.Matchers
 import org.mockito.stubbing.OngoingStubbing
 import org.scalatest.mock.MockitoSugar
@@ -39,12 +38,12 @@ trait SCRSMocks {
 	lazy val mockCompanyDetailsService = mock[CompanyDetailsService]
 
 	object CTServiceMocks {
-		def createCTDataRecord(result: Result): OngoingStubbing[Future[Result]] = {
-			when(mockCTDataService.createCorporationTaxRegistrationRecord(Matchers.any[String], Matchers.any[String], Matchers.any[Language]))
+		def createCTDataRecord(result: CorporationTaxRegistrationResponse): OngoingStubbing[Future[CorporationTaxRegistrationResponse]] = {
+			when(mockCTDataService.createCorporationTaxRegistrationRecord(Matchers.any[String], Matchers.any[String], Matchers.any[String]))
 				.thenReturn(Future.successful(result))
 		}
-		def retrieveCTDataRecord(regId: String, result: Result): OngoingStubbing[Future[Result]] = {
-			when(mockCTDataService.retrieveCTDataRecord(Matchers.eq(regId)))
+		def retrieveCTDataRecord(regId: String, result: Option[CorporationTaxRegistrationResponse]): OngoingStubbing[Future[Option[CorporationTaxRegistrationResponse]]] = {
+			when(mockCTDataService.retrieveCorporationTaxRegistrationRecord(Matchers.eq(regId)))
 				.thenReturn(Future.successful(result))
 		}
 	}

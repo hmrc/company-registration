@@ -19,20 +19,17 @@ package controllers
 import connectors.AuthConnector
 import fixtures.{AuthFixture, CorporationTaxRegistrationFixture}
 import helpers.SCRSSpec
-import models.{CorporationTaxRegistration, CorporationTaxRegistrationResponse, Language}
+import models.{CorporationTaxRegistration, CorporationTaxRegistrationResponse}
 import org.mockito.Matchers
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import services.CorporationTaxRegistrationService
-import play.api.mvc.Results.{Created, Ok}
 import play.api.test.Helpers._
 
 import scala.concurrent.Future
 import org.mockito.Mockito._
 
 class CorporationTaxRegistrationControllerSpec extends SCRSSpec with CorporationTaxRegistrationFixture with AuthFixture {
-
-	val validLanguage = Json.toJson(Language("en"))
 
 	class Setup {
 		val controller = new CorporationTaxRegistrationController {
@@ -53,12 +50,12 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
 
 	"createCorporationTaxRegistration" should {
 		"return a 201 when a new entry is created from the parsed json" in new Setup {
-			CTServiceMocks.createCTDataRecord(Created(Json.toJson(validCorporationTaxRegistration)))
+			CTServiceMocks.createCTDataRecord(validCorporationTaxRegistrationResponse)
 			AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
 
-			val request = FakeRequest().withJsonBody(validLanguage)
+			val request = FakeRequest().withJsonBody(Json.toJson(validCorporationTaxRegistrationRequest))
 			val result = call(controller.createCorporationTaxRegistration("0123456789"), request)
-			await(jsonBodyOf(result)).as[CorporationTaxRegistration] shouldBe validCorporationTaxRegistration
+			await(jsonBodyOf(result)).as[CorporationTaxRegistrationResponse] shouldBe validCorporationTaxRegistrationResponse
 			status(result) shouldBe CREATED
 		}
 
@@ -74,13 +71,13 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
 	"retrieveMetadata" should {
 		"return a 200 and a metadata model is one is found" in new Setup {
 			val regId = "testRegId"
-			CTServiceMocks.retrieveCTDataRecord(regId, Ok(Json.toJson(Some(validCorporationTaxRegistrationResponse))))
+			CTServiceMocks.retrieveCTDataRecord(regId, (Some(validCorporationTaxRegistrationResponse)))
 			AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
 
 			when(mockCTDataRepository.getOid(Matchers.eq(regId))).
 				thenReturn(Future.successful(Some((regId,validAuthority.oid))))
 
-			val result = call(controller.retrieveCTData(regId), FakeRequest())
+			val result = call(controller.retrieveCorporationTaxRegistration(regId), FakeRequest())
 			status(result) shouldBe OK
 			await(jsonBodyOf(result)).asOpt[CorporationTaxRegistrationResponse] shouldBe Some(validCorporationTaxRegistrationResponse)
 		}
@@ -92,7 +89,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
 			when(mockCTDataRepository.getOid(Matchers.any())).
 				thenReturn(Future.successful(None))
 
-			val result = call(controller.retrieveCTData(regId), FakeRequest())
+			val result = call(controller.retrieveCorporationTaxRegistration(regId), FakeRequest())
 			status(result) shouldBe FORBIDDEN
 		}
 
@@ -102,7 +99,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
 			when(mockCTDataRepository.getOid(Matchers.eq(regId))).
 				thenReturn(Future.successful(Some((regId, validAuthority.oid + "xxx"))))
 
-			val result = call(controller.retrieveCTData(regId), FakeRequest())
+			val result = call(controller.retrieveCorporationTaxRegistration(regId), FakeRequest())
 			status(result) shouldBe FORBIDDEN
 		}
 
@@ -111,7 +108,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
 			AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
 			when(mockCTDataRepository.getOid(Matchers.eq(regId))).thenReturn(Future.successful(None))
 
-			val result = call(controller.retrieveCTData(regId), FakeRequest())
+			val result = call(controller.retrieveCorporationTaxRegistration(regId), FakeRequest())
 			status(result) shouldBe NOT_FOUND
 		}
 	}

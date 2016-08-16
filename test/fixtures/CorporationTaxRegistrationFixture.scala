@@ -16,9 +16,11 @@
 
 package fixtures
 
-import models.{CorporationTaxRegistration, CorporationTaxRegistrationResponse, Links}
+import models.{CorporationTaxRegistrationRequest, CorporationTaxRegistration, CorporationTaxRegistrationResponse, Links}
 
 trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture {
+
+	lazy val validCorporationTaxRegistrationRequest = CorporationTaxRegistrationRequest("en")
 
 	lazy val validCorporationTaxRegistration = CorporationTaxRegistration(
 		OID = "9876543210",
@@ -31,7 +33,6 @@ trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture {
 	lazy val validCorporationTaxRegistrationResponse = CorporationTaxRegistrationResponse(
 		registrationID = "0123456789",
 		formCreationTimestamp = "2001-12-31T12:00:00Z",
-		language = "en",
-		Links.buildLinks("0123456789")
+		Links(Some("/corporation-tax-registration/0123456789"))
   )
 }
