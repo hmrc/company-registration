@@ -81,6 +81,14 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
       }
     }
 
+  def updateContactDetails(registrationID: String, contactDetails: ContactDetails): Future[Option[ContactDetails]] = {
+    retrieveCorporationTaxRegistration(registrationID) flatMap {
+      case Some(registration) => collection.update(registrationIDSelector(registrationID), registration.copy(contactDetails = Some(contactDetails)), upsert = false)
+        .map(_ => Some(contactDetails))
+      case None => Future.successful(None)
+    }
+  }
+
     override def getOid(id: String): Future[Option[(String, String)]] = {
       retrieveCorporationTaxRegistration(id) map {
         case None => None

@@ -6,6 +6,6 @@ PUT        /corporation-tax-registration/:registrationId                   contr
 GET        /corporation-tax-registration/:registrationID/company-details   controllers.CompanyDetailsController.retrieveCompanyDetails(registrationID: String)
 PUT        /corporation-tax-registration/:registrationID/company-details   controllers.CompanyDetailsController.updateCompanyDetails(registrationID: String)
 
-GET        /corporation-tax-registration/:registrationID/contact-details   controllers.ContactDetails.retrieveContactDetails(registrationID)
-PUT        /corporation-tax-registration/:registrationID/contact-details   controllers.ContactDetails.updateContactDetails(registrationID)
+GET        /corporation-tax-registration/:registrationID/contact-details   controllers.ContactDetailsController.retrieveContactDetails(registrationID)
+PUT        /corporation-tax-registration/:registrationID/contact-details   controllers.ContactDetailsController.updateContactDetails(registrationID)
 

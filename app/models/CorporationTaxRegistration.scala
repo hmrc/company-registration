@@ -37,6 +37,7 @@ object CorporationTaxRegistration {
   implicit val formatRO = Json.format[ROAddress]
   implicit val formatPPOB = Json.format[PPOBAddress]
   implicit val formatCompanyDetails = Json.format[CompanyDetails]
+  implicit val formatContactDetails = Json.format[ContactDetails]
   implicit val formats = Json.format[CorporationTaxRegistration]
 
   def empty: CorporationTaxRegistration = {
@@ -120,7 +121,12 @@ object CorporationTaxRegistrationRequest{
 case class ContactDetails(contactName: String,
                           contactDaytimeTelephoneNumber: String,
                           contactMobileNumber: String,
-                          contactEmail: String)
+                          contactEmail: String){
+  def convertToResponse (registrationID: String) = {
+    ContactDetailsResponse(contactName, contactDaytimeTelephoneNumber, contactMobileNumber, contactEmail,
+      Links (Some(s"/corporation-tax-registration/$registrationID/trading-details"), Some(s"/corporation-tax-registration/$registrationID/")))
+  }
+}
 
 object ContactDetails {
   implicit val formatsLinks = Json.format[Links]
