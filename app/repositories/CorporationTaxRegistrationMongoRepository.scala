@@ -17,7 +17,7 @@
 package repositories
 
 import auth.AuthorisationResource
-import models.{CompanyDetails, CorporationTaxRegistration}
+import models.{ContactDetails, CompanyDetails, CorporationTaxRegistration}
 import play.api.Logger
 import play.mvc.Result
 import reactivemongo.api.DB
@@ -70,6 +70,13 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
     override def retrieveCompanyDetails(registrationID: String): Future[Option[CompanyDetails]] = {
       retrieveCorporationTaxRegistration(registrationID).map {
         case Some(cTRegistration) => cTRegistration.companyDetails
+        case None => None
+      }
+    }
+
+    def retrieveContactDetails(registrationID: String): Future[Option[ContactDetails]] = {
+      retrieveCorporationTaxRegistration(registrationID) map {
+        case Some(registration) => registration.contactDetails
         case None => None
       }
     }

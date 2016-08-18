@@ -22,7 +22,8 @@ case class CorporationTaxRegistration(OID: String,
                                       registrationID: String,
                                       formCreationTimestamp: String,
                                       language: String,
-                                      companyDetails: Option[CompanyDetails]){
+                                      companyDetails: Option[CompanyDetails],
+                                      contactDetails: Option[ContactDetails]){
   def toCTRegistrationResponse = {
     CorporationTaxRegistrationResponse(
       registrationID,
@@ -39,7 +40,7 @@ object CorporationTaxRegistration {
   implicit val formats = Json.format[CorporationTaxRegistration]
 
   def empty: CorporationTaxRegistration = {
-    CorporationTaxRegistration("", "", "", "", None)
+    CorporationTaxRegistration("", "", "", "", None, None)
   }
 }
 
@@ -114,6 +115,27 @@ case class CorporationTaxRegistrationRequest(language: String)
 
 object CorporationTaxRegistrationRequest{
   implicit val format = Json.format[CorporationTaxRegistrationRequest]
+}
+
+case class ContactDetails(contactName: String,
+                          contactDaytimeTelephoneNumber: String,
+                          contactMobileNumber: String,
+                          contactEmail: String)
+
+object ContactDetails {
+  implicit val formatsLinks = Json.format[Links]
+  implicit val formats = Json.format[ContactDetails]
+}
+
+case class ContactDetailsResponse(contactName: String,
+                                 contactDaytimeTelephoneNumber: String,
+                                 contactMobileNumber: String,
+                                 contactEmail: String,
+                                 links: Links)
+
+object ContactDetailsResponse {
+  implicit val formatsLinks = Json.format[Links]
+  implicit val formats = Json.format[ContactDetailsResponse]
 }
 
 case class Links(self: Option[String],

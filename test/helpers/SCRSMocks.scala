@@ -17,14 +17,14 @@
 package helpers
 
 import connectors.{AuthConnector, Authority}
-import models.{CorporationTaxRegistrationResponse, CompanyDetailsResponse, CompanyDetails, CorporationTaxRegistration}
+import models._
 import org.mockito.Matchers
 import org.mockito.stubbing.OngoingStubbing
 import org.scalatest.mock.MockitoSugar
 import org.mockito.Mockito._
 import play.api.mvc.Result
 import repositories.CorporationTaxRegistrationMongoRepository
-import services.{CompanyDetailsService, CorporationTaxRegistrationService}
+import services.{ContactDetailsService, CompanyDetailsService, CorporationTaxRegistrationService}
 import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.Future
@@ -36,6 +36,9 @@ trait SCRSMocks {
 	lazy val mockCTDataRepository = mock[CorporationTaxRegistrationMongoRepository]
 	lazy val mockAuthConnector = mock[AuthConnector]
 	lazy val mockCompanyDetailsService = mock[CompanyDetailsService]
+	lazy val mockContactDetailsService = mock[ContactDetailsService]
+
+	def matchesRegex(toMatch: String) = s"""^$toMatch$$"""
 
 	object CTServiceMocks {
 		def createCTDataRecord(result: CorporationTaxRegistrationResponse): OngoingStubbing[Future[CorporationTaxRegistrationResponse]] = {
@@ -93,4 +96,16 @@ trait SCRSMocks {
         .thenReturn(Future.successful(result))
     }
   }
+
+	object ContactDetailsServiceMocks {
+		def retrieveContactDetails(registrationID: String, response: Option[ContactDetailsResponse]) = {
+			when(mockContactDetailsService.retrieveContactDetails(Matchers.matches(matchesRegex(registrationID))))
+			  .thenReturn(Future.successful(response))
+		}
+
+		def updateContactDetails(registrationID: String, response: Option[ContactDetailsResponse]) = {
+			when(mockContactDetailsService.updateContactDetails(Matchers.matches(matchesRegex(registrationID)), Matchers.any[ContactDetails]()))
+			  .thenReturn(Future.successful(response))
+		}
+	}
 }
