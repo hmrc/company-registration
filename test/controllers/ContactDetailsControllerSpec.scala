@@ -16,12 +16,16 @@
 
 package controllers
 
-import fixtures.ContactDetailsFixture
+import connectors.AuthConnector
+import fixtures.{AuthFixture, ContactDetailsFixture}
 import helpers.SCRSSpec
-import models.{ContactDetailsResponse, Links}
+import models.{ErrorResponse, ContactDetailsResponse}
+import play.api.libs.json.Json
 import play.api.test.FakeRequest
+import play.api.test.Helpers._
+import services.{CorporationTaxRegistrationService, ContactDetailsService}
 
-class ContactDetailsControllerSpec extends SCRSSpec with ContactDetailsFixture {
+class ContactDetailsControllerSpec extends SCRSSpec with ContactDetailsFixture with AuthFixture {
 
   trait Setup {
     val controller = new ContactDetailsController {
@@ -33,10 +37,117 @@ class ContactDetailsControllerSpec extends SCRSSpec with ContactDetailsFixture {
 
   val registrationID = "12345"
 
-  "retrieveContactDetails" in new Setup {
-    ContactDetailsServiceMocks.retrieveContactDetails(registrationID, Some(contactDetailsResponse))
+  "ContactDetailsController" should {
+    "use the correct auth connector" in {
+      ContactDetailsController.auth shouldBe AuthConnector
+    }
+    "use the correct resource connector" in {
+      ContactDetailsController.resourceConn shouldBe CorporationTaxRegistrationService.CorporationTaxRegistrationRepository
+    }
+    "use the correct service" in {
+      ContactDetailsController.contactDetailsService shouldBe ContactDetailsService
+    }
+  }
 
-    val result = controller.retrieveContactDetails(registrationID)(FakeRequest())
-    status(result) shouldBe ""
+  "retrieveContactDetails" should {
+    "return a 200 with contact details in the json body when authorised" in new Setup {
+      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+      AuthorisationMocks.getOID("testOID", Some("testRegID" -> "testOID"))
+      ContactDetailsServiceMocks.retrieveContactDetails(registrationID, Some(contactDetailsResponse))
+
+      val result = controller.retrieveContactDetails(registrationID)(FakeRequest())
+      status(result) shouldBe OK
+      jsonBodyOf(result).as[ContactDetailsResponse] shouldBe contactDetailsResponse
+    }
+
+    "return a 404 when the user is authorised but contact details cannot be found" in new Setup {
+      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+      AuthorisationMocks.getOID("testOID", Some("testRegID" -> "testOID"))
+      ContactDetailsServiceMocks.retrieveContactDetails(registrationID, None)
+
+      val result = controller.retrieveContactDetails(registrationID)(FakeRequest())
+      status(result) shouldBe NOT_FOUND
+      await(jsonBodyOf(result)) shouldBe ErrorResponse.contactDetailsNotFound
+    }
+
+    "return a 404 when the auth resource cannot be found" in new Setup {
+      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+      AuthorisationMocks.getOID("testOID", None)
+      ContactDetailsServiceMocks.retrieveContactDetails(registrationID, None)
+
+      val result = controller.retrieveContactDetails(registrationID)(FakeRequest())
+      status(result) shouldBe NOT_FOUND
+    }
+
+    "return a 403 when the user is unauthorised to access the record" in new Setup {
+      AuthenticationMocks.getCurrentAuthority(Some(validAuthority.copy(oid = "notAuthorisedOID")))
+      AuthorisationMocks.getOID("testOID", Some("testRegID" -> "testOID"))
+
+      val result = controller.retrieveContactDetails(registrationID)(FakeRequest())
+      status(result) shouldBe FORBIDDEN
+    }
+
+    "return a 403 when the user is not logged in" in new Setup {
+      AuthenticationMocks.getCurrentAuthority(None)
+      AuthorisationMocks.getOID("testOID", Some("testRegID" -> "testOID"))
+
+      val result = controller.retrieveContactDetails(registrationID)(FakeRequest())
+      status(result) shouldBe FORBIDDEN
+    }
+  }
+
+  "updateContactDetails" should {
+    "return a 200 with contact details in the json body when authorised" in new Setup {
+      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+      AuthorisationMocks.getOID("testOID", Some("testRegID" -> "testOID"))
+      ContactDetailsServiceMocks.updateContactDetails(registrationID, Some(contactDetailsResponse))
+
+      val response = FakeRequest().withBody(Json.toJson(contactDetails))
+
+      val result = call(controller.updateContactDetails(registrationID), response)
+      status(result) shouldBe OK
+      jsonBodyOf(result).as[ContactDetailsResponse] shouldBe contactDetailsResponse
+    }
+
+    "return a 404 when the user is authorised but contact details cannot be found" in new Setup {
+      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+      AuthorisationMocks.getOID("testOID", Some("testRegID" -> "testOID"))
+      ContactDetailsServiceMocks.updateContactDetails(registrationID, None)
+
+      val response = FakeRequest().withBody(Json.toJson(contactDetails))
+
+      val result = call(controller.updateContactDetails(registrationID), response)
+      status(result) shouldBe NOT_FOUND
+    }
+
+    "return a 400 when the auth resource cannot be found" in new Setup {
+      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+      AuthorisationMocks.getOID("testOID", None)
+
+      val response = FakeRequest().withBody(Json.toJson(contactDetails))
+
+      val result = call(controller.updateContactDetails(registrationID), response)
+      status(result) shouldBe NOT_FOUND
+    }
+
+    "return a 403 when the user is unauthorised to access the record" in new Setup {
+      AuthenticationMocks.getCurrentAuthority(Some(validAuthority.copy(oid = "notAuthorisedOID")))
+      AuthorisationMocks.getOID("testOID", Some("testRegID" -> "testOID"))
+
+      val response = FakeRequest().withBody(Json.toJson(contactDetails))
+
+      val result = call(controller.updateContactDetails(registrationID), response)
+      status(result) shouldBe FORBIDDEN
+    }
+
+    "return a 403 when the user is not logged in" in new Setup {
+      AuthenticationMocks.getCurrentAuthority(None)
+      AuthorisationMocks.getOID("testOID", Some("testRegID" -> "testOID"))
+
+      val response = FakeRequest().withBody(Json.toJson(contactDetails))
+
+      val result = call(controller.updateContactDetails(registrationID), response)
+      status(result) shouldBe FORBIDDEN
+    }
   }
 }

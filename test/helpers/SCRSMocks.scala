@@ -38,7 +38,7 @@ trait SCRSMocks {
 	lazy val mockCompanyDetailsService = mock[CompanyDetailsService]
 	lazy val mockContactDetailsService = mock[ContactDetailsService]
 
-	def matchesRegex(toMatch: String) = s"""^$toMatch$$"""
+	def matchesRegex(toMatch: String) = Matchers.matches(s"""^$toMatch$$""")
 
 	object CTServiceMocks {
 		def createCTDataRecord(result: CorporationTaxRegistrationResponse): OngoingStubbing[Future[CorporationTaxRegistrationResponse]] = {
@@ -60,7 +60,7 @@ trait SCRSMocks {
 
   object AuthorisationMocks {
     def getOID(oid: String, thenReturn: Option[(String, String)]): OngoingStubbing[Future[Option[(String, String)]]] = {
-      when(mockCTDataRepository.getOid(oid)).thenReturn(Future.successful(thenReturn))
+      when(mockCTDataRepository.getOid(Matchers.anyString())).thenReturn(Future.successful(thenReturn))
     }
   }
 
@@ -83,6 +83,15 @@ trait SCRSMocks {
       when(mockCTDataRepository.updateCompanyDetails(Matchers.anyString(), Matchers.any[CompanyDetails]()))
         .thenReturn(Future.successful(companyDetails))
     }
+
+    def retrieveContactDetails(response: Option[ContactDetails]) = {
+      when(mockCTDataRepository.retrieveContactDetails(Matchers.anyString()))
+        .thenReturn(Future.successful(response))
+    }
+    def updateContactDetails(response: Option[ContactDetails]) = {
+      when(mockCTDataRepository.updateContactDetails(Matchers.anyString(), Matchers.any[ContactDetails]()))
+        .thenReturn(Future.successful(response))
+    }
 	}
 
 	object CompanyDetailsServiceMocks {
@@ -99,12 +108,12 @@ trait SCRSMocks {
 
 	object ContactDetailsServiceMocks {
 		def retrieveContactDetails(registrationID: String, response: Option[ContactDetailsResponse]) = {
-			when(mockContactDetailsService.retrieveContactDetails(Matchers.matches(matchesRegex(registrationID))))
+			when(mockContactDetailsService.retrieveContactDetails(matchesRegex(registrationID)))
 			  .thenReturn(Future.successful(response))
 		}
 
 		def updateContactDetails(registrationID: String, response: Option[ContactDetailsResponse]) = {
-			when(mockContactDetailsService.updateContactDetails(Matchers.matches(matchesRegex(registrationID)), Matchers.any[ContactDetails]()))
+			when(mockContactDetailsService.updateContactDetails(Matchers.any(), Matchers.any[ContactDetails]()))
 			  .thenReturn(Future.successful(response))
 		}
 	}

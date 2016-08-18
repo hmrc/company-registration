@@ -18,6 +18,7 @@ package services
 
 import fixtures.CompanyDetailsFixture
 import helpers.SCRSSpec
+import repositories.Repositories
 
 class CompanyDetailsServiceSpec extends SCRSSpec with CompanyDetailsFixture {
 
@@ -28,6 +29,12 @@ class CompanyDetailsServiceSpec extends SCRSSpec with CompanyDetailsFixture {
   }
 
   val registrationID = "12345"
+
+  "CompanyDetailsService" should {
+    "use the correct repository" in {
+      CompanyDetailsService.corporationTaxRegistrationRepository shouldBe Repositories.cTRepository
+    }
+  }
 
   "retrieveCompanyDetails" should {
     "return a CompanyDetailsResponse when a company details record is found" in new Setup {

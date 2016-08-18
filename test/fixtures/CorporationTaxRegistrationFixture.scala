@@ -28,7 +28,7 @@ trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with Conta
 		formCreationTimestamp = "2001-12-31T12:00:00Z",
 		language = "en",
 		companyDetails = Some(validCompanyDetails),
-		contactDetails = Some(contactDetailsResponse)
+		contactDetails = Some(contactDetails)
 	)
 
 	lazy val validCorporationTaxRegistrationResponse = CorporationTaxRegistrationResponse(
