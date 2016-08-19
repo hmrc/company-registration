@@ -14,20 +14,25 @@
  * limitations under the License.
  */
 
-package helpers
+package fixtures
 
-import org.scalatest.BeforeAndAfterEach
-import org.scalatest.mock.MockitoSugar
-import uk.gov.hmrc.play.test.{WithFakeApplication, UnitSpec}
-import org.mockito.Mockito.reset
+import models.{ContactDetails, ContactDetailsResponse, Links}
 
-trait SCRSSpec extends UnitSpec with MockitoSugar with WithFakeApplication with SCRSMocks with BeforeAndAfterEach {
+trait ContactDetailsFixture {
 
-	override def beforeEach() {
-		reset(mockCTDataService)
-		reset(mockCTDataRepository)
-		reset(mockAuthConnector)
-		reset(mockContactDetailsService)
-		reset(mockCompanyDetailsService)
-	}
+  lazy val contactDetails = ContactDetails(
+    "testContactName",
+    "testContactDaytimeTelephoneNumber",
+    "testContactMobileNumber",
+    "testContactEmail"
+  )
+
+  lazy val contactDetailsResponse = ContactDetailsResponse(
+    "testContactName",
+    "testContactDaytimeTelephoneNumber",
+    "testContactMobileNumber",
+    "testContactEmail",
+    Links(Some(s"/corporation-tax-registration/12345/trading-details"),
+      Some(s"/corporation-tax-registration/12345/"))
+  )
 }
