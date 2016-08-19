@@ -17,7 +17,7 @@
 package repositories
 
 import auth.AuthorisationResource
-import models.{CompanyDetails, CorporationTaxRegistration}
+import models.{CompanyDetails, CorporationTaxRegistration, TradingDetails}
 import play.api.Logger
 import play.mvc.Result
 import reactivemongo.api.DB
@@ -34,6 +34,8 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def retrieveCorporationTaxRegistration(regI: String): Future[Option[CorporationTaxRegistration]]
   def retrieveCompanyDetails(registrationID: String): Future[Option[CompanyDetails]]
   def updateCompanyDetails(registrationID: String, companyDetails: CompanyDetails): Future[Option[CompanyDetails]]
+  def retrieveTradingDetails(registrationID : String) : Future[Option[TradingDetails]]
+  def updateTradingDetails(registrationID : String, tradingDetails: TradingDetails) : Future[Option[TradingDetails]]
 }
 
 class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
@@ -71,6 +73,24 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
       retrieveCorporationTaxRegistration(registrationID).map {
         case Some(cTRegistration) => cTRegistration.companyDetails
         case None => None
+      }
+    }
+
+    override def retrieveTradingDetails(registrationID: String): Future[Option[TradingDetails]] = {
+      retrieveCorporationTaxRegistration(registrationID).map {
+        case Some(ctRegistration) =>
+          Logger.info("######################################################")
+          ctRegistration.tradingDetails
+        case None => None
+      }
+    }
+
+    override def updateTradingDetails(registrationID: String, tradingDetails: TradingDetails): Future[Option[TradingDetails]] = {
+      retrieveCorporationTaxRegistration(registrationID).flatMap {
+        case Some(data) => collection.update(registrationIDSelector(registrationID), data.copy(tradingDetails = Some(tradingDetails))).map(
+          _ => Some(tradingDetails)
+        )
+        case None => Future.successful(None)
       }
     }
 

@@ -42,7 +42,8 @@ trait CompanyDetailsController extends BaseController with Authenticated with Au
     implicit request =>
       authorised(registrationID){
         case Authorised(_) => companyDetailsService.retrieveCompanyDetails(registrationID).map {
-          case Some(res) => Ok(Json.toJson(res))
+          case Some(res) =>
+            Ok(Json.toJson(res))
           case _ => NotFound(ErrorResponse.companyDetailsNotFound)
         }
         case NotLoggedInOrAuthorised =>
@@ -57,7 +58,7 @@ trait CompanyDetailsController extends BaseController with Authenticated with Au
 
   def updateCompanyDetails(registrationID: String): Action[JsValue] = Action.async[JsValue](parse.json) {
     implicit request =>
-      authenticated{
+      authenticated {
         case NotLoggedIn => Future.successful(Forbidden)
         case LoggedIn(context) =>
           withJsonBody[CompanyDetails] {
