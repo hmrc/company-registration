@@ -53,6 +53,9 @@ class CompanyDetailsControllerSpec extends SCRSSpec with AuthFixture with Compan
   "retrieveCompanyDetails" should {
     "return a 200 - Ok and a Company details record if one is found in the database" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+
+
+
       when(mockCTDataRepository.getOid(Matchers.any())).thenReturn(Future.successful(Some("testRegID" -> "testOID")))
       CompanyDetailsServiceMocks.retrieveCompanyDetails(registrationID, Some(validCompanyDetailsResponse))
 

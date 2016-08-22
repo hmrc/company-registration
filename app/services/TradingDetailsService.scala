@@ -33,8 +33,7 @@ trait TradingDetailsService extends BaseController {
 
   def retrieveTradingDetails(registrationID : String) : Future[Option[TradingDetails]] = {
     corporationTaxRegistrationRepository.retrieveTradingDetails(registrationID).map {
-      case tradingDetails => tradingDetails
-      case None => None
+      tradingDetails => tradingDetails
     }
   }
 

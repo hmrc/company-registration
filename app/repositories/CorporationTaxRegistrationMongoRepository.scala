@@ -79,7 +79,6 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
     override def retrieveTradingDetails(registrationID: String): Future[Option[TradingDetails]] = {
       retrieveCorporationTaxRegistration(registrationID).map {
         case Some(ctRegistration) =>
-          Logger.info("######################################################")
           ctRegistration.tradingDetails
         case None => None
       }

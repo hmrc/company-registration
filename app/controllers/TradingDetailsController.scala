@@ -54,9 +54,7 @@ trait TradingDetailsController extends BaseController with Authenticated with Au
         case NotAuthorised(_) =>
           Logger.info(s"[TradingDetailsController] [retrieveTradingDetails] User logged in but not authorised for resource $registrationID")
           Future.successful(Forbidden)
-        case AuthResourceNotFound(_) =>
-          Logger.info(s"[TradingDetailsController] [retrieveTradingDetails] Play 404 $registrationID")
-          Future.successful(InternalServerError)
+        case AuthResourceNotFound(_) => Future.successful(NotFound)
       }
   }
 
