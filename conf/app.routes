@@ -8,3 +8,7 @@ PUT        /corporation-tax-registration/:registrationID/company-details   contr
 
 GET        /corporation-tax-registration/:registrationID/trading-details   controllers.TradingDetailsController.retrieveTradingDetails(registrationID : String)
 PUT        /corporation-tax-registration/:registrationID/trading-details   controllers.TradingDetailsController.updateTradingDetails(registrationID : String)
+
+GET        /corporation-tax-registration/:registrationID/contact-details   controllers.ContactDetailsController.retrieveContactDetails(registrationID)
+PUT        /corporation-tax-registration/:registrationID/contact-details   controllers.ContactDetailsController.updateContactDetails(registrationID)
+

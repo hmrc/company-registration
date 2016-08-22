@@ -16,7 +16,6 @@
 
 package controllers
 
-import auth.AuthorisationResource
 import connectors.AuthConnector
 import fixtures.{CompanyDetailsFixture, AuthFixture}
 import helpers.SCRSSpec
@@ -75,8 +74,16 @@ class CompanyDetailsControllerSpec extends SCRSSpec with AuthFixture with Compan
     }
 
     "return a 403 - Forbidden if the user cannot be authenticated" in new Setup {
+      AuthenticationMocks.getCurrentAuthority(Some(validAuthority.copy(oid = "notAuthorisedOID")))
+      AuthorisationMocks.getOID("testOID", Some("testRegID" -> "testOID"))
+
+      val result = controller.retrieveCompanyDetails(registrationID)(FakeRequest())
+      status(result) shouldBe FORBIDDEN
+    }
+
+    "return a 403 - Forbidden if the user is not logged in" in new Setup {
       AuthenticationMocks.getCurrentAuthority(None)
-      when(mockCTDataRepository.getOid(Matchers.any())).thenReturn(Future.successful(None))
+      AuthorisationMocks.getOID("testOID", Some("testRegID" -> "testOID"))
 
       val result = controller.retrieveCompanyDetails(registrationID)(FakeRequest())
       status(result) shouldBe FORBIDDEN

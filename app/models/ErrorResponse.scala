@@ -30,4 +30,5 @@ object ErrorResponse{
   lazy val MetadataNotFound = ErrorResponse("404", "Could not find metadata record").toJson
   lazy val companyDetailsNotFound = ErrorResponse("404", "Could not find company details record").toJson
   lazy val tradingDetailsNotFound = ErrorResponse("404", "Could not find trading details record").toJson
+  lazy val contactDetailsNotFound = ErrorResponse("404", "Could not find company details record").toJson
 }
