@@ -17,6 +17,7 @@
 package helpers
 
 import connectors.{AuthConnector, Authority}
+import models.CorporationTaxRegistration._
 import models._
 import org.mockito.Matchers
 import org.mockito.stubbing.OngoingStubbing
@@ -25,6 +26,7 @@ import org.mockito.Mockito._
 import play.api.mvc.Result
 import repositories.CorporationTaxRegistrationMongoRepository
 import services.{AccountingDetailsService, CompanyDetailsService, CorporationTaxRegistrationService}
+import services.{CompanyDetailsService, ContactDetailsService, CorporationTaxRegistrationService}
 import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.Future
@@ -37,7 +39,7 @@ trait SCRSMocks {
 	lazy val mockAuthConnector = mock[AuthConnector]
 	lazy val mockCompanyDetailsService = mock[CompanyDetailsService]
 	lazy val mockAccountingDetailsService = mock[AccountingDetailsService]
-
+	lazy val mockContactDetailsService = mock[ContactDetailsService]
 
 	object AccountingDetailsServiceMocks {
 		def retrieveAccountingDetails(registrationID: String, result: Option[AccountingDetailsResponse]): OngoingStubbing[Future[Option[AccountingDetailsResponse]]] = {
@@ -50,6 +52,9 @@ trait SCRSMocks {
 				.thenReturn(Future.successful(result))
 		}
 	}
+
+
+	def matchesRegex(toMatch: String) = Matchers.matches(s"""^$toMatch$$""")
 
 	object CTServiceMocks {
 		def createCTDataRecord(result: CorporationTaxRegistrationResponse): OngoingStubbing[Future[CorporationTaxRegistrationResponse]] = {
@@ -71,7 +76,7 @@ trait SCRSMocks {
 
   object AuthorisationMocks {
     def getOID(oid: String, thenReturn: Option[(String, String)]): OngoingStubbing[Future[Option[(String, String)]]] = {
-      when(mockCTDataRepository.getOid(oid)).thenReturn(Future.successful(thenReturn))
+      when(mockCTDataRepository.getOid(Matchers.anyString())).thenReturn(Future.successful(thenReturn))
     }
   }
 
@@ -104,6 +109,15 @@ trait SCRSMocks {
 			when(mockCTDataRepository.updateAccountingDetails(Matchers.anyString(), Matchers.any[AccountingDetails]()))
 				.thenReturn(Future.successful(accountingDetails))
 		}
+
+    def retrieveContactDetails(response: Option[ContactDetails]) = {
+      when(mockCTDataRepository.retrieveContactDetails(Matchers.anyString()))
+        .thenReturn(Future.successful(response))
+    }
+    def updateContactDetails(response: Option[ContactDetails]) = {
+      when(mockCTDataRepository.updateContactDetails(Matchers.anyString(), Matchers.any[ContactDetails]()))
+        .thenReturn(Future.successful(response))
+    }
 	}
 
 	object CompanyDetailsServiceMocks {
@@ -117,4 +131,16 @@ trait SCRSMocks {
         .thenReturn(Future.successful(result))
     }
   }
+
+	object ContactDetailsServiceMocks {
+		def retrieveContactDetails(registrationID: String, response: Option[ContactDetailsResponse]) = {
+			when(mockContactDetailsService.retrieveContactDetails(matchesRegex(registrationID)))
+			  .thenReturn(Future.successful(response))
+		}
+
+		def updateContactDetails(registrationID: String, response: Option[ContactDetailsResponse]) = {
+			when(mockContactDetailsService.updateContactDetails(Matchers.any(), Matchers.any[ContactDetails]()))
+			  .thenReturn(Future.successful(response))
+		}
+	}
 }

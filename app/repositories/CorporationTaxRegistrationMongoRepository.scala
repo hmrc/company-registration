@@ -17,8 +17,8 @@
 package repositories
 
 import auth.AuthorisationResource
-import models.{AccountingDetails, CompanyDetails, CorporationTaxRegistration}
-import play.api.Logger
+import models.AccountingDetails
+import models.{ContactDetails, CompanyDetails, CorporationTaxRegistration, TradingDetails}
 import reactivemongo.api.DB
 import reactivemongo.bson._
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
@@ -26,7 +26,7 @@ import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-// $COVERAGE-OFF$
+
 trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegistration, BSONObjectID]{
   def createCorporationTaxRegistration(metadata: CorporationTaxRegistration): Future[CorporationTaxRegistration]
   def retrieveCorporationTaxRegistration(regI: String): Future[Option[CorporationTaxRegistration]]
@@ -34,6 +34,8 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def retrieveAccountingDetails(registrationID: String): Future[Option[AccountingDetails]]
   def updateCompanyDetails(registrationID: String, companyDetails: CompanyDetails): Future[Option[CompanyDetails]]
   def updateAccountingDetails(registrationID: String, accountingDetails: AccountingDetails): Future[Option[AccountingDetails]]
+  def retrieveTradingDetails(registrationID : String) : Future[Option[TradingDetails]]
+  def updateTradingDetails(registrationID : String, tradingDetails: TradingDetails) : Future[Option[TradingDetails]]
 }
 
 class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
@@ -46,12 +48,7 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
     )
 
     override def createCorporationTaxRegistration(ctReg: CorporationTaxRegistration): Future[CorporationTaxRegistration] = {
-      collection.insert(ctReg).map { res =>
-        if (res.hasErrors) {
-          Logger.error(s"Failed to store company registration data. Error: ${res.errmsg.getOrElse("")} for registration id ${ctReg.registrationID}")
-        }
-        ctReg
-      }
+      collection.insert(ctReg) map (_ => ctReg)
     }
 
     override def retrieveCorporationTaxRegistration(registrationID: String): Future[Option[CorporationTaxRegistration]] = {
@@ -74,7 +71,6 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
       }
     }
 
-
   override def retrieveAccountingDetails(registrationID: String): Future[Option[AccountingDetails]] = {
     retrieveCorporationTaxRegistration(registrationID).map {
       case Some(cTRegistration) => cTRegistration.accountingDetails
@@ -90,6 +86,37 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
     }
   }
 
+    override def retrieveTradingDetails(registrationID: String): Future[Option[TradingDetails]] = {
+      retrieveCorporationTaxRegistration(registrationID).map {
+        case Some(ctRegistration) =>
+          ctRegistration.tradingDetails
+      }
+    }
+
+    def retrieveContactDetails(registrationID: String): Future[Option[ContactDetails]] = {
+      retrieveCorporationTaxRegistration(registrationID) map {
+        case Some(registration) => registration.contactDetails
+        case None => None
+      }
+    }
+
+    override def updateTradingDetails(registrationID: String, tradingDetails: TradingDetails): Future[Option[TradingDetails]] = {
+      retrieveCorporationTaxRegistration(registrationID).flatMap {
+        case Some(data) => collection.update(registrationIDSelector(registrationID), data.copy(tradingDetails = Some(tradingDetails))).map(
+          _ => Some(tradingDetails)
+        )
+        case None => Future.successful(None)
+      }
+    }
+
+    def updateContactDetails(registrationID: String, contactDetails: ContactDetails): Future[Option[ContactDetails]] = {
+      retrieveCorporationTaxRegistration(registrationID) flatMap {
+        case Some(registration) => collection.update(registrationIDSelector(registrationID), registration.copy(contactDetails = Some(contactDetails)), upsert = false)
+          .map(_ => Some(contactDetails))
+        case None => Future.successful(None)
+      }
+    }
+
     override def getOid(id: String): Future[Option[(String, String)]] = {
       retrieveCorporationTaxRegistration(id) map {
         case None => None
@@ -97,4 +124,3 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
       }
     }
 }
-// $COVERAGE-ON$

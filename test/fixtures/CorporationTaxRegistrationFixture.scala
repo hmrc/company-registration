@@ -16,9 +16,9 @@
 
 package fixtures
 
-import models.{CorporationTaxRegistrationRequest, CorporationTaxRegistration, CorporationTaxRegistrationResponse, AccountingDetails, AccountingDetailsResponse, Links}
+import models._
 
-trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with AccountingDetailsFixture {
+trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with AccountingDetailsFixture with ContactDetailsFixture {
 
 	lazy val validCorporationTaxRegistrationRequest = CorporationTaxRegistrationRequest("en")
 
@@ -28,7 +28,9 @@ trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with Accou
 		formCreationTimestamp = "2001-12-31T12:00:00Z",
 		language = "en",
 		companyDetails = Some(validCompanyDetails),
-		accountingDetails = Some(validAccountingDetails)
+		accountingDetails = Some(validAccountingDetails),
+    tradingDetails = Some(TradingDetails()),
+		contactDetails = Some(contactDetails)
 	)
 
 	lazy val validCorporationTaxRegistrationResponse = CorporationTaxRegistrationResponse(

@@ -68,8 +68,8 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
 		}
 	}
 
-	"retrieveMetadata" should {
-		"return a 200 and a metadata model is one is found" in new Setup {
+	"retrieveCorporationTaxRegistration" should {
+		"return a 200 and a CorporationTaxRegistration model is one is found" in new Setup {
 			val regId = "testRegId"
 			CTServiceMocks.retrieveCTDataRecord(regId, Some(validCorporationTaxRegistrationResponse))
 			AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
@@ -80,6 +80,18 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
 			val result = call(controller.retrieveCorporationTaxRegistration(regId), FakeRequest())
 			status(result) shouldBe OK
 			await(jsonBodyOf(result)).asOpt[CorporationTaxRegistrationResponse] shouldBe Some(validCorporationTaxRegistrationResponse)
+		}
+
+		"return a 404 if a CT registration record cannot be found" in new Setup {
+			val regId = "testRegId"
+			CTServiceMocks.retrieveCTDataRecord(regId, None)
+			AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+
+			when(mockCTDataRepository.getOid(Matchers.eq(regId))).
+				thenReturn(Future.successful(Some((regId,validAuthority.oid))))
+
+			val result = call(controller.retrieveCorporationTaxRegistration(regId), FakeRequest())
+			status(result) shouldBe NOT_FOUND
 		}
 
 		"return a 403 - forbidden when the user is not authenticated" in new Setup {
