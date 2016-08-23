@@ -71,7 +71,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
 	"retrieveMetadata" should {
 		"return a 200 and a metadata model is one is found" in new Setup {
 			val regId = "testRegId"
-			CTServiceMocks.retrieveCTDataRecord(regId, (Some(validCorporationTaxRegistrationResponse)))
+			CTServiceMocks.retrieveCTDataRecord(regId, Some(validCorporationTaxRegistrationResponse))
 			AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
 
 			when(mockCTDataRepository.getOid(Matchers.eq(regId))).

@@ -14,20 +14,16 @@
  * limitations under the License.
  */
 
-package models
+package fixtures
 
-import play.api.libs.json.{Writes, JsValue, Json}
+import models._
 
-case class ErrorResponse(statusCode: String, message: String){
-  def toJson(implicit writes: Writes[ErrorResponse]): JsValue = {
-    Json.toJson(this)
-  }
-}
+trait AccountingDetailsFixture {
 
-object ErrorResponse{
-  implicit val formats = Json.format[ErrorResponse]
+  lazy val validAccountingDetails = AccountingDetails(
+    "date-of-CRN",
+    "22-08-2016"
+  )
 
-  lazy val MetadataNotFound = ErrorResponse("404", "Could not find metadata record").toJson
-  lazy val companyDetailsNotFound = ErrorResponse("404", "Could not find company details record").toJson
-  lazy val accountingDetailsNotFound = ErrorResponse("404", "Could not find accounting details record").toJson
+  lazy val validAccountingDetailsResponse = validAccountingDetails.toAccountingDetailsResponse("12345")
 }
