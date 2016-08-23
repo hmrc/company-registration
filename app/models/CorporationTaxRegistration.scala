@@ -23,7 +23,9 @@ case class CorporationTaxRegistration(OID: String,
                                       formCreationTimestamp: String,
                                       language: String,
                                       companyDetails: Option[CompanyDetails],
+                                      tradingDetails: Option[TradingDetails],
                                       contactDetails: Option[ContactDetails]){
+
   def toCTRegistrationResponse = {
     CorporationTaxRegistrationResponse(
       registrationID,
@@ -36,12 +38,13 @@ case class CorporationTaxRegistration(OID: String,
 object CorporationTaxRegistration {
   implicit val formatRO = Json.format[ROAddress]
   implicit val formatPPOB = Json.format[PPOBAddress]
+  implicit val formatTD = Json.format[TradingDetails]
   implicit val formatCompanyDetails = Json.format[CompanyDetails]
   implicit val formatContactDetails = Json.format[ContactDetails]
   implicit val formats = Json.format[CorporationTaxRegistration]
 
   def empty: CorporationTaxRegistration = {
-    CorporationTaxRegistration("", "", "", "", None, None)
+    CorporationTaxRegistration("", "", "", "", None, None, None)
   }
 }
 
@@ -65,6 +68,7 @@ case class CompanyDetails(companyName: String,
       companyName,
       rOAddress,
       pPOBAddress,
+      TradingDetails.empty,
       Links.buildLinks(registrationID)
     )
   }
@@ -73,6 +77,7 @@ case class CompanyDetails(companyName: String,
 case class CompanyDetailsResponse(companyName: String,
                                   rOAddress: ROAddress,
                                   pPOBAddress: PPOBAddress,
+                                  tradingDetails: TradingDetails,
                                   links: Links)
 
 case class ROAddress(houseNameNumber: String,
@@ -94,6 +99,7 @@ case class PPOBAddress(houseNameNumber: String,
 object CompanyDetails {
   implicit val formatRO = Json.format[ROAddress]
   implicit val formatPPOB = Json.format[PPOBAddress]
+  implicit val formatTD = Json.format[TradingDetails]
   implicit val formats = Json.format[CompanyDetails]
 }
 
@@ -101,6 +107,7 @@ object CompanyDetailsResponse {
   implicit val formatRO = Json.format[ROAddress]
   implicit val formatPPOB = Json.format[PPOBAddress]
   implicit val formatLinks = Json.format[Links]
+  implicit val formatTD = Json.format[TradingDetails]
   implicit val formats = Json.format[CompanyDetailsResponse]
 }
 
@@ -158,3 +165,12 @@ object Links {
   }
 }
 
+case class TradingDetails(regularPayments : Boolean = false)
+
+object TradingDetails {
+  implicit val format = Json.format[TradingDetails]
+
+  def empty : TradingDetails = {
+    TradingDetails()
+  }
+}

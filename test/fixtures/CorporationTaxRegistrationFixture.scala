@@ -16,7 +16,7 @@
 
 package fixtures
 
-import models.{CorporationTaxRegistrationRequest, CorporationTaxRegistration, CorporationTaxRegistrationResponse, Links}
+import models._
 
 trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with ContactDetailsFixture {
 
@@ -28,6 +28,7 @@ trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with Conta
 		formCreationTimestamp = "2001-12-31T12:00:00Z",
 		language = "en",
 		companyDetails = Some(validCompanyDetails),
+    tradingDetails = Some(TradingDetails()),
 		contactDetails = Some(contactDetails)
 	)
 

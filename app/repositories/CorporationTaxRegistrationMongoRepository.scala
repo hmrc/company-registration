@@ -17,8 +17,7 @@
 package repositories
 
 import auth.AuthorisationResource
-import models.{ContactDetails, CompanyDetails, CorporationTaxRegistration}
-import play.api.Logger
+import models.{ContactDetails, CompanyDetails, CorporationTaxRegistration, TradingDetails}
 import reactivemongo.api.DB
 import reactivemongo.bson._
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
@@ -32,6 +31,8 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def retrieveCorporationTaxRegistration(regI: String): Future[Option[CorporationTaxRegistration]]
   def retrieveCompanyDetails(registrationID: String): Future[Option[CompanyDetails]]
   def updateCompanyDetails(registrationID: String, companyDetails: CompanyDetails): Future[Option[CompanyDetails]]
+  def retrieveTradingDetails(registrationID : String) : Future[Option[TradingDetails]]
+  def updateTradingDetails(registrationID : String, tradingDetails: TradingDetails) : Future[Option[TradingDetails]]
 }
 
 class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
@@ -67,6 +68,13 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
       }
     }
 
+    override def retrieveTradingDetails(registrationID: String): Future[Option[TradingDetails]] = {
+      retrieveCorporationTaxRegistration(registrationID).map {
+        case Some(ctRegistration) =>
+          ctRegistration.tradingDetails
+      }
+    }
+
     def retrieveContactDetails(registrationID: String): Future[Option[ContactDetails]] = {
       retrieveCorporationTaxRegistration(registrationID) map {
         case Some(registration) => registration.contactDetails
@@ -74,13 +82,22 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
       }
     }
 
-  def updateContactDetails(registrationID: String, contactDetails: ContactDetails): Future[Option[ContactDetails]] = {
-    retrieveCorporationTaxRegistration(registrationID) flatMap {
-      case Some(registration) => collection.update(registrationIDSelector(registrationID), registration.copy(contactDetails = Some(contactDetails)), upsert = false)
-        .map(_ => Some(contactDetails))
-      case None => Future.successful(None)
+    override def updateTradingDetails(registrationID: String, tradingDetails: TradingDetails): Future[Option[TradingDetails]] = {
+      retrieveCorporationTaxRegistration(registrationID).flatMap {
+        case Some(data) => collection.update(registrationIDSelector(registrationID), data.copy(tradingDetails = Some(tradingDetails))).map(
+          _ => Some(tradingDetails)
+        )
+        case None => Future.successful(None)
+      }
     }
-  }
+
+    def updateContactDetails(registrationID: String, contactDetails: ContactDetails): Future[Option[ContactDetails]] = {
+      retrieveCorporationTaxRegistration(registrationID) flatMap {
+        case Some(registration) => collection.update(registrationIDSelector(registrationID), registration.copy(contactDetails = Some(contactDetails)), upsert = false)
+          .map(_ => Some(contactDetails))
+        case None => Future.successful(None)
+      }
+    }
 
     override def getOid(id: String): Future[Option[(String, String)]] = {
       retrieveCorporationTaxRegistration(id) map {

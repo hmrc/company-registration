@@ -20,7 +20,7 @@ import java.util.UUID
 
 import fixtures.{ContactDetailsFixture, CorporationTaxRegistrationFixture}
 import helpers.MongoMocks
-import models.CorporationTaxRegistration
+import models.{CorporationTaxRegistration, TradingDetails}
 import org.mockito.ArgumentCaptor
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
@@ -176,6 +176,37 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
 
       val result = await(repository.getOid(registrationID))
       result shouldBe Some(("0123456789", "9876543210"))
+    }
+  }
+
+  "retrieveTradingDetails" should {
+    "return a TradingDetails" in  {
+      val selector = BSONDocument("registrationID" -> BSONString(registrationID))
+      setupFindFor(repository.collection, selector, Some(validCorporationTaxRegistration))
+      setupAnyUpdateOn(repository.collection)
+
+      val result = await(repository.retrieveTradingDetails(registrationID))
+      result shouldBe validCorporationTaxRegistration.tradingDetails
+    }
+  }
+
+  "updateTradingDetails" should {
+    "return a TradingDetails" in {
+      val selector = BSONDocument("registrationID" -> BSONString(registrationID))
+      setupFindFor(repository.collection, selector, Some(validCorporationTaxRegistration))
+      setupAnyUpdateOn(repository.collection)
+
+      val result = await(repository.updateTradingDetails(registrationID, TradingDetails()))
+      result shouldBe validCorporationTaxRegistration.tradingDetails
+    }
+
+    "return None" in {
+      val selector = BSONDocument("registrationID" -> BSONString(registrationID))
+      setupFindFor(repository.collection, selector, None)
+      setupAnyUpdateOn(repository.collection)
+
+      val result = await(repository.updateTradingDetails(registrationID, TradingDetails()))
+      result shouldBe None
     }
   }
 }
