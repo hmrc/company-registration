@@ -209,4 +209,43 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
       result shouldBe None
     }
   }
+
+  "retrieveAccountingDetails" should {
+    "return an AccountingDetails model" in  {
+      val selector = BSONDocument("registrationID" -> BSONString(registrationID))
+      setupFindFor(repository.collection, selector, Some(validCorporationTaxRegistration))
+      setupAnyUpdateOn(repository.collection)
+
+      val result = await(repository.retrieveAccountingDetails(registrationID))
+      result shouldBe validCorporationTaxRegistration.accountingDetails
+    }
+    "return none" in  {
+      val selector = BSONDocument("registrationID" -> BSONString(registrationID))
+      setupFindFor(repository.collection, selector, None)
+      setupAnyUpdateOn(repository.collection)
+
+      val result = await(repository.retrieveAccountingDetails(registrationID))
+      result shouldBe None
+    }
+  }
+
+  "updateAccountingDetails" should {
+    "return an AccountingDetails model" in {
+      val selector = BSONDocument("registrationID" -> BSONString(registrationID))
+      setupFindFor(repository.collection, selector, Some(validCorporationTaxRegistration))
+      setupAnyUpdateOn(repository.collection)
+
+      val result = await(repository.updateAccountingDetails(registrationID, validAccountingDetails))
+      result shouldBe validCorporationTaxRegistration.accountingDetails
+    }
+
+    "return None" in {
+      val selector = BSONDocument("registrationID" -> BSONString(registrationID))
+      setupFindFor(repository.collection, selector, None)
+      setupAnyUpdateOn(repository.collection)
+
+      val result = await(repository.updateAccountingDetails(registrationID, validAccountingDetails))
+      result shouldBe None
+    }
+  }
 }
