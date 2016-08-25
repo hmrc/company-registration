@@ -18,7 +18,8 @@ package models
 
 import play.api.libs.json.Json
 
-case class CorporationTaxRegistration(OID: String,
+case class CorporationTaxRegistration(acknowledgementReference: Option[String],
+                                      OID: String,
                                       registrationID: String,
                                       formCreationTimestamp: String,
                                       language: String,
@@ -46,7 +47,7 @@ object CorporationTaxRegistration {
   implicit val formats = Json.format[CorporationTaxRegistration]
 
   def empty: CorporationTaxRegistration = {
-    CorporationTaxRegistration("", "", "", "", None, None, None, None)
+    CorporationTaxRegistration(None, "", "", "", "", None, None, None, None)
   }
 }
 
