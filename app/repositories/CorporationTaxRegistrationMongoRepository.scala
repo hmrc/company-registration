@@ -17,6 +17,7 @@
 package repositories
 
 import auth.AuthorisationResource
+import models.AccountingDetails
 import models.{ContactDetails, CompanyDetails, CorporationTaxRegistration, TradingDetails}
 import reactivemongo.api.DB
 import reactivemongo.bson._
@@ -30,7 +31,9 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def createCorporationTaxRegistration(metadata: CorporationTaxRegistration): Future[CorporationTaxRegistration]
   def retrieveCorporationTaxRegistration(regI: String): Future[Option[CorporationTaxRegistration]]
   def retrieveCompanyDetails(registrationID: String): Future[Option[CompanyDetails]]
+  def retrieveAccountingDetails(registrationID: String): Future[Option[AccountingDetails]]
   def updateCompanyDetails(registrationID: String, companyDetails: CompanyDetails): Future[Option[CompanyDetails]]
+  def updateAccountingDetails(registrationID: String, accountingDetails: AccountingDetails): Future[Option[AccountingDetails]]
   def retrieveTradingDetails(registrationID : String) : Future[Option[TradingDetails]]
   def updateTradingDetails(registrationID : String, tradingDetails: TradingDetails) : Future[Option[TradingDetails]]
 }
@@ -67,6 +70,21 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
         case None => None
       }
     }
+
+  override def retrieveAccountingDetails(registrationID: String): Future[Option[AccountingDetails]] = {
+    retrieveCorporationTaxRegistration(registrationID).map {
+      case Some(cTRegistration) => cTRegistration.accountingDetails
+      case None => None
+    }
+  }
+
+  override def updateAccountingDetails(registrationID: String, accountingDetails: AccountingDetails): Future[Option[AccountingDetails]] = {
+    retrieveCorporationTaxRegistration(registrationID).flatMap {
+      case Some(data) => collection.update(registrationIDSelector(registrationID), data.copy(accountingDetails = Some(accountingDetails)), upsert = false)
+        .map(_ => Some(accountingDetails))
+      case None => Future.successful(None)
+    }
+  }
 
     override def retrieveTradingDetails(registrationID: String): Future[Option[TradingDetails]] = {
       retrieveCorporationTaxRegistration(registrationID).map {

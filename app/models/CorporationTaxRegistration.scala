@@ -23,6 +23,7 @@ case class CorporationTaxRegistration(OID: String,
                                       formCreationTimestamp: String,
                                       language: String,
                                       companyDetails: Option[CompanyDetails],
+                                      accountingDetails: Option[AccountingDetails],
                                       tradingDetails: Option[TradingDetails],
                                       contactDetails: Option[ContactDetails]){
 
@@ -40,15 +41,40 @@ object CorporationTaxRegistration {
   implicit val formatPPOB = Json.format[PPOBAddress]
   implicit val formatTD = Json.format[TradingDetails]
   implicit val formatCompanyDetails = Json.format[CompanyDetails]
+  implicit val formatAccountingDetails = Json.format[AccountingDetails]
   implicit val formatContactDetails = Json.format[ContactDetails]
   implicit val formats = Json.format[CorporationTaxRegistration]
 
   def empty: CorporationTaxRegistration = {
-    CorporationTaxRegistration("", "", "", "", None, None, None)
+    CorporationTaxRegistration("", "", "", "", None, None, None, None)
   }
 }
 
+case class AccountingDetailsResponse(accountingDateStatus : String,
+                             startDateOfBusiness : String,
+                             links : Links){
+}
 
+object AccountingDetailsResponse {
+  implicit val linksFormats = Json.format[Links]
+  implicit val formats = Json.format[AccountingDetailsResponse]
+}
+
+case class AccountingDetails(accountingDateStatus : String,
+                             startDateOfBusiness : String){
+
+  def toAccountingDetailsResponse(registrationID: String): AccountingDetailsResponse = {
+    AccountingDetailsResponse(
+      accountingDateStatus,
+      startDateOfBusiness,
+      Links.buildLinks(registrationID)
+    )
+  }
+}
+
+object AccountingDetails {
+  implicit val formats = Json.format[AccountingDetails]
+}
 
 case class CorporationTaxRegistrationResponse(registrationID: String,
                                               formCreationTimestamp: String,

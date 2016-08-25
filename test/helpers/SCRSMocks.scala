@@ -17,6 +17,7 @@
 package helpers
 
 import connectors.{AuthConnector, Authority}
+import models.CorporationTaxRegistration._
 import models._
 import org.mockito.Matchers
 import org.mockito.stubbing.OngoingStubbing
@@ -24,7 +25,8 @@ import org.scalatest.mock.MockitoSugar
 import org.mockito.Mockito._
 import play.api.mvc.Result
 import repositories.CorporationTaxRegistrationMongoRepository
-import services.{ContactDetailsService, CompanyDetailsService, CorporationTaxRegistrationService}
+import services.{AccountingDetailsService, CompanyDetailsService, CorporationTaxRegistrationService}
+import services.{CompanyDetailsService, ContactDetailsService, CorporationTaxRegistrationService}
 import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.Future
@@ -36,7 +38,21 @@ trait SCRSMocks {
 	lazy val mockCTDataRepository = mock[CorporationTaxRegistrationMongoRepository]
 	lazy val mockAuthConnector = mock[AuthConnector]
 	lazy val mockCompanyDetailsService = mock[CompanyDetailsService]
+	lazy val mockAccountingDetailsService = mock[AccountingDetailsService]
 	lazy val mockContactDetailsService = mock[ContactDetailsService]
+
+	object AccountingDetailsServiceMocks {
+		def retrieveAccountingDetails(registrationID: String, result: Option[AccountingDetailsResponse]): OngoingStubbing[Future[Option[AccountingDetailsResponse]]] = {
+			when(mockAccountingDetailsService.retrieveAccountingDetails(Matchers.anyString()))
+				.thenReturn(Future.successful(result))
+		}
+
+		def updateAccountingDetails(registrationID: String, result: Option[AccountingDetailsResponse]): OngoingStubbing[Future[Option[AccountingDetailsResponse]]] = {
+			when(mockAccountingDetailsService.updateAccountingDetails(Matchers.anyString(), Matchers.any[AccountingDetails]()))
+				.thenReturn(Future.successful(result))
+		}
+	}
+
 
 	def matchesRegex(toMatch: String) = Matchers.matches(s"""^$toMatch$$""")
 
@@ -83,6 +99,16 @@ trait SCRSMocks {
       when(mockCTDataRepository.updateCompanyDetails(Matchers.anyString(), Matchers.any[CompanyDetails]()))
         .thenReturn(Future.successful(companyDetails))
     }
+
+		def retrieveAccountingDetails(accountingDetails: Option[AccountingDetails]): OngoingStubbing[Future[Option[AccountingDetails]]] = {
+			when(mockCTDataRepository.retrieveAccountingDetails(Matchers.anyString()))
+				.thenReturn(Future.successful(accountingDetails))
+		}
+
+		def updateAccountingDetails(accountingDetails: Option[AccountingDetails]): OngoingStubbing[Future[Option[AccountingDetails]]] = {
+			when(mockCTDataRepository.updateAccountingDetails(Matchers.anyString(), Matchers.any[AccountingDetails]()))
+				.thenReturn(Future.successful(accountingDetails))
+		}
 
     def retrieveContactDetails(response: Option[ContactDetails]) = {
       when(mockCTDataRepository.retrieveContactDetails(Matchers.anyString()))
