@@ -21,21 +21,24 @@ import java.util.{Date, TimeZone}
 
 import models.{CorporationTaxRegistrationResponse, CorporationTaxRegistration}
 import org.joda.time.DateTime
-import repositories.{CorporationTaxRegistrationRepository, Repositories}
+import repositories.{SequenceRepository, CorporationTaxRegistrationRepository, Repositories}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object CorporationTaxRegistrationService extends CorporationTaxRegistrationService {
   override val CorporationTaxRegistrationRepository = Repositories.cTRepository
+  override val sequenceRepository = Repositories.sequenceRepository
 }
 
 trait CorporationTaxRegistrationService {
 
   val CorporationTaxRegistrationRepository: CorporationTaxRegistrationRepository
+  val sequenceRepository: SequenceRepository
 
   def createCorporationTaxRegistrationRecord(OID: String, registrationId: String, language: String): Future[CorporationTaxRegistrationResponse] = {
     val record = CorporationTaxRegistration.empty.copy(
+      None,
       OID,
       registrationId,
       generateTimestamp(new DateTime()),
@@ -51,11 +54,34 @@ trait CorporationTaxRegistrationService {
     }
   }
 
+  def updateAcknowledgementReference(rID: String): Future[Option[String]] = {
+    for{
+      ref <- generateAcknowledgementReference
+      updatedRef <- CorporationTaxRegistrationRepository.updateAcknowledgementRef(rID, ref)
+    } yield {
+      updatedRef
+    }
+  }
+
+  def retrieveAcknowledgementReference(rID: String): Future[Option[String]] = {
+    CorporationTaxRegistrationRepository.retrieveAcknowledgementRef(rID)
+  }
+
   private def generateTimestamp(timeStamp: DateTime) : String = {
     val timeStampFormat = "yyyy-MM-dd'T'HH:mm:ssXXX"
     val UTC: TimeZone = TimeZone.getTimeZone("UTC")
     val format: SimpleDateFormat = new SimpleDateFormat(timeStampFormat)
     format.setTimeZone(UTC)
     format.format(new Date(timeStamp.getMillis))
+  }
+
+  private def generateAcknowledgementReference: Future[String] = {
+
+    val sequenceID = "AcknowledgementID"
+    sequenceRepository.getNext(sequenceID)
+      .map {
+        ref =>
+      f"BRCT$ref%011d"
+    }
   }
 }

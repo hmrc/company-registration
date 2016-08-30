@@ -1,18 +1,21 @@
 # microservice specific routes
 
-GET        /corporation-tax-registration/:registrationId                   controllers.CorporationTaxRegistrationController.retrieveCorporationTaxRegistration(registrationId)
-PUT        /corporation-tax-registration/:registrationId                   controllers.CorporationTaxRegistrationController.createCorporationTaxRegistration(registrationId)
+GET        /corporation-tax-registration/:registrationId                                    controllers.CorporationTaxRegistrationController.retrieveCorporationTaxRegistration(registrationId)
+PUT        /corporation-tax-registration/:registrationId                                    controllers.CorporationTaxRegistrationController.createCorporationTaxRegistration(registrationId)
 
-GET        /corporation-tax-registration/:registrationID/company-details   controllers.CompanyDetailsController.retrieveCompanyDetails(registrationID: String)
-PUT        /corporation-tax-registration/:registrationID/company-details   controllers.CompanyDetailsController.updateCompanyDetails(registrationID: String)
+GET        /corporation-tax-registration/:registrationID/company-details                    controllers.CompanyDetailsController.retrieveCompanyDetails(registrationID: String)
+PUT        /corporation-tax-registration/:registrationID/company-details                    controllers.CompanyDetailsController.updateCompanyDetails(registrationID: String)
 
-GET        /corporation-tax-registration/:registrationID/accounting-details   controllers.AccountingDetailsController.retrieveAccountingDetails(registrationID: String)
-PUT        /corporation-tax-registration/:registrationID/accounting-details   controllers.AccountingDetailsController.updateAccountingDetails(registrationID: String)
+GET        /corporation-tax-registration/:registrationID/accounting-details                 controllers.AccountingDetailsController.retrieveAccountingDetails(registrationID: String)
+PUT        /corporation-tax-registration/:registrationID/accounting-details                 controllers.AccountingDetailsController.updateAccountingDetails(registrationID: String)
 
-GET        /corporation-tax-registration/:registrationID/trading-details   controllers.TradingDetailsController.retrieveTradingDetails(registrationID : String)
-PUT        /corporation-tax-registration/:registrationID/trading-details   controllers.TradingDetailsController.updateTradingDetails(registrationID : String)
+GET        /corporation-tax-registration/:registrationID/trading-details                    controllers.TradingDetailsController.retrieveTradingDetails(registrationID : String)
+PUT        /corporation-tax-registration/:registrationID/trading-details                    controllers.TradingDetailsController.updateTradingDetails(registrationID : String)
 
-GET        /corporation-tax-registration/:registrationID/contact-details   controllers.ContactDetailsController.retrieveContactDetails(registrationID)
-PUT        /corporation-tax-registration/:registrationID/contact-details   controllers.ContactDetailsController.updateContactDetails(registrationID)
+GET        /corporation-tax-registration/:registrationID/contact-details                    controllers.ContactDetailsController.retrieveContactDetails(registrationID)
+PUT        /corporation-tax-registration/:registrationID/contact-details                    controllers.ContactDetailsController.updateContactDetails(registrationID)
+
+GET        /corporation-tax-registration/:registrationID/fetch-acknowledgement-reference    controllers.CorporationTaxRegistrationController.retrieveAcknowledgementRef(registrationID)
+GET        /corporation-tax-registration/:registrationID/update-acknowledgement-reference   controllers.CorporationTaxRegistrationController.updateAcknowledgementRef(registrationID)
 
 

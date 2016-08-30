@@ -23,6 +23,7 @@ trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with Accou
 	lazy val validCorporationTaxRegistrationRequest = CorporationTaxRegistrationRequest("en")
 
 	lazy val validCorporationTaxRegistration = CorporationTaxRegistration(
+		Some("BRCT12345678910"),
 		OID = "9876543210",
 		registrationID = "0123456789",
 		formCreationTimestamp = "2001-12-31T12:00:00Z",

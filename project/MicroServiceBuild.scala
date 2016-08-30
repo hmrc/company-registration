@@ -1,3 +1,4 @@
+import sbt.Keys._
 import sbt._
 import uk.gov.hmrc.SbtAutoBuildPlugin
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
@@ -12,6 +13,10 @@ object MicroServiceBuild extends Build with MicroService {
   )
 
   override lazy val appDependencies: Seq[ModuleID] = AppDependencies()
+
+  override lazy val playSettings : Seq[Setting[_]] = Seq(
+    dependencyOverrides += "io.netty" % "netty" % "3.9.9.Final"
+  )
 }
 
 private object AppDependencies {
@@ -21,7 +26,7 @@ private object AppDependencies {
   private val microserviceBootstrapVersion = "4.2.1"
   private val playAuthVersion = "3.1.0"
   private val playHealthVersion = "1.1.0"
-  private val playJsonLoggerVersion = "2.1.1"  
+  private val playJsonLoggerVersion = "2.1.1"
   private val playUrlBindersVersion = "1.1.0"
   private val playConfigVersion = "2.1.0"
   private val domainVersion = "3.7.0"

@@ -188,6 +188,15 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
       val result = await(repository.retrieveTradingDetails(registrationID))
       result shouldBe validCorporationTaxRegistration.tradingDetails
     }
+
+    "return an empty option when a document does'nt exist" in {
+      val selector = BSONDocument("registrationID" -> BSONString(registrationID))
+      setupFindFor(repository.collection, selector, None)
+      setupAnyUpdateOn(repository.collection)
+
+      val result = await(repository.retrieveTradingDetails(registrationID))
+      result shouldBe None
+    }
   }
 
   "updateTradingDetails" should {
@@ -245,6 +254,43 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
       setupAnyUpdateOn(repository.collection)
 
       val result = await(repository.updateAccountingDetails(registrationID, validAccountingDetails))
+      result shouldBe None
+    }
+  }
+
+  "updateAcknowledgementRef" should {
+    "return an Ack ref if a CT registration exists" in {
+      val selector = BSONDocument("registrationID" -> BSONString(registrationID))
+      setupFindFor(repository.collection, selector, Some(validCorporationTaxRegistration))
+      setupAnyUpdateOn(repository.collection)
+
+      val result = await(repository.updateAcknowledgementRef(registrationID, "BRCT12345678910"))
+      result shouldBe Some("BRCT12345678910")
+    }
+
+    "return an empty option when a CT registration doesn't exist" in {
+      val selector = BSONDocument("registrationID" -> BSONString(registrationID))
+      setupFindFor(repository.collection, selector, None)
+      setupAnyUpdateOn(repository.collection)
+
+      val result = await(repository.updateAcknowledgementRef(registrationID, "BRCT12345678910"))
+      result shouldBe None
+    }
+  }
+
+  "retrieveAcknowledgementRef" should {
+    "return an Ack ref if a CT registration exists" in {
+      val selector = BSONDocument("registrationID" -> BSONString(registrationID))
+      setupFindFor(repository.collection, selector, Some(validCorporationTaxRegistration))
+
+      val result = await(repository.retrieveAcknowledgementRef(registrationID))
+      result shouldBe Some("BRCT12345678910")
+    }
+    "return an empty option if a CT registration doesn't exists" in {
+      val selector = BSONDocument("registrationID" -> BSONString(registrationID))
+      setupFindFor(repository.collection, selector, None)
+
+      val result = await(repository.retrieveAcknowledgementRef(registrationID))
       result shouldBe None
     }
   }

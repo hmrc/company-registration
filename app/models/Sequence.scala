@@ -14,16 +14,12 @@
  * limitations under the License.
  */
 
-package repositories
+package models
 
-import play.modules.reactivemongo.ReactiveMongoPlugin
+import play.api.libs.json.Json
 
-object Repositories {
-  private implicit val connection = {
-    import play.api.Play.current
-    ReactiveMongoPlugin.mongoConnector.db
-  }
+case class Sequence(sequenceID: String, seq: Int)
 
-  lazy val cTRepository = new CorporationTaxRegistrationMongoRepository
-  lazy val sequenceRepository = new SequenceMongoRepository()
+object Sequence {
+  implicit val formats = Json.format[Sequence]
 }

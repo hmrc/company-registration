@@ -36,6 +36,10 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def updateAccountingDetails(registrationID: String, accountingDetails: AccountingDetails): Future[Option[AccountingDetails]]
   def retrieveTradingDetails(registrationID : String) : Future[Option[TradingDetails]]
   def updateTradingDetails(registrationID : String, tradingDetails: TradingDetails) : Future[Option[TradingDetails]]
+  def updateAcknowledgementRef(registrationID: String, acknowledgementRef: String): Future[Option[String]]
+  def updateContactDetails(registrationID: String, contactDetails: ContactDetails): Future[Option[ContactDetails]]
+  def retrieveContactDetails(registrationID: String): Future[Option[ContactDetails]]
+  def retrieveAcknowledgementRef(registrationID: String): Future[Option[String]]
 }
 
 class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
@@ -71,29 +75,30 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
       }
     }
 
-  override def retrieveAccountingDetails(registrationID: String): Future[Option[AccountingDetails]] = {
-    retrieveCorporationTaxRegistration(registrationID).map {
-      case Some(cTRegistration) => cTRegistration.accountingDetails
-      case None => None
+    override def retrieveAccountingDetails(registrationID: String): Future[Option[AccountingDetails]] = {
+      retrieveCorporationTaxRegistration(registrationID).map {
+        case Some(cTRegistration) => cTRegistration.accountingDetails
+        case None => None
+      }
     }
-  }
 
-  override def updateAccountingDetails(registrationID: String, accountingDetails: AccountingDetails): Future[Option[AccountingDetails]] = {
-    retrieveCorporationTaxRegistration(registrationID).flatMap {
-      case Some(data) => collection.update(registrationIDSelector(registrationID), data.copy(accountingDetails = Some(accountingDetails)), upsert = false)
-        .map(_ => Some(accountingDetails))
-      case None => Future.successful(None)
+    override def updateAccountingDetails(registrationID: String, accountingDetails: AccountingDetails): Future[Option[AccountingDetails]] = {
+      retrieveCorporationTaxRegistration(registrationID).flatMap {
+        case Some(data) => collection.update(registrationIDSelector(registrationID), data.copy(accountingDetails = Some(accountingDetails)), upsert = false)
+          .map(_ => Some(accountingDetails))
+        case None => Future.successful(None)
+      }
     }
-  }
 
     override def retrieveTradingDetails(registrationID: String): Future[Option[TradingDetails]] = {
       retrieveCorporationTaxRegistration(registrationID).map {
         case Some(ctRegistration) =>
           ctRegistration.tradingDetails
+        case None => None
       }
     }
 
-    def retrieveContactDetails(registrationID: String): Future[Option[ContactDetails]] = {
+    override def retrieveContactDetails(registrationID: String): Future[Option[ContactDetails]] = {
       retrieveCorporationTaxRegistration(registrationID) map {
         case Some(registration) => registration.contactDetails
         case None => None
@@ -109,13 +114,28 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
       }
     }
 
-    def updateContactDetails(registrationID: String, contactDetails: ContactDetails): Future[Option[ContactDetails]] = {
+    override def updateContactDetails(registrationID: String, contactDetails: ContactDetails): Future[Option[ContactDetails]] = {
       retrieveCorporationTaxRegistration(registrationID) flatMap {
         case Some(registration) => collection.update(registrationIDSelector(registrationID), registration.copy(contactDetails = Some(contactDetails)), upsert = false)
           .map(_ => Some(contactDetails))
         case None => Future.successful(None)
       }
     }
+
+    override def updateAcknowledgementRef(registrationID: String, acknowledgementRef: String): Future[Option[String]] = {
+      retrieveCorporationTaxRegistration(registrationID) flatMap {
+        case Some(reg) => collection.update(registrationIDSelector(registrationID), reg.copy(acknowledgementReference = Some(acknowledgementRef)), upsert = false)
+            .map(_ => Some(acknowledgementRef))
+        case None => Future.successful(None)
+      }
+    }
+
+  override def retrieveAcknowledgementRef(registrationID: String): Future[Option[String]] = {
+    retrieveCorporationTaxRegistration(registrationID) map {
+      case Some(reg) => reg.acknowledgementReference
+      case None => None
+    }
+  }
 
     override def getOid(id: String): Future[Option[(String, String)]] = {
       retrieveCorporationTaxRegistration(id) map {

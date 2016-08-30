@@ -65,4 +65,38 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
         case AuthResourceNotFound(_) => Future.successful(NotFound)
       }
   }
+
+  def retrieveAcknowledgementRef(registrationID: String) = Action.async {
+    implicit request =>
+      authorised(registrationID) {
+        case Authorised(_) => ctService.retrieveAcknowledgementReference(registrationID) map {
+          case Some(ref) => Ok(Json.toJson(ref))
+          case None => NotFound
+        }
+        case NotLoggedInOrAuthorised =>
+          Logger.info(s"[CorporationTaxRegistrationController] [retrieveCTData] User not logged in")
+          Future.successful(Forbidden)
+        case NotAuthorised(_) =>
+          Logger.info(s"[CorporationTaxRegistrationController] [retrieveCTData] User logged in but not authorised for resource $registrationID")
+          Future.successful(Forbidden)
+        case AuthResourceNotFound(_) => Future.successful(NotFound)
+      }
+  }
+
+  def updateAcknowledgementRef(registrationID: String) = Action.async {
+    implicit request =>
+      authorised(registrationID) {
+        case Authorised(_) => ctService.updateAcknowledgementReference(registrationID) map {
+          case Some(ref) => Ok(Json.toJson(ref))
+          case None => NotFound
+        }
+        case NotLoggedInOrAuthorised =>
+          Logger.info(s"[CorporationTaxRegistrationController] [retrieveCTData] User not logged in")
+          Future.successful(Forbidden)
+        case NotAuthorised(_) =>
+          Logger.info(s"[CorporationTaxRegistrationController] [retrieveCTData] User logged in but not authorised for resource $registrationID")
+          Future.successful(Forbidden)
+        case AuthResourceNotFound(_) => Future.successful(NotFound)
+      }
+  }
 }
