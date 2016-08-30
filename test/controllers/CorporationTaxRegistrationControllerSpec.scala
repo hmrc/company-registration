@@ -33,9 +33,9 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
 
 	class Setup {
 		val controller = new CorporationTaxRegistrationController {
-			override val ctService: CorporationTaxRegistrationService = mockCTDataService
+			override val ctService = mockCTDataService
 			override val resourceConn = mockCTDataRepository
-			override val auth: AuthConnector = mockAuthConnector
+			override val auth = mockAuthConnector
 		}
 	}
 
@@ -124,4 +124,98 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
 			status(result) shouldBe NOT_FOUND
 		}
 	}
+
+	"retrieveAcknowledgementRef" should {
+
+    val regId = "testRegId"
+
+    "return a 200 and an acknowledgement ref is one exists" in new Setup {
+      CTServiceMocks.retrieveAcknowledgementReference(regId, Some("BRCT00000000123"))
+      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+      AuthorisationMocks.getOID(validAuthority.oid, Some(regId, validAuthority.oid))
+
+      val result = controller.retrieveAcknowledgementRef(regId)(FakeRequest())
+      status(result) shouldBe OK
+    }
+
+    "return a 404 if a record cannot be found" in new Setup {
+      CTServiceMocks.retrieveAcknowledgementReference(regId, None)
+      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+      AuthorisationMocks.getOID(validAuthority.oid, Some(regId, validAuthority.oid))
+
+      val result = controller.retrieveAcknowledgementRef(regId)(FakeRequest())
+      status(result) shouldBe NOT_FOUND
+    }
+
+    "return a 403 when the user is not authenticated" in new Setup {
+      AuthenticationMocks.getCurrentAuthority(None)
+      AuthorisationMocks.getOID(validAuthority.oid, None)
+
+      val result = controller.retrieveAcknowledgementRef(regId)(FakeRequest())
+      status(result) shouldBe FORBIDDEN
+    }
+
+    "return a 403 when the user is logged in but not authorised to access the resource" in new Setup {
+      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+      AuthorisationMocks.getOID(validAuthority.oid, Some(regId, "xxx"))
+
+      val result = controller.retrieveAcknowledgementRef(regId)(FakeRequest())
+      status(result) shouldBe FORBIDDEN
+    }
+
+    "return a 404 when the user is logged in but the record doesn't exist" in new Setup {
+      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+      AuthorisationMocks.getOID(validAuthority.oid, None)
+
+      val result = controller.retrieveAcknowledgementRef(regId)(FakeRequest())
+      status(result) shouldBe NOT_FOUND
+    }
+	}
+
+  "updateAcknowledgementRef" should {
+
+    val regId = "testRegId"
+
+    "return a 200 and an acknowledgement ref is one exists" in new Setup {
+      CTServiceMocks.updateAcknowledgementReference(regId, Some("BRCT00000000123"))
+      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+      AuthorisationMocks.getOID(validAuthority.oid, Some(regId, validAuthority.oid))
+
+      val result = controller.updateAcknowledgementRef(regId)(FakeRequest())
+      status(result) shouldBe OK
+    }
+
+    "return a 404 if a record cannot be found" in new Setup {
+      CTServiceMocks.updateAcknowledgementReference(regId, None)
+      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+      AuthorisationMocks.getOID(validAuthority.oid, Some(regId, validAuthority.oid))
+
+      val result = controller.updateAcknowledgementRef(regId)(FakeRequest())
+      status(result) shouldBe NOT_FOUND
+    }
+
+    "return a 403 when the user is not authenticated" in new Setup {
+      AuthenticationMocks.getCurrentAuthority(None)
+      AuthorisationMocks.getOID(validAuthority.oid, None)
+
+      val result = controller.updateAcknowledgementRef(regId)(FakeRequest())
+      status(result) shouldBe FORBIDDEN
+    }
+
+    "return a 403 when the user is logged in but not authorised to access the resource" in new Setup {
+      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+      AuthorisationMocks.getOID(validAuthority.oid, Some(regId, "xxx"))
+
+      val result = controller.updateAcknowledgementRef(regId)(FakeRequest())
+      status(result) shouldBe FORBIDDEN
+    }
+
+    "return a 404 when the user is logged in but the record doesn't exist" in new Setup {
+      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+      AuthorisationMocks.getOID(validAuthority.oid, None)
+
+      val result = controller.updateAcknowledgementRef(regId)(FakeRequest())
+      status(result) shouldBe NOT_FOUND
+    }
+  }
 }

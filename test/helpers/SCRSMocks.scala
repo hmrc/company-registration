@@ -54,9 +54,6 @@ trait SCRSMocks {
 		}
 	}
 
-
-	def matchesRegex(toMatch: String) = Matchers.matches(s"""^$toMatch$$""")
-
 	object CTServiceMocks {
 		def createCTDataRecord(result: CorporationTaxRegistrationResponse): OngoingStubbing[Future[CorporationTaxRegistrationResponse]] = {
 			when(mockCTDataService.createCorporationTaxRegistrationRecord(Matchers.any[String], Matchers.any[String], Matchers.any[String]))
@@ -66,6 +63,14 @@ trait SCRSMocks {
 			when(mockCTDataService.retrieveCorporationTaxRegistrationRecord(Matchers.eq(regId)))
 				.thenReturn(Future.successful(result))
 		}
+    def retrieveAcknowledgementReference(regID: String, returns: Option[String]) = {
+      when(mockCTDataService.retrieveAcknowledgementReference(Matchers.contains(regID)))
+        .thenReturn(Future.successful(returns))
+    }
+    def updateAcknowledgementReference(regID: String, returns: Option[String]) = {
+      when(mockCTDataService.updateAcknowledgementReference(Matchers.contains(regID)))
+        .thenReturn(Future.successful(returns))
+    }
 	}
 
 	object AuthenticationMocks {
@@ -119,6 +124,16 @@ trait SCRSMocks {
       when(mockCTDataRepository.updateContactDetails(Matchers.anyString(), Matchers.any[ContactDetails]()))
         .thenReturn(Future.successful(response))
     }
+
+    def updateAcknowledgementRef(regID: String, acknowledgementID: Option[String]) = {
+      when(mockCTDataRepository.updateAcknowledgementRef(Matchers.contains(regID), Matchers.contains(acknowledgementID.get)))
+        .thenReturn(Future.successful(acknowledgementID))
+    }
+
+    def retrieveAcknowledgementRef(regID: String, returns: Option[String]) = {
+      when(mockCTDataRepository.retrieveAcknowledgementRef(Matchers.contains(regID)))
+        .thenReturn(Future.successful(returns))
+    }
 	}
 
 	object CompanyDetailsServiceMocks {
@@ -135,7 +150,7 @@ trait SCRSMocks {
 
 	object ContactDetailsServiceMocks {
 		def retrieveContactDetails(registrationID: String, response: Option[ContactDetailsResponse]) = {
-			when(mockContactDetailsService.retrieveContactDetails(matchesRegex(registrationID)))
+			when(mockContactDetailsService.retrieveContactDetails(Matchers.contains(registrationID)))
 			  .thenReturn(Future.successful(response))
 		}
 
@@ -144,4 +159,11 @@ trait SCRSMocks {
 			  .thenReturn(Future.successful(response))
 		}
 	}
+
+  object SequenceRepositoryMocks {
+    def getNext(sequenceID: String, returns: Int) = {
+      when(mockSequenceRepository.getNext(Matchers.contains(sequenceID)))
+        .thenReturn(Future.successful(returns))
+    }
+  }
 }

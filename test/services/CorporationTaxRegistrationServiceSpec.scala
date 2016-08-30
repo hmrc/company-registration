@@ -27,7 +27,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
 
 	class Setup {
 		val service = new CorporationTaxRegistrationService {
-			override val CorporationTaxRegistrationRepository: CorporationTaxRegistrationRepository = mockCTDataRepository
+			override val CorporationTaxRegistrationRepository = mockCTDataRepository
 			override val sequenceRepository = mockSequenceRepository
 		}
 	}
@@ -47,8 +47,8 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
 		}
 	}
 
-	"retrieveMetadataRecord" should {
-		"return MetadataResponse Json and a 200 - Ok when a metadata record is retrieved" in new Setup {
+	"retrieveCorporationTaxRegistrationRecord" should {
+		"return Corporation Tax registration response Json and a 200 - Ok when a record is retrieved" in new Setup {
 			CTDataRepositoryMocks.retrieveCorporationTaxRegistration(Some(validCorporationTaxRegistration))
 
 			val result = service.retrieveCorporationTaxRegistrationRecord("testRegID")
@@ -62,4 +62,29 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
 			await(result) shouldBe None
 		}
 	}
+
+  "updateAcknowledgementReference" should {
+//    "return the updated reference acknowledgement number" in new Setup {
+//      CTDataRepositoryMocks.updateAcknowledgementRef("testRegID", Some("AcknowledgementID"))
+//      SequenceRepositoryMocks.getNext("testSeqID", 3)
+//
+//      val result = service.updateAcknowledgementReference("testRegID")
+//      await(result) shouldBe "BRCT00000000003"
+//    }
+  }
+
+  "retrieveAcknowledgementReference" should {
+    "return an Ack ref if one is found" in new Setup {
+      CTDataRepositoryMocks.retrieveAcknowledgementRef("testRegID", Some("BRCT00000000003"))
+
+      val result = service.retrieveAcknowledgementReference("testRegID")
+      await(result) shouldBe Some("BRCT00000000003")
+    }
+    "return an empty option if an Ack ref is not found" in new Setup {
+      CTDataRepositoryMocks.retrieveAcknowledgementRef("testRegID", None)
+
+      val result = service.retrieveAcknowledgementReference("testRegID")
+      await(result) shouldBe None
+    }
+  }
 }

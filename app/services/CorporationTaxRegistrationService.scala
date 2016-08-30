@@ -78,7 +78,9 @@ trait CorporationTaxRegistrationService {
   private def generateAcknowledgementReference: Future[String] = {
 
     val sequenceID = "AcknowledgementID"
-    sequenceRepository.getNext(sequenceID) map { ref =>
+    sequenceRepository.getNext(sequenceID)
+      .map {
+        ref =>
       f"BRCT$ref%011d"
     }
   }
