@@ -38,6 +38,7 @@ case class CorporationTaxRegistration(acknowledgementReference: Option[String],
 }
 
 object CorporationTaxRegistration {
+  implicit val formatCH = Json.format[CHROAddress]
   implicit val formatRO = Json.format[ROAddress]
   implicit val formatPPOB = Json.format[PPOBAddress]
   implicit val formatTD = Json.format[TradingDetails]
@@ -87,12 +88,14 @@ object CorporationTaxRegistrationResponse {
 }
 
 case class CompanyDetails(companyName: String,
+                          cHROAddress: CHROAddress,
                           rOAddress: ROAddress,
                           pPOBAddress: PPOBAddress){
 
   def toCompanyDetailsResponse(registrationID: String): CompanyDetailsResponse = {
     CompanyDetailsResponse(
       companyName,
+      cHROAddress,
       rOAddress,
       pPOBAddress,
       TradingDetails.empty,
@@ -102,10 +105,20 @@ case class CompanyDetails(companyName: String,
 }
 
 case class CompanyDetailsResponse(companyName: String,
+                                  cHROAddress: CHROAddress,
                                   rOAddress: ROAddress,
                                   pPOBAddress: PPOBAddress,
                                   tradingDetails: TradingDetails,
                                   links: Links)
+
+case class CHROAddress(premises : String,
+                       address_line_1 : String,
+                       address_line_2 : Option[String],
+                       country : String,
+                       locality : String,
+                       po_box : Option[String],
+                       postal_code : Option[String],
+                       region : Option[String])
 
 case class ROAddress(houseNameNumber: String,
                      addressLine1: String,
@@ -124,6 +137,7 @@ case class PPOBAddress(houseNameNumber: String,
                        country: String)
 
 object CompanyDetails {
+  implicit val formatCH = Json.format[CHROAddress]
   implicit val formatRO = Json.format[ROAddress]
   implicit val formatPPOB = Json.format[PPOBAddress]
   implicit val formatTD = Json.format[TradingDetails]
@@ -131,11 +145,16 @@ object CompanyDetails {
 }
 
 object CompanyDetailsResponse {
+  implicit val formatCH = Json.format[CHROAddress]
   implicit val formatRO = Json.format[ROAddress]
   implicit val formatPPOB = Json.format[PPOBAddress]
   implicit val formatLinks = Json.format[Links]
   implicit val formatTD = Json.format[TradingDetails]
   implicit val formats = Json.format[CompanyDetailsResponse]
+}
+
+object CHROAddress {
+  implicit val format = Json.format[CHROAddress]
 }
 
 object ROAddress {
