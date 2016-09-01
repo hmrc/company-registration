@@ -22,6 +22,16 @@ trait CompanyDetailsFixture {
 
   lazy val validCompanyDetails = CompanyDetails(
     "testCompanyName",
+    CHROAddress(
+      "Premises",
+      "Line 1",
+      Some("Line 2"),
+      "Country",
+      "Locality",
+      Some("PO box"),
+      Some("Post code"),
+      Some("Region")
+    ),
     ROAddress(
       "10",
       "test street",
