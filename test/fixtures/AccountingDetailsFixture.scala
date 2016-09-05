@@ -21,8 +21,8 @@ import models._
 trait AccountingDetailsFixture {
 
   lazy val validAccountingDetails = AccountingDetails(
-    "date-of-CRN",
-    "22-08-2016"
+    "futureDate",
+    Some("22-08-2016")
   )
 
   lazy val validAccountingDetailsResponse = validAccountingDetails.toAccountingDetailsResponse("12345")

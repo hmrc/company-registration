@@ -53,7 +53,7 @@ object CorporationTaxRegistration {
 }
 
 case class AccountingDetailsResponse(accountingDateStatus : String,
-                             startDateOfBusiness : String,
+                             startDateOfBusiness : Option[String],
                              links : Links){
 }
 
@@ -63,7 +63,7 @@ object AccountingDetailsResponse {
 }
 
 case class AccountingDetails(accountingDateStatus : String,
-                             startDateOfBusiness : String){
+                             startDateOfBusiness : Option[String]){
 
   def toAccountingDetailsResponse(registrationID: String): AccountingDetailsResponse = {
     AccountingDetailsResponse(
