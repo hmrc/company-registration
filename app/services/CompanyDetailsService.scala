@@ -27,7 +27,7 @@ object CompanyDetailsService extends CompanyDetailsService {
   override val corporationTaxRegistrationRepository = Repositories.cTRepository
 }
 
-trait CompanyDetailsService extends BaseController {
+trait CompanyDetailsService {
 
   val corporationTaxRegistrationRepository : CorporationTaxRegistrationMongoRepository
 

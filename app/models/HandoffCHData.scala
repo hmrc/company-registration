@@ -14,21 +14,19 @@
  * limitations under the License.
  */
 
-package repositories
+package models
 
-import models.HandoffCHData
-import play.modules.reactivemongo.ReactiveMongoPlugin
-import reactivemongo.api.commands.MultiBulkWriteResult
+import org.joda.time.{DateTimeZone, DateTime}
 
-import scala.concurrent.{ExecutionContext, Future}
+import play.api.libs.json.{JsValue, Json}
 
-object Repositories {
-  private implicit val connection = {
-    import play.api.Play.current
-    ReactiveMongoPlugin.mongoConnector.db
-  }
+case class HandoffCHData(_id: String, updated: DateTime = HandoffCHData.now, ch: JsValue = Json.parse("{}")){
+  def registrationID = _id
+}
 
-  lazy val cTRepository = new CorporationTaxRegistrationMongoRepository
-  lazy val sequenceRepository = new SequenceMongoRepository()
-  lazy val handoffRepository = new HandoffMongoRepository()
+object HandoffCHData {
+  import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
+  import ReactiveMongoFormats.{dateTimeRead, dateTimeWrite}
+  implicit val formats = Json.format[HandoffCHData]
+  def now = DateTime.now.withZone(DateTimeZone.UTC)
 }

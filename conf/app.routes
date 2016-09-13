@@ -18,4 +18,5 @@ PUT        /corporation-tax-registration/:registrationID/contact-details        
 GET        /corporation-tax-registration/:registrationID/fetch-acknowledgement-reference    controllers.CorporationTaxRegistrationController.retrieveAcknowledgementRef(registrationID)
 GET        /corporation-tax-registration/:registrationID/update-acknowledgement-reference   controllers.CorporationTaxRegistrationController.updateAcknowledgementRef(registrationID)
 
-
+GET        /corporation-tax-registration/:registrationID/ch-handoff-data                    controllers.HandoffCHDataController.retrieveHandoffCHData(registrationID)
+PUT        /corporation-tax-registration/:registrationID/ch-handoff-data                    controllers.HandoffCHDataController.storeHandoffCHData(registrationID)

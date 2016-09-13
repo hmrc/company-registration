@@ -16,6 +16,8 @@
 
 package services
 
+import java.util.UUID
+
 import fixtures.CompanyDetailsFixture
 import helpers.SCRSSpec
 import repositories.Repositories
@@ -28,7 +30,9 @@ class CompanyDetailsServiceSpec extends SCRSSpec with CompanyDetailsFixture {
     }
   }
 
+//  val registrationID = UUID.randomUUID().toString
   val registrationID = "12345"
+
 
   "CompanyDetailsService" should {
     "use the correct repository" in {

@@ -24,9 +24,8 @@ import org.mockito.stubbing.OngoingStubbing
 import org.scalatest.mock.MockitoSugar
 import org.mockito.Mockito._
 import play.api.mvc.Result
-import repositories.{SequenceRepository, CorporationTaxRegistrationMongoRepository}
-import services.{AccountingDetailsService, CompanyDetailsService, CorporationTaxRegistrationService}
-import services.{CompanyDetailsService, ContactDetailsService, CorporationTaxRegistrationService}
+import repositories.{CorporationTaxRegistrationMongoRepository, HandoffRepository, SequenceRepository}
+import services._
 import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.Future
@@ -41,6 +40,8 @@ trait SCRSMocks {
 	lazy val mockAccountingDetailsService = mock[AccountingDetailsService]
 	lazy val mockContactDetailsService = mock[ContactDetailsService]
 	lazy val mockSequenceRepository = mock[SequenceRepository]
+	lazy val mockHandoffRespository = mock[HandoffRepository]
+	lazy val mockHandoffService = mock[HandoffCHDataService]
 
 	object AccountingDetailsServiceMocks {
 		def retrieveAccountingDetails(registrationID: String, result: Option[AccountingDetailsResponse]): OngoingStubbing[Future[Option[AccountingDetailsResponse]]] = {
