@@ -64,13 +64,13 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
 	}
 
   "updateAcknowledgementReference" should {
-//    "return the updated reference acknowledgement number" in new Setup {
-//      CTDataRepositoryMocks.updateAcknowledgementRef("testRegID", Some("AcknowledgementID"))
-//      SequenceRepositoryMocks.getNext("testSeqID", 3)
-//
-//      val result = service.updateAcknowledgementReference("testRegID")
-//      await(result) shouldBe "BRCT00000000003"
-//    }
+    "return the updated reference acknowledgement number" in new Setup {
+      CTDataRepositoryMocks.updateAcknowledgementRef("testRegID", Some("BRCT00000000003"))
+      SequenceRepositoryMocks.getNext("testSeqID", 3)
+
+      val result = service.updateAcknowledgementReference("testRegID")
+      await(result) shouldBe Some("BRCT00000000003")
+    }
   }
 
   "retrieveAcknowledgementReference" should {

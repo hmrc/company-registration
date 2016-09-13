@@ -21,17 +21,21 @@ import models.{ContactDetails, ContactDetailsResponse, Links}
 trait ContactDetailsFixture {
 
   lazy val contactDetails = ContactDetails(
-    "testContactName",
-    "testContactDaytimeTelephoneNumber",
-    "testContactMobileNumber",
-    "testContactEmail"
+    "testContactFirstName",
+    "testContactMiddleName",
+    "testContactLastName",
+    "02072899066",
+    "07567293726",
+    "test@email.co.uk"
   )
 
   lazy val contactDetailsResponse = ContactDetailsResponse(
-    "testContactName",
-    "testContactDaytimeTelephoneNumber",
-    "testContactMobileNumber",
-    "testContactEmail",
+    contactDetails.contactFirstName,
+    contactDetails.contactMiddleName,
+    contactDetails.contactSurname,
+    contactDetails.contactDaytimeTelephoneNumber,
+    contactDetails.contactMobileNumber,
+    contactDetails.contactEmail,
     Links(Some(s"/corporation-tax-registration/12345/trading-details"),
       Some(s"/corporation-tax-registration/12345/"))
   )
