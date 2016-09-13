@@ -126,7 +126,7 @@ trait SCRSMocks {
     }
 
     def updateAcknowledgementRef(regID: String, acknowledgementID: Option[String]) = {
-      when(mockCTDataRepository.updateAcknowledgementRef(Matchers.contains(regID), Matchers.contains(acknowledgementID.get)))
+      when(mockCTDataRepository.updateAcknowledgementRef(Matchers.any(), Matchers.any()))
         .thenReturn(Future.successful(acknowledgementID))
     }
 
@@ -162,7 +162,7 @@ trait SCRSMocks {
 
   object SequenceRepositoryMocks {
     def getNext(sequenceID: String, returns: Int) = {
-      when(mockSequenceRepository.getNext(Matchers.contains(sequenceID)))
+      when(mockSequenceRepository.getNext(Matchers.any()))
         .thenReturn(Future.successful(returns))
     }
   }

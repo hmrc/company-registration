@@ -256,6 +256,15 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
       val result = await(repository.updateAccountingDetails(registrationID, validAccountingDetails))
       result shouldBe None
     }
+
+    "return an accountingDetails model if the start date of business is not defined" in {
+      val selector = BSONDocument("registrationID" -> BSONString(registrationID))
+      setupFindFor(repository.collection, selector, Some(validCorporationTaxRegistration))
+      setupAnyUpdateOn(repository.collection)
+
+      val result = await(repository.updateAccountingDetails(registrationID, accountingDetailsNoStartDateOfBusiness))
+      result shouldBe validCorporationTaxRegistration.copy(accountingDetails = Some(accountingDetailsNoStartDateOfBusiness)).accountingDetails
+    }
   }
 
   "updateAcknowledgementRef" should {

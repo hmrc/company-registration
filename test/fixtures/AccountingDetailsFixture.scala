@@ -25,5 +25,10 @@ trait AccountingDetailsFixture {
     Some("22-08-2016")
   )
 
+  lazy val accountingDetailsNoStartDateOfBusiness = AccountingDetails(
+    "whenRegistered",
+    None
+  )
+
   lazy val validAccountingDetailsResponse = validAccountingDetails.toAccountingDetailsResponse("12345")
 }
