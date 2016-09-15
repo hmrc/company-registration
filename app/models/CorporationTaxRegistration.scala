@@ -172,12 +172,12 @@ object CorporationTaxRegistrationRequest{
   implicit val format = Json.format[CorporationTaxRegistrationRequest]
 }
 
-case class ContactDetails(contactFirstName: String,
-                          contactMiddleName: String,
-                          contactSurname: String,
-                          contactDaytimeTelephoneNumber: String,
-                          contactMobileNumber: String,
-                          contactEmail: String){
+case class ContactDetails(contactFirstName: Option[String],
+                          contactMiddleName: Option[String],
+                          contactSurname: Option[String],
+                          contactDaytimeTelephoneNumber: Option[String],
+                          contactMobileNumber: Option[String],
+                          contactEmail: Option[String]){
 
   implicit def convertToResponse(registrationID: String): ContactDetailsResponse = {
     ContactDetailsResponse(contactFirstName, contactMiddleName, contactSurname, contactDaytimeTelephoneNumber, contactMobileNumber, contactEmail,
@@ -190,12 +190,12 @@ object ContactDetails {
   implicit val formats = Json.format[ContactDetails]
 }
 
-case class ContactDetailsResponse(contactFirstName: String,
-                                  contactMiddleName: String,
-                                  contactSurname: String,
-                                  contactDaytimeTelephoneNumber: String,
-                                  contactMobileNumber: String,
-                                  contactEmail: String,
+case class ContactDetailsResponse(contactFirstName: Option[String],
+                                  contactMiddleName: Option[String],
+                                  contactSurname: Option[String],
+                                  contactDaytimeTelephoneNumber: Option[String],
+                                  contactMobileNumber: Option[String],
+                                  contactEmail: Option[String],
                                   links: Links)
 
 object ContactDetailsResponse {
