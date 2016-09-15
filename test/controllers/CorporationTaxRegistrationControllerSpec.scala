@@ -74,7 +74,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
 			CTServiceMocks.retrieveCTDataRecord(regId, Some(validCorporationTaxRegistrationResponse))
 			AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
 
-			when(mockCTDataRepository.getOid(Matchers.eq(regId))).
+			when(mockCTDataRepository.getOid(Matchers.contains(regId))).
 				thenReturn(Future.successful(Some((regId,validAuthority.oid))))
 
 			val result = call(controller.retrieveCorporationTaxRegistration(regId), FakeRequest())
@@ -87,7 +87,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
 			CTServiceMocks.retrieveCTDataRecord(regId, None)
 			AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
 
-			when(mockCTDataRepository.getOid(Matchers.eq(regId))).
+			when(mockCTDataRepository.getOid(Matchers.contains(regId))).
 				thenReturn(Future.successful(Some((regId,validAuthority.oid))))
 
 			val result = call(controller.retrieveCorporationTaxRegistration(regId), FakeRequest())
@@ -108,7 +108,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
 		"return a 403 - forbidden when the user is logged in but not authorised to access the resource" in new Setup {
 			val regId = "testRegId"
 			AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-			when(mockCTDataRepository.getOid(Matchers.eq(regId))).
+			when(mockCTDataRepository.getOid(Matchers.contains(regId))).
 				thenReturn(Future.successful(Some((regId, validAuthority.oid + "xxx"))))
 
 			val result = call(controller.retrieveCorporationTaxRegistration(regId), FakeRequest())
@@ -118,7 +118,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
 		"return a 404 - not found logged in the requested document doesn't exist" in new Setup {
 			val regId = "testRegId"
 			AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-			when(mockCTDataRepository.getOid(Matchers.eq(regId))).thenReturn(Future.successful(None))
+			when(mockCTDataRepository.getOid(Matchers.contains(regId))).thenReturn(Future.successful(None))
 
 			val result = call(controller.retrieveCorporationTaxRegistration(regId), FakeRequest())
 			status(result) shouldBe NOT_FOUND
@@ -132,7 +132,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
     "return a 200 and an acknowledgement ref is one exists" in new Setup {
       CTServiceMocks.retrieveAcknowledgementReference(regId, Some("BRCT00000000123"))
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      AuthorisationMocks.getOID(validAuthority.oid, Some(regId, validAuthority.oid))
+      AuthorisationMocks.getOID(validAuthority.oid, Some((regId, validAuthority.oid)))
 
       val result = controller.retrieveAcknowledgementRef(regId)(FakeRequest())
       status(result) shouldBe OK
@@ -141,7 +141,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
     "return a 404 if a record cannot be found" in new Setup {
       CTServiceMocks.retrieveAcknowledgementReference(regId, None)
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      AuthorisationMocks.getOID(validAuthority.oid, Some(regId, validAuthority.oid))
+      AuthorisationMocks.getOID(validAuthority.oid, Some((regId, validAuthority.oid)))
 
       val result = controller.retrieveAcknowledgementRef(regId)(FakeRequest())
       status(result) shouldBe NOT_FOUND
@@ -157,7 +157,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
 
     "return a 403 when the user is logged in but not authorised to access the resource" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      AuthorisationMocks.getOID(validAuthority.oid, Some(regId, "xxx"))
+      AuthorisationMocks.getOID(validAuthority.oid, Some((regId, "xxx")))
 
       val result = controller.retrieveAcknowledgementRef(regId)(FakeRequest())
       status(result) shouldBe FORBIDDEN
@@ -179,7 +179,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
     "return a 200 and an acknowledgement ref is one exists" in new Setup {
       CTServiceMocks.updateAcknowledgementReference(regId, Some("BRCT00000000123"))
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      AuthorisationMocks.getOID(validAuthority.oid, Some(regId, validAuthority.oid))
+      AuthorisationMocks.getOID(validAuthority.oid, Some((regId, validAuthority.oid)))
 
       val result = controller.updateAcknowledgementRef(regId)(FakeRequest())
       status(result) shouldBe OK
@@ -188,7 +188,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
     "return a 404 if a record cannot be found" in new Setup {
       CTServiceMocks.updateAcknowledgementReference(regId, None)
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      AuthorisationMocks.getOID(validAuthority.oid, Some(regId, validAuthority.oid))
+      AuthorisationMocks.getOID(validAuthority.oid, Some((regId, validAuthority.oid)))
 
       val result = controller.updateAcknowledgementRef(regId)(FakeRequest())
       status(result) shouldBe NOT_FOUND
@@ -204,7 +204,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
 
     "return a 403 when the user is logged in but not authorised to access the resource" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      AuthorisationMocks.getOID(validAuthority.oid, Some(regId, "xxx"))
+      AuthorisationMocks.getOID(validAuthority.oid, Some((regId, "xxx")))
 
       val result = controller.updateAcknowledgementRef(regId)(FakeRequest())
       status(result) shouldBe FORBIDDEN

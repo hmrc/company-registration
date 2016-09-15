@@ -17,6 +17,7 @@
 package models
 
 import play.api.libs.json.Json
+import scala.language.implicitConversions
 
 case class CorporationTaxRegistration(acknowledgementReference: Option[String],
                                       OID: String,
@@ -171,13 +172,16 @@ object CorporationTaxRegistrationRequest{
   implicit val format = Json.format[CorporationTaxRegistrationRequest]
 }
 
-case class ContactDetails(contactName: String,
-                          contactDaytimeTelephoneNumber: String,
-                          contactMobileNumber: String,
-                          contactEmail: String){
-  def convertToResponse (registrationID: String) = {
-    ContactDetailsResponse(contactName, contactDaytimeTelephoneNumber, contactMobileNumber, contactEmail,
-      Links (Some(s"/corporation-tax-registration/$registrationID/trading-details"), Some(s"/corporation-tax-registration/$registrationID/")))
+case class ContactDetails(contactFirstName: Option[String],
+                          contactMiddleName: Option[String],
+                          contactSurname: Option[String],
+                          contactDaytimeTelephoneNumber: Option[String],
+                          contactMobileNumber: Option[String],
+                          contactEmail: Option[String]){
+
+  implicit def convertToResponse(registrationID: String): ContactDetailsResponse = {
+    ContactDetailsResponse(contactFirstName, contactMiddleName, contactSurname, contactDaytimeTelephoneNumber, contactMobileNumber, contactEmail,
+      Links(Some(s"/corporation-tax-registration/$registrationID/trading-details"), Some(s"/corporation-tax-registration/$registrationID/")))
   }
 }
 
@@ -186,11 +190,13 @@ object ContactDetails {
   implicit val formats = Json.format[ContactDetails]
 }
 
-case class ContactDetailsResponse(contactName: String,
-                                 contactDaytimeTelephoneNumber: String,
-                                 contactMobileNumber: String,
-                                 contactEmail: String,
-                                 links: Links)
+case class ContactDetailsResponse(contactFirstName: Option[String],
+                                  contactMiddleName: Option[String],
+                                  contactSurname: Option[String],
+                                  contactDaytimeTelephoneNumber: Option[String],
+                                  contactMobileNumber: Option[String],
+                                  contactEmail: Option[String],
+                                  links: Links)
 
 object ContactDetailsResponse {
   implicit val formatsLinks = Json.format[Links]
