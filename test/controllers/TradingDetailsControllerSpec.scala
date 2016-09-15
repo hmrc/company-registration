@@ -98,7 +98,7 @@ class TradingDetailsControllerSpec extends SCRSSpec with AuthFixture {
 
     "return a 403 - Forbidden if the user is not authorised" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockCTDataRepository.getOid(Matchers.any())).thenReturn(Future.successful(Some("invalidRegID","invalidOID")))
+      when(mockCTDataRepository.getOid(Matchers.any())).thenReturn(Future.successful(Some("invalidRegID" -> "invalidOID")))
 
       val result = TestController.retrieveTradingDetails(regID)(FakeRequest())
       status(result) shouldBe FORBIDDEN
