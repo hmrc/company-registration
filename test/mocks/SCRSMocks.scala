@@ -14,46 +14,36 @@
  * limitations under the License.
  */
 
-package helpers
+package mocks
 
 import connectors.{AuthConnector, Authority}
-import models.CorporationTaxRegistration._
 import models._
 import org.mockito.Matchers
+import org.mockito.Mockito._
 import org.mockito.stubbing.OngoingStubbing
 import org.scalatest.mock.MockitoSugar
-import org.mockito.Mockito._
-import play.api.mvc.Result
 import repositories.{CorporationTaxRegistrationMongoRepository, HandoffRepository, SequenceRepository}
 import services._
 import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.Future
 
-trait SCRSMocks {
+trait SCRSMocks
+	extends WSHttpMock
+	with AccountingServiceMock
+	with ServicesConfigMock {
 	this: MockitoSugar =>
 
 	lazy val mockCTDataService = mock[CorporationTaxRegistrationService]
 	lazy val mockCTDataRepository = mock[CorporationTaxRegistrationMongoRepository]
 	lazy val mockAuthConnector = mock[AuthConnector]
 	lazy val mockCompanyDetailsService = mock[CompanyDetailsService]
-	lazy val mockAccountingDetailsService = mock[AccountingDetailsService]
 	lazy val mockContactDetailsService = mock[ContactDetailsService]
 	lazy val mockSequenceRepository = mock[SequenceRepository]
 	lazy val mockHandoffRespository = mock[HandoffRepository]
 	lazy val mockHandoffService = mock[HandoffCHDataService]
 
-	object AccountingDetailsServiceMocks {
-		def retrieveAccountingDetails(registrationID: String, result: Option[AccountingDetailsResponse]): OngoingStubbing[Future[Option[AccountingDetailsResponse]]] = {
-			when(mockAccountingDetailsService.retrieveAccountingDetails(Matchers.anyString()))
-				.thenReturn(Future.successful(result))
-		}
 
-		def updateAccountingDetails(registrationID: String, result: Option[AccountingDetailsResponse]): OngoingStubbing[Future[Option[AccountingDetailsResponse]]] = {
-			when(mockAccountingDetailsService.updateAccountingDetails(Matchers.anyString(), Matchers.any[AccountingDetails]()))
-				.thenReturn(Future.successful(result))
-		}
-	}
 
 	object CTServiceMocks {
 		def createCTDataRecord(result: CorporationTaxRegistrationResponse): OngoingStubbing[Future[CorporationTaxRegistrationResponse]] = {

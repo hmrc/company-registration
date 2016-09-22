@@ -20,3 +20,5 @@ GET        /corporation-tax-registration/:registrationID/update-acknowledgement-
 
 GET        /corporation-tax-registration/:registrationID/ch-handoff-data                    controllers.HandoffCHDataController.retrieveHandoffCHData(registrationID)
 PUT        /corporation-tax-registration/:registrationID/ch-handoff-data                    controllers.HandoffCHDataController.storeHandoffCHData(registrationID)
+
+POST       /corporation-tax-registration/des-stub                                          controllers.DesController.submit
