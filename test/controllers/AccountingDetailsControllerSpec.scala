@@ -19,7 +19,6 @@ package controllers
 
 import connectors.AuthConnector
 import fixtures.{AccountingDetailsFixture, AuthFixture}
-import helpers.SCRSMocks
 import helpers.SCRSSpec
 import org.mockito.Mockito._
 import models.{AccountingDetailsResponse, ErrorResponse}
@@ -38,8 +37,6 @@ class AccountingDetailsControllerSpec extends SCRSSpec with AuthFixture with Acc
       override val auth = mockAuthConnector
       override val resourceConn = mockCTDataRepository
       override val accountingDetailsService = mockAccountingDetailsService
-
-
     }
   }
 

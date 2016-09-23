@@ -14,22 +14,21 @@
  * limitations under the License.
  */
 
-package helpers
+package mocks
 
-import mocks.SCRSMocks
-import org.scalatest.BeforeAndAfterEach
+import org.mockito.Matchers
+import org.mockito.Mockito._
+import org.mockito.stubbing.OngoingStubbing
 import org.scalatest.mock.MockitoSugar
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
-import org.mockito.Mockito.reset
+import uk.gov.hmrc.play.config.ServicesConfig
 
-trait SCRSSpec extends UnitSpec with MockitoSugar with WithFakeApplication with SCRSMocks with BeforeAndAfterEach {
+trait ServicesConfigMock {
+  this: MockitoSugar =>
 
-	override def beforeEach() {
-		reset(mockCTDataService)
-		reset(mockCTDataRepository)
-		reset(mockAuthConnector)
-		reset(mockContactDetailsService)
-		reset(mockCompanyDetailsService)
-		reset(mockSequenceRepository)
-	}
+  lazy val mockServicesConfig = mock[ServicesConfig]
+
+  def mockGetConfString(url: String): OngoingStubbing[String] = {
+    when(mockServicesConfig.getConfString(Matchers.any(), Matchers.any()))
+      .thenReturn(url)
+  }
 }
