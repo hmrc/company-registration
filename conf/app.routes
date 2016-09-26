@@ -22,3 +22,5 @@ GET        /corporation-tax-registration/:registrationID/ch-handoff-data        
 PUT        /corporation-tax-registration/:registrationID/ch-handoff-data                    controllers.HandoffCHDataController.storeHandoffCHData(registrationID)
 
 POST       /corporation-tax-registration/des-stub                                          controllers.DesController.submit
+
+GET        /corporation-tax-registration/check-user-access                                 controllers.UserAccessController.checkUserAccess

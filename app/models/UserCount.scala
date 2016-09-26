@@ -14,22 +14,12 @@
  * limitations under the License.
  */
 
-package repositories
+package models
 
-import models.HandoffCHData
-import play.modules.reactivemongo.ReactiveMongoPlugin
-import reactivemongo.api.commands.MultiBulkWriteResult
+import play.api.libs.json.Json
 
-import scala.concurrent.{ExecutionContext, Future}
+case class UserCount(_id: String, users_in: Int, threshold: Int)
 
-object Repositories {
-  private implicit val connection = {
-    import play.api.Play.current
-    ReactiveMongoPlugin.mongoConnector.db
-  }
-
-  lazy val cTRepository = new CorporationTaxRegistrationMongoRepository
-  lazy val sequenceRepository = new SequenceMongoRepository()
-  lazy val handoffRepository = new HandoffMongoRepository()
-  lazy val throttleRepository = new ThrottleMongoRepository()
+object UserCount {
+  implicit val formats = Json.format[UserCount]
 }

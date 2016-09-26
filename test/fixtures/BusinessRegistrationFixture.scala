@@ -14,22 +14,16 @@
  * limitations under the License.
  */
 
-package repositories
+package fixtures
 
-import models.HandoffCHData
-import play.modules.reactivemongo.ReactiveMongoPlugin
-import reactivemongo.api.commands.MultiBulkWriteResult
+import models.{BusinessRegistration, Links}
 
-import scala.concurrent.{ExecutionContext, Future}
+trait BusinessRegistrationFixture {
 
-object Repositories {
-  private implicit val connection = {
-    import play.api.Play.current
-    ReactiveMongoPlugin.mongoConnector.db
-  }
-
-  lazy val cTRepository = new CorporationTaxRegistrationMongoRepository
-  lazy val sequenceRepository = new SequenceMongoRepository()
-  lazy val handoffRepository = new HandoffMongoRepository()
-  lazy val throttleRepository = new ThrottleMongoRepository()
+  lazy val validBusinessRegistrationResponse = BusinessRegistration(
+    "12345",
+    "2016-08-03T10:49:11Z",
+    "en",
+    Links(Some("/business-registration/business-tax-registartion/12345"))
+  )
 }

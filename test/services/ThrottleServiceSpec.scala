@@ -14,22 +14,23 @@
  * limitations under the License.
  */
 
-package repositories
+package services
 
-import models.HandoffCHData
-import play.modules.reactivemongo.ReactiveMongoPlugin
-import reactivemongo.api.commands.MultiBulkWriteResult
+import org.scalatest.mock.MockitoSugar
+import repositories.{Repositories, ThrottleMongoRepository}
+import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
-import scala.concurrent.{ExecutionContext, Future}
+class ThrottleServiceSpec extends UnitSpec with MockitoSugar with WithFakeApplication {
 
-object Repositories {
-  private implicit val connection = {
-    import play.api.Play.current
-    ReactiveMongoPlugin.mongoConnector.db
+  trait Setup {
+    val service = new ThrottleService {
+      override val throttleMongoRepository: ThrottleMongoRepository = mock[ThrottleMongoRepository]
+    }
   }
 
-  lazy val cTRepository = new CorporationTaxRegistrationMongoRepository
-  lazy val sequenceRepository = new SequenceMongoRepository()
-  lazy val handoffRepository = new HandoffMongoRepository()
-  lazy val throttleRepository = new ThrottleMongoRepository()
+  "ThrottleService" should {
+    "use the correct repository" in {
+      ThrottleService.throttleMongoRepository shouldBe Repositories.throttleRepository
+    }
+  }
 }
