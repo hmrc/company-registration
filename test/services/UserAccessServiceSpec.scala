@@ -55,11 +55,14 @@ class UserAccessServiceSpec extends UnitSpec with MockitoSugar with WithFakeAppl
   }
 
   "checkUserAccess" should {
+
     "return a 200 with false" in new Setup {
       when(mockBusinessRegistrationConnector.retrieveMetadata(Matchers.any(), Matchers.any()))
         .thenReturn(BusinessRegistrationSuccessResponse(validBusinessRegistrationResponse))
-      await(service.checkUserAccess("123")) shouldBe Json.parse("""{"registration":12345,"created":false}""")
+
+      await(service.checkUserAccess("123")) shouldBe Json.parse("""{"registration-id":12345,"created":false}""")
     }
+
     "return a 200 with true" in new Setup {
       when(mockBusinessRegistrationConnector.retrieveMetadata(Matchers.any(), Matchers.any()))
         .thenReturn(BusinessRegistrationNotFoundResponse)
@@ -70,7 +73,7 @@ class UserAccessServiceSpec extends UnitSpec with MockitoSugar with WithFakeAppl
         .thenReturn(validCorporationTaxRegistrationResponse)
 
 
-      await(service.checkUserAccess("321")) shouldBe Json.parse("""{"registration":12345,"created":true}""")
+      await(service.checkUserAccess("321")) shouldBe Json.parse("""{"registration-id":12345,"created":true}""")
     }
     "return an error" in new Setup {
       when(mockBusinessRegistrationConnector.retrieveMetadata(Matchers.any(), Matchers.any()))

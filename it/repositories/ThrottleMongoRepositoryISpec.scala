@@ -17,6 +17,7 @@
 package repositories
 
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+import services.ThrottleService
 import uk.gov.hmrc.mongo.MongoSpecSupport
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
@@ -25,7 +26,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 class ThrottleMongoRepositoryISpec extends UnitSpec with MongoSpecSupport with BeforeAndAfterEach with BeforeAndAfterAll with WithFakeApplication {
 
   class Setup {
-    val repository = new ThrottleMongoRepository
+    val service = ThrottleService
+    val repository = ThrottleService.throttleMongoRepository
     await(repository.drop)
     await(repository.ensureIndexes)
   }
@@ -38,14 +40,33 @@ class ThrottleMongoRepositoryISpec extends UnitSpec with MongoSpecSupport with B
 
   "Throttle repository" should {
     "should be able to get an _id" in new Setup {
-      val response = await(repository.increment(testKey))
+      val response = await(repository.update(testKey, 10))
       response shouldBe 1
     }
 
     "get sequences, one after another from 1 to the end" in new Setup {
       val inputs = 1 to 7
-      val outputs = inputs map { _ => await(repository.increment(testKey)) }
+      val outputs = inputs map { _ => await(repository.update(testKey, 10)) }
       outputs shouldBe inputs
+    }
+  }
+
+  "Throttle service" should {
+
+    "return a 1 when the user count collection is inserted" in new Setup {
+      await(service.updateUserCount()) shouldBe 1
+    }
+
+    "return a 10 when the user count is at the limit" in new Setup {
+      for(i <- 0 to 9){service.updateUserCount()}
+
+      await(service.updateUserCount()) shouldBe 10
+    }
+
+    "return the threshold number when the user count is over the limit" in new Setup {
+      for(i <- 0 to 15){service.updateUserCount()}
+
+      await(service.updateUserCount()) shouldBe 10
     }
   }
 }

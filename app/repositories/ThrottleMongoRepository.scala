@@ -28,6 +28,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 trait ThrottleRepository extends Repository[UserCount, BSONObjectID]{
   def update(date: String, threshold: Int, compensate: Boolean) : Future[Int]
+  def compensate(date: String, threshold: Int): Future[Int]
 }
 
 class ThrottleMongoRepository(implicit mongo: () => DB)
@@ -37,7 +38,7 @@ class ThrottleMongoRepository(implicit mongo: () => DB)
   def update(date: String, threshold: Int, compensate: Boolean = false): Future[Int] = {
     val selector = BSONDocument("_id" -> date)
     val modifier = compensate match {
-      case true => BSONDocument("$inc" -> BSONDocument("users_in" -> -1, "users_blocked" -> -1), "$set" -> BSONDocument("threshold" -> threshold))
+      case true => BSONDocument("$inc" -> BSONDocument("users_in" -> -1, "users_blocked" -> 1), "$set" -> BSONDocument("threshold" -> threshold))
       case false => BSONDocument("$inc" -> BSONDocument("users_in" -> 1), "$set" -> BSONDocument("threshold" -> threshold))
     }
 
@@ -47,5 +48,9 @@ class ThrottleMongoRepository(implicit mongo: () => DB)
         case Some(res) => (res \ "users_in").as[Int]
       }
     }
+  }
+
+  def compensate(date: String, threshold: Int): Future[Int] = {
+    update(date, threshold, compensate = true)
   }
 }

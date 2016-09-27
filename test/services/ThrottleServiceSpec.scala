@@ -17,9 +17,13 @@
 package services
 
 import org.joda.time.DateTime
+import org.mockito.Matchers
 import org.scalatest.mock.MockitoSugar
 import repositories.{Repositories, ThrottleMongoRepository}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
+import org.mockito.Mockito._
+
+import scala.concurrent.Future
 
 class ThrottleServiceSpec extends UnitSpec with MockitoSugar with WithFakeApplication {
 
@@ -27,7 +31,7 @@ class ThrottleServiceSpec extends UnitSpec with MockitoSugar with WithFakeApplic
 
   trait Setup {
     val service = new ThrottleService {
-      val throttleMongoRepository: ThrottleMongoRepository = mockThrottleMongoRepository
+      val throttleMongoRepository = mockThrottleMongoRepository
       val dateTime = DateTime.parse("2000-02-01")
       val threshold = 10
     }
@@ -50,15 +54,28 @@ class ThrottleServiceSpec extends UnitSpec with MockitoSugar with WithFakeApplic
   "updateUserCount" should {
 
     "return a 1 when updating user count on a new collection" in new Setup {
+      when(mockThrottleMongoRepository.update(Matchers.eq("2000/02/01"), Matchers.eq(10), Matchers.eq(false)))
+        .thenReturn(Future.successful(1))
 
+      await(service.updateUserCount()) shouldBe 1
     }
 
     "return a 10 when user threshold has been reached" in new Setup {
+      when(mockThrottleMongoRepository.update(Matchers.eq("2000/02/01"), Matchers.eq(10), Matchers.eq(false)))
+        .thenReturn(Future.successful(10))
+      when(mockThrottleMongoRepository.compensate(Matchers.eq("2000/02/01"), Matchers.eq(10)))
+        .thenReturn(Future.successful(10))
 
+      await(service.updateUserCount()) shouldBe 10
     }
 
     "return a 10 when user threshold is over the limit" in new Setup {
+      when(mockThrottleMongoRepository.update(Matchers.eq("2000/02/01"), Matchers.eq(10), Matchers.eq(false)))
+        .thenReturn(Future.successful(15))
+      when(mockThrottleMongoRepository.compensate(Matchers.eq("2000/02/01"), Matchers.eq(10)))
+        .thenReturn(Future.successful(10))
 
+      await(service.updateUserCount()) shouldBe 10
     }
 
     "return a 1 when updating the user count on a new day" in new Setup {

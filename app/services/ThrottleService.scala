@@ -23,10 +23,11 @@ import repositories.{Repositories, ThrottleMongoRepository}
 import uk.gov.hmrc.time.DateTimeUtils
 
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 sealed trait ThrottleResponse
 case class ThrottleSuccessResponse(registrationID: String) extends ThrottleResponse
-case object UJustGotThrottledHorgeM8 extends ThrottleResponse
+case object ThrottleTooManyRequestsResponse extends ThrottleResponse
 
 object ThrottleService extends ThrottleService with ServicesConfig {
   val throttleMongoRepository = Repositories.throttleRepository
@@ -41,16 +42,14 @@ trait ThrottleService extends BaseController {
 
   def updateUserCount(): Future[Int] = {
     val date = getCurrentDay
-    val userCount = throttleMongoRepository.update(date, threshold)
-
-    userCount.flatMap {
-      case count if threshold <= count => compensate(date)
+    throttleMongoRepository.update(date, threshold)flatMap {
+      case count if threshold < count => compensate(date)
       case count => Future.successful(count)
     }
   }
 
   private[services] def compensate(date: String): Future[Int] = {
-    throttleMongoRepository.update(date, threshold, compensate = true)
+    throttleMongoRepository.compensate(date, threshold)
   }
 
   private[services] def getCurrentDay: String = {

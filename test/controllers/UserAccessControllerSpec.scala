@@ -55,17 +55,29 @@ class UserAccessControllerSpec extends UnitSpec with MockitoSugar with WithFakeA
   }
 
   "checkUserAccess" should {
+
     "return a forbidden status code" in new Setup {
       AuthenticationMocks.getCurrentAuthority(None)
       status(controller.checkUserAccess(FakeRequest())) shouldBe FORBIDDEN
     }
-    "return a future JsValue" in new Setup {
+
+    "return a 200" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       when(mockUserAccessService.checkUserAccess(Matchers.anyString())(Matchers.any()))
-        .thenReturn(Future.successful(Json.parse("""{ "test" : 123, "testerer": "string"}""")))
+        .thenReturn(Future.successful(Json.parse("""{"registration-id" : 122}""")))
+
       val result = controller.checkUserAccess(FakeRequest())
       status(result) shouldBe OK
-      await(jsonBodyOf(result)) shouldBe Json.parse("""{"test":123,"testerer":"string"}""")
+      await(jsonBodyOf(result)) shouldBe Json.parse("""{"registration-id":122}""")
+    }
+
+    "return a 429" in new Setup {
+      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+      when(mockUserAccessService.checkUserAccess(Matchers.anyString())(Matchers.any()))
+        .thenReturn(Future.successful(Json.parse("""{"registration-id" : 121}""")))
+
+      val result = controller.checkUserAccess(FakeRequest())
+      status(result) shouldBe TOO_MANY_REQUEST
     }
   }
 
