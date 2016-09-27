@@ -35,9 +35,16 @@ trait UserAccessController extends BaseController with Authenticated{
   val userAccessService : UserAccessService
 
   def checkUserAccess = Action.async {
-    implicit request => authenticated({
+    implicit request => authenticated{
       case NotLoggedIn => Future.successful(Forbidden)
-      case LoggedIn(context) => userAccessService.checkUserAccess(context.oid).map(res => Ok(res))
-    })
+      case LoggedIn(context) => userAccessService.checkUserAccess(context.oid) map {
+        res =>
+          val id = (res \ "registration-id").as[Int]
+          id % 2 match {
+            case 0 => Ok(res)
+            case _ => TooManyRequest
+          }
+      }
+    }
   }
 }
