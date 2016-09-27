@@ -38,11 +38,11 @@ trait UserAccessService {
 
   def checkUserAccess(oid: String)(implicit hc : HeaderCarrier): Future[JsValue] = {
     bRConnector.retrieveMetadata flatMap {
-      case BusinessRegistrationSuccessResponse(x) => Future.successful(Json.parse(s"""{ "registration": ${x.registrationID}, "created": false}"""))
+      case BusinessRegistrationSuccessResponse(x) => Future.successful(Json.parse(s"""{"registration-id":${x.registrationID},"created":false}"""))
       case BusinessRegistrationNotFoundResponse => for{
         metaData <- bRConnector.createMetadataEntry
         crData <- cTService.createCorporationTaxRegistrationRecord(oid, metaData.registrationID, "en")
-      } yield Json.parse(s"""{ "registration": ${metaData.registrationID}, "created": true}""")
+      } yield Json.parse(s"""{"registration-id":${metaData.registrationID},"created":true}""")
       case _ => throw new Exception("Something went wrong")
     }
   }
