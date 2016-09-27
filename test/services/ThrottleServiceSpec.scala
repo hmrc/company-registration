@@ -16,21 +16,53 @@
 
 package services
 
+import org.joda.time.DateTime
 import org.scalatest.mock.MockitoSugar
 import repositories.{Repositories, ThrottleMongoRepository}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 class ThrottleServiceSpec extends UnitSpec with MockitoSugar with WithFakeApplication {
 
+  val mockThrottleMongoRepository = mock[ThrottleMongoRepository]
+
   trait Setup {
     val service = new ThrottleService {
-      override val throttleMongoRepository: ThrottleMongoRepository = mock[ThrottleMongoRepository]
+      val throttleMongoRepository: ThrottleMongoRepository = mockThrottleMongoRepository
+      val dateTime = DateTime.parse("2000-02-01")
+      val threshold = 10
     }
   }
 
   "ThrottleService" should {
+
     "use the correct repository" in {
       ThrottleService.throttleMongoRepository shouldBe Repositories.throttleRepository
+    }
+  }
+
+  "getCurrentDay" should {
+
+    "return the current day" in new Setup {
+      service.getCurrentDay shouldBe "2000/02/01"
+    }
+  }
+
+  "updateUserCount" should {
+
+    "return a 1 when updating user count on a new collection" in new Setup {
+
+    }
+
+    "return a 10 when user threshold has been reached" in new Setup {
+
+    }
+
+    "return a 10 when user threshold is over the limit" in new Setup {
+
+    }
+
+    "return a 1 when updating the user count on a new day" in new Setup {
+
     }
   }
 }

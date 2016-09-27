@@ -27,16 +27,19 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 trait ThrottleRepository extends Repository[UserCount, BSONObjectID]{
-  def increment(date: String) : Future[Int]
+  def update(date: String, threshold: Int, compensate: Boolean) : Future[Int]
 }
 
 class ThrottleMongoRepository(implicit mongo: () => DB)
   extends ReactiveRepository[UserCount, BSONObjectID]("throttle", mongo, UserCount.formats, ReactiveMongoFormats.objectIdFormats)
   with ThrottleRepository {
 
-  def increment(date: String): Future[Int] = {
+  def update(date: String, threshold: Int, compensate: Boolean = false): Future[Int] = {
     val selector = BSONDocument("_id" -> date)
-    val modifier = BSONDocument("$inc" -> BSONDocument("users_in" -> 1), "$set" -> BSONDocument("threshold" -> 10))
+    val modifier = compensate match {
+      case true => BSONDocument("$inc" -> BSONDocument("users_in" -> -1, "users_blocked" -> -1), "$set" -> BSONDocument("threshold" -> threshold))
+      case false => BSONDocument("$inc" -> BSONDocument("users_in" -> 1), "$set" -> BSONDocument("threshold" -> threshold))
+    }
 
     collection.findAndUpdate(selector, modifier, fetchNewObject = true, upsert = true) map {
       _.result[JsValue] match {
