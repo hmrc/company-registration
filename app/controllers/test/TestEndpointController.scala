@@ -19,22 +19,32 @@ package controllers.test
 import helpers.DateHelper
 import play.api.libs.json.Json
 import play.api.mvc.Action
-import repositories.{Repositories, ThrottleMongoRepository}
+import repositories.{CorporationTaxRegistrationMongoRepository, Repositories, ThrottleMongoRepository}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
 object TestEndpointController extends TestEndpointController {
   val throttleMongoRepository = Repositories.throttleRepository
+  val cTMongoRepository = Repositories.cTRepository
 }
 
 trait TestEndpointController extends BaseController {
 
   val throttleMongoRepository: ThrottleMongoRepository
+  val cTMongoRepository: CorporationTaxRegistrationMongoRepository
 
   def modifyThrottledUsers(usersIn: Int) = Action.async {
     implicit request =>
       val date = DateHelper.getCurrentDay
       throttleMongoRepository.modifyThrottledUsers(date, usersIn).map(x => Ok(Json.parse(s"""{"users_in" : $x}""")))
+  }
+
+  def dropCTCollection = Action.async {
+    implicit request =>
+      cTMongoRepository.drop map {
+        case true => Ok(Json.parse(s"""{"message": "CT collection was dropped"}"""))
+        case false => Ok(Json.parse(s"""{"message": "A problem occurred and the CT Collection could not be dropped"}"""))
+      }
   }
 }

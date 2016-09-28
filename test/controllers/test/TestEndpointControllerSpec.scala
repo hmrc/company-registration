@@ -19,7 +19,7 @@ package controllers.test
 import org.mockito.Matchers
 import org.scalatest.mock.MockitoSugar
 import play.api.test.FakeRequest
-import repositories.ThrottleMongoRepository
+import repositories.{CorporationTaxRegistrationMongoRepository, ThrottleMongoRepository}
 import uk.gov.hmrc.play.test.UnitSpec
 import org.mockito.Mockito._
 import play.api.test.Helpers._
@@ -29,10 +29,12 @@ import scala.concurrent.Future
 class TestEndpointControllerSpec extends UnitSpec with MockitoSugar {
 
   val mockThrottleRepository = mock[ThrottleMongoRepository]
+  val mockCTRepository = mock[CorporationTaxRegistrationMongoRepository]
 
   class Setup {
     val controller = new TestEndpointController {
       val throttleMongoRepository = mockThrottleRepository
+      val cTMongoRepository = mockCTRepository
     }
   }
 
