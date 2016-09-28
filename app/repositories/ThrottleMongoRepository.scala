@@ -53,4 +53,16 @@ class ThrottleMongoRepository(implicit mongo: () => DB)
   def compensate(date: String, threshold: Int): Future[Int] = {
     update(date, threshold, compensate = true)
   }
+
+  def modifyThrottledUsers(date: String, usersIn: Int): Future[Int] = {
+    val selector = BSONDocument("_id" -> date)
+    val modifier = BSONDocument("$set" -> BSONDocument("users_in" -> usersIn))
+
+    collection.findAndUpdate(selector, modifier, fetchNewObject = true, upsert = true) map {
+      _.result[JsValue] match {
+        case None => -1
+        case Some(res) => (res \ "users_in").as[Int]
+      }
+    }
+  }
 }
