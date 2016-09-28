@@ -1,0 +1,1 @@
+GET        /modify-throttled-users/:usersIn                    controllers.test.TestEndpointController.modifyThrottledUsers(usersIn: Int)
