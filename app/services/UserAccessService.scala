@@ -51,7 +51,7 @@ trait UserAccessService {
             case true => for{
               metaData <- bRConnector.createMetadataEntry
               crData <- cTService.createCorporationTaxRegistrationRecord(oid, metaData.registrationID, "en")
-            } yield Right(Json.parse(s"""{"registration-id":"${metaData.registrationID}","created":true}"""))
+            } yield Right(Json.toJson(UserAccessSuccessResponse(metaData.registrationID,created = true)))
           }
       case _ => throw new Exception("Something went wrong")
     }
