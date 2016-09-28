@@ -38,12 +38,8 @@ trait UserAccessController extends BaseController with Authenticated{
     implicit request => authenticated{
       case NotLoggedIn => Future.successful(Forbidden)
       case LoggedIn(context) => userAccessService.checkUserAccess(context.oid) map {
-        res =>
-          val id = (res \ "registration-id").as[Int]
-          id % 2 match {
-            case 0 => Ok(res)
-            case _ => TooManyRequest
-          }
+          case Right(res) => Ok(res)
+          case Left(_) => TooManyRequest
       }
     }
   }

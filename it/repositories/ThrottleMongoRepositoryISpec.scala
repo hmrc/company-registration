@@ -53,20 +53,23 @@ class ThrottleMongoRepositoryISpec extends UnitSpec with MongoSpecSupport with B
 
   "Throttle service" should {
 
-    "return a 1 when the user count collection is inserted" in new Setup {
-      await(service.updateUserCount()) shouldBe 1
+    "return true when the user count collection is inserted" in new Setup {
+      await(service.checkUserAccess) shouldBe true
     }
 
-    "return a 10 when the user count is at the limit" in new Setup {
-      for(i <- 0 to 9){service.updateUserCount()}
+    "return a true when the user count is updated and is at the limit and then return a false on the next update" in new Setup {
+      for(i <- 1 to 9){
+        await(service.checkUserAccess)
+      }
 
-      await(service.updateUserCount()) shouldBe 10
+      await(service.checkUserAccess) shouldBe true
+      await(service.checkUserAccess) shouldBe false
     }
 
-    "return the threshold number when the user count is over the limit" in new Setup {
-      for(i <- 0 to 15){service.updateUserCount()}
+    "return false when the user count is over the limit" in new Setup {
+      for(i <- 0 to 15){service.checkUserAccess}
 
-      await(service.updateUserCount()) shouldBe 10
+      await(service.checkUserAccess) shouldBe false
     }
   }
 }

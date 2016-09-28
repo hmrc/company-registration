@@ -17,32 +17,42 @@
 package services
 
 import connectors.{BusinessRegistrationConnector, BusinessRegistrationNotFoundResponse, BusinessRegistrationSuccessResponse}
+import models.{UserAccessLimitReachedResponse, UserAccessSuccessResponse}
 import play.api.libs.json.{JsValue, Json}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
+import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-object UserAccessService extends UserAccessService{
+object UserAccessService extends UserAccessService with ServicesConfig {
   val bRConnector = BusinessRegistrationConnector
   val cTService = CorporationTaxRegistrationService
   val cTRepository = Repositories.cTRepository
+  val throttleService = ThrottleService
+  val threshold = getConfInt("throttle-threshold", throw new Exception("Could not find Threshold in config"))
 }
 
 trait UserAccessService {
 
+  val threshold : Int
   val bRConnector : BusinessRegistrationConnector
   val cTRepository : CorporationTaxRegistrationMongoRepository
   val cTService : CorporationTaxRegistrationService
+  val throttleService : ThrottleService
 
-  def checkUserAccess(oid: String)(implicit hc : HeaderCarrier): Future[JsValue] = {
+  def checkUserAccess(oid: String)(implicit hc : HeaderCarrier): Future[Either[JsValue,JsValue]] = {
     bRConnector.retrieveMetadata flatMap {
-      case BusinessRegistrationSuccessResponse(x) => Future.successful(Json.parse(s"""{"registration-id":${x.registrationID},"created":false}"""))
-      case BusinessRegistrationNotFoundResponse => for{
-        metaData <- bRConnector.createMetadataEntry
-        crData <- cTService.createCorporationTaxRegistrationRecord(oid, metaData.registrationID, "en")
-      } yield Json.parse(s"""{"registration-id":${metaData.registrationID},"created":true}""")
+      case BusinessRegistrationSuccessResponse(x) => Future.successful(Right(Json.toJson(UserAccessSuccessResponse(x.registrationID,created = false))))
+      case BusinessRegistrationNotFoundResponse =>
+          throttleService.checkUserAccess flatMap {
+            case false => Future.successful(Left(Json.toJson(UserAccessLimitReachedResponse(limitReached=true))))
+            case true => for{
+              metaData <- bRConnector.createMetadataEntry
+              crData <- cTService.createCorporationTaxRegistrationRecord(oid, metaData.registrationID, "en")
+            } yield Right(Json.parse(s"""{"registration-id":"${metaData.registrationID}","created":true}"""))
+          }
       case _ => throw new Exception("Something went wrong")
     }
   }

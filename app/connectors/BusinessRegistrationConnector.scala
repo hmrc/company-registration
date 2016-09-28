@@ -52,8 +52,8 @@ trait BusinessRegistrationConnector {
       metaData =>
         BusinessRegistrationSuccessResponse(metaData)
     } recover {
-      case e: BadRequestException =>
-        Logger.error(s"[BusinessRegistrationConnector] [retrieveMetadata] - Received a Bad request status code when expecting metadata from Business-Registration")
+      case e: NotFoundException =>
+        Logger.error(s"[BusinessRegistrationConnector] [retrieveMetadata] - Received a NotFound status code when expecting metadata from Business-Registration")
         BusinessRegistrationNotFoundResponse
       case e: ForbiddenException =>
         Logger.error(s"[BusinessRegistrationConnector] [retrieveMetadata] - Received a Forbidden status code when expecting metadata from Business-Registration")

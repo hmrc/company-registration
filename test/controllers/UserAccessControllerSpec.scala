@@ -64,17 +64,17 @@ class UserAccessControllerSpec extends UnitSpec with MockitoSugar with WithFakeA
     "return a 200" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       when(mockUserAccessService.checkUserAccess(Matchers.anyString())(Matchers.any()))
-        .thenReturn(Future.successful(Json.parse("""{"registration-id" : 122}""")))
+        .thenReturn(Future.successful(Json.parse("""{"registration-id" : "122"}""")))
 
       val result = controller.checkUserAccess(FakeRequest())
       status(result) shouldBe OK
-      await(jsonBodyOf(result)) shouldBe Json.parse("""{"registration-id":122}""")
+      await(jsonBodyOf(result)) shouldBe Json.parse("""{"registration-id":"122"}""")
     }
 
     "return a 429" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       when(mockUserAccessService.checkUserAccess(Matchers.anyString())(Matchers.any()))
-        .thenReturn(Future.successful(Json.parse("""{"registration-id" : 121}""")))
+        .thenReturn(Future.successful(Json.parse("""{"limit-reached":true}""")))
 
       val result = controller.checkUserAccess(FakeRequest())
       status(result) shouldBe TOO_MANY_REQUEST

@@ -38,48 +38,42 @@ class ThrottleServiceSpec extends UnitSpec with MockitoSugar with WithFakeApplic
   }
 
   "ThrottleService" should {
-
     "use the correct repository" in {
       ThrottleService.throttleMongoRepository shouldBe Repositories.throttleRepository
     }
   }
 
   "getCurrentDay" should {
-
     "return the current day" in new Setup {
-      service.getCurrentDay shouldBe "2000/02/01"
+      service.getCurrentDay shouldBe "2000-02-01"
     }
   }
 
   "updateUserCount" should {
 
-    "return a 1 when updating user count on a new collection" in new Setup {
-      when(mockThrottleMongoRepository.update(Matchers.eq("2000/02/01"), Matchers.eq(10), Matchers.eq(false)))
+    "return true when updating user count on a new collection" in new Setup {
+      when(mockThrottleMongoRepository.update(Matchers.eq("2000-02-01"), Matchers.eq(10), Matchers.eq(false)))
         .thenReturn(Future.successful(1))
 
-      await(service.updateUserCount()) shouldBe 1
+      await(service.checkUserAccess) shouldBe true
     }
 
-    "return a 10 when user threshold has been reached" in new Setup {
-      when(mockThrottleMongoRepository.update(Matchers.eq("2000/02/01"), Matchers.eq(10), Matchers.eq(false)))
+    "return true when user threshold is reached" in new Setup {
+      when(mockThrottleMongoRepository.update(Matchers.eq("2000-02-01"), Matchers.eq(10), Matchers.eq(false)))
         .thenReturn(Future.successful(10))
-      when(mockThrottleMongoRepository.compensate(Matchers.eq("2000/02/01"), Matchers.eq(10)))
+      when(mockThrottleMongoRepository.compensate(Matchers.eq("2000-02-01"), Matchers.eq(10)))
         .thenReturn(Future.successful(10))
 
-      await(service.updateUserCount()) shouldBe 10
+      await(service.checkUserAccess) shouldBe true
     }
 
-    "return a 10 when user threshold is over the limit" in new Setup {
-      when(mockThrottleMongoRepository.update(Matchers.eq("2000/02/01"), Matchers.eq(10), Matchers.eq(false)))
+    "return false when user threshold is over the limit" in new Setup {
+      when(mockThrottleMongoRepository.update(Matchers.eq("2000-02-01"), Matchers.eq(10), Matchers.eq(false)))
         .thenReturn(Future.successful(15))
-      when(mockThrottleMongoRepository.compensate(Matchers.eq("2000/02/01"), Matchers.eq(10)))
+      when(mockThrottleMongoRepository.compensate(Matchers.eq("2000-02-01"), Matchers.eq(10)))
         .thenReturn(Future.successful(10))
 
-      await(service.updateUserCount()) shouldBe 10
-    }
-
-    "return a 1 when updating the user count on a new day" in new Setup {
-
+      await(service.checkUserAccess) shouldBe false
     }
   }
 }

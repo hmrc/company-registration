@@ -23,7 +23,7 @@ import models.BusinessRegistration
 import org.mockito.Matchers
 import org.mockito.Mockito._
 import play.api.libs.json.JsValue
-import uk.gov.hmrc.play.http.{BadRequestException, ForbiddenException, HeaderCarrier}
+import uk.gov.hmrc.play.http.{ForbiddenException, HeaderCarrier, NotFoundException}
 
 import scala.concurrent.Future
 
@@ -64,7 +64,7 @@ class BusinessRegistrationConnectorSpec extends SCRSSpec with BusinessRegistrati
 
     "return a Not Found response when a metadata record can not be found" in new Setup {
       when(mockWSHttp.GET[BusinessRegistration](Matchers.any())(Matchers.any(), Matchers.any()))
-        .thenReturn(Future.failed(new BadRequestException("Bad request")))
+        .thenReturn(Future.failed(new NotFoundException("Bad request")))
 
       await(connector.retrieveMetadata) shouldBe BusinessRegistrationNotFoundResponse
     }

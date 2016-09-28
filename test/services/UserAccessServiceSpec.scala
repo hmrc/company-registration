@@ -16,7 +16,7 @@
 
 package services
 
-import connectors._
+import connectors.{BusinessRegistrationConnector, _}
 import fixtures.{BusinessRegistrationFixture, CorporationTaxRegistrationFixture}
 import org.mockito.Matchers
 import org.scalatest.mock.MockitoSugar
@@ -24,24 +24,27 @@ import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 import org.mockito.Mockito._
 import play.api.libs.json.Json
-import play.api.test.Helpers._
 import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class UserAccessServiceSpec extends UnitSpec with MockitoSugar with WithFakeApplication with BusinessRegistrationFixture with CorporationTaxRegistrationFixture {
 
   val mockBusinessRegistrationConnector = mock[BusinessRegistrationConnector]
   val mockCorporationTaxRegistrationMongoRepository = mock[CorporationTaxRegistrationMongoRepository]
   val mockCorporationTaxRegistrationService = mock[CorporationTaxRegistrationService]
+  val mockThrottleService= mock[ThrottleService]
 
   implicit val hc = HeaderCarrier()
 
   trait Setup {
     val service = new UserAccessService {
+      val threshold = 10
       val bRConnector = mockBusinessRegistrationConnector
       val cTService = mockCorporationTaxRegistrationService
-      val cTRepository =mockCorporationTaxRegistrationMongoRepository
+      val cTRepository = mockCorporationTaxRegistrationMongoRepository
+      val throttleService = mockThrottleService
     }
   }
 
@@ -52,6 +55,12 @@ class UserAccessServiceSpec extends UnitSpec with MockitoSugar with WithFakeAppl
     "use the correct company registration repository" in {
       UserAccessService.cTRepository shouldBe Repositories.cTRepository
     }
+    "use the correct company registration service" in {
+      UserAccessService.cTService shouldBe CorporationTaxRegistrationService
+    }
+    "use the correct throttle service" in {
+      UserAccessService.throttleService shouldBe ThrottleService
+    }
   }
 
   "checkUserAccess" should {
@@ -59,13 +68,14 @@ class UserAccessServiceSpec extends UnitSpec with MockitoSugar with WithFakeAppl
     "return a 200 with false" in new Setup {
       when(mockBusinessRegistrationConnector.retrieveMetadata(Matchers.any(), Matchers.any()))
         .thenReturn(BusinessRegistrationSuccessResponse(validBusinessRegistrationResponse))
-
-      await(service.checkUserAccess("123")) shouldBe Json.parse("""{"registration-id":12345,"created":false}""")
+      await(service.checkUserAccess("123")) shouldBe Json.parse("""{"registration-id":"12345","created":false}""")
     }
 
-    "return a 200 with true" in new Setup {
+    "return a 200 with limit reached" in new Setup {
       when(mockBusinessRegistrationConnector.retrieveMetadata(Matchers.any(), Matchers.any()))
         .thenReturn(BusinessRegistrationNotFoundResponse)
+      when(mockThrottleService.checkUserAccess)
+        .thenReturn(Future(true))
       when(mockBusinessRegistrationConnector.createMetadataEntry(Matchers.any()))
         .thenReturn(validBusinessRegistrationResponse)
       when(mockCorporationTaxRegistrationService
@@ -73,7 +83,21 @@ class UserAccessServiceSpec extends UnitSpec with MockitoSugar with WithFakeAppl
         .thenReturn(validCorporationTaxRegistrationResponse)
 
 
-      await(service.checkUserAccess("321")) shouldBe Json.parse("""{"registration-id":12345,"created":true}""")
+      await(service.checkUserAccess("321")) shouldBe Json.parse(s"""{"limit-reached":true}""")
+    }
+    "return a 200 with a regId and created set to true" in new Setup {
+      when(mockBusinessRegistrationConnector.retrieveMetadata(Matchers.any(), Matchers.any()))
+        .thenReturn(BusinessRegistrationNotFoundResponse)
+      when(mockThrottleService.checkUserAccess)
+        .thenReturn(Future(false))
+      when(mockBusinessRegistrationConnector.createMetadataEntry(Matchers.any()))
+        .thenReturn(validBusinessRegistrationResponse)
+      when(mockCorporationTaxRegistrationService
+        .createCorporationTaxRegistrationRecord(Matchers.anyString(), Matchers.anyString(), Matchers.anyString()))
+        .thenReturn(validCorporationTaxRegistrationResponse)
+
+
+      await(service.checkUserAccess("321")) shouldBe Json.parse("""{"registration-id":"12345","created":true}""")
     }
     "return an error" in new Setup {
       when(mockBusinessRegistrationConnector.retrieveMetadata(Matchers.any(), Matchers.any()))
