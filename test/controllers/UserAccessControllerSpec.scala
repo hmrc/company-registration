@@ -19,6 +19,7 @@ package controllers
 import connectors.AuthConnector
 import fixtures.AuthFixture
 import helpers.SCRSSpec
+import models.{UserAccessLimitReachedResponse, UserAccessSuccessResponse}
 import org.mockito.Matchers
 import org.scalatest.mock.MockitoSugar
 import org.mockito.Mockito._
@@ -64,17 +65,17 @@ class UserAccessControllerSpec extends UnitSpec with MockitoSugar with WithFakeA
     "return a 200" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       when(mockUserAccessService.checkUserAccess(Matchers.anyString())(Matchers.any()))
-        .thenReturn(Future.successful(Json.parse("""{"registration-id" : "122"}""")))
+        .thenReturn(Future.successful(Right(Json.toJson(UserAccessSuccessResponse("123",created = false)))))
 
       val result = controller.checkUserAccess(FakeRequest())
       status(result) shouldBe OK
-      await(jsonBodyOf(result)) shouldBe Json.parse("""{"registration-id":"122"}""")
+      await(jsonBodyOf(result)) shouldBe Json.toJson(UserAccessSuccessResponse("123",created = false))
     }
 
     "return a 429" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       when(mockUserAccessService.checkUserAccess(Matchers.anyString())(Matchers.any()))
-        .thenReturn(Future.successful(Json.parse("""{"limit-reached":true}""")))
+        .thenReturn(Future.successful(Left(Json.toJson(UserAccessLimitReachedResponse(true)))))
 
       val result = controller.checkUserAccess(FakeRequest())
       status(result) shouldBe TOO_MANY_REQUEST

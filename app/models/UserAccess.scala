@@ -19,15 +19,13 @@ package models
 import play.api.libs.json.{JsPath, Json, Writes}
 import play.api.libs.functional.syntax._
 
-case class UserAccessSuccessResponse(registration_id: String, created: Boolean)
+case class UserAccessSuccessResponse(registrationId: String, created: Boolean)
 
 object UserAccessSuccessResponse {
   implicit val writes: Writes[UserAccessSuccessResponse] = (
     (JsPath \ "registration-id").write[String] and
     (JsPath \ "created").write[Boolean]
   )(unlift(UserAccessSuccessResponse.unapply))
-
-  implicit val formats = Json.format[UserAccessSuccessResponse]
 }
 
 case class UserAccessLimitReachedResponse(limitReached: Boolean)

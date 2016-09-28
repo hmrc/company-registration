@@ -18,6 +18,7 @@ package services
 
 import connectors.{BusinessRegistrationConnector, _}
 import fixtures.{BusinessRegistrationFixture, CorporationTaxRegistrationFixture}
+import models.{UserAccessLimitReachedResponse, UserAccessSuccessResponse}
 import org.mockito.Matchers
 import org.scalatest.mock.MockitoSugar
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
@@ -68,24 +69,10 @@ class UserAccessServiceSpec extends UnitSpec with MockitoSugar with WithFakeAppl
     "return a 200 with false" in new Setup {
       when(mockBusinessRegistrationConnector.retrieveMetadata(Matchers.any(), Matchers.any()))
         .thenReturn(BusinessRegistrationSuccessResponse(validBusinessRegistrationResponse))
-      await(service.checkUserAccess("123")) shouldBe Json.parse("""{"registration-id":"12345","created":false}""")
+      await(service.checkUserAccess("123")) shouldBe Right(Json.toJson(UserAccessSuccessResponse("12345",created = false)))
     }
 
-    "return a 200 with limit reached" in new Setup {
-      when(mockBusinessRegistrationConnector.retrieveMetadata(Matchers.any(), Matchers.any()))
-        .thenReturn(BusinessRegistrationNotFoundResponse)
-      when(mockThrottleService.checkUserAccess)
-        .thenReturn(Future(true))
-      when(mockBusinessRegistrationConnector.createMetadataEntry(Matchers.any()))
-        .thenReturn(validBusinessRegistrationResponse)
-      when(mockCorporationTaxRegistrationService
-        .createCorporationTaxRegistrationRecord(Matchers.anyString(), Matchers.anyString(), Matchers.anyString()))
-        .thenReturn(validCorporationTaxRegistrationResponse)
-
-
-      await(service.checkUserAccess("321")) shouldBe Json.parse(s"""{"limit-reached":true}""")
-    }
-    "return a 200 with a regId and created set to true" in new Setup {
+    "return a 429 with limit reached" in new Setup {
       when(mockBusinessRegistrationConnector.retrieveMetadata(Matchers.any(), Matchers.any()))
         .thenReturn(BusinessRegistrationNotFoundResponse)
       when(mockThrottleService.checkUserAccess)
@@ -97,7 +84,21 @@ class UserAccessServiceSpec extends UnitSpec with MockitoSugar with WithFakeAppl
         .thenReturn(validCorporationTaxRegistrationResponse)
 
 
-      await(service.checkUserAccess("321")) shouldBe Json.parse("""{"registration-id":"12345","created":true}""")
+      await(service.checkUserAccess("321")) shouldBe Left(Json.toJson(UserAccessLimitReachedResponse(true)))
+    }
+    "return a 200 with a regId and created set to true" in new Setup {
+      when(mockBusinessRegistrationConnector.retrieveMetadata(Matchers.any(), Matchers.any()))
+        .thenReturn(BusinessRegistrationNotFoundResponse)
+      when(mockThrottleService.checkUserAccess)
+        .thenReturn(Future(true))
+      when(mockBusinessRegistrationConnector.createMetadataEntry(Matchers.any()))
+        .thenReturn(validBusinessRegistrationResponse)
+      when(mockCorporationTaxRegistrationService
+        .createCorporationTaxRegistrationRecord(Matchers.anyString(), Matchers.anyString(), Matchers.anyString()))
+        .thenReturn(validCorporationTaxRegistrationResponse)
+
+
+      await(service.checkUserAccess("321")) shouldBe Right(Json.toJson(UserAccessSuccessResponse("12345",created = true)))
     }
     "return an error" in new Setup {
       when(mockBusinessRegistrationConnector.retrieveMetadata(Matchers.any(), Matchers.any()))
