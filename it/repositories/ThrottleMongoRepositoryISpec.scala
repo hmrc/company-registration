@@ -72,4 +72,14 @@ class ThrottleMongoRepositoryISpec extends UnitSpec with MongoSpecSupport with B
       await(service.checkUserAccess) shouldBe false
     }
   }
+
+  "modifyThrottledUsers" should {
+
+    "return the modified users_in value" in new Setup {
+      val date = "20-12-2000"
+      val usersIn = 10
+
+      await(repository.modifyThrottledUsers(date, usersIn)) shouldBe 10
+    }
+  }
 }

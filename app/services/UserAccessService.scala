@@ -31,7 +31,9 @@ object UserAccessService extends UserAccessService with ServicesConfig {
   val cTService = CorporationTaxRegistrationService
   val cTRepository = Repositories.cTRepository
   val throttleService = ThrottleService
+  //$COVERAGE-OFF$
   val threshold = getConfInt("throttle-threshold", throw new Exception("Could not find Threshold in config"))
+  //$COVERAGE-ON$
 }
 
 trait UserAccessService {

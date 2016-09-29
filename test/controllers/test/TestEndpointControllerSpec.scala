@@ -44,8 +44,28 @@ class TestEndpointControllerSpec extends UnitSpec with MockitoSugar {
       when(mockThrottleRepository.modifyThrottledUsers(Matchers.anyString(), Matchers.eq(5)))
         .thenReturn(Future.successful(5))
 
-      val result = controller.modifyThrottledUsers(5)(FakeRequest())
+      val result = await(controller.modifyThrottledUsers(5)(FakeRequest()))
       status(result) shouldBe OK
+      jsonBodyOf(result).toString() shouldBe """{"users_in":5}"""
+    }
+  }
+
+  "dropCTCollection" should {
+
+    "return a 200 with a confirmation message" in new Setup {
+      when(mockCTRepository.drop(Matchers.any())).thenReturn(Future.successful(true))
+
+      val result = await(controller.dropCTCollection(FakeRequest()))
+      status(result) shouldBe OK
+      jsonBodyOf(result).toString() shouldBe """{"message":"CT collection was dropped"}"""
+    }
+
+    "return a 200 with an error message when the collection drop was unsuccessful" in new Setup {
+      when(mockCTRepository.drop(Matchers.any())).thenReturn(Future.successful(false))
+
+      val result = await(controller.dropCTCollection(FakeRequest()))
+      status(result) shouldBe OK
+      jsonBodyOf(result).toString() shouldBe """{"message":"A problem occurred and the CT Collection could not be dropped"}"""
     }
   }
 }
