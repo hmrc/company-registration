@@ -1,0 +1,2 @@
+GET        /modify-throttled-users/:usersIn                    controllers.test.TestEndpointController.modifyThrottledUsers(usersIn: Int)
+GET        /drop-ct                                            controllers.test.TestEndpointController.dropCTCollection

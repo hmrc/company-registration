@@ -14,22 +14,18 @@
  * limitations under the License.
  */
 
-package repositories
+package helpers
 
-import models.HandoffCHData
-import play.modules.reactivemongo.ReactiveMongoPlugin
-import reactivemongo.api.commands.MultiBulkWriteResult
+import org.joda.time.DateTime
+import uk.gov.hmrc.time.DateTimeUtils
 
-import scala.concurrent.{ExecutionContext, Future}
+object DateHelper {
 
-object Repositories {
-  private implicit val connection = {
-    import play.api.Play.current
-    ReactiveMongoPlugin.mongoConnector.db
+  def now: DateTime = {
+    DateTimeUtils.now
   }
 
-  lazy val cTRepository = new CorporationTaxRegistrationMongoRepository
-  lazy val sequenceRepository = new SequenceMongoRepository()
-  lazy val handoffRepository = new HandoffMongoRepository()
-  lazy val throttleRepository = new ThrottleMongoRepository()
+  def getCurrentDay: String = {
+    now.toString("yyyy-MM-dd")
+  }
 }

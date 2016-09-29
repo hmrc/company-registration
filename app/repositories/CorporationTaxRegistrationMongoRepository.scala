@@ -20,6 +20,7 @@ import auth.AuthorisationResource
 import models.AccountingDetails
 import models.{ContactDetails, CompanyDetails, CorporationTaxRegistration, TradingDetails}
 import reactivemongo.api.DB
+import reactivemongo.api.commands.WriteResult
 import reactivemongo.bson._
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
@@ -153,4 +154,8 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
         case Some(m) => Some(m.registrationID -> m.OID)
       }
     }
+
+  def dropCollection = {
+    collection.drop()
+  }
 }

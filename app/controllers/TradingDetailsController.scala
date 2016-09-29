@@ -43,10 +43,9 @@ trait TradingDetailsController extends BaseController with Authenticated with Au
       authorised(registrationID) {
         case Authorised(_) => tradingDetailsService.retrieveTradingDetails(registrationID).map {
           case Some(res) => Ok(Json.toJson(res))
-          case _ => {
+          case _ =>
             Logger.info(s"[TradingDetailsController] [retrieveTradingDetails] Authorised but no data for $registrationID")
             NotFound(ErrorResponse.tradingDetailsNotFound)
-          }
         }
         case NotLoggedInOrAuthorised =>
           Logger.info(s"[TradingDetailsController] [retrieveTradingDetails] User not logged in")
