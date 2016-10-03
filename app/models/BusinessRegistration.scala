@@ -28,6 +28,7 @@ object BusinessRegistrationRequest {
 case class BusinessRegistration(registrationID: String,
                                 formCreationTimestamp: String,
                                 language: String,
+                                completionCapacity : String,
                                 links: Links)
 
 object BusinessRegistration {
