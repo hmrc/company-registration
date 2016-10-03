@@ -31,7 +31,7 @@ case object ThrottleTooManyRequestsResponse extends ThrottleResponse
 
 object ThrottleService extends ThrottleService with ServicesConfig {
   val throttleMongoRepository = Repositories.throttleRepository
-  val dateTime = DateTimeUtils.now
+  override def dateTime = DateTimeUtils.now
   //$COVERAGE-OFF$
   val threshold = getConfInt("throttle-threshold", throw new Exception("throttle-threshold not found in config"))
   //$COVERAGE-ON$
@@ -39,7 +39,7 @@ object ThrottleService extends ThrottleService with ServicesConfig {
 
 trait ThrottleService extends BaseController {
   val throttleMongoRepository : ThrottleMongoRepository
-  val dateTime: DateTime
+  def dateTime: DateTime = ???
   val threshold: Int
 
   def checkUserAccess: Future[Boolean] = {
