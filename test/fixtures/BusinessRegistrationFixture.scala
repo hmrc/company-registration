@@ -24,6 +24,7 @@ trait BusinessRegistrationFixture {
     "12345",
     "2016-08-03T10:49:11Z",
     "en",
+    "CompCap",
     Links(Some("/business-registration/business-tax-registartion/12345"))
   )
 }
