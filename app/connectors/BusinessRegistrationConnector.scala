@@ -63,4 +63,10 @@ trait BusinessRegistrationConnector {
         BusinessRegistrationErrorResponse(e)
     }
   }
+
+  def dropMetadataCollection(implicit hc: HeaderCarrier) = {
+    http.GET[JsValue](s"$businessRegUrl/business-registration/test-only/drop-collection") map { res =>
+      (res \ "message").as[String]
+    }
+  }
 }
