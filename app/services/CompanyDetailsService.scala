@@ -33,9 +33,7 @@ trait CompanyDetailsService {
 
   def retrieveCompanyDetails(registrationID: String): Future[Option[CompanyDetailsResponse]] = {
     corporationTaxRegistrationRepository.retrieveCompanyDetails(registrationID).map{
-      case Some(companyDetails) =>
-        println("====================================== existing:" + companyDetails)
-        Some(companyDetails.toCompanyDetailsResponse(registrationID))
+      case Some(companyDetails) => Some(companyDetails.toCompanyDetailsResponse(registrationID))
       case _ => None
     }
   }
