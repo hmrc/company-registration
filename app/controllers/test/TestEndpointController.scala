@@ -16,6 +16,7 @@
 
 package controllers.test
 
+import connectors.BusinessRegistrationConnector
 import helpers.DateHelper
 import play.api.libs.json.Json
 import play.api.mvc.Action
@@ -27,12 +28,14 @@ import scala.concurrent.ExecutionContext.Implicits.global
 object TestEndpointController extends TestEndpointController {
   val throttleMongoRepository = Repositories.throttleRepository
   val cTMongoRepository = Repositories.cTRepository
+  val bRConnector = BusinessRegistrationConnector
 }
 
 trait TestEndpointController extends BaseController {
 
   val throttleMongoRepository: ThrottleMongoRepository
   val cTMongoRepository: CorporationTaxRegistrationMongoRepository
+  val bRConnector: BusinessRegistrationConnector
 
   def modifyThrottledUsers(usersIn: Int) = Action.async {
     implicit request =>
@@ -40,11 +43,20 @@ trait TestEndpointController extends BaseController {
       throttleMongoRepository.modifyThrottledUsers(date, usersIn).map(x => Ok(Json.parse(s"""{"users_in" : $x}""")))
   }
 
-  def dropCTCollection = Action.async {
-    implicit request =>
-      cTMongoRepository.drop map {
-        case true => Ok(Json.parse(s"""{"message": "CT collection was dropped"}"""))
-        case false => Ok(Json.parse(s"""{"message": "A problem occurred and the CT Collection could not be dropped"}"""))
-      }
+  def dropCTCollection = {
+    cTMongoRepository.drop map {
+      case true => "CT collection was dropped"
+      case false => "A problem occurred and the CT Collection could not be dropped"
+    }
   }
+
+  def dropJourneyCollections = Action.async {
+    implicit request =>
+      for {
+        cTDrop <- dropCTCollection
+        bRDrop <- bRConnector.dropMetadataCollection
+      } yield {
+        Ok(Json.parse(s"""{"message":"$cTDrop $bRDrop"}"""))
+      }
+    }
 }

@@ -16,6 +16,7 @@
 
 package controllers.test
 
+import connectors.BusinessRegistrationConnector
 import org.mockito.Matchers
 import org.scalatest.mock.MockitoSugar
 import play.api.test.FakeRequest
@@ -30,11 +31,13 @@ class TestEndpointControllerSpec extends UnitSpec with MockitoSugar {
 
   val mockThrottleRepository = mock[ThrottleMongoRepository]
   val mockCTRepository = mock[CorporationTaxRegistrationMongoRepository]
+  val mockBusRegConnector = mock[BusinessRegistrationConnector]
 
   class Setup {
     val controller = new TestEndpointController {
       val throttleMongoRepository = mockThrottleRepository
       val cTMongoRepository = mockCTRepository
+      val bRConnector = mockBusRegConnector
     }
   }
 
@@ -55,7 +58,7 @@ class TestEndpointControllerSpec extends UnitSpec with MockitoSugar {
     "return a 200 with a confirmation message" in new Setup {
       when(mockCTRepository.drop(Matchers.any())).thenReturn(Future.successful(true))
 
-      val result = await(controller.dropCTCollection(FakeRequest()))
+      val result = await(controller.dropJourneyCollections(FakeRequest()))
       status(result) shouldBe OK
       jsonBodyOf(result).toString() shouldBe """{"message":"CT collection was dropped"}"""
     }
@@ -63,7 +66,7 @@ class TestEndpointControllerSpec extends UnitSpec with MockitoSugar {
     "return a 200 with an error message when the collection drop was unsuccessful" in new Setup {
       when(mockCTRepository.drop(Matchers.any())).thenReturn(Future.successful(false))
 
-      val result = await(controller.dropCTCollection(FakeRequest()))
+      val result = await(controller.dropJourneyCollections(FakeRequest()))
       status(result) shouldBe OK
       jsonBodyOf(result).toString() shouldBe """{"message":"A problem occurred and the CT Collection could not be dropped"}"""
     }
