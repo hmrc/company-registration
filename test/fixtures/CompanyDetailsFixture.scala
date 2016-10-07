@@ -49,7 +49,8 @@ trait CompanyDetailsFixture {
       "test county",
       "XX1 1ZZ",
       "test country"
-    )
+    ),
+    "testJurisdiction"
   )
 
   lazy val validCompanyDetailsResponse = validCompanyDetails.toCompanyDetailsResponse("12345")
