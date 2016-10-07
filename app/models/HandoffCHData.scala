@@ -23,7 +23,6 @@ import play.api.libs.json.{JsValue, Json}
 case class HandoffCHData(_id: String, updated: DateTime = HandoffCHData.now, ch: JsValue = Json.parse("{}")){
   def registrationID = _id
 }
-
 object HandoffCHData {
   import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
   import ReactiveMongoFormats.{dateTimeRead, dateTimeWrite}
