@@ -91,7 +91,8 @@ object CorporationTaxRegistrationResponse {
 case class CompanyDetails(companyName: String,
                           cHROAddress: CHROAddress,
                           rOAddress: ROAddress,
-                          pPOBAddress: PPOBAddress){
+                          pPOBAddress: PPOBAddress,
+                          jurisdiction: String){
 
   def toCompanyDetailsResponse(registrationID: String): CompanyDetailsResponse = {
     CompanyDetailsResponse(
@@ -99,6 +100,7 @@ case class CompanyDetails(companyName: String,
       cHROAddress,
       rOAddress,
       pPOBAddress,
+      jurisdiction,
       TradingDetails.empty,
       Links.buildLinks(registrationID)
     )
@@ -109,6 +111,7 @@ case class CompanyDetailsResponse(companyName: String,
                                   cHROAddress: CHROAddress,
                                   rOAddress: ROAddress,
                                   pPOBAddress: PPOBAddress,
+                                  jurisdiction: String,
                                   tradingDetails: TradingDetails,
                                   links: Links)
 

@@ -32,7 +32,7 @@ class ThrottleServiceSpec extends UnitSpec with MockitoSugar with WithFakeApplic
   trait Setup {
     val service = new ThrottleService {
       val throttleMongoRepository = mockThrottleMongoRepository
-      val dateTime = DateTime.parse("2000-02-01")
+      override def dateTime = DateTime.parse("2000-02-01")
       val threshold = 10
     }
   }
