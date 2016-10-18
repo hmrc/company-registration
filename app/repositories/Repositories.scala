@@ -30,6 +30,5 @@ object Repositories {
 
   lazy val cTRepository = new CorporationTaxRegistrationMongoRepository
   lazy val sequenceRepository = new SequenceMongoRepository()
-  lazy val handoffRepository = new HandoffMongoRepository()
   lazy val throttleRepository = new ThrottleMongoRepository()
 }
