@@ -68,8 +68,8 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
     "fail on insert" in {
       setupAnyInsertOn(repository.collection, fails = true)
 
-      val result = await(repository.createCorporationTaxRegistration(validCorporationTaxRegistration))
-      result shouldBe validCorporationTaxRegistration
+      val result = await(repository.createCorporationTaxRegistration(validDraftCorporationTaxRegistration))
+      result shouldBe validDraftCorporationTaxRegistration
 
     }
 
@@ -93,10 +93,10 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
 
     "fetch a document by registrationID if it exists" in {
       val selector = BSONDocument("registrationID" -> BSONString(registrationID))
-      setupFindFor(repository.collection, selector, Some(validCorporationTaxRegistration))
+      setupFindFor(repository.collection, selector, Some(validDraftCorporationTaxRegistration))
 
       val result = await(repository.retrieveCompanyDetails(registrationID))
-      result shouldBe validCorporationTaxRegistration.companyDetails
+      result shouldBe validDraftCorporationTaxRegistration.companyDetails
     }
 
     "return None when the record to retrieve doesn't exists" in {
@@ -112,11 +112,11 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
 
     "retrieve a document by registration ID and update it with the new one" in {
       val selector = BSONDocument("registrationID" -> BSONString(registrationID))
-      setupFindFor(repository.collection, selector, Some(validCorporationTaxRegistration))
+      setupFindFor(repository.collection, selector, Some(validDraftCorporationTaxRegistration))
       setupAnyUpdateOn(repository.collection)
 
       val result = await(repository.updateCompanyDetails(registrationID, validCompanyDetails))
-      result shouldBe validCorporationTaxRegistration.companyDetails
+      result shouldBe validDraftCorporationTaxRegistration.companyDetails
     }
 
     "return a None when the document to update did not exist" in {
@@ -132,10 +132,10 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
 
     "fetch a document by registration ID if one is found" in {
       val selector = BSONDocument("registrationID" -> BSONString(registrationID))
-      setupFindFor(repository.collection, selector, Some(validCorporationTaxRegistration))
+      setupFindFor(repository.collection, selector, Some(validDraftCorporationTaxRegistration))
 
       val result = await(repository.retrieveContactDetails(registrationID))
-      result shouldBe validCorporationTaxRegistration.contactDetails
+      result shouldBe validDraftCorporationTaxRegistration.contactDetails
     }
 
     "return None when a document cannot be found" in {
@@ -151,11 +151,11 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
 
     "update a contact details on a document found by registrationID if one exists" in {
       val selector = BSONDocument("registrationID" -> BSONString(registrationID))
-      setupFindFor(repository.collection, selector, Some(validCorporationTaxRegistration))
+      setupFindFor(repository.collection, selector, Some(validDraftCorporationTaxRegistration))
       setupAnyUpdateOn(repository.collection)
 
       val result = await(repository.updateContactDetails(registrationID, contactDetails))
-      result shouldBe validCorporationTaxRegistration.contactDetails
+      result shouldBe validDraftCorporationTaxRegistration.contactDetails
     }
 
     "return None when a document cannot be found" in {
@@ -172,7 +172,7 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
 
     "return the reg ID and OID from a fetched document" in {
       val selector = BSONDocument("registrationID" -> BSONString(registrationID))
-      setupFindFor(repository.collection, selector, Some(validCorporationTaxRegistration))
+      setupFindFor(repository.collection, selector, Some(validDraftCorporationTaxRegistration))
 
       val result = await(repository.getOid(registrationID))
       result shouldBe Some(("0123456789", "9876543210"))
@@ -182,11 +182,11 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
   "retrieveTradingDetails" should {
     "return a TradingDetails" in  {
       val selector = BSONDocument("registrationID" -> BSONString(registrationID))
-      setupFindFor(repository.collection, selector, Some(validCorporationTaxRegistration))
+      setupFindFor(repository.collection, selector, Some(validDraftCorporationTaxRegistration))
       setupAnyUpdateOn(repository.collection)
 
       val result = await(repository.retrieveTradingDetails(registrationID))
-      result shouldBe validCorporationTaxRegistration.tradingDetails
+      result shouldBe validDraftCorporationTaxRegistration.tradingDetails
     }
 
     "return an empty option when a document does'nt exist" in {
@@ -202,11 +202,11 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
   "updateTradingDetails" should {
     "return a TradingDetails" in {
       val selector = BSONDocument("registrationID" -> BSONString(registrationID))
-      setupFindFor(repository.collection, selector, Some(validCorporationTaxRegistration))
+      setupFindFor(repository.collection, selector, Some(validDraftCorporationTaxRegistration))
       setupAnyUpdateOn(repository.collection)
 
       val result = await(repository.updateTradingDetails(registrationID, TradingDetails()))
-      result shouldBe validCorporationTaxRegistration.tradingDetails
+      result shouldBe validDraftCorporationTaxRegistration.tradingDetails
     }
 
     "return None" in {
@@ -222,11 +222,11 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
   "retrieveAccountingDetails" should {
     "return an AccountingDetails model" in  {
       val selector = BSONDocument("registrationID" -> BSONString(registrationID))
-      setupFindFor(repository.collection, selector, Some(validCorporationTaxRegistration))
+      setupFindFor(repository.collection, selector, Some(validDraftCorporationTaxRegistration))
       setupAnyUpdateOn(repository.collection)
 
       val result = await(repository.retrieveAccountingDetails(registrationID))
-      result shouldBe validCorporationTaxRegistration.accountingDetails
+      result shouldBe validDraftCorporationTaxRegistration.accountingDetails
     }
     "return none" in  {
       val selector = BSONDocument("registrationID" -> BSONString(registrationID))
@@ -241,11 +241,11 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
   "updateAccountingDetails" should {
     "return an AccountingDetails model" in {
       val selector = BSONDocument("registrationID" -> BSONString(registrationID))
-      setupFindFor(repository.collection, selector, Some(validCorporationTaxRegistration))
+      setupFindFor(repository.collection, selector, Some(validDraftCorporationTaxRegistration))
       setupAnyUpdateOn(repository.collection)
 
       val result = await(repository.updateAccountingDetails(registrationID, validAccountingDetails))
-      result shouldBe validCorporationTaxRegistration.accountingDetails
+      result shouldBe validDraftCorporationTaxRegistration.accountingDetails
     }
 
     "return None" in {
@@ -259,18 +259,56 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
 
     "return an accountingDetails model if the start date of business is not defined" in {
       val selector = BSONDocument("registrationID" -> BSONString(registrationID))
-      setupFindFor(repository.collection, selector, Some(validCorporationTaxRegistration))
+      setupFindFor(repository.collection, selector, Some(validDraftCorporationTaxRegistration))
       setupAnyUpdateOn(repository.collection)
 
       val result = await(repository.updateAccountingDetails(registrationID, accountingDetailsNoStartDateOfBusiness))
-      result shouldBe validCorporationTaxRegistration.copy(accountingDetails = Some(accountingDetailsNoStartDateOfBusiness)).accountingDetails
+      result shouldBe validDraftCorporationTaxRegistration.copy(accountingDetails = Some(accountingDetailsNoStartDateOfBusiness)).accountingDetails
+    }
+  }
+
+  "retrieve confirmation references" should {
+
+    "not return references for a draft CT registration" in {
+      val selector = BSONDocument("registrationID" -> BSONString(registrationID))
+      setupFindFor(repository.collection, selector, Some(validDraftCorporationTaxRegistration))
+
+      val result = await(repository.retrieveConfirmationReference(registrationID))
+      result shouldBe None
+    }
+
+    "return an references if a held CT registration exists" in {
+      val selector = BSONDocument("registrationID" -> BSONString(registrationID))
+      setupFindFor(repository.collection, selector, Some(validHeldCorporationTaxRegistration))
+
+      val result = await(repository.retrieveConfirmationReference(registrationID))
+      result shouldBe Some(validConfirmationReferences)
+    }
+
+    "return an empty option if a CT registration doesn't exists" in {
+      val selector = BSONDocument("registrationID" -> BSONString(registrationID))
+      setupFindFor(repository.collection, selector, None)
+
+      val result = await(repository.retrieveConfirmationReference(registrationID))
+      result shouldBe None
+    }
+  }
+
+  "update confirmation references" should {
+    "return the correct references when stored" in {
+      val selector = BSONDocument("registrationID" -> BSONString(registrationID))
+      setupFindFor(repository.collection, selector, Some(validHeldCorporationTaxRegistration))
+      setupAnyUpdateOn(repository.collection)
+
+      val result = await(repository.updateConfirmationReferences(registrationID, validConfirmationReferences))
+      result shouldBe validHeldCorporationTaxRegistration.confirmationReferences
     }
   }
 
   "updateAcknowledgementRef" should {
     "return an Ack ref if a CT registration exists" in {
       val selector = BSONDocument("registrationID" -> BSONString(registrationID))
-      setupFindFor(repository.collection, selector, Some(validCorporationTaxRegistration))
+      setupFindFor(repository.collection, selector, Some(validDraftCorporationTaxRegistration))
       setupAnyUpdateOn(repository.collection)
 
       val result = await(repository.updateAcknowledgementRef(registrationID, "BRCT12345678910"))
@@ -288,9 +326,16 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
   }
 
   "retrieveAcknowledgementRef" should {
-    "return an Ack ref if a CT registration exists" in {
+    "not return an Ack ref for a draft CT registration" in {
       val selector = BSONDocument("registrationID" -> BSONString(registrationID))
-      setupFindFor(repository.collection, selector, Some(validCorporationTaxRegistration))
+      setupFindFor(repository.collection, selector, Some(validDraftCorporationTaxRegistration))
+
+      val result = await(repository.retrieveAcknowledgementRef(registrationID))
+      result shouldBe None
+    }
+    "return an Ack ref if a held CT registration exists" in {
+      val selector = BSONDocument("registrationID" -> BSONString(registrationID))
+      setupFindFor(repository.collection, selector, Some(validHeldCorporationTaxRegistration))
 
       val result = await(repository.retrieveAcknowledgementRef(registrationID))
       result shouldBe Some("BRCT12345678910")

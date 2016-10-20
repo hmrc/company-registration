@@ -62,7 +62,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
 		"return a 403 - forbidden when the user is not authenticated" in new Setup {
 			AuthenticationMocks.getCurrentAuthority(None)
 
-			val request = FakeRequest().withJsonBody(Json.toJson(validCorporationTaxRegistration))
+			val request = FakeRequest().withJsonBody(Json.toJson(validDraftCorporationTaxRegistration))
 			val result = call(controller.createCorporationTaxRegistration("0123456789"), request)
 			status(result) shouldBe FORBIDDEN
 		}

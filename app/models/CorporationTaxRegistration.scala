@@ -19,11 +19,11 @@ package models
 import play.api.libs.json.Json
 import scala.language.implicitConversions
 
-case class CorporationTaxRegistration(acknowledgementReference: Option[String],
-                                      OID: String,
+case class CorporationTaxRegistration(OID: String,
                                       registrationID: String,
                                       formCreationTimestamp: String,
                                       language: String,
+                                      confirmationReferences: Option[ConfirmationReferences],
                                       companyDetails: Option[CompanyDetails],
                                       accountingDetails: Option[AccountingDetails],
                                       tradingDetails: Option[TradingDetails],
@@ -46,11 +46,22 @@ object CorporationTaxRegistration {
   implicit val formatCompanyDetails = Json.format[CompanyDetails]
   implicit val formatAccountingDetails = Json.format[AccountingDetails]
   implicit val formatContactDetails = Json.format[ContactDetails]
+  implicit val formatConfirmationReferences = Json.format[ConfirmationReferences]
   implicit val formats = Json.format[CorporationTaxRegistration]
 
   def empty: CorporationTaxRegistration = {
-    CorporationTaxRegistration(None, "", "", "", "", None, None, None, None)
+    CorporationTaxRegistration("", "", "", "", None, None, None, None, None)
   }
+}
+
+case class ConfirmationReferences(
+                                   acknowledgementReference: String,
+                                   transactionId: String,
+                                   paymentReference: String,
+                                   paymentAmount: String
+                                 )
+object ConfirmationReferences {
+  implicit val formats = Json.format[ConfirmationReferences]
 }
 
 case class AccountingDetailsResponse(accountingDateStatus : String,
