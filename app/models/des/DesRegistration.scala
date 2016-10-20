@@ -49,10 +49,10 @@ object CompletionCapacity {
   implicit val writes = new Writes[CompletionCapacity] {
     def writes( cc: CompletionCapacity ) = JsString(cc.text)
   }
-
 }
 
 case object Director extends CompletionCapacity { val text = "Director" }
+case object Agent extends CompletionCapacity { val text = "Agent" }
 case class Other(text: String) extends CompletionCapacity
 
 case class Metadata(
@@ -79,12 +79,12 @@ object Metadata {
         "formCreationTimestamp" -> formatTimestamp( m.submissionTs )
       ) ++ (
         m.completionCapacity match {
-          case Director => Json.obj( "completionCapacity" -> m.completionCapacity )
           case Other(cc) => {
             Json.obj(
               "completionCapacity" -> "Other",
               "completionCapacityOther" -> cc
             ) }
+          case _ => Json.obj( "completionCapacity" -> m.completionCapacity )
         }
       )
     }

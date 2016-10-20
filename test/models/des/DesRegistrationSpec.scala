@@ -25,7 +25,7 @@ class DesRegistrationSpec extends UnitSpec {
 
   "Registration metadata model" should {
 
-    "Simple model should produce valid JSON" in {
+    "Simple model should produce valid JSON for a director" in {
       val expectedJson : String = s"""{
                                |  "businessType" : "Limited company",
                                |  "sessionId" : "session-123",
@@ -38,6 +38,25 @@ class DesRegistrationSpec extends UnitSpec {
                                |}""".stripMargin
 
       val desModel = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), Director )
+
+      val result = Json.toJson[Metadata](desModel)
+      result.getClass shouldBe classOf[JsObject]
+      result shouldBe Json.parse(expectedJson)
+    }
+
+    "Simple model should produce valid JSON for an agent" in {
+      val expectedJson : String = s"""{
+                               |  "businessType" : "Limited company",
+                               |  "sessionId" : "session-123",
+                               |  "credentialId" : "cred-123",
+                               |  "formCreationTimestamp": "1970-01-01T00:00:00.000Z",
+                               |  "submissionFromAgent": false,
+                               |  "language" : "ENG",
+                               |  "completionCapacity" : "Agent",
+                               |  "declareAccurateAndComplete": true
+                               |}""".stripMargin
+
+      val desModel = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), Agent )
 
       val result = Json.toJson[Metadata](desModel)
       result.getClass shouldBe classOf[JsObject]
@@ -62,6 +81,34 @@ class DesRegistrationSpec extends UnitSpec {
       val result = Json.toJson[Metadata](desModel)
       result.getClass shouldBe classOf[JsObject]
       result shouldBe Json.parse(expectedJson)
+    }
+
+  }
+
+  "Registration corporationTax model" should {
+    "Produce valid JSON for a simple model" in {
+      val expectedJson : String = s"""{
+                                      |  "companyUTR" : "1234567890",
+                                      |  "companyOfficeNumber" : "12345",
+                                      |  "companyActiveDate" : "",
+                                      |  "hasCompanyTakenOverBusiness": "N",
+                                      |  "companyMemberOfGroup": "N",
+                                      |  "companiesHouseCompanyName" : "",
+                                      |  "companyNameAbbreviation" : "Other",
+                                      |  "crn" : ""
+                                      |  "startDateOfFirstAccountingPeriod" : "",
+                                      |  "intendedAccountsPreparationDate" : "",
+                                      |  "returnsOnCT61" : "N",
+                                      |  "companyACharity" : "N",
+                                      |  "companyACharityIncOrg" : "N",
+                                      |  "charityTaxpayerReference" : "",
+                                      |  "businessAddress" : "",
+                                      |  "businessTakeOverDetails" : "",
+                                      |  "groupDetails" : "",
+                                      |  "businessContactName" : "",
+                                      |  "businessContactDetails" : ""
+                                      |}""".stripMargin
+//PS I know the last five elements are JSON objects in their own right.  Will refacter later
     }
 
   }
