@@ -91,24 +91,16 @@ class DesRegistrationSpec extends UnitSpec {
                                       |  "companyUTR" : "1234567890",
                                       |  "companyOfficeNumber" : "12345",
                                       |  "companyActiveDate" : "",
-                                      |  "hasCompanyTakenOverBusiness": "N",
-                                      |  "companyMemberOfGroup": "N",
-                                      |  "companiesHouseCompanyName" : "",
-                                      |  "companyNameAbbreviation" : "Other",
-                                      |  "crn" : ""
-                                      |  "startDateOfFirstAccountingPeriod" : "",
-                                      |  "intendedAccountsPreparationDate" : "",
-                                      |  "returnsOnCT61" : "N",
-                                      |  "companyACharity" : "N",
-                                      |  "companyACharityIncOrg" : "N",
-                                      |  "charityTaxpayerReference" : "",
-                                      |  "businessAddress" : "",
-                                      |  "businessTakeOverDetails" : "",
-                                      |  "groupDetails" : "",
-                                      |  "businessContactName" : "",
-                                      |  "businessContactDetails" : ""
+                                      |  "hasCompanyTakenOverBusiness" : false,
+                                      |  "companyMemberOfGroup" : false,
+                                      |  "companyACharity" : false,
+                                      |  "businessContactDetails" : "business contact details model"
                                       |}""".stripMargin
 //PS I know the last five elements are JSON objects in their own right.  Will refacter later
+      val desModel = CorporationTaxTopLevel("1234567890","12345","",false,"business contact details model")
+      val result = Json.toJson[CorporationTaxTopLevel](desModel)
+      result.getClass shouldBe classOf[JsObject]
+      result shouldBe Json.parse(expectedJson)
     }
 
   }
@@ -130,3 +122,19 @@ class DesRegistrationSpec extends UnitSpec {
 
   }
 }
+
+// Add these in later
+//
+//                                      |  "companyMemberOfGroup": "N",
+//                                      |  "companiesHouseCompanyName" : "",
+//                                      |  "companyNameAbbreviation" : "Other",
+//                                      |  "crn" : ""
+//                                      |  "startDateOfFirstAccountingPeriod" : "",
+//                                      |  "intendedAccountsPreparationDate" : "",
+//                                      |  "returnsOnCT61" : "N",
+//                                      |  "companyACharityIncOrg" : "N",
+//                                      |  "charityTaxpayerReference" : "",
+//                                      |  "businessAddress" : "business address model",
+//                                      |  "businessTakeOverDetails" : "business takeover details model",
+//                                      |  "groupDetails" : "group details model",
+//                                      |  "businessContactName" : "business contact name model",

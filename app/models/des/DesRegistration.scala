@@ -90,3 +90,53 @@ object Metadata {
     }
   }
 }
+
+case class CorporationTaxTopLevel(
+                      companyUTR : String,
+                      companyOfficeNumber : String,
+                      companyActiveDate : String,
+                      companyACharity : Boolean,
+//                      companiesHouseCompanyName : String,
+//                      companyNameAbbreviation : String,
+//                      crn : String,
+//                      startDateOfFirstAccountingPeriod : String,
+//                      intendedAccountsPreparationDate : String,
+//                      returnsOnCT61 : String,
+//                      companyACharity : String,
+//                      companyACharityIncOrg : String,
+//                      charityTaxpayerReference : String,
+//                      businessAddress : String,
+//                      businessTakeOverDetails : String,
+//                      groupDetails : String,
+//                      businessContactName : String,
+                      businessContactDetails : String
+                                 )
+object CorporationTaxTopLevel {
+
+  import DesFormats._
+
+  implicit val writes = new Writes[CorporationTaxTopLevel] {
+    def writes(m: CorporationTaxTopLevel) = {
+      Json.obj(
+        "companyUTR" -> m.companyUTR,
+        "companyOfficeNumber" -> m.companyOfficeNumber,
+        "companyActiveDate" -> m.companyActiveDate,
+        "hasCompanyTakenOverBusiness" -> false,
+        "companyMemberOfGroup" -> false,
+        "companyACharity" -> m.companyACharity,
+        "businessContactDetails" -> m.businessContactDetails
+      ) ++ (
+        m.companyACharity match {
+          case true => {
+            Json.obj(
+              "companyACharityIncOrg" -> "IncOrg",
+              "charityTaxpayerReference" -> "Charity Reference"
+            ) }
+          case false => {
+            Json.obj()
+          }
+         }
+      )
+    }
+  }
+}
