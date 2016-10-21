@@ -21,19 +21,26 @@ import play.api.libs.json._
 
 import scala.language.implicitConversions
 
+object RegistrationStatus {
+  val DRAFT = "draft"
+  val HELD = "held"
+}
+
 case class CorporationTaxRegistration(OID: String,
                                       registrationID: String,
+                                      status: String = RegistrationStatus.DRAFT,
                                       formCreationTimestamp: String,
                                       language: String,
-                                      confirmationReferences: Option[ConfirmationReferences],
-                                      companyDetails: Option[CompanyDetails],
-                                      accountingDetails: Option[AccountingDetails],
-                                      tradingDetails: Option[TradingDetails],
-                                      contactDetails: Option[ContactDetails]){
+                                      confirmationReferences: Option[ConfirmationReferences] = None,
+                                      companyDetails: Option[CompanyDetails] = None,
+                                      accountingDetails: Option[AccountingDetails] = None,
+                                      tradingDetails: Option[TradingDetails] = None,
+                                      contactDetails: Option[ContactDetails] = None) {
 
   def toCTRegistrationResponse = {
     CorporationTaxRegistrationResponse(
       registrationID,
+      status,
       formCreationTimestamp,
       Links(Some(s"/corporation-tax-registration/$registrationID"))
     )
@@ -50,10 +57,16 @@ object CorporationTaxRegistration {
   implicit val formatContactDetails = Json.format[ContactDetails]
   implicit val formatConfirmationReferences = Json.format[ConfirmationReferences]
   implicit val formats = Json.format[CorporationTaxRegistration]
+}
 
-  def empty: CorporationTaxRegistration = {
-    CorporationTaxRegistration("", "", "", "", None, None, None, None, None)
-  }
+case class CorporationTaxRegistrationResponse(registrationID: String,
+                                              status: String,
+                                              formCreationTimestamp: String,
+                                              link: Links)
+
+object CorporationTaxRegistrationResponse {
+  implicit val linksFormats = Json.format[Links]
+  implicit val formats = Json.format[CorporationTaxRegistrationResponse]
 }
 
 case class ConfirmationReferences(
@@ -95,15 +108,6 @@ case class AccountingDetails(accountingDateStatus : String,
 
 object AccountingDetails {
   implicit val formats = Json.format[AccountingDetails]
-}
-
-case class CorporationTaxRegistrationResponse(registrationID: String,
-                                              formCreationTimestamp: String,
-                                              link: Links)
-
-object CorporationTaxRegistrationResponse {
-  implicit val linksFormats = Json.format[Links]
-  implicit val formats = Json.format[CorporationTaxRegistrationResponse]
 }
 
 case class CompanyDetails(companyName: String,

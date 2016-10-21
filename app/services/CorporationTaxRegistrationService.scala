@@ -37,12 +37,11 @@ trait CorporationTaxRegistrationService {
   val sequenceRepository: SequenceRepository
 
   def createCorporationTaxRegistrationRecord(OID: String, registrationId: String, language: String): Future[CorporationTaxRegistrationResponse] = {
-    val record = CorporationTaxRegistration.empty.copy(
-      OID,
-      registrationId,
-      generateTimestamp(new DateTime()),
-      language,
-      None)
+    val record = CorporationTaxRegistration(
+      OID = OID,
+      registrationID = registrationId,
+      formCreationTimestamp = generateTimestamp(new DateTime()),
+      language = language)
 
     CorporationTaxRegistrationRepository.createCorporationTaxRegistration(record).map(_.toCTRegistrationResponse)
   }

@@ -21,6 +21,7 @@ import java.util.UUID
 import fixtures.{ContactDetailsFixture, CorporationTaxRegistrationFixture}
 import helpers.MongoMocks
 import models.{CorporationTaxRegistration, TradingDetails}
+import org.joda.time.DateTime
 import org.mockito.ArgumentCaptor
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
@@ -48,12 +49,17 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
 
 	"createCorporationTaxRegistration" should {
 		val randomRegid = UUID.randomUUID().toString
+    val emptyReg: CorporationTaxRegistration = CorporationTaxRegistration(
+      OID = "",
+      registrationID = "",
+      formCreationTimestamp = "",
+      language = "")
 
-		"Store a document " in {
+    "Store a document " in {
 
 			val captor = ArgumentCaptor.forClass(classOf[CorporationTaxRegistration])
 
-			val ctData = CorporationTaxRegistration.empty.copy(registrationID = randomRegid)
+			val ctData = emptyReg.copy(registrationID = randomRegid)
 
 			setupAnyInsertOn(repository.collection, fails = false)
 

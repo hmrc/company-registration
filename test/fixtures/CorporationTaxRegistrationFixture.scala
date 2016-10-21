@@ -20,11 +20,14 @@ import models._
 
 trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with AccountingDetailsFixture with ContactDetailsFixture {
 
-	lazy val validCorporationTaxRegistrationRequest = CorporationTaxRegistrationRequest("en")
+	import RegistrationStatus._
 
-	lazy val validDraftCorporationTaxRegistration = CorporationTaxRegistration(
+	val validCorporationTaxRegistrationRequest = CorporationTaxRegistrationRequest("en")
+
+	val validDraftCorporationTaxRegistration = CorporationTaxRegistration(
 		OID = "9876543210",
 		registrationID = "0123456789",
+		status = DRAFT,
 		formCreationTimestamp = "2001-12-31T12:00:00Z",
 		language = "en",
 		confirmationReferences = None,
@@ -41,10 +44,10 @@ trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with Accou
 		paymentAmount = "12.00"
 	)
 
-	// TODO needs status adding
-	lazy val validHeldCorporationTaxRegistration = CorporationTaxRegistration(
+	val validHeldCorporationTaxRegistration = CorporationTaxRegistration(
 		OID = "9876543210",
 		registrationID = "0123456789",
+		status = HELD,
 		formCreationTimestamp = "2001-12-31T12:00:00Z",
 		language = "en",
 		confirmationReferences = Some(validConfirmationReferences),
@@ -54,8 +57,9 @@ trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with Accou
 		contactDetails = None
 	)
 
-	lazy val validCorporationTaxRegistrationResponse = CorporationTaxRegistrationResponse(
+	val validCorporationTaxRegistrationResponse = CorporationTaxRegistrationResponse(
 		registrationID = "0123456789",
+		status = DRAFT,
 		formCreationTimestamp = "2001-12-31T12:00:00Z",
 		Links(Some("/corporation-tax-registration/0123456789"))
   )
