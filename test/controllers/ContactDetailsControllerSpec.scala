@@ -17,9 +17,9 @@
 package controllers
 
 import connectors.AuthConnector
-import fixtures.{AuthFixture, ContactDetailsFixture}
+import fixtures.{AuthFixture, ContactDetailsFixture,ContactDetailsResponse}
 import helpers.SCRSSpec
-import models.{ErrorResponse, ContactDetailsResponse}
+import models.ErrorResponse
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
@@ -53,11 +53,11 @@ class ContactDetailsControllerSpec extends SCRSSpec with ContactDetailsFixture w
     "return a 200 with contact details in the json body when authorised" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       AuthorisationMocks.getOID("testOID", Some("testRegID" -> "testOID"))
-      ContactDetailsServiceMocks.retrieveContactDetails(registrationID, Some(contactDetailsResponse))
+      ContactDetailsServiceMocks.retrieveContactDetails(registrationID, Some(contactDetails))
 
       val result = controller.retrieveContactDetails(registrationID)(FakeRequest())
       status(result) shouldBe OK
-      jsonBodyOf(result).as[ContactDetailsResponse] shouldBe contactDetailsResponse
+      await(jsonBodyOf(result)) shouldBe Json.toJson(contactDetailsResponse)
     }
 
     "return a 404 when the user is authorised but contact details cannot be found" in new Setup {
@@ -100,13 +100,13 @@ class ContactDetailsControllerSpec extends SCRSSpec with ContactDetailsFixture w
     "return a 200 with contact details in the json body when authorised" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       AuthorisationMocks.getOID("testOID", Some("testRegID" -> "testOID"))
-      ContactDetailsServiceMocks.updateContactDetails(registrationID, Some(contactDetailsResponse))
+      ContactDetailsServiceMocks.updateContactDetails(registrationID, Some(contactDetails))
 
       val response = FakeRequest().withBody(Json.toJson(contactDetails))
 
       val result = call(controller.updateContactDetails(registrationID), response)
       status(result) shouldBe OK
-      jsonBodyOf(result).as[ContactDetailsResponse] shouldBe contactDetailsResponse
+      await(jsonBodyOf(result)) shouldBe Json.toJson(contactDetailsResponse)
     }
 
     "return a 404 when the user is authorised but contact details cannot be found" in new Setup {

@@ -20,12 +20,12 @@ import auth._
 import connectors.AuthConnector
 import models.{ContactDetails, ErrorResponse}
 import play.api.Logger
-import play.api.libs.json.{Json, JsValue}
+import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.Action
-import services.{CorporationTaxRegistrationService, ContactDetailsService}
+import services.{ContactDetailsService, CorporationTaxRegistrationService}
 import uk.gov.hmrc.play.microservice.controller.BaseController
-import scala.concurrent.ExecutionContext.Implicits.global
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object ContactDetailsController extends ContactDetailsController{
@@ -38,11 +38,21 @@ trait ContactDetailsController extends BaseController with Authenticated with Au
 
   val contactDetailsService: ContactDetailsService
 
+  private def mapToResponse(registrationID: String, res: ContactDetails)= {
+    Json.toJson(res).as[JsObject] ++
+      Json.obj(
+        "links" -> Json.obj(
+          "self" -> routes.ContactDetailsController.retrieveContactDetails(registrationID).url,
+          "registration" -> routes.CorporationTaxRegistrationController.retrieveCorporationTaxRegistration(registrationID).url
+        )
+      )
+  }
+
   def retrieveContactDetails(registrationID: String) = Action.async {
     implicit request =>
       authorised(registrationID){
         case Authorised(_) => contactDetailsService.retrieveContactDetails(registrationID) map {
-          case Some(res) => Ok(Json.toJson(res))
+          case Some(details) => Ok(mapToResponse(registrationID, details))
           case None => NotFound(ErrorResponse.contactDetailsNotFound)
         }
         case NotLoggedInOrAuthorised =>
@@ -61,7 +71,7 @@ trait ContactDetailsController extends BaseController with Authenticated with Au
         case Authorised(_) =>
           withJsonBody[ContactDetails]{ contactDetails =>
             contactDetailsService.updateContactDetails(registrationID, contactDetails) map {
-              case Some(res) => Ok(Json.toJson(res))
+              case Some(details) => Ok(mapToResponse(registrationID, details))
               case None => NotFound(ErrorResponse.contactDetailsNotFound)
             }
           }

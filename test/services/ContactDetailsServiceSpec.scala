@@ -38,7 +38,7 @@ class ContactDetailsServiceSpec extends SCRSSpec with ContactDetailsFixture {
     "return a contact details response if a contact details record exists" in new Setup {
       CTDataRepositoryMocks.retrieveContactDetails(Some(contactDetails))
 
-      await(service.retrieveContactDetails("12345")) shouldBe Some(contactDetailsResponse)
+      await(service.retrieveContactDetails("12345")) shouldBe Some(contactDetails)
     }
 
     "returns None if a contact details record is not found" in new Setup {
@@ -52,7 +52,7 @@ class ContactDetailsServiceSpec extends SCRSSpec with ContactDetailsFixture {
     "return a contact details response if a contact details record exists" in new Setup {
       CTDataRepositoryMocks.updateContactDetails(Some(contactDetails))
 
-      await(service.updateContactDetails("12345", contactDetails)) shouldBe Some(contactDetailsResponse)
+      await(service.updateContactDetails("12345", contactDetails)) shouldBe Some(contactDetails)
     }
 
     "returns None if a contact details record is not found" in new Setup {

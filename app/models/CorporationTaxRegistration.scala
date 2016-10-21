@@ -152,30 +152,11 @@ case class ContactDetails(contactFirstName: Option[String],
                           contactSurname: Option[String],
                           contactDaytimeTelephoneNumber: Option[String],
                           contactMobileNumber: Option[String],
-                          contactEmail: Option[String]){
-
-  implicit def convertToResponse(registrationID: String): ContactDetailsResponse = {
-    ContactDetailsResponse(contactFirstName, contactMiddleName, contactSurname, contactDaytimeTelephoneNumber, contactMobileNumber, contactEmail,
-      Links(Some(s"/corporation-tax-registration/$registrationID/trading-details"), Some(s"/corporation-tax-registration/$registrationID/")))
-  }
-}
+                          contactEmail: Option[String])
 
 object ContactDetails {
   implicit val formatsLinks = Json.format[Links]
   implicit val formats = Json.format[ContactDetails]
-}
-
-case class ContactDetailsResponse(contactFirstName: Option[String],
-                                  contactMiddleName: Option[String],
-                                  contactSurname: Option[String],
-                                  contactDaytimeTelephoneNumber: Option[String],
-                                  contactMobileNumber: Option[String],
-                                  contactEmail: Option[String],
-                                  links: Links)
-
-object ContactDetailsResponse {
-  implicit val formatsLinks = Json.format[Links]
-  implicit val formats = Json.format[ContactDetailsResponse]
 }
 
 case class Links(self: Option[String],

@@ -122,12 +122,12 @@ trait SCRSMocks
   }
 
 	object ContactDetailsServiceMocks {
-		def retrieveContactDetails(registrationID: String, response: Option[ContactDetailsResponse]) = {
+		def retrieveContactDetails(registrationID: String, response: Option[ContactDetails]) = {
 			when(mockContactDetailsService.retrieveContactDetails(Matchers.contains(registrationID)))
 			  .thenReturn(Future.successful(response))
 		}
 
-		def updateContactDetails(registrationID: String, response: Option[ContactDetailsResponse]) = {
+		def updateContactDetails(registrationID: String, response: Option[ContactDetails]) = {
 			when(mockContactDetailsService.updateContactDetails(Matchers.any(), Matchers.any[ContactDetails]()))
 			  .thenReturn(Future.successful(response))
 		}
