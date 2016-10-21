@@ -30,13 +30,13 @@ object DesFormats {
 
 }
 
-case class DesRegistration(ackRef: String, wibble: String = "xxx")
+case class InterimDesRegistration(ackRef: String, wibble: String = "xxx")
 
-object DesRegistration {
+object InterimDesRegistration {
   implicit val format = (
     (__ \ "acknowledgementReference").format[String] and
     (__ \ "wibble").format[String]
-    )(DesRegistration.apply, unlift(DesRegistration.unapply))
+    )(InterimDesRegistration.apply, unlift(InterimDesRegistration.unapply))
 }
 
 object BusinessType {
@@ -55,10 +55,22 @@ case object Director extends CompletionCapacity { val text = "Director" }
 case object Agent extends CompletionCapacity { val text = "Agent" }
 case class Other(text: String) extends CompletionCapacity
 
+case class BusinessContactDetails(
+                      phoneNumber : Option[String],
+                      mobileNumber : Option[String],
+                      email : Option[String]
+                                 )
+
+case class BusinessContactName(
+                                firstName : String,
+                                middleNames : Option[String],
+                                lastName: Option[String]
+                              )
+
 case class Metadata(
                      sessionId: String,
                      credId: String,
-                     language: String, // TODO - Tighten - enum?
+                     language: String,
                      submissionTs: DateTime,
                      completionCapacity: CompletionCapacity
                    )
@@ -91,51 +103,40 @@ object Metadata {
   }
 }
 
-case class CorporationTaxTopLevel(
-                      companyUTR : String,
-                      companyOfficeNumber : String,
+case class InterimCorporationTax(
                       companyActiveDate : String,
-                      companyACharity : Boolean,
-//                      companiesHouseCompanyName : String,
-//                      companyNameAbbreviation : String,
-//                      crn : String,
-//                      startDateOfFirstAccountingPeriod : String,
-//                      intendedAccountsPreparationDate : String,
-//                      returnsOnCT61 : String,
-//                      companyACharity : String,
-//                      companyACharityIncOrg : String,
-//                      charityTaxpayerReference : String,
-//                      businessAddress : String,
-//                      businessTakeOverDetails : String,
-//                      groupDetails : String,
-//                      businessContactName : String,
-                      businessContactDetails : String
+                      companiesHouseCompanyName : String,
+                      crn : String,
+                      startDateOfFirstAccountingPeriod : String,
+                      intendedAccountsPreparationDate : String,
+                      returnsOnCT61 : String,
+                      businessAddress : String,
+                      businessContactName : BusinessContactName,
+                      businessContactDetails : BusinessContactDetails
                                  )
-object CorporationTaxTopLevel {
+object InterimCorporationTax {
 
   import DesFormats._
 
-  implicit val writes = new Writes[CorporationTaxTopLevel] {
-    def writes(m: CorporationTaxTopLevel) = {
+  implicit val writes = new Writes[InterimCorporationTax] {
+    def writes(m: InterimCorporationTax) = {
       Json.obj(
-        "companyUTR" -> m.companyUTR,
-        "companyOfficeNumber" -> m.companyOfficeNumber,
         "companyActiveDate" -> m.companyActiveDate,
-        "hasCompanyTakenOverBusiness" -> false,
-        "companyMemberOfGroup" -> false,
-        "companyACharity" -> m.companyACharity,
-        "businessContactDetails" -> m.businessContactDetails
-      ) ++ (
-        m.companyACharity match {
-          case true => {
-            Json.obj(
-              "companyACharityIncOrg" -> "IncOrg",
-              "charityTaxpayerReference" -> "Charity Reference"
-            ) }
-          case false => {
-            Json.obj()
-          }
-         }
+        "companiesHouseCompanyName" -> m.companiesHouseCompanyName,
+        "crn" -> m. crn,
+        "startDateOfFirstAccountingPeriod" -> m.startDateOfFirstAccountingPeriod,
+        "intendedAccountsPreparationDate" -> m.intendedAccountsPreparationDate,
+        "returnsOnCT61" -> m.returnsOnCT61,
+        "businessAddress" -> m.businessAddress,
+        "businessContactName" ->  Json.obj(
+          "firstName" -> m.businessContactName.firstName,
+          "middleNames" -> m.businessContactName.middleNames,
+          "lastName" -> m.businessContactName.lastName),
+        "businessContactDetails" -> Json.obj(
+          "phoneNumber" ->  m.businessContactDetails.phoneNumber,
+          "mobileNumber" -> m.businessContactDetails.mobileNumber,
+          "email" -> m.businessContactDetails.email
+        )
       )
     }
   }

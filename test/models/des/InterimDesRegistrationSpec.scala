@@ -21,7 +21,7 @@ import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.play.test.UnitSpec
 
 
-class DesRegistrationSpec extends UnitSpec {
+class InterimDesRegistrationSpec extends UnitSpec {
 
   "Registration metadata model" should {
 
@@ -85,20 +85,39 @@ class DesRegistrationSpec extends UnitSpec {
 
   }
 
-  "Registration corporationTax model" should {
+  "The Interim Registration corporationTax model" should {
     "Produce valid JSON for a simple model" in {
       val expectedJson : String = s"""{
-                                      |  "companyUTR" : "1234567890",
-                                      |  "companyOfficeNumber" : "12345",
-                                      |  "companyActiveDate" : "",
-                                      |  "hasCompanyTakenOverBusiness" : false,
-                                      |  "companyMemberOfGroup" : false,
-                                      |  "companyACharity" : false,
-                                      |  "businessContactDetails" : "business contact details model"
+                                      |  "companyActiveDate" : "01-11-2016",
+                                      |  "companiesHouseCompanyName" : "DG Limited",
+                                      |  "crn" : "1234567890",
+                                      |  "startDateOfFirstAccountingPeriod" : "01-11-2016",
+                                      |  "intendedAccountsPreparationDate" : "01-11-2016",
+                                      |  "returnsOnCT61" : "N",
+                                      |  "businessAddress" : "business address model",
+                                      |  "businessContactName" : {
+                                      |                           "firstName" : "adam",
+                                      |                           "middleNames" : "the",
+                                      |                           "lastName" : "ant"
+                                      |                           },
+                                      |  "businessContactDetails" : {
+                                      |                           "phoneNumber" : "0121 000 000",
+                                      |                           "mobileNumber" : "0700 000 000",
+                                      |                           "email" : "d@ddd.com"
+                                      |                             }
                                       |}""".stripMargin
-//PS I know the last five elements are JSON objects in their own right.  Will refacter later
-      val desModel = CorporationTaxTopLevel("1234567890","12345","",false,"business contact details model")
-      val result = Json.toJson[CorporationTaxTopLevel](desModel)
+      val desModel = InterimCorporationTax(
+                                  "01-11-2016",
+                                  "DG Limited",
+                                  "1234567890",
+                                  "01-11-2016",
+                                  "01-11-2016",
+                                  "N",
+                                  "business address model",
+                                  BusinessContactName("adam",Some("the"),Some("ant")),
+                                  BusinessContactDetails(Some("0121 000 000"),Some("0700 000 000"),Some("d@ddd.com"))
+                                )
+      val result = Json.toJson[InterimCorporationTax](desModel)
       result.getClass shouldBe classOf[JsObject]
       result shouldBe Json.parse(expectedJson)
     }
@@ -113,9 +132,9 @@ class DesRegistrationSpec extends UnitSpec {
            |  "wibble" : "xxx"
            |}""".stripMargin
 
-      val testModel1 = DesRegistration( "ackRef1" )
+      val testModel1 = InterimDesRegistration( "ackRef1" )
 
-      val result = Json.toJson[DesRegistration](testModel1)
+      val result = Json.toJson[InterimDesRegistration](testModel1)
       result.getClass shouldBe classOf[JsObject]
       result shouldBe Json.parse(json1)
     }
@@ -123,18 +142,3 @@ class DesRegistrationSpec extends UnitSpec {
   }
 }
 
-// Add these in later
-//
-//                                      |  "companyMemberOfGroup": "N",
-//                                      |  "companiesHouseCompanyName" : "",
-//                                      |  "companyNameAbbreviation" : "Other",
-//                                      |  "crn" : ""
-//                                      |  "startDateOfFirstAccountingPeriod" : "",
-//                                      |  "intendedAccountsPreparationDate" : "",
-//                                      |  "returnsOnCT61" : "N",
-//                                      |  "companyACharityIncOrg" : "N",
-//                                      |  "charityTaxpayerReference" : "",
-//                                      |  "businessAddress" : "business address model",
-//                                      |  "businessTakeOverDetails" : "business takeover details model",
-//                                      |  "groupDetails" : "group details model",
-//                                      |  "businessContactName" : "business contact name model",
