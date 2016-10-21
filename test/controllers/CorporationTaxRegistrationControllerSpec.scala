@@ -19,7 +19,7 @@ package controllers
 import connectors.AuthConnector
 import fixtures.{AuthFixture, CorporationTaxRegistrationFixture}
 import helpers.SCRSSpec
-import models.{CorporationTaxRegistration, CorporationTaxRegistrationResponse}
+import models.{ConfirmationReferences, CorporationTaxRegistration, CorporationTaxRegistrationResponse}
 import org.mockito.Matchers
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
@@ -172,7 +172,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
     }
 	}
 
-  "updateAcknowledgementRef" should {
+  "updateReferences" should {
 
     val regId = "testRegId"
 
@@ -181,7 +181,10 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       AuthorisationMocks.getOID(validAuthority.oid, Some((regId, validAuthority.oid)))
 
-      val result = controller.updateAcknowledgementRef(regId)(FakeRequest())
+      when(mockCTDataService.retrieveAcknowledgementReference(Matchers.eq(regId)))
+        .thenReturn(Future.successful(Some("BRCT00000000123")))
+
+      val result = controller.updateReferences(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId","testPaymentRef","testPaymentAmount",None))))
       status(result) shouldBe OK
     }
 
@@ -190,7 +193,10 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       AuthorisationMocks.getOID(validAuthority.oid, Some((regId, validAuthority.oid)))
 
-      val result = controller.updateAcknowledgementRef(regId)(FakeRequest())
+      when(mockCTDataService.retrieveAcknowledgementReference(Matchers.eq(regId)))
+        .thenReturn(Future.successful(None))
+
+      val result = controller.updateReferences(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId","testPaymentRef","testPaymentAmount",None))))
       status(result) shouldBe NOT_FOUND
     }
 
@@ -198,7 +204,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
       AuthenticationMocks.getCurrentAuthority(None)
       AuthorisationMocks.getOID(validAuthority.oid, None)
 
-      val result = controller.updateAcknowledgementRef(regId)(FakeRequest())
+      val result = controller.updateReferences(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId","testPaymentRef","testPaymentAmount",None))))
       status(result) shouldBe FORBIDDEN
     }
 
@@ -206,7 +212,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       AuthorisationMocks.getOID(validAuthority.oid, Some((regId, "xxx")))
 
-      val result = controller.updateAcknowledgementRef(regId)(FakeRequest())
+      val result = controller.updateReferences(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId","testPaymentRef","testPaymentAmount",None))))
       status(result) shouldBe FORBIDDEN
     }
 
@@ -214,7 +220,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       AuthorisationMocks.getOID(validAuthority.oid, None)
 
-      val result = controller.updateAcknowledgementRef(regId)(FakeRequest())
+      val result = controller.updateReferences(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId","testPaymentRef","testPaymentAmount",None))))
       status(result) shouldBe NOT_FOUND
     }
   }

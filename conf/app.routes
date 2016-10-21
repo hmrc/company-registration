@@ -17,6 +17,6 @@ GET        /corporation-tax-registration/:registrationID/contact-details        
 PUT        /corporation-tax-registration/:registrationID/contact-details                    controllers.ContactDetailsController.updateContactDetails(registrationID)
 
 GET        /corporation-tax-registration/:registrationID/fetch-acknowledgement-reference    controllers.CorporationTaxRegistrationController.retrieveAcknowledgementRef(registrationID)
-GET        /corporation-tax-registration/:registrationID/update-acknowledgement-reference   controllers.CorporationTaxRegistrationController.updateAcknowledgementRef(registrationID)
+POST       /corporation-tax-registration/:registrationID/update-references                  controllers.CorporationTaxRegistrationController.updateReferences(registrationID)
 
 POST       /corporation-tax-registration/des-stub                                          controllers.DesController.submit

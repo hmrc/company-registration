@@ -99,6 +99,10 @@ class CompanyDetailsControllerSpec extends SCRSSpec with AuthFixture with Compan
   "updateCompanyDetails" should {
     "return a 200 - Ok and a company details response if a record is updated" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+
+      when(mockCTDataRepository.getOid(Matchers.any())).thenReturn(Future.successful(Some("testRegID" -> "testOID")))
+      CompanyDetailsServiceMocks.retrieveCompanyDetails(registrationID, Some(validCompanyDetailsResponse))
+
       CompanyDetailsServiceMocks.updateCompanyDetails(registrationID, Some(validCompanyDetailsResponse))
 
       val request = FakeRequest().withBody(Json.toJson(validCompanyDetailsResponse))
@@ -109,6 +113,10 @@ class CompanyDetailsControllerSpec extends SCRSSpec with AuthFixture with Compan
 
     "return a 404 - Not Found if the recorde to update does not exist" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+
+      when(mockCTDataRepository.getOid(Matchers.any())).thenReturn(Future.successful(Some("testRegID" -> "testOID")))
+      CompanyDetailsServiceMocks.retrieveCompanyDetails(registrationID, Some(validCompanyDetailsResponse))
+
       CompanyDetailsServiceMocks.updateCompanyDetails(registrationID, None)
 
       val request = FakeRequest().withBody(Json.toJson(validCompanyDetailsResponse))
@@ -119,6 +127,9 @@ class CompanyDetailsControllerSpec extends SCRSSpec with AuthFixture with Compan
 
     "return a 403 - Forbidden if the user cannot be authenticated" in new Setup {
       AuthenticationMocks.getCurrentAuthority(None)
+
+      when(mockCTDataRepository.getOid(Matchers.any())).thenReturn(Future.successful(Some("testRegID" -> "testOID")))
+      CompanyDetailsServiceMocks.retrieveCompanyDetails(registrationID, Some(validCompanyDetailsResponse))
 
       val request = FakeRequest().withBody(Json.toJson(validCompanyDetailsResponse))
       val result = call(controller.updateCompanyDetails(registrationID), request)

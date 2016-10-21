@@ -18,9 +18,9 @@ package controllers
 
 import auth._
 import connectors.AuthConnector
-import models.CorporationTaxRegistrationRequest
+import models.{ConfirmationReferences, CorporationTaxRegistrationRequest}
 import play.api.Logger
-import play.api.libs.json.{Json, JsValue}
+import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Action
 import services.CorporationTaxRegistrationService
 import uk.gov.hmrc.play.microservice.controller.BaseController
@@ -66,27 +66,31 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
       }
   }
 
-  def retrieveAcknowledgementRef(registrationID: String) = Action.async {
+  def updateReferences(registrationID : String) = Action.async[JsValue](parse.json) {
     implicit request =>
       authorised(registrationID) {
-        case Authorised(_) => ctService.retrieveAcknowledgementReference(registrationID) map {
-          case Some(ref) => Ok(Json.toJson(ref))
-          case None => NotFound
-        }
+        case Authorised(_) =>
+          withJsonBody[ConfirmationReferences] {
+            refs =>
+              ctService.updateAcknowledgementReference(registrationID) map {
+                case Some(ackRef) =>  Ok(Json.toJson(refs.copy(acknowledgementRef = Some(ackRef))))
+                case None => NotFound
+              }
+          }
         case NotLoggedInOrAuthorised =>
-          Logger.info(s"[CorporationTaxRegistrationController] [retrieveCTData] User not logged in")
+          Logger.info("[CorporationTaxRegistrationController] [updateReferences] User not logged in")
           Future.successful(Forbidden)
         case NotAuthorised(_) =>
-          Logger.info(s"[CorporationTaxRegistrationController] [retrieveCTData] User logged in but not authorised for resource $registrationID")
+          Logger.info(s"[CorporationTaxRegistrationController] [updateReferences] User logged in but not authorised for resource $registrationID")
           Future.successful(Forbidden)
         case AuthResourceNotFound(_) => Future.successful(NotFound)
       }
   }
 
-  def updateAcknowledgementRef(registrationID: String) = Action.async {
+  def retrieveAcknowledgementRef(registrationID: String) = Action.async {
     implicit request =>
       authorised(registrationID) {
-        case Authorised(_) => ctService.updateAcknowledgementReference(registrationID) map {
+        case Authorised(_) => ctService.retrieveAcknowledgementReference(registrationID) map {
           case Some(ref) => Ok(Json.toJson(ref))
           case None => NotFound
         }

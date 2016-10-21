@@ -60,9 +60,8 @@ trait AccountingDetailsController extends BaseController with Authenticated with
 
   def updateAccountingDetails(registrationID: String) = Action.async[JsValue](parse.json) {
     implicit request =>
-      authenticated{
-        case NotLoggedIn => Future.successful(Forbidden)
-        case LoggedIn(context) =>
+      authorised(registrationID){
+        case Authorised(_) =>
           withJsonBody[AccountingDetails] {
             companyDetails => accountingDetailsService.updateAccountingDetails(registrationID, companyDetails)
               .map{
@@ -70,6 +69,13 @@ trait AccountingDetailsController extends BaseController with Authenticated with
                 case None => NotFound(ErrorResponse.companyDetailsNotFound)
               }
           }
+        case NotLoggedInOrAuthorised =>
+          Logger.info(s"[AccountingDetailsController] [updateAccountingDetails] User not logged in")
+          Future.successful(Forbidden)
+        case NotAuthorised(_) =>
+          Logger.info(s"[AccountingDetailsController] [updateAccountingDetails] User logged in but not authorised for resource $registrationID")
+          Future.successful(Forbidden)
+        case AuthResourceNotFound(_) => Future.successful(NotFound)
       }
   }
 }
