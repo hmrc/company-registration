@@ -19,9 +19,9 @@ package services
 import java.text.SimpleDateFormat
 import java.util.{Date, TimeZone}
 
-import models.{CorporationTaxRegistrationResponse, CorporationTaxRegistration}
+import models.{ConfirmationReferences, CorporationTaxRegistration, CorporationTaxRegistrationResponse}
 import org.joda.time.DateTime
-import repositories.{SequenceRepository, CorporationTaxRegistrationRepository, Repositories}
+import repositories.{CorporationTaxRegistrationRepository, Repositories, SequenceRepository}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -54,17 +54,17 @@ trait CorporationTaxRegistrationService {
     }
   }
 
-  def updateAcknowledgementReference(rID: String): Future[Option[String]] = {
+  def updateConfirmationReferences(rID: String, refs : ConfirmationReferences): Future[Option[ConfirmationReferences]] = {
     for{
       ref <- generateAcknowledgementReference
-      updatedRef <- CorporationTaxRegistrationRepository.updateAcknowledgementRef(rID, ref)
+      updatedRef <- CorporationTaxRegistrationRepository.updateConfirmationReferences(rID, refs.copy(acknowledgementReference = ref))
     } yield {
       updatedRef
     }
   }
 
-  def retrieveAcknowledgementReference(rID: String): Future[Option[String]] = {
-    CorporationTaxRegistrationRepository.retrieveAcknowledgementRef(rID)
+  def retrieveConfirmationReference(rID: String): Future[Option[ConfirmationReferences]] = {
+    CorporationTaxRegistrationRepository.retrieveConfirmationReference(rID)
   }
 
   private def generateTimestamp(timeStamp: DateTime) : String = {

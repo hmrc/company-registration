@@ -16,7 +16,9 @@
 
 package models
 
-import play.api.libs.json.Json
+import play.api.libs.functional.syntax._
+import play.api.libs.json._
+
 import scala.language.implicitConversions
 
 case class CorporationTaxRegistration(OID: String,
@@ -55,13 +57,18 @@ object CorporationTaxRegistration {
 }
 
 case class ConfirmationReferences(
-                                   acknowledgementReference: String,
+                                   acknowledgementReference: String = "",
                                    transactionId: String,
                                    paymentReference: String,
                                    paymentAmount: String
                                  )
 object ConfirmationReferences {
-  implicit val formats = Json.format[ConfirmationReferences]
+  implicit val format = (
+      ( __ \ "acknowledgement-reference" ).format[String] and
+      ( __ \ "transaction-id" ).format[String] and
+      ( __ \ "payment-reference" ).format[String] and
+      ( __ \ "payment-amount" ).format[String]
+    )(ConfirmationReferences.apply, unlift(ConfirmationReferences.unapply))
 }
 
 case class AccountingDetailsResponse(accountingDateStatus : String,

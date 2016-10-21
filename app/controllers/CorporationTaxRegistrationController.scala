@@ -72,8 +72,8 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
         case Authorised(_) =>
           withJsonBody[ConfirmationReferences] {
             refs =>
-              ctService.updateAcknowledgementReference(registrationID) map {
-                case Some(ackRef) =>  Ok(Json.toJson(refs.copy(acknowledgementRef = Some(ackRef))))
+              ctService.updateConfirmationReferences(registrationID, refs) map {
+                case Some(references) => Ok(Json.toJson(references))
                 case None => NotFound
               }
           }
@@ -87,18 +87,18 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
       }
   }
 
-  def retrieveAcknowledgementRef(registrationID: String) = Action.async {
+  def retrieveConfirmationReference(registrationID: String) = Action.async {
     implicit request =>
       authorised(registrationID) {
-        case Authorised(_) => ctService.retrieveAcknowledgementReference(registrationID) map {
+        case Authorised(_) => ctService.retrieveConfirmationReference(registrationID) map {
           case Some(ref) => Ok(Json.toJson(ref))
           case None => NotFound
         }
         case NotLoggedInOrAuthorised =>
-          Logger.info(s"[CorporationTaxRegistrationController] [retrieveCTData] User not logged in")
+          Logger.info(s"[CorporationTaxRegistrationController] [retrieveConfirmationReference] User not logged in")
           Future.successful(Forbidden)
         case NotAuthorised(_) =>
-          Logger.info(s"[CorporationTaxRegistrationController] [retrieveCTData] User logged in but not authorised for resource $registrationID")
+          Logger.info(s"[CorporationTaxRegistrationController] [retrieveConfirmationReference] User logged in but not authorised for resource $registrationID")
           Future.successful(Forbidden)
         case AuthResourceNotFound(_) => Future.successful(NotFound)
       }

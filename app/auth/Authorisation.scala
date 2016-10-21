@@ -36,8 +36,6 @@ trait Authorisation[I] {
   val resourceConn : AuthorisationResource[I]
 
   def authorised(id:I)(f: => AuthorisationResult => Future[Result])(implicit hc: HeaderCarrier) = {
-    Logger.debug(s"Current user id is ${hc.userId}") // always outputs NONE :-(
-
     for {
       authority <- auth.getCurrentAuthority()
       resource <- resourceConn.getOid(id)

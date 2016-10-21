@@ -18,8 +18,13 @@ package services
 
 import fixtures.{CorporationTaxRegistrationFixture, MongoFixture}
 import helpers.SCRSSpec
+import models.ConfirmationReferences
+import org.mockito.Matchers
+import org.mockito.Mockito._
 import play.api.test.Helpers._
 import repositories.{CorporationTaxRegistrationRepository, Repositories}
+
+import scala.concurrent.Future
 
 class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTaxRegistrationFixture with MongoFixture{
 
@@ -63,13 +68,16 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
 		}
 	}
 
-  "updateAcknowledgementReference" should {
+  "updateConfirmationReferences" should {
     "return the updated reference acknowledgement number" in new Setup {
-      CTDataRepositoryMocks.updateAcknowledgementRef("testRegID", Some("BRCT00000000003"))
+			val expected = ConfirmationReferences("testTransaction","testPayRef","testPayAmount","")
+			when(mockCTDataRepository.updateConfirmationReferences(Matchers.any(), Matchers.any()))
+				.thenReturn(Future.successful(Some(expected)))
+
       SequenceRepositoryMocks.getNext("testSeqID", 3)
 
-      val result = service.updateAcknowledgementReference("testRegID")
-      await(result) shouldBe Some("BRCT00000000003")
+      val result = service.updateConfirmationReferences("testRegID", ConfirmationReferences("testTransaction","testPayRef","testPayAmount",""))
+      await(result) shouldBe Some(expected)
     }
   }
 

@@ -54,8 +54,8 @@ trait SCRSMocks
       when(mockCTDataService.retrieveAcknowledgementReference(Matchers.contains(regID)))
         .thenReturn(Future.successful(returns))
     }
-    def updateAcknowledgementReference(regID: String, returns: Option[String]) = {
-      when(mockCTDataService.updateAcknowledgementReference(Matchers.contains(regID)))
+    def updateConfirmationReferences(regID: String, returns: Option[ConfirmationReferences]) = {
+      when(mockCTDataService.updateConfirmationReferences(Matchers.contains(regID), Matchers.eq(ConfirmationReferences("transactID","payRef","payAmount",""))))
         .thenReturn(Future.successful(returns))
     }
 	}

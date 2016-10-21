@@ -177,26 +177,29 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
     val regId = "testRegId"
 
     "return a 200 and an acknowledgement ref is one exists" in new Setup {
-      CTServiceMocks.updateAcknowledgementReference(regId, Some("BRCT00000000123"))
+			when(mockCTDataService.updateConfirmationReferences(Matchers.contains(regId), Matchers.any()))
+				.thenReturn(Future.successful(Some(ConfirmationReferences("transactID","payRef","payAmount","BRCT00000000123"))))
+
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       AuthorisationMocks.getOID(validAuthority.oid, Some((regId, validAuthority.oid)))
 
       when(mockCTDataService.retrieveAcknowledgementReference(Matchers.eq(regId)))
         .thenReturn(Future.successful(Some("BRCT00000000123")))
 
-      val result = controller.updateReferences(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId","testPaymentRef","testPaymentAmount",None))))
+      val result = controller.updateReferences(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId","testPaymentRef","testPaymentAmount",""))))
       status(result) shouldBe OK
     }
 
     "return a 404 if a record cannot be found" in new Setup {
-      CTServiceMocks.updateAcknowledgementReference(regId, None)
+			when(mockCTDataService.updateConfirmationReferences(Matchers.contains(regId), Matchers.any()))
+				.thenReturn(Future.successful(None))
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       AuthorisationMocks.getOID(validAuthority.oid, Some((regId, validAuthority.oid)))
 
       when(mockCTDataService.retrieveAcknowledgementReference(Matchers.eq(regId)))
         .thenReturn(Future.successful(None))
 
-      val result = controller.updateReferences(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId","testPaymentRef","testPaymentAmount",None))))
+      val result = controller.updateReferences(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId","testPaymentRef","testPaymentAmount",""))))
       status(result) shouldBe NOT_FOUND
     }
 
@@ -204,7 +207,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
       AuthenticationMocks.getCurrentAuthority(None)
       AuthorisationMocks.getOID(validAuthority.oid, None)
 
-      val result = controller.updateReferences(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId","testPaymentRef","testPaymentAmount",None))))
+      val result = controller.updateReferences(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId","testPaymentRef","testPaymentAmount",""))))
       status(result) shouldBe FORBIDDEN
     }
 
@@ -212,7 +215,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       AuthorisationMocks.getOID(validAuthority.oid, Some((regId, "xxx")))
 
-      val result = controller.updateReferences(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId","testPaymentRef","testPaymentAmount",None))))
+      val result = controller.updateReferences(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId","testPaymentRef","testPaymentAmount",""))))
       status(result) shouldBe FORBIDDEN
     }
 
@@ -220,7 +223,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       AuthorisationMocks.getOID(validAuthority.oid, None)
 
-      val result = controller.updateReferences(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId","testPaymentRef","testPaymentAmount",None))))
+      val result = controller.updateReferences(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId","testPaymentRef","testPaymentAmount",""))))
       status(result) shouldBe NOT_FOUND
     }
   }
