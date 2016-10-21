@@ -54,7 +54,7 @@ class CompanyDetailsControllerSpec extends SCRSSpec with AuthFixture with Compan
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
 
       when(mockCTDataRepository.getOid(Matchers.any())).thenReturn(Future.successful(Some("testRegID" -> "testOID")))
-      CompanyDetailsServiceMocks.retrieveCompanyDetails(registrationID, Some(validCompanyDetailsResponse))
+      CompanyDetailsServiceMocks.retrieveCompanyDetails(registrationID, Some(validCompanyDetails))
 
       val result = controller.retrieveCompanyDetails(registrationID)(FakeRequest())
       status(result) shouldBe OK
@@ -103,9 +103,9 @@ class CompanyDetailsControllerSpec extends SCRSSpec with AuthFixture with Compan
       when(mockCTDataRepository.getOid(Matchers.any())).thenReturn(Future.successful(Some("testRegID" -> "testOID")))
       CompanyDetailsServiceMocks.retrieveCompanyDetails(registrationID, Some(validCompanyDetailsResponse))
 
-      CompanyDetailsServiceMocks.updateCompanyDetails(registrationID, Some(validCompanyDetailsResponse))
+      CompanyDetailsServiceMocks.updateCompanyDetails(registrationID, Some(validCompanyDetails))
 
-      val request = FakeRequest().withBody(Json.toJson(validCompanyDetailsResponse))
+      val request = FakeRequest().withBody(Json.toJson(validCompanyDetails))
       val result = call(controller.updateCompanyDetails(registrationID), request)
       status(result) shouldBe OK
       await(jsonBodyOf(result)) shouldBe Json.toJson(validCompanyDetailsResponse)

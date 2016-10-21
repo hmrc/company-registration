@@ -110,12 +110,12 @@ trait SCRSMocks
 	}
 
 	object CompanyDetailsServiceMocks {
-    def retrieveCompanyDetails(registrationID: String, result: Option[CompanyDetailsResponse]): OngoingStubbing[Future[Option[CompanyDetailsResponse]]] = {
+    def retrieveCompanyDetails(registrationID: String, result: Option[CompanyDetails]): OngoingStubbing[Future[Option[CompanyDetails]]] = {
       when(mockCompanyDetailsService.retrieveCompanyDetails(Matchers.anyString()))
         .thenReturn(Future.successful(result))
     }
 
-    def updateCompanyDetails(registrationID: String, result: Option[CompanyDetailsResponse]): OngoingStubbing[Future[Option[CompanyDetailsResponse]]] = {
+    def updateCompanyDetails(registrationID: String, result: Option[CompanyDetails]): OngoingStubbing[Future[Option[CompanyDetails]]] = {
       when(mockCompanyDetailsService.updateCompanyDetails(Matchers.anyString(), Matchers.any[CompanyDetails]()))
         .thenReturn(Future.successful(result))
     }

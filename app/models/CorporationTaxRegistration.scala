@@ -114,28 +114,7 @@ case class CompanyDetails(companyName: String,
                           cHROAddress: CHROAddress,
                           rOAddress: ROAddress,
                           pPOBAddress: PPOBAddress,
-                          jurisdiction: String){
-
-  def toCompanyDetailsResponse(registrationID: String): CompanyDetailsResponse = {
-    CompanyDetailsResponse(
-      companyName,
-      cHROAddress,
-      rOAddress,
-      pPOBAddress,
-      jurisdiction,
-      TradingDetails.empty,
-      Links.buildLinks(registrationID)
-    )
-  }
-}
-
-case class CompanyDetailsResponse(companyName: String,
-                                  cHROAddress: CHROAddress,
-                                  rOAddress: ROAddress,
-                                  pPOBAddress: PPOBAddress,
-                                  jurisdiction: String,
-                                  tradingDetails: TradingDetails,
-                                  links: Links)
+                          jurisdiction: String)
 
 case class CHROAddress(premises : String,
                        address_line_1 : String,
@@ -168,15 +147,6 @@ object CompanyDetails {
   implicit val formatPPOB = Json.format[PPOBAddress]
   implicit val formatTD = Json.format[TradingDetails]
   implicit val formats = Json.format[CompanyDetails]
-}
-
-object CompanyDetailsResponse {
-  implicit val formatCH = Json.format[CHROAddress]
-  implicit val formatRO = Json.format[ROAddress]
-  implicit val formatPPOB = Json.format[PPOBAddress]
-  implicit val formatLinks = Json.format[Links]
-  implicit val formatTD = Json.format[TradingDetails]
-  implicit val formats = Json.format[CompanyDetailsResponse]
 }
 
 object CHROAddress {
@@ -236,8 +206,8 @@ object Links {
 
   def buildLinks(registrationID: String): Links = {
     Links(
-      self = Some(s"/corporation-tax-registration/$registrationID/company-details"),
-      registration = Some(s"corporation-tax-registration/$registrationID")
+      self = Some(s"/company-registration/corporation-tax-registration/$registrationID/company-details"),
+      registration = Some(s"/company-registration/corporation-tax-registration/$registrationID")
     )
   }
 }
@@ -246,8 +216,4 @@ case class TradingDetails(regularPayments : Boolean = false)
 
 object TradingDetails {
   implicit val format = Json.format[TradingDetails]
-
-  def empty : TradingDetails = {
-    TradingDetails()
-  }
 }

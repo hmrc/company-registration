@@ -18,11 +18,11 @@ package controllers
 
 import auth._
 import connectors.AuthConnector
-import models.{ErrorResponse, CompanyDetails}
+import models.{CompanyDetails, ErrorResponse, TradingDetails}
 import play.api.Logger
-import play.api.libs.json.{Json, JsValue}
+import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.Action
-import services.{CorporationTaxRegistrationService, CompanyDetailsService}
+import services.{CompanyDetailsService, CorporationTaxRegistrationService}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.Future
@@ -38,12 +38,24 @@ trait CompanyDetailsController extends BaseController with Authenticated with Au
 
   val companyDetailsService: CompanyDetailsService
 
+  private def mapToResponse(registrationID: String, res: CompanyDetails)= {
+    Json.toJson(res).as[JsObject] ++
+      Json.obj( "tradingDetails" -> TradingDetails() ) ++
+      Json.obj(
+        "links" -> Json.obj(
+          "self" -> routes.CompanyDetailsController.retrieveCompanyDetails(registrationID).url,
+          "registration" -> routes.CorporationTaxRegistrationController.retrieveCorporationTaxRegistration(registrationID).url
+        )
+      )
+  }
+
   def retrieveCompanyDetails(registrationID: String) = Action.async {
     implicit request =>
       authorised(registrationID){
         case Authorised(_) => companyDetailsService.retrieveCompanyDetails(registrationID).map {
-          case Some(res) =>
-            Ok(Json.toJson(res))
+          case Some(details) => {
+            Ok(mapToResponse(registrationID, details))
+          }
           case _ => NotFound(ErrorResponse.companyDetailsNotFound)
         }
         case NotLoggedInOrAuthorised =>
@@ -63,7 +75,7 @@ trait CompanyDetailsController extends BaseController with Authenticated with Au
           withJsonBody[CompanyDetails] {
             companyDetails => companyDetailsService.updateCompanyDetails(registrationID, companyDetails)
               .map{
-                case Some(details) => Ok(Json.toJson(details))
+                case Some(details) => Ok(mapToResponse(registrationID, details))
                 case None => NotFound(ErrorResponse.companyDetailsNotFound)
               }
           }
