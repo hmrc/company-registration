@@ -17,18 +17,35 @@
 package fixtures
 
 import models._
+import play.api.libs.json.Json
+
+case class AccountingDetailsResponse(accountingDateStatus : String,
+                                     startDateOfBusiness : Option[String],
+                                     links : Links){
+}
+
+object AccountingDetailsResponse {
+  implicit val formats = Json.format[AccountingDetailsResponse]
+  def buildLinks(registrationID: String): Links = {
+    Links(
+      self = Some(s"/company-registration/corporation-tax-registration/$registrationID/accounting-details"),
+      registration = Some(s"/company-registration/corporation-tax-registration/$registrationID")
+    )
+  }
+}
+
 
 trait AccountingDetailsFixture {
 
-  lazy val validAccountingDetails = AccountingDetails(
-    "futureDate",
-    Some("22-08-2016")
-  )
+  val validAccountingDetails = AccountingDetails( "futureDate", Some("22-08-2016") )
 
-  lazy val accountingDetailsNoStartDateOfBusiness = AccountingDetails(
-    "whenRegistered",
-    None
-  )
+  val accountingDetailsNoStartDateOfBusiness = AccountingDetails( "whenRegistered", None )
 
-  lazy val validAccountingDetailsResponse = validAccountingDetails.toAccountingDetailsResponse("12345")
+  import AccountingDetailsResponse.buildLinks
+  val validAccountingDetailsResponse = AccountingDetailsResponse(
+    accountingDateStatus = validAccountingDetails.accountingDateStatus,
+    startDateOfBusiness = validAccountingDetails.startDateOfBusiness,
+    buildLinks("12345")
+    )
 }
+

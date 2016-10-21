@@ -84,27 +84,7 @@ object ConfirmationReferences {
     )(ConfirmationReferences.apply, unlift(ConfirmationReferences.unapply))
 }
 
-case class AccountingDetailsResponse(accountingDateStatus : String,
-                             startDateOfBusiness : Option[String],
-                             links : Links){
-}
-
-object AccountingDetailsResponse {
-  implicit val linksFormats = Json.format[Links]
-  implicit val formats = Json.format[AccountingDetailsResponse]
-}
-
-case class AccountingDetails(accountingDateStatus : String,
-                             startDateOfBusiness : Option[String]){
-
-  def toAccountingDetailsResponse(registrationID: String): AccountingDetailsResponse = {
-    AccountingDetailsResponse(
-      accountingDateStatus,
-      startDateOfBusiness,
-      Links.buildLinks(registrationID)
-    )
-  }
-}
+case class AccountingDetails(accountingDateStatus : String, startDateOfBusiness : Option[String])
 
 object AccountingDetails {
   implicit val formats = Json.format[AccountingDetails]
@@ -204,6 +184,7 @@ case class Links(self: Option[String],
 object Links {
   implicit val format = Json.format[Links]
 
+  // TODO remove
   def buildLinks(registrationID: String): Links = {
     Links(
       self = Some(s"/company-registration/corporation-tax-registration/$registrationID/company-details"),

@@ -18,16 +18,15 @@ package controllers
 
 import auth._
 import connectors.AuthConnector
-import models.AccountingDetails
-import models.ErrorResponse
+import models.{AccountingDetails, CompanyDetails, ErrorResponse}
 import play.api.Logger
-import play.api.libs.json.{Json, JsValue}
+import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.Action
-import services.{CorporationTaxRegistrationService, AccountingDetailsService}
+import services.{AccountingDetailsService, CorporationTaxRegistrationService}
 import services.CorporationTaxRegistrationService
 import uk.gov.hmrc.play.microservice.controller.BaseController
-import scala.concurrent.ExecutionContext.Implicits.global
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 
@@ -41,11 +40,21 @@ trait AccountingDetailsController extends BaseController with Authenticated with
 
   val accountingDetailsService: AccountingDetailsService
 
+  private def mapToResponse(registrationID: String, res: AccountingDetails)= {
+    Json.toJson(res).as[JsObject] ++
+      Json.obj(
+        "links" -> Json.obj(
+          "self" -> routes.AccountingDetailsController.retrieveAccountingDetails(registrationID).url,
+          "registration" -> routes.CorporationTaxRegistrationController.retrieveCorporationTaxRegistration(registrationID).url
+        )
+      )
+  }
+
   def retrieveAccountingDetails(registrationID: String) = Action.async {
     implicit request =>
       authorised(registrationID) {
         case Authorised(_) => accountingDetailsService.retrieveAccountingDetails(registrationID) map {
-          case Some(res) => Ok(Json.toJson(res))
+          case Some(details) => Ok(mapToResponse(registrationID, details))
           case None => NotFound(ErrorResponse.accountingDetailsNotFound)
         }
         case NotLoggedInOrAuthorised =>
@@ -65,7 +74,7 @@ trait AccountingDetailsController extends BaseController with Authenticated with
           withJsonBody[AccountingDetails] {
             companyDetails => accountingDetailsService.updateAccountingDetails(registrationID, companyDetails)
               .map{
-                case Some(details) => Ok(Json.toJson(details))
+                case Some(details) => Ok(mapToResponse(registrationID, details))
                 case None => NotFound(ErrorResponse.companyDetailsNotFound)
               }
           }

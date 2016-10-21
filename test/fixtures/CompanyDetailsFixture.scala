@@ -28,12 +28,14 @@ case class CompanyDetailsResponse(companyName: String,
                                   links: Links)
 
 object CompanyDetailsResponse {
-//  implicit val formatCH = Json.format[CHROAddress]
-//  implicit val formatRO = Json.format[ROAddress]
-//  implicit val formatPPOB = Json.format[PPOBAddress]
-//  implicit val formatLinks = Json.format[Links]
-//  implicit val formatTD = Json.format[TradingDetails]
   implicit val formats = Json.format[CompanyDetailsResponse]
+
+  def buildLinks(registrationID: String): Links = {
+    Links(
+      self = Some(s"/company-registration/corporation-tax-registration/$registrationID/company-details"),
+      registration = Some(s"/company-registration/corporation-tax-registration/$registrationID")
+    )
+  }
 }
 
 trait CompanyDetailsFixture {
@@ -71,6 +73,7 @@ trait CompanyDetailsFixture {
     "testJurisdiction"
   )
 
+  import CompanyDetailsResponse.buildLinks
   lazy val validCompanyDetailsResponse = CompanyDetailsResponse(
     companyName = validCompanyDetails.companyName,
     cHROAddress = validCompanyDetails.cHROAddress,
@@ -78,6 +81,6 @@ trait CompanyDetailsFixture {
     pPOBAddress = validCompanyDetails.pPOBAddress,
     jurisdiction = validCompanyDetails.jurisdiction,
     TradingDetails(),
-    Links.buildLinks("12345")
+    buildLinks("12345")
     )
 }
