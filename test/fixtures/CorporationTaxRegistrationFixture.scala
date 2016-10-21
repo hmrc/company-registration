@@ -17,6 +17,17 @@
 package fixtures
 
 import models._
+import play.api.libs.json.Json
+
+case class CorporationTaxRegistrationResponse(registrationID: String,
+																							status: String,
+																							formCreationTimestamp: String,
+																							links: Links)
+
+object CorporationTaxRegistrationResponse {
+	implicit val linksFormats = Json.format[Links]
+	implicit val formats = Json.format[CorporationTaxRegistrationResponse]
+}
 
 trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with AccountingDetailsFixture with ContactDetailsFixture {
 
@@ -61,6 +72,6 @@ trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with Accou
 		registrationID = "0123456789",
 		status = DRAFT,
 		formCreationTimestamp = "2001-12-31T12:00:00Z",
-		Links(Some("/corporation-tax-registration/0123456789"))
+		Links(Some("/company-registration/corporation-tax-registration/0123456789"))
   )
 }

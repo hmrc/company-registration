@@ -19,7 +19,7 @@ package services
 import java.text.SimpleDateFormat
 import java.util.{Date, TimeZone}
 
-import models.{ConfirmationReferences, CorporationTaxRegistration, CorporationTaxRegistrationResponse}
+import models.{ConfirmationReferences, CorporationTaxRegistration}
 import org.joda.time.DateTime
 import repositories.{CorporationTaxRegistrationRepository, Repositories, SequenceRepository}
 
@@ -36,21 +36,18 @@ trait CorporationTaxRegistrationService {
   val CorporationTaxRegistrationRepository: CorporationTaxRegistrationRepository
   val sequenceRepository: SequenceRepository
 
-  def createCorporationTaxRegistrationRecord(OID: String, registrationId: String, language: String): Future[CorporationTaxRegistrationResponse] = {
+  def createCorporationTaxRegistrationRecord(OID: String, registrationId: String, language: String): Future[CorporationTaxRegistration] = {
     val record = CorporationTaxRegistration(
       OID = OID,
       registrationID = registrationId,
       formCreationTimestamp = generateTimestamp(new DateTime()),
       language = language)
 
-    CorporationTaxRegistrationRepository.createCorporationTaxRegistration(record).map(_.toCTRegistrationResponse)
+    CorporationTaxRegistrationRepository.createCorporationTaxRegistration(record)
   }
 
-  def retrieveCorporationTaxRegistrationRecord(rID: String): Future[Option[CorporationTaxRegistrationResponse]] = {
-    CorporationTaxRegistrationRepository.retrieveCorporationTaxRegistration(rID).map{
-      case Some(details) => Some(details.toCTRegistrationResponse)
-      case None => None
-    }
+  def retrieveCorporationTaxRegistrationRecord(rID: String): Future[Option[CorporationTaxRegistration]] = {
+    CorporationTaxRegistrationRepository.retrieveCorporationTaxRegistration(rID)
   }
 
   def updateConfirmationReferences(rID: String, refs : ConfirmationReferences): Future[Option[ConfirmationReferences]] = {

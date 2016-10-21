@@ -44,7 +44,19 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
         case NotLoggedIn => Future.successful(Forbidden)
         case LoggedIn(context) =>
           withJsonBody[CorporationTaxRegistrationRequest] {
-            request => ctService.createCorporationTaxRegistrationRecord(context.oid, registrationId, request.language).map(res => Created(Json.toJson(res)))
+            request => ctService.createCorporationTaxRegistrationRecord(context.oid, registrationId, request.language) map {
+              res =>
+                Created(
+                  Json.obj(
+                    "registrationID" -> res.registrationID,
+                    "status" -> res.status,
+                    "formCreationTimestamp" -> res.formCreationTimestamp,
+                    "links" -> Json.obj(
+                      "self" -> routes.CorporationTaxRegistrationController.retrieveCorporationTaxRegistration(registrationId).url
+                    )
+                  )
+                )
+            }
           }
         }
   }
@@ -53,7 +65,16 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
     implicit request =>
       authorised(registrationID) {
         case Authorised(_) => ctService.retrieveCorporationTaxRegistrationRecord(registrationID).map{
-          case Some(data) => Ok(Json.toJson(data))
+          case Some(data) => Ok(
+            Json.obj(
+              "registrationID" -> data.registrationID,
+              "status" -> data.status,
+              "formCreationTimestamp" -> data.formCreationTimestamp,
+              "links" -> Json.obj(
+                "self" -> routes.CorporationTaxRegistrationController.retrieveCorporationTaxRegistration(registrationID).url
+              )
+            )
+          )
           case _ => NotFound
         }
         case NotLoggedInOrAuthorised =>

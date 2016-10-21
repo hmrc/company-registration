@@ -49,7 +49,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
 			CTDataRepositoryMocks.createCorporationTaxRegistration(validDraftCorporationTaxRegistration)
 
 			val result = service.createCorporationTaxRegistrationRecord("54321", "12345", "en")
-			await(result) shouldBe validCorporationTaxRegistrationResponse
+			await(result) shouldBe validDraftCorporationTaxRegistration
 		}
 	}
 
@@ -58,7 +58,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
 			CTDataRepositoryMocks.retrieveCorporationTaxRegistration(Some(validDraftCorporationTaxRegistration))
 
 			val result = service.retrieveCorporationTaxRegistrationRecord("testRegID")
-			await(result) shouldBe Some(validCorporationTaxRegistrationResponse)
+			await(result) shouldBe Some(validDraftCorporationTaxRegistration)
 		}
 
 		"return a 404 - Not found when no record is retrieved" in new Setup {

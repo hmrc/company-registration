@@ -42,11 +42,11 @@ trait SCRSMocks
 	lazy val mockSequenceRepository = mock[SequenceRepository]
 
 	object CTServiceMocks {
-		def createCTDataRecord(result: CorporationTaxRegistrationResponse): OngoingStubbing[Future[CorporationTaxRegistrationResponse]] = {
+		def createCTDataRecord(result: CorporationTaxRegistration): OngoingStubbing[Future[CorporationTaxRegistration]] = {
 			when(mockCTDataService.createCorporationTaxRegistrationRecord(Matchers.any[String], Matchers.any[String], Matchers.any[String]))
 				.thenReturn(Future.successful(result))
 		}
-		def retrieveCTDataRecord(regId: String, result: Option[CorporationTaxRegistrationResponse]): OngoingStubbing[Future[Option[CorporationTaxRegistrationResponse]]] = {
+		def retrieveCTDataRecord(regId: String, result: Option[CorporationTaxRegistration]): OngoingStubbing[Future[Option[CorporationTaxRegistration]]] = {
 			when(mockCTDataService.retrieveCorporationTaxRegistrationRecord(Matchers.eq(regId)))
 				.thenReturn(Future.successful(result))
 		}

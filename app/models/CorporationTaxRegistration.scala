@@ -35,17 +35,7 @@ case class CorporationTaxRegistration(OID: String,
                                       companyDetails: Option[CompanyDetails] = None,
                                       accountingDetails: Option[AccountingDetails] = None,
                                       tradingDetails: Option[TradingDetails] = None,
-                                      contactDetails: Option[ContactDetails] = None) {
-
-  def toCTRegistrationResponse = {
-    CorporationTaxRegistrationResponse(
-      registrationID,
-      status,
-      formCreationTimestamp,
-      Links(Some(s"/corporation-tax-registration/$registrationID"))
-    )
-  }
-}
+                                      contactDetails: Option[ContactDetails] = None)
 
 object CorporationTaxRegistration {
   implicit val formatCH = Json.format[CHROAddress]
@@ -57,16 +47,6 @@ object CorporationTaxRegistration {
   implicit val formatContactDetails = Json.format[ContactDetails]
   implicit val formatConfirmationReferences = Json.format[ConfirmationReferences]
   implicit val formats = Json.format[CorporationTaxRegistration]
-}
-
-case class CorporationTaxRegistrationResponse(registrationID: String,
-                                              status: String,
-                                              formCreationTimestamp: String,
-                                              link: Links)
-
-object CorporationTaxRegistrationResponse {
-  implicit val linksFormats = Json.format[Links]
-  implicit val formats = Json.format[CorporationTaxRegistrationResponse]
 }
 
 case class ConfirmationReferences(
@@ -164,14 +144,6 @@ case class Links(self: Option[String],
 
 object Links {
   implicit val format = Json.format[Links]
-
-  // TODO remove
-  def buildLinks(registrationID: String): Links = {
-    Links(
-      self = Some(s"/company-registration/corporation-tax-registration/$registrationID/company-details"),
-      registration = Some(s"/company-registration/corporation-tax-registration/$registrationID")
-    )
-  }
 }
 
 case class TradingDetails(regularPayments : Boolean = false)

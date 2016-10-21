@@ -19,7 +19,7 @@ package controllers
 import connectors.AuthConnector
 import fixtures.{AuthFixture, CorporationTaxRegistrationFixture}
 import helpers.SCRSSpec
-import models.{ConfirmationReferences, CorporationTaxRegistration, CorporationTaxRegistrationResponse}
+import models.{ConfirmationReferences, CorporationTaxRegistration}
 import org.mockito.Matchers
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
@@ -50,12 +50,12 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
 
 	"createCorporationTaxRegistration" should {
 		"return a 201 when a new entry is created from the parsed json" in new Setup {
-			CTServiceMocks.createCTDataRecord(validCorporationTaxRegistrationResponse)
+			CTServiceMocks.createCTDataRecord(validDraftCorporationTaxRegistration)
 			AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
 
 			val request = FakeRequest().withJsonBody(Json.toJson(validCorporationTaxRegistrationRequest))
 			val result = call(controller.createCorporationTaxRegistration("0123456789"), request)
-			await(jsonBodyOf(result)).as[CorporationTaxRegistrationResponse] shouldBe validCorporationTaxRegistrationResponse
+			await(jsonBodyOf(result)) shouldBe Json.toJson(validCorporationTaxRegistrationResponse)
 			status(result) shouldBe CREATED
 		}
 
@@ -70,8 +70,8 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
 
 	"retrieveCorporationTaxRegistration" should {
 		"return a 200 and a CorporationTaxRegistration model is one is found" in new Setup {
-			val regId = "testRegId"
-			CTServiceMocks.retrieveCTDataRecord(regId, Some(validCorporationTaxRegistrationResponse))
+			val regId = "0123456789"
+			CTServiceMocks.retrieveCTDataRecord(regId, Some(validDraftCorporationTaxRegistration))
 			AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
 
 			when(mockCTDataRepository.getOid(Matchers.contains(regId))).
@@ -79,7 +79,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
 
 			val result = call(controller.retrieveCorporationTaxRegistration(regId), FakeRequest())
 			status(result) shouldBe OK
-			await(jsonBodyOf(result)).asOpt[CorporationTaxRegistrationResponse] shouldBe Some(validCorporationTaxRegistrationResponse)
+			await(jsonBodyOf(result)) shouldBe Json.toJson(Some(validCorporationTaxRegistrationResponse))
 		}
 
 		"return a 404 if a CT registration record cannot be found" in new Setup {

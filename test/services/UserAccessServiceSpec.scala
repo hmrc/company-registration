@@ -81,7 +81,7 @@ class UserAccessServiceSpec extends UnitSpec with MockitoSugar with WithFakeAppl
         .thenReturn(validBusinessRegistrationResponse)
       when(mockCorporationTaxRegistrationService
         .createCorporationTaxRegistrationRecord(Matchers.anyString(), Matchers.anyString(), Matchers.anyString()))
-        .thenReturn(validCorporationTaxRegistrationResponse)
+        .thenReturn(validDraftCorporationTaxRegistration)
 
 
       await(service.checkUserAccess("321")) shouldBe Left(Json.toJson(UserAccessLimitReachedResponse(true)))
@@ -95,7 +95,7 @@ class UserAccessServiceSpec extends UnitSpec with MockitoSugar with WithFakeAppl
         .thenReturn(validBusinessRegistrationResponse)
       when(mockCorporationTaxRegistrationService
         .createCorporationTaxRegistrationRecord(Matchers.anyString(), Matchers.anyString(), Matchers.anyString()))
-        .thenReturn(validCorporationTaxRegistrationResponse)
+        .thenReturn(validDraftCorporationTaxRegistration)
 
 
       await(service.checkUserAccess("321")) shouldBe Right(Json.toJson(UserAccessSuccessResponse("12345",created = true)))
