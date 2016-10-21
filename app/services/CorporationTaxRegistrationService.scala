@@ -38,11 +38,11 @@ trait CorporationTaxRegistrationService {
 
   def createCorporationTaxRegistrationRecord(OID: String, registrationId: String, language: String): Future[CorporationTaxRegistrationResponse] = {
     val record = CorporationTaxRegistration.empty.copy(
-      None,
       OID,
       registrationId,
       generateTimestamp(new DateTime()),
-      language)
+      language,
+      None)
 
     CorporationTaxRegistrationRepository.createCorporationTaxRegistration(record).map(_.toCTRegistrationResponse)
   }

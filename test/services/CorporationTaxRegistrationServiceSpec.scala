@@ -40,7 +40,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
 
 	"createCorporationTaxRegistrationRecord" should {
 		"create a new ctData record and return a 201 - Created response" in new Setup {
-			CTDataRepositoryMocks.createCorporationTaxRegistration(validCorporationTaxRegistration)
+			CTDataRepositoryMocks.createCorporationTaxRegistration(validDraftCorporationTaxRegistration)
 
 			val result = service.createCorporationTaxRegistrationRecord("54321", "12345", "en")
 			await(result) shouldBe validCorporationTaxRegistrationResponse
@@ -49,7 +49,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
 
 	"retrieveCorporationTaxRegistrationRecord" should {
 		"return Corporation Tax registration response Json and a 200 - Ok when a record is retrieved" in new Setup {
-			CTDataRepositoryMocks.retrieveCorporationTaxRegistration(Some(validCorporationTaxRegistration))
+			CTDataRepositoryMocks.retrieveCorporationTaxRegistration(Some(validDraftCorporationTaxRegistration))
 
 			val result = service.retrieveCorporationTaxRegistrationRecord("testRegID")
 			await(result) shouldBe Some(validCorporationTaxRegistrationResponse)

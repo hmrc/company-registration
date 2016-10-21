@@ -45,7 +45,7 @@ class TradingDetailsServiceSpec extends SCRSSpec with CorporationTaxRegistration
 
   "retrieveTradingDetails" should {
     "fetch trading details if a record exists against the given registration ID" in new Setup {
-      CTDataRepositoryMocks.retrieveCorporationTaxRegistration(Some(validCorporationTaxRegistration))
+      CTDataRepositoryMocks.retrieveCorporationTaxRegistration(Some(validDraftCorporationTaxRegistration))
 
       when(mockCTDataRepository.retrieveTradingDetails(Matchers.anyString())).thenReturn(Future.successful(Some(TradingDetails(true))))
 
@@ -54,7 +54,7 @@ class TradingDetailsServiceSpec extends SCRSSpec with CorporationTaxRegistration
     }
 
     "return an 'empty' trading details model if no record exists against the given registration ID" in new Setup {
-      CTDataRepositoryMocks.retrieveCorporationTaxRegistration(Some(validCorporationTaxRegistration))
+      CTDataRepositoryMocks.retrieveCorporationTaxRegistration(Some(validDraftCorporationTaxRegistration))
 
       when(mockCTDataRepository.retrieveTradingDetails(Matchers.anyString()))
         .thenReturn(Future.successful(None))
@@ -66,7 +66,7 @@ class TradingDetailsServiceSpec extends SCRSSpec with CorporationTaxRegistration
 
   "updateTradingDetails" should {
     "update the trading details record against a given regID" in new Setup {
-      CTDataRepositoryMocks.retrieveCorporationTaxRegistration(Some(validCorporationTaxRegistration))
+      CTDataRepositoryMocks.retrieveCorporationTaxRegistration(Some(validDraftCorporationTaxRegistration))
 
       when(mockCTDataRepository.updateTradingDetails(Matchers.anyString(), Matchers.eq[TradingDetails](TradingDetails(true))))
         .thenReturn(Future.successful(Some(TradingDetails(true))))
