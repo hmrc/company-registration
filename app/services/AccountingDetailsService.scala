@@ -16,8 +16,8 @@
 
 package services
 
-//import models.{ContactDetailsResponse, ContactDetails}
-import models.{AccountingDetails, AccountingDetailsResponse}
+import models.{AccountingDetails, AccountingDetailsResponse, SubmissionDates}
+import org.joda.time.DateTime
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -26,6 +26,11 @@ import scala.concurrent.Future
 object AccountingDetailsService extends AccountingDetailsService {
   override val corporationTaxRegistrationRepository = Repositories.cTRepository
 }
+
+sealed trait ActiveDate
+case object DoNotIntendToTrade extends ActiveDate
+case object ActiveOnIncorporation extends ActiveDate
+case class ActiveInFuture(date: DateTime) extends ActiveDate
 
 trait AccountingDetailsService {
 
@@ -42,6 +47,29 @@ trait AccountingDetailsService {
     corporationTaxRegistrationRepository.updateAccountingDetails(registrationID, accountingDetails).map{
       case Some(details) => Some(details.toAccountingDetailsResponse(registrationID))
       case _ => None
+    }
+  }
+
+  def calculateSubmissionDates(activeDate: ActiveDate, incorporationDate: DateTime, accountingDate: Option[DateTime]) : SubmissionDates = {
+
+    def jumpOneYear(date: DateTime) : DateTime = date withDayOfMonth 1 plusYears 1 plusMonths 1 minusDays 1
+
+    (activeDate, accountingDate) match {
+      case (DoNotIntendToTrade, _) =>
+        val newDate = incorporationDate plusYears 5
+        SubmissionDates(newDate, newDate, jumpOneYear(incorporationDate))
+
+      case (ActiveOnIncorporation, Some(date)) =>
+        SubmissionDates (incorporationDate, incorporationDate, date)
+
+      case (ActiveOnIncorporation, None) =>
+        SubmissionDates (incorporationDate, incorporationDate, jumpOneYear(incorporationDate))
+
+      case (ActiveInFuture(givenDate), Some(date)) =>
+        SubmissionDates (givenDate, givenDate, date)
+
+      case (ActiveInFuture(givenDate), None) =>
+        SubmissionDates (givenDate, givenDate, jumpOneYear(incorporationDate))
     }
   }
 }
