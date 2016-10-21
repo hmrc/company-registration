@@ -21,6 +21,7 @@ import helpers.SCRSSpec
 import models.ConfirmationReferences
 import org.mockito.Matchers
 import org.mockito.Mockito._
+import play.api.libs.json.Json
 import play.api.test.Helpers._
 import repositories.{CorporationTaxRegistrationRepository, Repositories}
 
@@ -81,17 +82,22 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
     }
   }
 
-  "retrieveAcknowledgementReference" should {
-    "return an Ack ref if one is found" in new Setup {
-      CTDataRepositoryMocks.retrieveAcknowledgementRef("testRegID", Some("BRCT00000000003"))
+  "retrieveConfirmationReference" should {
+		val regID: String = "testRegID"
+    "return an refs if found" in new Setup {
+			val expected = ConfirmationReferences("testTransaction","testPayRef","testPayAmount","")
 
-      val result = service.retrieveAcknowledgementReference("testRegID")
-      await(result) shouldBe Some("BRCT00000000003")
+			when(mockCTDataRepository.retrieveConfirmationReference(Matchers.contains(regID)))
+				.thenReturn(Future.successful(Some(expected)))
+
+			val result = service.retrieveConfirmationReference(regID)
+      await(result) shouldBe Some(expected)
     }
     "return an empty option if an Ack ref is not found" in new Setup {
-      CTDataRepositoryMocks.retrieveAcknowledgementRef("testRegID", None)
+			when(mockCTDataRepository.retrieveConfirmationReference(Matchers.contains(regID)))
+				.thenReturn(Future.successful(None))
 
-      val result = service.retrieveAcknowledgementReference("testRegID")
+      val result = service.retrieveConfirmationReference(regID)
       await(result) shouldBe None
     }
   }

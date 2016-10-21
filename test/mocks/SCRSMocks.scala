@@ -50,10 +50,6 @@ trait SCRSMocks
 			when(mockCTDataService.retrieveCorporationTaxRegistrationRecord(Matchers.eq(regId)))
 				.thenReturn(Future.successful(result))
 		}
-    def retrieveAcknowledgementReference(regID: String, returns: Option[String]) = {
-      when(mockCTDataService.retrieveAcknowledgementReference(Matchers.contains(regID)))
-        .thenReturn(Future.successful(returns))
-    }
     def updateConfirmationReferences(regID: String, returns: Option[ConfirmationReferences]) = {
       when(mockCTDataService.updateConfirmationReferences(Matchers.contains(regID), Matchers.eq(ConfirmationReferences("transactID","payRef","payAmount",""))))
         .thenReturn(Future.successful(returns))
@@ -110,16 +106,6 @@ trait SCRSMocks
     def updateContactDetails(response: Option[ContactDetails]) = {
       when(mockCTDataRepository.updateContactDetails(Matchers.anyString(), Matchers.any[ContactDetails]()))
         .thenReturn(Future.successful(response))
-    }
-
-    def updateAcknowledgementRef(regID: String, acknowledgementID: Option[String]) = {
-      when(mockCTDataRepository.updateAcknowledgementRef(Matchers.any(), Matchers.any()))
-        .thenReturn(Future.successful(acknowledgementID))
-    }
-
-    def retrieveAcknowledgementRef(regID: String, returns: Option[String]) = {
-      when(mockCTDataRepository.retrieveAcknowledgementRef(Matchers.contains(regID)))
-        .thenReturn(Future.successful(returns))
     }
 	}
 
