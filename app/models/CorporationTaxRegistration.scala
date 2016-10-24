@@ -18,7 +18,6 @@ package models
 
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-
 import scala.language.implicitConversions
 
 object RegistrationStatus {
@@ -35,7 +34,9 @@ case class CorporationTaxRegistration(OID: String,
                                       companyDetails: Option[CompanyDetails] = None,
                                       accountingDetails: Option[AccountingDetails] = None,
                                       tradingDetails: Option[TradingDetails] = None,
-                                      contactDetails: Option[ContactDetails] = None)
+                                      contactDetails: Option[ContactDetails] = None,
+                                      accountsPrepDate: Option[AccountsPrepDate] = None
+                                     )
 
 object CorporationTaxRegistration {
   implicit val formatCH = Json.format[CHROAddress]
@@ -46,6 +47,7 @@ object CorporationTaxRegistration {
   implicit val formatAccountingDetails = Json.format[AccountingDetails]
   implicit val formatContactDetails = Json.format[ContactDetails]
   implicit val formatConfirmationReferences = Json.format[ConfirmationReferences]
+  implicit val formatAccountsPrepDate = Json.format[AccountsPrepDate]
   implicit val formats = Json.format[CorporationTaxRegistration]
 }
 
@@ -150,4 +152,35 @@ case class TradingDetails(regularPayments : Boolean = false)
 
 object TradingDetails {
   implicit val format = Json.format[TradingDetails]
+}
+
+case class AccountsPrepDate (businessEndDate : String,
+                             accountsPrepDate: String)
+
+object AccountsPrepDate {
+  implicit val formats = Json.format[AccountsPrepDate]
+  implicit def toPrepareAccountModel(model:AccountsPrepDate):PrepareAccountModel= {
+    val splitDate = model.accountsPrepDate.split("/")
+    PrepareAccountModel(
+      model.businessEndDate,
+      Some(splitDate(0)),
+      Some(splitDate(1)),
+      Some(splitDate(2))
+    )
+  }
+
+}
+
+case class PrepareAccountModel (businessEndDate : String,
+                                businessEndDateyear :Option[String],
+                                businessEndDatemonth :Option[String],
+                                businessEndDateday :Option[String]
+                               )
+
+object PrepareAccountModel {
+  def empty = PrepareAccountModel("", None, None, None)
+  implicit val formats = Json.format[PrepareAccountModel]
+  implicit def toAccountsPrepDate(model:PrepareAccountModel):AccountsPrepDate={
+    AccountsPrepDate(model.businessEndDate, s"${model.businessEndDateyear}/${model.businessEndDatemonth}/${model.businessEndDateday}")
+  }
 }
