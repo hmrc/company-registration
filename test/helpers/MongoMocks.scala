@@ -23,7 +23,7 @@ import org.mockito.invocation.InvocationOnMock
 import org.mockito.stubbing.Answer
 import org.scalatest.mock.MockitoSugar
 import play.api.libs.json.JsObject
-import reactivemongo.api.commands.{UpdateWriteResult, WriteConcern, WriteResult}
+import reactivemongo.api.commands.{DefaultWriteResult, UpdateWriteResult, WriteConcern}
 import reactivemongo.api.indexes.CollectionIndexesManager
 import reactivemongo.api.{CollectionProducer, Cursor, DefaultDB, FailoverStrategy}
 import reactivemongo.json.collection.{JSONCollection, JSONQueryBuilder}
@@ -59,7 +59,7 @@ trait MongoMocks extends MockitoSugar {
 	}
 
 	def mockWriteResult(fails: Boolean = false) = {
-		val m = mock[WriteResult]
+		val m = mock[DefaultWriteResult]
 		when(m.ok).thenReturn(!fails)
 		m
 	}
