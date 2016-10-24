@@ -17,8 +17,7 @@
 package repositories
 
 import auth.AuthorisationResource
-import models.AccountingDetails
-import models.{ContactDetails, CompanyDetails, CorporationTaxRegistration, TradingDetails}
+import models._
 import reactivemongo.api.DB
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.bson._
@@ -39,6 +38,8 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def updateTradingDetails(registrationID : String, tradingDetails: TradingDetails) : Future[Option[TradingDetails]]
   def updateAcknowledgementRef(registrationID: String, acknowledgementRef: String): Future[Option[String]]
   def updateContactDetails(registrationID: String, contactDetails: ContactDetails): Future[Option[ContactDetails]]
+  def retrieveConfirmationReference(registrationID: String) : Future[Option[ConfirmationReferences]]
+  def updateConfirmationReferences(registrationID: String, confirmationReferences: ConfirmationReferences) : Future[Option[ConfirmationReferences]]
   def retrieveContactDetails(registrationID: String): Future[Option[ContactDetails]]
   def retrieveAcknowledgementRef(registrationID: String): Future[Option[String]]
 }
@@ -133,18 +134,38 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
       }
     }
 
+    override def retrieveConfirmationReference(registrationID: String) : Future[Option[ConfirmationReferences]] = {
+      retrieveCorporationTaxRegistration(registrationID) map { oreg => { oreg flatMap { _.confirmationReferences } } }
+    }
+
+    override def updateConfirmationReferences(registrationID: String, confirmationReferences: ConfirmationReferences) : Future[Option[ConfirmationReferences]] = {
+      retrieveCorporationTaxRegistration(registrationID) flatMap {
+        case Some(registration) => collection.update(registrationIDSelector(registrationID), registration.copy(confirmationReferences = Some(confirmationReferences)), upsert = false)
+          .map(_ => Some(confirmationReferences))
+        case None => Future.successful(None)
+      }
+    }
+
+  // TODO remove this
     override def updateAcknowledgementRef(registrationID: String, acknowledgementRef: String): Future[Option[String]] = {
       retrieveCorporationTaxRegistration(registrationID) flatMap {
-        case Some(reg) => collection.update(registrationIDSelector(registrationID), reg.copy(acknowledgementReference = Some(acknowledgementRef)), upsert = false)
+        case Some(reg) => collection.update(
+                                             registrationIDSelector(registrationID),
+                                             reg.copy(confirmationReferences = Some(ConfirmationReferences(acknowledgementRef,"","",""))),
+                                             upsert = false)
             .map(_ => Some(acknowledgementRef))
         case None => Future.successful(None)
       }
     }
 
+  // TODO remove this
   override def retrieveAcknowledgementRef(registrationID: String): Future[Option[String]] = {
-    retrieveCorporationTaxRegistration(registrationID) map {
-      case Some(reg) => reg.acknowledgementReference
-      case None => None
+
+    retrieveCorporationTaxRegistration(registrationID) map { oreg => {
+        oreg flatMap {
+          reg => reg.confirmationReferences map { _.acknowledgementReference }
+        }
+      }
     }
   }
 

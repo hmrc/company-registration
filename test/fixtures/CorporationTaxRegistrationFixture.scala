@@ -17,26 +17,61 @@
 package fixtures
 
 import models._
+import play.api.libs.json.Json
+
+case class CorporationTaxRegistrationResponse(registrationID: String,
+																							status: String,
+																							formCreationTimestamp: String,
+																							links: Links)
+
+object CorporationTaxRegistrationResponse {
+	implicit val linksFormats = Json.format[Links]
+	implicit val formats = Json.format[CorporationTaxRegistrationResponse]
+}
 
 trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with AccountingDetailsFixture with ContactDetailsFixture {
 
-	lazy val validCorporationTaxRegistrationRequest = CorporationTaxRegistrationRequest("en")
+	import RegistrationStatus._
 
-	lazy val validCorporationTaxRegistration = CorporationTaxRegistration(
-		Some("BRCT12345678910"),
+	val validCorporationTaxRegistrationRequest = CorporationTaxRegistrationRequest("en")
+
+	val validDraftCorporationTaxRegistration = CorporationTaxRegistration(
 		OID = "9876543210",
 		registrationID = "0123456789",
+		status = DRAFT,
 		formCreationTimestamp = "2001-12-31T12:00:00Z",
 		language = "en",
+		confirmationReferences = None,
 		companyDetails = Some(validCompanyDetails),
 		accountingDetails = Some(validAccountingDetails),
-    tradingDetails = Some(TradingDetails()),
+		tradingDetails = Some(TradingDetails()),
 		contactDetails = Some(contactDetails)
 	)
 
-	lazy val validCorporationTaxRegistrationResponse = CorporationTaxRegistrationResponse(
+	val validConfirmationReferences = ConfirmationReferences(
+		acknowledgementReference = "BRCT12345678910",
+		transactionId = "TX1",
+		paymentReference = "PY1",
+		paymentAmount = "12.00"
+	)
+
+	val validHeldCorporationTaxRegistration = CorporationTaxRegistration(
+		OID = "9876543210",
 		registrationID = "0123456789",
+		status = HELD,
 		formCreationTimestamp = "2001-12-31T12:00:00Z",
-		Links(Some("/corporation-tax-registration/0123456789"))
+		language = "en",
+		confirmationReferences = Some(validConfirmationReferences),
+		companyDetails = None,
+		accountingDetails = None,
+		tradingDetails = None,
+		contactDetails = None
+	)
+
+	val validCorporationTaxRegistrationResponse = CorporationTaxRegistrationResponse(
+		registrationID = "0123456789",
+		status = DRAFT,
+		formCreationTimestamp = "2001-12-31T12:00:00Z",
+		Links(Some("/company-registration/corporation-tax-registration/0123456789"))
   )
 }

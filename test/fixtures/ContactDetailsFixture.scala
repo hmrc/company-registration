@@ -16,7 +16,21 @@
 
 package fixtures
 
-import models.{ContactDetails, ContactDetailsResponse, Links}
+import models.{ContactDetails, Links}
+import play.api.libs.json.Json
+
+case class ContactDetailsResponse(contactFirstName: Option[String],
+                                  contactMiddleName: Option[String],
+                                  contactSurname: Option[String],
+                                  contactDaytimeTelephoneNumber: Option[String],
+                                  contactMobileNumber: Option[String],
+                                  contactEmail: Option[String],
+                                  links: Links)
+
+object ContactDetailsResponse {
+  implicit val formatsLinks = Json.format[Links]
+  implicit val formats = Json.format[ContactDetailsResponse]
+}
 
 trait ContactDetailsFixture {
 
@@ -36,7 +50,7 @@ trait ContactDetailsFixture {
     contactDetails.contactDaytimeTelephoneNumber,
     contactDetails.contactMobileNumber,
     contactDetails.contactEmail,
-    Links(Some(s"/corporation-tax-registration/12345/trading-details"),
-      Some(s"/corporation-tax-registration/12345/"))
+    Links(Some(s"/company-registration/corporation-tax-registration/12345/contact-details"),
+      Some(s"/company-registration/corporation-tax-registration/12345"))
   )
 }

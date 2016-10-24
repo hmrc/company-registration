@@ -16,9 +16,8 @@
 
 package services
 
-import models.{ContactDetailsResponse, ContactDetails}
+import models.ContactDetails
 import repositories.{Repositories, CorporationTaxRegistrationMongoRepository}
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object ContactDetailsService extends ContactDetailsService {
@@ -29,17 +28,11 @@ trait ContactDetailsService {
 
   val corporationTaxRegistrationRepository : CorporationTaxRegistrationMongoRepository
 
-  def retrieveContactDetails(registrationID: String): Future[Option[ContactDetailsResponse]] = {
-    corporationTaxRegistrationRepository.retrieveContactDetails(registrationID).map{
-      case Some(contactDetails) => Some(contactDetails.convertToResponse(registrationID))
-      case _ => None
-    }
+  def retrieveContactDetails(registrationID: String): Future[Option[ContactDetails]] = {
+    corporationTaxRegistrationRepository.retrieveContactDetails(registrationID)
   }
 
-  def updateContactDetails(registrationID: String, contactDetails: ContactDetails): Future[Option[ContactDetailsResponse]] = {
-    corporationTaxRegistrationRepository.updateContactDetails(registrationID, contactDetails).map{
-      case Some(details) => Some(details.convertToResponse(registrationID))
-      case _ => None
-    }
+  def updateContactDetails(registrationID: String, contactDetails: ContactDetails): Future[Option[ContactDetails]] = {
+    corporationTaxRegistrationRepository.updateContactDetails(registrationID, contactDetails)
   }
 }

@@ -34,7 +34,7 @@ class AccountingDetailsServiceSpec extends SCRSSpec with AccountingDetailsFixtur
     "return a AccountingDetailsResponse when a company details record is found" in new Setup {
       CTDataRepositoryMocks.retrieveAccountingDetails(Some(validAccountingDetails))
 
-      await(service.retrieveAccountingDetails(registrationID)) shouldBe Some(validAccountingDetailsResponse)
+      await(service.retrieveAccountingDetails(registrationID)) shouldBe Some(validAccountingDetails)
     }
 
     "return a None when the record to retrieve is not found in the repository" in new Setup {
@@ -48,7 +48,7 @@ class AccountingDetailsServiceSpec extends SCRSSpec with AccountingDetailsFixtur
     "return an AccountingDetailsResponse when a accounting details record is updated" in new Setup {
       CTDataRepositoryMocks.updateAccountingDetails(Some(validAccountingDetails))
 
-      await(service.updateAccountingDetails(registrationID, validAccountingDetails)) shouldBe Some(validAccountingDetailsResponse)
+      await(service.updateAccountingDetails(registrationID, validAccountingDetails)) shouldBe Some(validAccountingDetails)
     }
 
     "return a None when the record to update is not found in the repository" in new Setup {

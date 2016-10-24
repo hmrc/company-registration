@@ -17,6 +17,26 @@
 package fixtures
 
 import models._
+import play.api.libs.json.Json
+
+case class CompanyDetailsResponse(companyName: String,
+                                  cHROAddress: CHROAddress,
+                                  rOAddress: ROAddress,
+                                  pPOBAddress: PPOBAddress,
+                                  jurisdiction: String,
+                                  tradingDetails: TradingDetails,
+                                  links: Links)
+
+object CompanyDetailsResponse {
+  implicit val formats = Json.format[CompanyDetailsResponse]
+
+  def buildLinks(registrationID: String): Links = {
+    Links(
+      self = Some(s"/company-registration/corporation-tax-registration/$registrationID/company-details"),
+      registration = Some(s"/company-registration/corporation-tax-registration/$registrationID")
+    )
+  }
+}
 
 trait CompanyDetailsFixture {
 
@@ -53,5 +73,14 @@ trait CompanyDetailsFixture {
     "testJurisdiction"
   )
 
-  lazy val validCompanyDetailsResponse = validCompanyDetails.toCompanyDetailsResponse("12345")
+  import CompanyDetailsResponse.buildLinks
+  lazy val validCompanyDetailsResponse = CompanyDetailsResponse(
+    companyName = validCompanyDetails.companyName,
+    cHROAddress = validCompanyDetails.cHROAddress,
+    rOAddress = validCompanyDetails.rOAddress,
+    pPOBAddress = validCompanyDetails.pPOBAddress,
+    jurisdiction = validCompanyDetails.jurisdiction,
+    TradingDetails(),
+    buildLinks("12345")
+    )
 }

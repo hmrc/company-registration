@@ -16,27 +16,26 @@
 
 package models
 
-import play.api.libs.json.Json
+import play.api.libs.functional.syntax._
+import play.api.libs.json._
+
 import scala.language.implicitConversions
 
-case class CorporationTaxRegistration(acknowledgementReference: Option[String],
-                                      OID: String,
+object RegistrationStatus {
+  val DRAFT = "draft"
+  val HELD = "held"
+}
+
+case class CorporationTaxRegistration(OID: String,
                                       registrationID: String,
+                                      status: String = RegistrationStatus.DRAFT,
                                       formCreationTimestamp: String,
                                       language: String,
-                                      companyDetails: Option[CompanyDetails],
-                                      accountingDetails: Option[AccountingDetails],
-                                      tradingDetails: Option[TradingDetails],
-                                      contactDetails: Option[ContactDetails]){
-
-  def toCTRegistrationResponse = {
-    CorporationTaxRegistrationResponse(
-      registrationID,
-      formCreationTimestamp,
-      Links(Some(s"/corporation-tax-registration/$registrationID"))
-    )
-  }
-}
+                                      confirmationReferences: Option[ConfirmationReferences] = None,
+                                      companyDetails: Option[CompanyDetails] = None,
+                                      accountingDetails: Option[AccountingDetails] = None,
+                                      tradingDetails: Option[TradingDetails] = None,
+                                      contactDetails: Option[ContactDetails] = None)
 
 object CorporationTaxRegistration {
   implicit val formatCH = Json.format[CHROAddress]
@@ -46,74 +45,36 @@ object CorporationTaxRegistration {
   implicit val formatCompanyDetails = Json.format[CompanyDetails]
   implicit val formatAccountingDetails = Json.format[AccountingDetails]
   implicit val formatContactDetails = Json.format[ContactDetails]
+  implicit val formatConfirmationReferences = Json.format[ConfirmationReferences]
   implicit val formats = Json.format[CorporationTaxRegistration]
-
-  def empty: CorporationTaxRegistration = {
-    CorporationTaxRegistration(None, "", "", "", "", None, None, None, None)
-  }
 }
 
-case class AccountingDetailsResponse(accountingDateStatus : String,
-                             startDateOfBusiness : Option[String],
-                             links : Links){
+case class ConfirmationReferences(
+                                   acknowledgementReference: String = "",
+                                   transactionId: String,
+                                   paymentReference: String,
+                                   paymentAmount: String
+                                 )
+object ConfirmationReferences {
+  implicit val format = (
+      ( __ \ "acknowledgement-reference" ).format[String] and
+      ( __ \ "transaction-id" ).format[String] and
+      ( __ \ "payment-reference" ).format[String] and
+      ( __ \ "payment-amount" ).format[String]
+    )(ConfirmationReferences.apply, unlift(ConfirmationReferences.unapply))
 }
 
-object AccountingDetailsResponse {
-  implicit val linksFormats = Json.format[Links]
-  implicit val formats = Json.format[AccountingDetailsResponse]
-}
-
-case class AccountingDetails(accountingDateStatus : String,
-                             startDateOfBusiness : Option[String]){
-
-  def toAccountingDetailsResponse(registrationID: String): AccountingDetailsResponse = {
-    AccountingDetailsResponse(
-      accountingDateStatus,
-      startDateOfBusiness,
-      Links.buildLinks(registrationID)
-    )
-  }
-}
+case class AccountingDetails(accountingDateStatus : String, startDateOfBusiness : Option[String])
 
 object AccountingDetails {
   implicit val formats = Json.format[AccountingDetails]
-}
-
-case class CorporationTaxRegistrationResponse(registrationID: String,
-                                              formCreationTimestamp: String,
-                                              link: Links)
-
-object CorporationTaxRegistrationResponse {
-  implicit val linksFormats = Json.format[Links]
-  implicit val formats = Json.format[CorporationTaxRegistrationResponse]
 }
 
 case class CompanyDetails(companyName: String,
                           cHROAddress: CHROAddress,
                           rOAddress: ROAddress,
                           pPOBAddress: PPOBAddress,
-                          jurisdiction: String){
-
-  def toCompanyDetailsResponse(registrationID: String): CompanyDetailsResponse = {
-    CompanyDetailsResponse(
-      companyName,
-      cHROAddress,
-      rOAddress,
-      pPOBAddress,
-      jurisdiction,
-      TradingDetails.empty,
-      Links.buildLinks(registrationID)
-    )
-  }
-}
-
-case class CompanyDetailsResponse(companyName: String,
-                                  cHROAddress: CHROAddress,
-                                  rOAddress: ROAddress,
-                                  pPOBAddress: PPOBAddress,
-                                  jurisdiction: String,
-                                  tradingDetails: TradingDetails,
-                                  links: Links)
+                          jurisdiction: String)
 
 case class CHROAddress(premises : String,
                        address_line_1 : String,
@@ -148,15 +109,6 @@ object CompanyDetails {
   implicit val formats = Json.format[CompanyDetails]
 }
 
-object CompanyDetailsResponse {
-  implicit val formatCH = Json.format[CHROAddress]
-  implicit val formatRO = Json.format[ROAddress]
-  implicit val formatPPOB = Json.format[PPOBAddress]
-  implicit val formatLinks = Json.format[Links]
-  implicit val formatTD = Json.format[TradingDetails]
-  implicit val formats = Json.format[CompanyDetailsResponse]
-}
-
 object CHROAddress {
   implicit val format = Json.format[CHROAddress]
 }
@@ -180,30 +132,11 @@ case class ContactDetails(contactFirstName: Option[String],
                           contactSurname: Option[String],
                           contactDaytimeTelephoneNumber: Option[String],
                           contactMobileNumber: Option[String],
-                          contactEmail: Option[String]){
-
-  implicit def convertToResponse(registrationID: String): ContactDetailsResponse = {
-    ContactDetailsResponse(contactFirstName, contactMiddleName, contactSurname, contactDaytimeTelephoneNumber, contactMobileNumber, contactEmail,
-      Links(Some(s"/corporation-tax-registration/$registrationID/trading-details"), Some(s"/corporation-tax-registration/$registrationID/")))
-  }
-}
+                          contactEmail: Option[String])
 
 object ContactDetails {
   implicit val formatsLinks = Json.format[Links]
   implicit val formats = Json.format[ContactDetails]
-}
-
-case class ContactDetailsResponse(contactFirstName: Option[String],
-                                  contactMiddleName: Option[String],
-                                  contactSurname: Option[String],
-                                  contactDaytimeTelephoneNumber: Option[String],
-                                  contactMobileNumber: Option[String],
-                                  contactEmail: Option[String],
-                                  links: Links)
-
-object ContactDetailsResponse {
-  implicit val formatsLinks = Json.format[Links]
-  implicit val formats = Json.format[ContactDetailsResponse]
 }
 
 case class Links(self: Option[String],
@@ -211,21 +144,10 @@ case class Links(self: Option[String],
 
 object Links {
   implicit val format = Json.format[Links]
-
-  def buildLinks(registrationID: String): Links = {
-    Links(
-      self = Some(s"/corporation-tax-registration/$registrationID/company-details"),
-      registration = Some(s"corporation-tax-registration/$registrationID")
-    )
-  }
 }
 
 case class TradingDetails(regularPayments : Boolean = false)
 
 object TradingDetails {
   implicit val format = Json.format[TradingDetails]
-
-  def empty : TradingDetails = {
-    TradingDetails()
-  }
 }

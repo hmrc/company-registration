@@ -22,7 +22,7 @@ import org.mockito.Matchers
 import org.mockito.Mockito._
 import org.mockito.stubbing.OngoingStubbing
 import org.scalatest.mock.MockitoSugar
-import repositories.{CorporationTaxRegistrationMongoRepository, HandoffRepository, SequenceRepository}
+import repositories.{CorporationTaxRegistrationMongoRepository, SequenceRepository}
 import services._
 import uk.gov.hmrc.play.http.HeaderCarrier
 
@@ -40,26 +40,18 @@ trait SCRSMocks
 	lazy val mockCompanyDetailsService = mock[CompanyDetailsService]
 	lazy val mockContactDetailsService = mock[ContactDetailsService]
 	lazy val mockSequenceRepository = mock[SequenceRepository]
-	lazy val mockHandoffRespository = mock[HandoffRepository]
-	lazy val mockHandoffService = mock[HandoffCHDataService]
-
-
 
 	object CTServiceMocks {
-		def createCTDataRecord(result: CorporationTaxRegistrationResponse): OngoingStubbing[Future[CorporationTaxRegistrationResponse]] = {
+		def createCTDataRecord(result: CorporationTaxRegistration): OngoingStubbing[Future[CorporationTaxRegistration]] = {
 			when(mockCTDataService.createCorporationTaxRegistrationRecord(Matchers.any[String], Matchers.any[String], Matchers.any[String]))
 				.thenReturn(Future.successful(result))
 		}
-		def retrieveCTDataRecord(regId: String, result: Option[CorporationTaxRegistrationResponse]): OngoingStubbing[Future[Option[CorporationTaxRegistrationResponse]]] = {
+		def retrieveCTDataRecord(regId: String, result: Option[CorporationTaxRegistration]): OngoingStubbing[Future[Option[CorporationTaxRegistration]]] = {
 			when(mockCTDataService.retrieveCorporationTaxRegistrationRecord(Matchers.eq(regId)))
 				.thenReturn(Future.successful(result))
 		}
-    def retrieveAcknowledgementReference(regID: String, returns: Option[String]) = {
-      when(mockCTDataService.retrieveAcknowledgementReference(Matchers.contains(regID)))
-        .thenReturn(Future.successful(returns))
-    }
-    def updateAcknowledgementReference(regID: String, returns: Option[String]) = {
-      when(mockCTDataService.updateAcknowledgementReference(Matchers.contains(regID)))
+    def updateConfirmationReferences(regID: String, returns: Option[ConfirmationReferences]) = {
+      when(mockCTDataService.updateConfirmationReferences(Matchers.contains(regID), Matchers.eq(ConfirmationReferences("transactID","payRef","payAmount",""))))
         .thenReturn(Future.successful(returns))
     }
 	}
@@ -115,37 +107,27 @@ trait SCRSMocks
       when(mockCTDataRepository.updateContactDetails(Matchers.anyString(), Matchers.any[ContactDetails]()))
         .thenReturn(Future.successful(response))
     }
-
-    def updateAcknowledgementRef(regID: String, acknowledgementID: Option[String]) = {
-      when(mockCTDataRepository.updateAcknowledgementRef(Matchers.any(), Matchers.any()))
-        .thenReturn(Future.successful(acknowledgementID))
-    }
-
-    def retrieveAcknowledgementRef(regID: String, returns: Option[String]) = {
-      when(mockCTDataRepository.retrieveAcknowledgementRef(Matchers.contains(regID)))
-        .thenReturn(Future.successful(returns))
-    }
 	}
 
 	object CompanyDetailsServiceMocks {
-    def retrieveCompanyDetails(registrationID: String, result: Option[CompanyDetailsResponse]): OngoingStubbing[Future[Option[CompanyDetailsResponse]]] = {
+    def retrieveCompanyDetails(registrationID: String, result: Option[CompanyDetails]): OngoingStubbing[Future[Option[CompanyDetails]]] = {
       when(mockCompanyDetailsService.retrieveCompanyDetails(Matchers.anyString()))
         .thenReturn(Future.successful(result))
     }
 
-    def updateCompanyDetails(registrationID: String, result: Option[CompanyDetailsResponse]): OngoingStubbing[Future[Option[CompanyDetailsResponse]]] = {
+    def updateCompanyDetails(registrationID: String, result: Option[CompanyDetails]): OngoingStubbing[Future[Option[CompanyDetails]]] = {
       when(mockCompanyDetailsService.updateCompanyDetails(Matchers.anyString(), Matchers.any[CompanyDetails]()))
         .thenReturn(Future.successful(result))
     }
   }
 
 	object ContactDetailsServiceMocks {
-		def retrieveContactDetails(registrationID: String, response: Option[ContactDetailsResponse]) = {
+		def retrieveContactDetails(registrationID: String, response: Option[ContactDetails]) = {
 			when(mockContactDetailsService.retrieveContactDetails(Matchers.contains(registrationID)))
 			  .thenReturn(Future.successful(response))
 		}
 
-		def updateContactDetails(registrationID: String, response: Option[ContactDetailsResponse]) = {
+		def updateContactDetails(registrationID: String, response: Option[ContactDetails]) = {
 			when(mockContactDetailsService.updateContactDetails(Matchers.any(), Matchers.any[ContactDetails]()))
 			  .thenReturn(Future.successful(response))
 		}

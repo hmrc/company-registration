@@ -16,11 +16,7 @@ PUT        /corporation-tax-registration/:registrationID/trading-details        
 GET        /corporation-tax-registration/:registrationID/contact-details                    controllers.ContactDetailsController.retrieveContactDetails(registrationID)
 PUT        /corporation-tax-registration/:registrationID/contact-details                    controllers.ContactDetailsController.updateContactDetails(registrationID)
 
-GET        /corporation-tax-registration/:registrationID/fetch-acknowledgement-reference    controllers.CorporationTaxRegistrationController.retrieveAcknowledgementRef(registrationID)
-GET        /corporation-tax-registration/:registrationID/update-acknowledgement-reference   controllers.CorporationTaxRegistrationController.updateAcknowledgementRef(registrationID)
-
-GET        /corporation-tax-registration/:registrationID/ch-handoff-data                    controllers.HandoffCHDataController.retrieveHandoffCHData(registrationID)
-PUT        /corporation-tax-registration/:registrationID/ch-handoff-data                    controllers.HandoffCHDataController.storeHandoffCHData(registrationID)
+GET        /corporation-tax-registration/:registrationID/confirmation-references            controllers.CorporationTaxRegistrationController.retrieveConfirmationReference(registrationID)
+PUT        /corporation-tax-registration/:registrationID/confirmation-references            controllers.CorporationTaxRegistrationController.updateReferences(registrationID)
 
 POST       /corporation-tax-registration/des-stub                                          controllers.DesController.submit
-

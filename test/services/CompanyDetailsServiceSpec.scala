@@ -41,10 +41,10 @@ class CompanyDetailsServiceSpec extends SCRSSpec with CompanyDetailsFixture {
   }
 
   "retrieveCompanyDetails" should {
-    "return a CompanyDetailsResponse when a company details record is found" in new Setup {
+    "return the CompanyDetails when a company details record is found" in new Setup {
       CTDataRepositoryMocks.retrieveCompanyDetails(Some(validCompanyDetails))
 
-      await(service.retrieveCompanyDetails(registrationID)) shouldBe Some(validCompanyDetailsResponse)
+      await(service.retrieveCompanyDetails(registrationID)) shouldBe Some(validCompanyDetails)
     }
 
     "return a None when the record to retrieve is not found in the repository" in new Setup {
@@ -58,7 +58,7 @@ class CompanyDetailsServiceSpec extends SCRSSpec with CompanyDetailsFixture {
     "return a CompanyDetailsResponse when a company detaisl record is updated" in new Setup {
       CTDataRepositoryMocks.updateCompanyDetails(Some(validCompanyDetails))
 
-      await(service.updateCompanyDetails(registrationID, validCompanyDetails)) shouldBe Some(validCompanyDetailsResponse)
+      await(service.updateCompanyDetails(registrationID, validCompanyDetails)) shouldBe Some(validCompanyDetails)
     }
 
     "return a None when the record to update is not found in the repository" in new Setup {

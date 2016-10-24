@@ -16,7 +16,7 @@
 
 package mocks
 
-import models.{AccountingDetails, AccountingDetailsResponse}
+import models.AccountingDetails
 import org.mockito.Matchers
 import org.mockito.Mockito._
 import org.mockito.stubbing.OngoingStubbing
@@ -32,12 +32,12 @@ trait AccountingServiceMock {
   lazy val mockAccountingDetailsService = mock[AccountingDetailsService]
 
   object AccountingDetailsServiceMocks {
-    def retrieveAccountingDetails(registrationID: String, result: Option[AccountingDetailsResponse]): OngoingStubbing[Future[Option[AccountingDetailsResponse]]] = {
+    def retrieveAccountingDetails(registrationID: String, result: Option[AccountingDetails]): OngoingStubbing[Future[Option[AccountingDetails]]] = {
       when(mockAccountingDetailsService.retrieveAccountingDetails(Matchers.anyString()))
         .thenReturn(Future.successful(result))
     }
 
-    def updateAccountingDetails(registrationID: String, result: Option[AccountingDetailsResponse]): OngoingStubbing[Future[Option[AccountingDetailsResponse]]] = {
+    def updateAccountingDetails(registrationID: String, result: Option[AccountingDetails]): OngoingStubbing[Future[Option[AccountingDetails]]] = {
       when(mockAccountingDetailsService.updateAccountingDetails(Matchers.anyString(), Matchers.any[AccountingDetails]()))
         .thenReturn(Future.successful(result))
     }

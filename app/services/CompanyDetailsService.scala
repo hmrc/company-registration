@@ -16,12 +16,10 @@
 
 package services
 
-import models.{CompanyDetailsResponse, CompanyDetails}
+import models.CompanyDetails
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
-import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
 
 object CompanyDetailsService extends CompanyDetailsService {
   override val corporationTaxRegistrationRepository = Repositories.cTRepository
@@ -31,17 +29,11 @@ trait CompanyDetailsService {
 
   val corporationTaxRegistrationRepository : CorporationTaxRegistrationMongoRepository
 
-  def retrieveCompanyDetails(registrationID: String): Future[Option[CompanyDetailsResponse]] = {
-    corporationTaxRegistrationRepository.retrieveCompanyDetails(registrationID).map{
-      case Some(companyDetails) => Some(companyDetails.toCompanyDetailsResponse(registrationID))
-      case _ => None
-    }
+  def retrieveCompanyDetails(registrationID: String): Future[Option[CompanyDetails]] = {
+    corporationTaxRegistrationRepository.retrieveCompanyDetails(registrationID)
   }
 
-  def updateCompanyDetails(registrationID: String, companyDetails: CompanyDetails): Future[Option[CompanyDetailsResponse]] = {
-    corporationTaxRegistrationRepository.updateCompanyDetails(registrationID, companyDetails).map{
-      case Some(details) => Some(details.toCompanyDetailsResponse(registrationID))
-      case _ => None
-    }
+  def updateCompanyDetails(registrationID: String, companyDetails: CompanyDetails): Future[Option[CompanyDetails]] = {
+    corporationTaxRegistrationRepository.updateCompanyDetails(registrationID, companyDetails)
   }
 }

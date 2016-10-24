@@ -19,7 +19,7 @@ package controllers
 import connectors.AuthConnector
 import fixtures.{AuthFixture, CorporationTaxRegistrationFixture}
 import helpers.SCRSSpec
-import models.{CorporationTaxRegistration, CorporationTaxRegistrationResponse}
+import models.{ConfirmationReferences, CorporationTaxRegistration}
 import org.mockito.Matchers
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
@@ -50,19 +50,19 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
 
 	"createCorporationTaxRegistration" should {
 		"return a 201 when a new entry is created from the parsed json" in new Setup {
-			CTServiceMocks.createCTDataRecord(validCorporationTaxRegistrationResponse)
+			CTServiceMocks.createCTDataRecord(validDraftCorporationTaxRegistration)
 			AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
 
 			val request = FakeRequest().withJsonBody(Json.toJson(validCorporationTaxRegistrationRequest))
 			val result = call(controller.createCorporationTaxRegistration("0123456789"), request)
-			await(jsonBodyOf(result)).as[CorporationTaxRegistrationResponse] shouldBe validCorporationTaxRegistrationResponse
+			await(jsonBodyOf(result)) shouldBe Json.toJson(validCorporationTaxRegistrationResponse)
 			status(result) shouldBe CREATED
 		}
 
 		"return a 403 - forbidden when the user is not authenticated" in new Setup {
 			AuthenticationMocks.getCurrentAuthority(None)
 
-			val request = FakeRequest().withJsonBody(Json.toJson(validCorporationTaxRegistration))
+			val request = FakeRequest().withJsonBody(Json.toJson(validDraftCorporationTaxRegistration))
 			val result = call(controller.createCorporationTaxRegistration("0123456789"), request)
 			status(result) shouldBe FORBIDDEN
 		}
@@ -70,8 +70,8 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
 
 	"retrieveCorporationTaxRegistration" should {
 		"return a 200 and a CorporationTaxRegistration model is one is found" in new Setup {
-			val regId = "testRegId"
-			CTServiceMocks.retrieveCTDataRecord(regId, Some(validCorporationTaxRegistrationResponse))
+			val regId = "0123456789"
+			CTServiceMocks.retrieveCTDataRecord(regId, Some(validDraftCorporationTaxRegistration))
 			AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
 
 			when(mockCTDataRepository.getOid(Matchers.contains(regId))).
@@ -79,7 +79,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
 
 			val result = call(controller.retrieveCorporationTaxRegistration(regId), FakeRequest())
 			status(result) shouldBe OK
-			await(jsonBodyOf(result)).asOpt[CorporationTaxRegistrationResponse] shouldBe Some(validCorporationTaxRegistrationResponse)
+			await(jsonBodyOf(result)) shouldBe Json.toJson(Some(validCorporationTaxRegistrationResponse))
 		}
 
 		"return a 404 if a CT registration record cannot be found" in new Setup {
@@ -125,25 +125,30 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
 		}
 	}
 
-	"retrieveAcknowledgementRef" should {
+	"retrieveConfirmationReference" should {
 
     val regId = "testRegId"
 
     "return a 200 and an acknowledgement ref is one exists" in new Setup {
-      CTServiceMocks.retrieveAcknowledgementReference(regId, Some("BRCT00000000123"))
+			val expected = ConfirmationReferences("BRCT00000000123", "tx", "py", "12.00")
+			when(mockCTDataService.retrieveConfirmationReference(Matchers.eq(regId)))
+				.thenReturn(Future.successful(Some(expected)))
+
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       AuthorisationMocks.getOID(validAuthority.oid, Some((regId, validAuthority.oid)))
 
-      val result = controller.retrieveAcknowledgementRef(regId)(FakeRequest())
+      val result = controller.retrieveConfirmationReference(regId)(FakeRequest())
       status(result) shouldBe OK
+			await(jsonBodyOf(result)) shouldBe Json.toJson(expected)
     }
 
     "return a 404 if a record cannot be found" in new Setup {
-      CTServiceMocks.retrieveAcknowledgementReference(regId, None)
+			when(mockCTDataService.retrieveConfirmationReference(Matchers.eq(regId)))
+				.thenReturn(None)
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       AuthorisationMocks.getOID(validAuthority.oid, Some((regId, validAuthority.oid)))
 
-      val result = controller.retrieveAcknowledgementRef(regId)(FakeRequest())
+      val result = controller.retrieveConfirmationReference(regId)(FakeRequest())
       status(result) shouldBe NOT_FOUND
     }
 
@@ -151,7 +156,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
       AuthenticationMocks.getCurrentAuthority(None)
       AuthorisationMocks.getOID(validAuthority.oid, None)
 
-      val result = controller.retrieveAcknowledgementRef(regId)(FakeRequest())
+      val result = controller.retrieveConfirmationReference(regId)(FakeRequest())
       status(result) shouldBe FORBIDDEN
     }
 
@@ -159,7 +164,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       AuthorisationMocks.getOID(validAuthority.oid, Some((regId, "xxx")))
 
-      val result = controller.retrieveAcknowledgementRef(regId)(FakeRequest())
+      val result = controller.retrieveConfirmationReference(regId)(FakeRequest())
       status(result) shouldBe FORBIDDEN
     }
 
@@ -167,30 +172,41 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       AuthorisationMocks.getOID(validAuthority.oid, None)
 
-      val result = controller.retrieveAcknowledgementRef(regId)(FakeRequest())
+      val result = controller.retrieveConfirmationReference(regId)(FakeRequest())
       status(result) shouldBe NOT_FOUND
     }
 	}
 
-  "updateAcknowledgementRef" should {
+  "updateReferences" should {
 
     val regId = "testRegId"
 
     "return a 200 and an acknowledgement ref is one exists" in new Setup {
-      CTServiceMocks.updateAcknowledgementReference(regId, Some("BRCT00000000123"))
+			val expectedRefs = ConfirmationReferences("BRCT00000000123", "tx", "py", "12.00")
+			when(mockCTDataService.updateConfirmationReferences(Matchers.contains(regId), Matchers.any()))
+				.thenReturn(Future.successful(Some(expectedRefs)))
+
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       AuthorisationMocks.getOID(validAuthority.oid, Some((regId, validAuthority.oid)))
 
-      val result = controller.updateAcknowledgementRef(regId)(FakeRequest())
+      when(mockCTDataService.retrieveConfirmationReference(Matchers.eq(regId)))
+        .thenReturn(Future.successful(Some(expectedRefs)))
+
+      val result = controller.updateReferences(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId","testPaymentRef","testPaymentAmount",""))))
       status(result) shouldBe OK
+			await(jsonBodyOf(result)) shouldBe Json.toJson(expectedRefs)
     }
 
     "return a 404 if a record cannot be found" in new Setup {
-      CTServiceMocks.updateAcknowledgementReference(regId, None)
+			when(mockCTDataService.updateConfirmationReferences(Matchers.contains(regId), Matchers.any()))
+				.thenReturn(Future.successful(None))
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       AuthorisationMocks.getOID(validAuthority.oid, Some((regId, validAuthority.oid)))
 
-      val result = controller.updateAcknowledgementRef(regId)(FakeRequest())
+      when(mockCTDataService.retrieveConfirmationReference(Matchers.eq(regId)))
+        .thenReturn(Future.successful(None))
+
+      val result = controller.updateReferences(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId","testPaymentRef","testPaymentAmount",""))))
       status(result) shouldBe NOT_FOUND
     }
 
@@ -198,7 +214,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
       AuthenticationMocks.getCurrentAuthority(None)
       AuthorisationMocks.getOID(validAuthority.oid, None)
 
-      val result = controller.updateAcknowledgementRef(regId)(FakeRequest())
+      val result = controller.updateReferences(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId","testPaymentRef","testPaymentAmount",""))))
       status(result) shouldBe FORBIDDEN
     }
 
@@ -206,7 +222,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       AuthorisationMocks.getOID(validAuthority.oid, Some((regId, "xxx")))
 
-      val result = controller.updateAcknowledgementRef(regId)(FakeRequest())
+      val result = controller.updateReferences(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId","testPaymentRef","testPaymentAmount",""))))
       status(result) shouldBe FORBIDDEN
     }
 
@@ -214,7 +230,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       AuthorisationMocks.getOID(validAuthority.oid, None)
 
-      val result = controller.updateAcknowledgementRef(regId)(FakeRequest())
+      val result = controller.updateReferences(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId","testPaymentRef","testPaymentAmount",""))))
       status(result) shouldBe NOT_FOUND
     }
   }

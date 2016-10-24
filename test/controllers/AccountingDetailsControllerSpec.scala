@@ -18,10 +18,10 @@ package controllers
 
 
 import connectors.AuthConnector
-import fixtures.{AccountingDetailsFixture, AuthFixture}
+import fixtures.{AccountingDetailsFixture, AuthFixture, AccountingDetailsResponse}
 import helpers.SCRSSpec
 import org.mockito.Mockito._
-import models.{AccountingDetailsResponse, ErrorResponse}
+import models.ErrorResponse
 import org.mockito.Matchers
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
@@ -39,7 +39,6 @@ class AccountingDetailsControllerSpec extends SCRSSpec with AuthFixture with Acc
       override val accountingDetailsService = mockAccountingDetailsService
     }
   }
-
 
   val registrationID = "12345"
 
@@ -60,11 +59,11 @@ class AccountingDetailsControllerSpec extends SCRSSpec with AuthFixture with Acc
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       when(mockCTDataRepository.getOid(Matchers.anyString()))
         .thenReturn(Future.successful(Some("testRegID" -> "testOID")))
-      AccountingDetailsServiceMocks.retrieveAccountingDetails(registrationID, Some(validAccountingDetailsResponse))
+      AccountingDetailsServiceMocks.retrieveAccountingDetails(registrationID, Some(validAccountingDetails))
 
       val result = controller.retrieveAccountingDetails(registrationID)(FakeRequest())
       status(result) shouldBe OK
-      jsonBodyOf(result).as[AccountingDetailsResponse] shouldBe validAccountingDetailsResponse
+      await(jsonBodyOf(result)) shouldBe Json.toJson(validAccountingDetailsResponse)
     }
 
 
@@ -114,13 +113,13 @@ class AccountingDetailsControllerSpec extends SCRSSpec with AuthFixture with Acc
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       when(mockCTDataRepository.getOid(Matchers.anyString()))
         .thenReturn(Future.successful(Some("testRegID" -> "testOID")))
-      AccountingDetailsServiceMocks.updateAccountingDetails(registrationID, Some(validAccountingDetailsResponse))
+      AccountingDetailsServiceMocks.updateAccountingDetails(registrationID, Some(validAccountingDetails))
 
       val response = FakeRequest().withBody(Json.toJson(validAccountingDetails))
 
       val result = call(controller.updateAccountingDetails(registrationID), response)
       status(result) shouldBe OK
-      jsonBodyOf(result).as[AccountingDetailsResponse] shouldBe validAccountingDetailsResponse
+      await(jsonBodyOf(result)) shouldBe Json.toJson(validAccountingDetailsResponse)
     }
   }
 
