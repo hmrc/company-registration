@@ -55,6 +55,15 @@ case object Director extends CompletionCapacity { val text = "Director" }
 case object Agent extends CompletionCapacity { val text = "Agent" }
 case class Other(text: String) extends CompletionCapacity
 
+case class BusinessAddress(
+                          line1 : String,
+                          line2 : String,
+                          line3 : Option[String],
+                          line4 : Option[String],
+                          postcode : Option[String],
+                          country : Option[String]
+                          )
+
 case class BusinessContactDetails(
                       phoneNumber : Option[String],
                       mobileNumber : Option[String],
@@ -104,13 +113,14 @@ object Metadata {
 }
 
 case class InterimCorporationTax(
+                      companyOfficeNumber : String,
                       companyActiveDate : String,
                       companiesHouseCompanyName : String,
                       crn : String,
                       startDateOfFirstAccountingPeriod : String,
                       intendedAccountsPreparationDate : String,
                       returnsOnCT61 : String,
-                      businessAddress : String,
+                      businessAddress : BusinessAddress,
                       businessContactName : BusinessContactName,
                       businessContactDetails : BusinessContactDetails
                                  )
@@ -121,13 +131,24 @@ object InterimCorporationTax {
   implicit val writes = new Writes[InterimCorporationTax] {
     def writes(m: InterimCorporationTax) = {
       Json.obj(
+        "companyOfficeNumber" -> m.companyOfficeNumber,
         "companyActiveDate" -> m.companyActiveDate,
+        "hasCompanyTakenOverBusiness" -> false,
+        "companyMemberOfGroup" -> false,
         "companiesHouseCompanyName" -> m.companiesHouseCompanyName,
         "crn" -> m. crn,
         "startDateOfFirstAccountingPeriod" -> m.startDateOfFirstAccountingPeriod,
         "intendedAccountsPreparationDate" -> m.intendedAccountsPreparationDate,
         "returnsOnCT61" -> m.returnsOnCT61,
-        "businessAddress" -> m.businessAddress,
+        "companyACharity" -> false,
+        "businessAddress" -> Json.obj(
+          "line1" -> m.businessAddress.line1,
+          "line2" -> m.businessAddress.line2,
+          "line3" -> m.businessAddress.line3,
+          "line4" -> m.businessAddress.line4,
+          "postcode" -> m.businessAddress.postcode,
+          "country" -> m.businessAddress.country
+        ),
         "businessContactName" ->  Json.obj(
           "firstName" -> m.businessContactName.firstName,
           "middleNames" -> m.businessContactName.middleNames,

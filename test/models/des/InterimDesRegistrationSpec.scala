@@ -88,13 +88,24 @@ class InterimDesRegistrationSpec extends UnitSpec {
   "The Interim Registration corporationTax model" should {
     "Produce valid JSON for a simple model" in {
       val expectedJson : String = s"""{
+                                      |  "companyOfficeNumber" : "123",
                                       |  "companyActiveDate" : "01-11-2016",
+                                      |  "hasCompanyTakenOverBusiness" : false,
+                                      |  "companyMemberOfGroup" : false,
                                       |  "companiesHouseCompanyName" : "DG Limited",
                                       |  "crn" : "1234567890",
                                       |  "startDateOfFirstAccountingPeriod" : "01-11-2016",
                                       |  "intendedAccountsPreparationDate" : "01-11-2016",
                                       |  "returnsOnCT61" : "N",
-                                      |  "businessAddress" : "business address model",
+                                      |  "companyACharity" : false,
+                                      |  "businessAddress" : {
+                                      |                       "line1" : "1 Acacia Avenue",
+                                      |                       "line2" : "Hollinswood",
+                                      |                       "line3" : "Telford",
+                                      |                       "line4" : "Shropshire",
+                                      |                       "postcode" : "TF3 4ER",
+                                      |                       "country" : "England"
+                                      |                           },
                                       |  "businessContactName" : {
                                       |                           "firstName" : "Adam",
                                       |                           "middleNames" : "the",
@@ -106,6 +117,15 @@ class InterimDesRegistrationSpec extends UnitSpec {
                                       |                           "email" : "d@ddd.com"
                                       |                             }
                                       |}""".stripMargin
+      val desBusinessAddress = BusinessAddress(
+        "1 Acacia Avenue",
+        "Hollinswood",
+        Some("Telford"),
+        Some("Shropshire"),
+        Some("TF3 4ER"),
+        Some("England")
+      )
+
       val desBusinessContactName = BusinessContactName(
         "Adam",
         Some("the"),
@@ -116,14 +136,16 @@ class InterimDesRegistrationSpec extends UnitSpec {
         Some("0700 000 000"),
         Some("d@ddd.com")
       )
+
       val desModel = InterimCorporationTax(
+                                  "123",
                                   "01-11-2016",
                                   "DG Limited",
                                   "1234567890",
                                   "01-11-2016",
                                   "01-11-2016",
                                   "N",
-                                  "business address model",
+                                  desBusinessAddress,
                                   desBusinessContactName,
                                   desBusinessContactContactDetails
                                 )
