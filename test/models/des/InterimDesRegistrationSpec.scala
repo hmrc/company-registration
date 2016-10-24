@@ -96,7 +96,7 @@ class InterimDesRegistrationSpec extends UnitSpec {
                                       |  "returnsOnCT61" : "N",
                                       |  "businessAddress" : "business address model",
                                       |  "businessContactName" : {
-                                      |                           "firstName" : "adam",
+                                      |                           "firstName" : "Adam",
                                       |                           "middleNames" : "the",
                                       |                           "lastName" : "ant"
                                       |                           },
@@ -106,6 +106,16 @@ class InterimDesRegistrationSpec extends UnitSpec {
                                       |                           "email" : "d@ddd.com"
                                       |                             }
                                       |}""".stripMargin
+      val desBusinessContactName = BusinessContactName(
+        "Adam",
+        Some("the"),
+        Some("ant")
+      )
+      val desBusinessContactContactDetails = BusinessContactDetails(
+        Some("0121 000 000"),
+        Some("0700 000 000"),
+        Some("d@ddd.com")
+      )
       val desModel = InterimCorporationTax(
                                   "01-11-2016",
                                   "DG Limited",
@@ -114,8 +124,8 @@ class InterimDesRegistrationSpec extends UnitSpec {
                                   "01-11-2016",
                                   "N",
                                   "business address model",
-                                  BusinessContactName("adam",Some("the"),Some("ant")),
-                                  BusinessContactDetails(Some("0121 000 000"),Some("0700 000 000"),Some("d@ddd.com"))
+                                  desBusinessContactName,
+                                  desBusinessContactContactDetails
                                 )
       val result = Json.toJson[InterimCorporationTax](desModel)
       result.getClass shouldBe classOf[JsObject]
