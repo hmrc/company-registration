@@ -21,11 +21,12 @@ import java.util.UUID
 import helpers.MongoMocks
 import models.HandoffCHData
 import org.joda.time.{DateTime, DateTimeZone}
-import org.mockito.ArgumentCaptor
+import org.mockito.{Mockito, ArgumentCaptor}
 import org.mockito.Matchers._
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
 import org.scalatest.mock.MockitoSugar
+import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import reactivemongo.api.commands._
 import reactivemongo.api.indexes.Index
@@ -75,7 +76,7 @@ class HeldSubmissionRepositorySpec extends UnitSpec with MongoSpecSupport with M
       insertedData.partialSubmission shouldBe submission
     }
 
-    "Return None is the insert failed but the Future was successful" in {
+    "Return None if the insert failed but the Future was successful" in {
 
       val submission = """{"foo":"bar"}"""
       val json = Json.obj("foo" -> "bar")

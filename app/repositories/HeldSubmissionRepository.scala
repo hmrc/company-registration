@@ -41,8 +41,6 @@ case class HeldSubmissionData(
 }
 
 object HeldSubmissionData {
-  import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
-  import ReactiveMongoFormats.{dateTimeRead, dateTimeWrite}
   implicit val formats = Json.format[HeldSubmissionData]
   def now = DateTime.now.withZone(DateTimeZone.UTC)
 }
@@ -71,14 +69,12 @@ class HeldSubmissionMongoRepository(implicit mongo: () => DB)
     )
 
     collection.insert(data) map {
-      result => result match {
-        case DefaultWriteResult(true, _, _, _, _, _) => {
-          Some(data)
-        }
-        case _ => {
-          Logger.error(s"Unexpected result : ${result}")
-          None
-        }
+      case DefaultWriteResult(true, _, _, _, _, _) => {
+        Some(data)
+      }
+      case err => {
+        Logger.error(s"Unexpected result : $err")
+        None
       }
     }
   }
