@@ -4,6 +4,8 @@ GET        /throttle/check-user-access                                          
 GET        /corporation-tax-registration/:registrationId                                    controllers.CorporationTaxRegistrationController.retrieveCorporationTaxRegistration(registrationId)
 PUT        /corporation-tax-registration/:registrationId                                    controllers.CorporationTaxRegistrationController.createCorporationTaxRegistration(registrationId)
 
+GET        /corporation-tax-registration/:registrationId/corporation-tax-registration      controllers.CorporationTaxRegistrationController.retrieveFullCorporationTaxRegistration(registrationId)
+
 GET        /corporation-tax-registration/:registrationID/company-details                    controllers.CompanyDetailsController.retrieveCompanyDetails(registrationID: String)
 PUT        /corporation-tax-registration/:registrationID/company-details                    controllers.CompanyDetailsController.updateCompanyDetails(registrationID: String)
 

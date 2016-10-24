@@ -155,18 +155,29 @@ object TradingDetails {
 }
 
 case class AccountsPrepDate (businessEndDate : String,
-                             accountsPrepDate: String)
+                             accountsPrepDate: Option[String])
 
 object AccountsPrepDate {
   implicit val formats = Json.format[AccountsPrepDate]
   implicit def toPrepareAccountModel(model:AccountsPrepDate):PrepareAccountModel= {
-    val splitDate = model.accountsPrepDate.split("/")
-    PrepareAccountModel(
-      model.businessEndDate,
-      Some(splitDate(0)),
-      Some(splitDate(1)),
-      Some(splitDate(2))
-    )
+    model.accountsPrepDate match {
+      case Some(date) =>
+        val splitDate = date.split("-")
+        PrepareAccountModel(
+        model.businessEndDate,
+        Some(splitDate(0)),
+        Some(splitDate(1)),
+        Some(splitDate(2))
+      )
+      case None =>
+        PrepareAccountModel(
+        model.businessEndDate,
+        None,
+        None,
+        None
+      )
+    }
+
   }
 
 }
@@ -181,6 +192,9 @@ object PrepareAccountModel {
   def empty = PrepareAccountModel("", None, None, None)
   implicit val formats = Json.format[PrepareAccountModel]
   implicit def toAccountsPrepDate(model:PrepareAccountModel):AccountsPrepDate={
-    AccountsPrepDate(model.businessEndDate, s"${model.businessEndDateyear}/${model.businessEndDatemonth}/${model.businessEndDateday}")
+    val date: Option[String] = if (model.businessEndDateyear.isDefined && model.businessEndDatemonth.isDefined && model.businessEndDateday.isDefined){
+    Some(s"${model.businessEndDateyear.get}-${model.businessEndDatemonth.get}-${model.businessEndDateday.get}")
+    } else None
+    AccountsPrepDate(model.businessEndDate, date)
   }
 }
