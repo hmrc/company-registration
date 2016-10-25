@@ -30,15 +30,6 @@ object DesFormats {
 
 }
 
-case class InterimDesRegistration(ackRef: String, wibble: String = "xxx")
-
-object InterimDesRegistration {
-  implicit val format = (
-    (__ \ "acknowledgementReference").format[String] and
-    (__ \ "wibble").format[String]
-    )(InterimDesRegistration.apply, unlift(InterimDesRegistration.unapply))
-}
-
 object BusinessType {
   val LimitedCompany = "Limited company"
 }
@@ -126,8 +117,6 @@ case class InterimCorporationTax(
                                  )
 object InterimCorporationTax {
 
-  import DesFormats._
-
   implicit val writes = new Writes[InterimCorporationTax] {
     def writes(m: InterimCorporationTax) = {
       Json.obj(
@@ -152,13 +141,27 @@ object InterimCorporationTax {
         "businessContactName" ->  Json.obj(
           "firstName" -> m.businessContactName.firstName,
           "middleNames" -> m.businessContactName.middleNames,
-          "lastName" -> m.businessContactName.lastName),
+          "lastName" -> m.businessContactName.lastName
+      ),
         "businessContactDetails" -> Json.obj(
           "phoneNumber" ->  m.businessContactDetails.phoneNumber,
           "mobileNumber" -> m.businessContactDetails.mobileNumber,
           "email" -> m.businessContactDetails.email
         )
       )
+
     }
   }
+}
+
+
+case class InterimDesRegistration(ackRef: String, metadata: Metadata, interimCorporationTax: InterimCorporationTax)
+
+object InterimDesRegistration {
+  implicit val format = (
+    (__ \ "acknowledgementReference").write[String] and
+    (__ \ "registration" \ "metadata").write[Metadata] and
+    (__ \ "registration" \ "corporationTax").write[InterimCorporationTax]
+
+    )(unlift(InterimDesRegistration.unapply))
 }

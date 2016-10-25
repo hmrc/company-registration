@@ -156,19 +156,93 @@ class InterimDesRegistrationSpec extends UnitSpec {
 
   }
 
-  "Des Registration model" should {
+  "The Interim Des Registration model" should {
     "Be able to be parsed into JSON" in {
 
-      val json1 : String = s"""{
-           |  "acknowledgementReference" : "ackRef1",
-           |  "wibble" : "xxx"
-           |}""".stripMargin
+      val expectedJson : String = s"""{  "acknowledgementReference" : "ackRef1",
+                                      |  "registration" : {
+                                      |  "metadata" : {
+                                      |  "businessType" : "Limited company",
+                                      |  "sessionId" : "session-123",
+                                      |  "credentialId" : "cred-123",
+                                      |  "formCreationTimestamp": "1970-01-01T00:00:00.000Z",
+                                      |  "submissionFromAgent": false,
+                                      |  "language" : "ENG",
+                                      |  "completionCapacity" : "Director",
+                                      |  "declareAccurateAndComplete": true
+                                      |  },
+                                      |  "corporationTax" : {
+                                      |  "companyOfficeNumber" : "123",
+                                      |  "companyActiveDate" : "01-11-2016",
+                                      |  "hasCompanyTakenOverBusiness" : false,
+                                      |  "companyMemberOfGroup" : false,
+                                      |  "companiesHouseCompanyName" : "DG Limited",
+                                      |  "crn" : "1234567890",
+                                      |  "startDateOfFirstAccountingPeriod" : "01-11-2016",
+                                      |  "intendedAccountsPreparationDate" : "01-11-2016",
+                                      |  "returnsOnCT61" : "N",
+                                      |  "companyACharity" : false,
+                                      |  "businessAddress" : {
+                                      |                       "line1" : "1 Acacia Avenue",
+                                      |                       "line2" : "Hollinswood",
+                                      |                       "line3" : "Telford",
+                                      |                       "line4" : "Shropshire",
+                                      |                       "postcode" : "TF3 4ER",
+                                      |                       "country" : "England"
+                                      |                           },
+                                      |  "businessContactName" : {
+                                      |                           "firstName" : "Adam",
+                                      |                           "middleNames" : "the",
+                                      |                           "lastName" : "ant"
+                                      |                           },
+                                      |  "businessContactDetails" : {
+                                      |                           "phoneNumber" : "0121 000 000",
+                                      |                           "mobileNumber" : "0700 000 000",
+                                      |                           "email" : "d@ddd.com"
+                                      |                             }
+                                      |                             }
+                                      |  }
+                                      |}""".stripMargin
 
-      val testModel1 = InterimDesRegistration( "ackRef1" )
+      val testMetadata = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), Director )
+      val desBusinessAddress = BusinessAddress(
+        "1 Acacia Avenue",
+        "Hollinswood",
+        Some("Telford"),
+        Some("Shropshire"),
+        Some("TF3 4ER"),
+        Some("England")
+      )
+
+      val desBusinessContactName = BusinessContactName(
+        "Adam",
+        Some("the"),
+        Some("ant")
+      )
+      val desBusinessContactContactDetails = BusinessContactDetails(
+        Some("0121 000 000"),
+        Some("0700 000 000"),
+        Some("d@ddd.com")
+      )
+
+      val testInterimCorporationTax = InterimCorporationTax(
+        "123",
+        "01-11-2016",
+        "DG Limited",
+        "1234567890",
+        "01-11-2016",
+        "01-11-2016",
+        "N",
+        desBusinessAddress,
+        desBusinessContactName,
+        desBusinessContactContactDetails
+      )
+
+      val testModel1 = InterimDesRegistration( "ackRef1", testMetadata, testInterimCorporationTax)
 
       val result = Json.toJson[InterimDesRegistration](testModel1)
       result.getClass shouldBe classOf[JsObject]
-      result shouldBe Json.parse(json1)
+      result shouldBe Json.parse(expectedJson)
     }
 
   }
