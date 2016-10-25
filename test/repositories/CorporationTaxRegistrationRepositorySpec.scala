@@ -20,7 +20,7 @@ import java.util.UUID
 
 import fixtures.{ContactDetailsFixture, CorporationTaxRegistrationFixture}
 import helpers.MongoMocks
-import models.{CorporationTaxRegistration, TradingDetails}
+import models._
 import org.joda.time.DateTime
 import org.mockito.ArgumentCaptor
 import org.mockito.Mockito._
@@ -352,6 +352,28 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
 
       val result = await(repository.retrieveAcknowledgementRef(registrationID))
       result shouldBe None
+    }
+  }
+
+  "updateCompanyEndDate" should {
+
+    val accountsPreparationDateModel = AccountsPreparationDate("HMRCEndDate", Some("2010-12-12"))
+
+    "return an AccountsPreparationModel on a successful update" in {
+      val selector = BSONDocument("registrationID" -> BSONString(registrationID))
+      setupFindFor(repository.collection, selector, Some(validDraftCorporationTaxRegistration))
+      setupAnyUpdateOn(repository.collection)
+
+      val result = repository.updateCompanyEndDate(registrationID, accountsPreparationDateModel)
+      await(result) shouldBe Some(accountsPreparationDateModel)
+    }
+
+    "return None when a corporation tax cannot be found" in {
+      val selector = BSONDocument("registrationID" -> BSONString(registrationID))
+      setupFindFor(repository.collection, selector, None)
+
+      val result = repository.updateCompanyEndDate(registrationID, accountsPreparationDateModel)
+      await(result) shouldBe None
     }
   }
 }

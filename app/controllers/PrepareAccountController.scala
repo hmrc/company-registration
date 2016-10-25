@@ -18,11 +18,11 @@ package controllers
 
 import auth._
 import connectors.AuthConnector
-import models.{ContactDetails, ErrorResponse, PrepareAccountModel}
+import models.PrepareAccountModel
 import play.api.Logger
-import play.api.libs.json.{JsObject, JsValue, Json}
+import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Action
-import services.{ContactDetailsService, CorporationTaxRegistrationService, PrepareAccountService}
+import services.{CorporationTaxRegistrationService, PrepareAccountService}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global

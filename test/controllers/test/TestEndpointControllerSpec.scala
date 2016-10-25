@@ -21,13 +21,13 @@ import org.mockito.Matchers
 import org.scalatest.mock.MockitoSugar
 import play.api.test.FakeRequest
 import repositories.{CorporationTaxRegistrationMongoRepository, ThrottleMongoRepository}
-import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.play.test.{WithFakeApplication, UnitSpec}
 import org.mockito.Mockito._
 import play.api.test.Helpers._
 
 import scala.concurrent.Future
 
-class TestEndpointControllerSpec extends UnitSpec with MockitoSugar {
+class TestEndpointControllerSpec extends UnitSpec with MockitoSugar with WithFakeApplication{
 
   val mockThrottleRepository = mock[ThrottleMongoRepository]
   val mockCTRepository = mock[CorporationTaxRegistrationMongoRepository]
@@ -38,6 +38,13 @@ class TestEndpointControllerSpec extends UnitSpec with MockitoSugar {
       val throttleMongoRepository = mockThrottleRepository
       val cTMongoRepository = mockCTRepository
       val bRConnector = mockBusRegConnector
+    }
+  }
+
+  "TestEndpointController" should {
+
+    "use the correct businessRegistrationConnector" in {
+      TestEndpointController.bRConnector shouldBe BusinessRegistrationConnector
     }
   }
 

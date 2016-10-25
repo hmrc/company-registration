@@ -35,7 +35,7 @@ case class CorporationTaxRegistration(OID: String,
                                       accountingDetails: Option[AccountingDetails] = None,
                                       tradingDetails: Option[TradingDetails] = None,
                                       contactDetails: Option[ContactDetails] = None,
-                                      accountsPrepDate: Option[AccountsPrepDate] = None
+                                      accountsPreparation: Option[AccountsPreparationDate] = None
                                      )
 
 object CorporationTaxRegistration {
@@ -47,7 +47,7 @@ object CorporationTaxRegistration {
   implicit val formatAccountingDetails = Json.format[AccountingDetails]
   implicit val formatContactDetails = Json.format[ContactDetails]
   implicit val formatConfirmationReferences = Json.format[ConfirmationReferences]
-  implicit val formatAccountsPrepDate = Json.format[AccountsPrepDate]
+  implicit val formatAccountsPrepDate = Json.format[AccountsPreparationDate]
   implicit val formats = Json.format[CorporationTaxRegistration]
 }
 
@@ -154,12 +154,12 @@ object TradingDetails {
   implicit val format = Json.format[TradingDetails]
 }
 
-case class AccountsPrepDate (businessEndDate : String,
+case class AccountsPreparationDate (businessEndDate : String,
                              accountsPrepDate: Option[String])
 
-object AccountsPrepDate {
-  implicit val formats = Json.format[AccountsPrepDate]
-  implicit def toPrepareAccountModel(model:AccountsPrepDate):PrepareAccountModel= {
+object AccountsPreparationDate {
+  implicit val formats = Json.format[AccountsPreparationDate]
+  def toPrepareAccountModel(model:AccountsPreparationDate):PrepareAccountModel= {
     model.accountsPrepDate match {
       case Some(date) =>
         val splitDate = date.split("-")
@@ -191,10 +191,10 @@ case class PrepareAccountModel (businessEndDate : String,
 object PrepareAccountModel {
   def empty = PrepareAccountModel("", None, None, None)
   implicit val formats = Json.format[PrepareAccountModel]
-  implicit def toAccountsPrepDate(model:PrepareAccountModel):AccountsPrepDate={
+  def toAccountsPrepDate(model:PrepareAccountModel):AccountsPreparationDate = {
     val date: Option[String] = if (model.businessEndDateyear.isDefined && model.businessEndDatemonth.isDefined && model.businessEndDateday.isDefined){
-    Some(s"${model.businessEndDateyear.get}-${model.businessEndDatemonth.get}-${model.businessEndDateday.get}")
-    } else None
-    AccountsPrepDate(model.businessEndDate, date)
+      Some(s"${model.businessEndDateyear.get}-${model.businessEndDatemonth.get}-${model.businessEndDateday.get}")
+    } else { None }
+    AccountsPreparationDate(model.businessEndDate, date)
   }
 }

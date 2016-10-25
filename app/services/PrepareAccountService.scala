@@ -16,16 +16,26 @@
 
 package services
 
-import models.PrepareAccountModel
+import models.{AccountsPreparationDate, PrepareAccountModel}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
+
+import scala.concurrent.ExecutionContext.Implicits.global
+
+
+import scala.concurrent.Future
 
 object PrepareAccountService extends PrepareAccountService {
   val repository = Repositories.cTRepository
 
 }
 trait PrepareAccountService {
+
   val repository : CorporationTaxRegistrationMongoRepository
-  def updateEndDate (registrationID: String, prepareAccountModel: PrepareAccountModel)={
-    repository.updateCompanyEndDate(registrationID, prepareAccountModel)
+
+  def updateEndDate(registrationID: String, prepareAccountModel: PrepareAccountModel): Future[Option[PrepareAccountModel]] = {
+    repository.updateCompanyEndDate(registrationID, PrepareAccountModel.toAccountsPrepDate(prepareAccountModel)).map{
+      case Some(res) => Some(AccountsPreparationDate.toPrepareAccountModel(res))
+      case None => None
+    }
   }
 }
