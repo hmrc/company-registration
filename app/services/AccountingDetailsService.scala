@@ -44,26 +44,26 @@ trait AccountingDetailsService {
     corporationTaxRegistrationRepository.updateAccountingDetails(registrationID, accountingDetails)
   }
 
-  def calculateSubmissionDates(activeDate: ActiveDate, incorporationDate: DateTime, accountingDate: Option[DateTime]) : SubmissionDates = {
-
-    def jumpOneYear(date: DateTime) : DateTime = date withDayOfMonth 1 plusYears 1 plusMonths 1 minusDays 1
+  def calculateSubmissionDates(incorporationDate: DateTime, activeDate: ActiveDate, accountingDate: Option[DateTime]) : SubmissionDates = {
 
     (activeDate, accountingDate) match {
       case (DoNotIntendToTrade, _) =>
         val newDate = incorporationDate plusYears 5
-        SubmissionDates(newDate, newDate, jumpOneYear(incorporationDate))
+        SubmissionDates(newDate, newDate, endOfMonthPlusOneYear(incorporationDate))
 
       case (ActiveOnIncorporation, Some(date)) =>
         SubmissionDates (incorporationDate, incorporationDate, date)
 
       case (ActiveOnIncorporation, None) =>
-        SubmissionDates (incorporationDate, incorporationDate, jumpOneYear(incorporationDate))
+        SubmissionDates (incorporationDate, incorporationDate, endOfMonthPlusOneYear(incorporationDate))
 
       case (ActiveInFuture(givenDate), Some(date)) =>
         SubmissionDates (givenDate, givenDate, date)
 
       case (ActiveInFuture(givenDate), None) =>
-        SubmissionDates (givenDate, givenDate, jumpOneYear(incorporationDate))
+        SubmissionDates (givenDate, givenDate, endOfMonthPlusOneYear(incorporationDate))
     }
   }
+
+  private[services] def endOfMonthPlusOneYear(date: DateTime) : DateTime = date withDayOfMonth 1 plusYears 1 plusMonths 1 minusDays 1
 }
