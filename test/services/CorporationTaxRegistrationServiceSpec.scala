@@ -101,4 +101,60 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
       await(result) shouldBe None
     }
   }
+
+	"Build partial DES submission" should {
+		"return a valid partial DES submission" in new Setup {
+
+			val expectedJson : String = s"""{  "acknowledgementReference" : "ackRef1",
+																			|  "registration" : {
+																			|  "metadata" : {
+																			|  "businessType" : "Limited company",
+																			|  "sessionId" : "session-123",
+																			|  "credentialId" : "cred-123",
+																			|  "formCreationTimestamp": "1970-01-01T00:00:00.000Z",
+																			|  "submissionFromAgent": false,
+																			|  "language" : "ENG",
+																			|  "completionCapacity" : "Director",
+																			|  "declareAccurateAndComplete": true
+																			|  },
+																			|  "corporationTax" : {
+																			|  "companyOfficeNumber" : "123",
+																			|  "companyActiveDate" : "01-11-2016",
+																			|  "hasCompanyTakenOverBusiness" : false,
+																			|  "companyMemberOfGroup" : false,
+																			|  "companiesHouseCompanyName" : "DG Limited",
+																			|  "crn" : "1234567890",
+																			|  "startDateOfFirstAccountingPeriod" : "01-11-2016",
+																			|  "intendedAccountsPreparationDate" : "01-11-2016",
+																			|  "returnsOnCT61" : "N",
+																			|  "companyACharity" : false,
+																			|  "businessAddress" : {
+																			|                       "line1" : "1 Acacia Avenue",
+																			|                       "line2" : "Hollinswood",
+																			|                       "line3" : "Telford",
+																			|                       "line4" : "Shropshire",
+																			|                       "postcode" : "TF3 4ER",
+																			|                       "country" : "England"
+																			|                           },
+																			|  "businessContactName" : {
+																			|                           "firstName" : "Adam",
+																			|                           "middleNames" : "the",
+																			|                           "lastName" : "ant"
+																			|                           },
+																			|  "businessContactDetails" : {
+																			|                           "phoneNumber" : "0121 000 000",
+																			|                           "mobileNumber" : "0700 000 000",
+																			|                           "email" : "d@ddd.com"
+																			|                             }
+																			|                             }
+																			|  }
+																			|}""".stripMargin
+
+
+			val result = service.buildPartialDesSubmission
+
+
+			result shouldBe expectedJson
+		}
+	}
 }
