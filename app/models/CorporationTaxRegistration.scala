@@ -162,7 +162,7 @@ object AccountsPreparationDate {
   def toPrepareAccountModel(model:AccountsPreparationDate):PrepareAccountModel= {
     model.accountsPrepDate match {
       case Some(date) =>
-        val splitDate = date.split("-")
+        val splitDate = date.split("/")
         PrepareAccountModel(
         model.businessEndDate,
         Some(splitDate(0)),
@@ -193,7 +193,7 @@ object PrepareAccountModel {
   implicit val formats = Json.format[PrepareAccountModel]
   def toAccountsPrepDate(model:PrepareAccountModel):AccountsPreparationDate = {
     val date: Option[String] = if (model.businessEndDateyear.isDefined && model.businessEndDatemonth.isDefined && model.businessEndDateday.isDefined){
-      Some(s"${model.businessEndDateyear.get}-${model.businessEndDatemonth.get}-${model.businessEndDateday.get}")
+      Some(s"${model.businessEndDateyear.get}/${model.businessEndDatemonth.get}/${model.businessEndDateday.get}")
     } else { None }
     AccountsPreparationDate(model.businessEndDate, date)
   }
