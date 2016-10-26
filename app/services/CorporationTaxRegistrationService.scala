@@ -56,6 +56,7 @@ trait CorporationTaxRegistrationService {
     for{
       ref <- generateAcknowledgementReference
       updatedRef <- CorporationTaxRegistrationRepository.updateConfirmationReferences(rID, refs.copy(acknowledgementReference = ref))
+//      partialDesSubmission <- buildPartialDesSubmission
     } yield {
       updatedRef
     }
@@ -84,4 +85,15 @@ trait CorporationTaxRegistrationService {
   }
 
   def checkAndProcessSubmission = ???
+
+  def buildPartialDesSubmission(ackRef : String) : Unit = {
+
+    val sessionId = ""
+//    credId: String,
+//    language: String,
+//    submissionTs: DateTime,
+//    completionCapacity: CompletionCapacity
+
+
+  }
 }

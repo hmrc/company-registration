@@ -106,6 +106,7 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
 
   def updateReferences(registrationID : String) = Action.async[JsValue](parse.json) {
     implicit request =>
+      println("Hello XXXXXXXXXXXXXXXXXX" + hc.headers)
       authorised(registrationID) {
         case Authorised(_) =>
           withJsonBody[ConfirmationReferences] {
