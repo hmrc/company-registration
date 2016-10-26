@@ -125,6 +125,61 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
 		}
 	}
 
+	"retrieveFullCorporationTaxRegistration" should {
+
+    val registrationID = "testRegID"
+
+    "return a 200 and a CorporationTaxRegistration model is found" in new Setup {
+      CTServiceMocks.retrieveCTDataRecord(registrationID, Some(validDraftCorporationTaxRegistration))
+      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+
+      when(mockCTDataRepository.getOid(Matchers.contains(registrationID))).
+        thenReturn(Future.successful(Some((registrationID,validAuthority.oid))))
+
+      val result = call(controller.retrieveFullCorporationTaxRegistration(registrationID), FakeRequest())
+      status(result) shouldBe OK
+      await(jsonBodyOf(result)) shouldBe Json.toJson(validDraftCorporationTaxRegistration)
+    }
+
+    "return a 404 if a CT registration record cannot be found" in new Setup {
+      CTServiceMocks.retrieveCTDataRecord(registrationID, None)
+      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+
+      when(mockCTDataRepository.getOid(Matchers.contains(registrationID))).
+        thenReturn(Future.successful(Some((registrationID,validAuthority.oid))))
+
+      val result = call(controller.retrieveFullCorporationTaxRegistration(registrationID), FakeRequest())
+      status(result) shouldBe NOT_FOUND
+    }
+
+    "return a 403 - forbidden when the user is not authenticated" in new Setup {
+      AuthenticationMocks.getCurrentAuthority(None)
+
+      when(mockCTDataRepository.getOid(Matchers.any())).
+        thenReturn(Future.successful(None))
+
+      val result = call(controller.retrieveFullCorporationTaxRegistration(registrationID), FakeRequest())
+      status(result) shouldBe FORBIDDEN
+    }
+
+    "return a 403 - forbidden when the user is logged in but not authorised to access the resource" in new Setup {
+      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+      when(mockCTDataRepository.getOid(Matchers.contains(registrationID))).
+        thenReturn(Future.successful(Some((registrationID, validAuthority.oid + "xxx"))))
+
+      val result = call(controller.retrieveFullCorporationTaxRegistration(registrationID), FakeRequest())
+      status(result) shouldBe FORBIDDEN
+    }
+
+    "return a 404 - not found logged in the requested document doesn't exist" in new Setup {
+      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+      when(mockCTDataRepository.getOid(Matchers.contains(registrationID))).thenReturn(Future.successful(None))
+
+      val result = call(controller.retrieveFullCorporationTaxRegistration(registrationID), FakeRequest())
+      status(result) shouldBe NOT_FOUND
+    }
+	}
+
 	"retrieveConfirmationReference" should {
 
     val regId = "testRegId"

@@ -135,5 +135,15 @@ class CompanyDetailsControllerSpec extends SCRSSpec with AuthFixture with Compan
       val result = call(controller.updateCompanyDetails(registrationID), request)
       status(result) shouldBe FORBIDDEN
     }
+
+    "return a 403 when the user is unauthorised to access the record" in new Setup {
+      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+      when(mockCTDataRepository.getOid(Matchers.anyString()))
+        .thenReturn(Future.successful(Some("testRegID" -> (validAuthority.oid + "123"))))
+
+      val request = FakeRequest().withBody(Json.toJson(validCompanyDetailsResponse))
+      val result = call(controller.updateCompanyDetails(registrationID), request)
+      status(result) shouldBe FORBIDDEN
+    }
   }
 }
