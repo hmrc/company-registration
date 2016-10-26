@@ -49,7 +49,7 @@ trait AccountingDetailsService {
     (activeDate, accountingDate) match {
       case (DoNotIntendToTrade, _) =>
         val newDate = incorporationDate plusYears 5
-        SubmissionDates(newDate, newDate, endOfMonthPlusOneYear(incorporationDate))
+        SubmissionDates(newDate, newDate, endOfMonthPlusOneYear(newDate))
 
       case (ActiveOnIncorporation, Some(date)) =>
         SubmissionDates (incorporationDate, incorporationDate, date)
@@ -61,7 +61,7 @@ trait AccountingDetailsService {
         SubmissionDates (givenDate, givenDate, date)
 
       case (ActiveInFuture(givenDate), None) =>
-        SubmissionDates (givenDate, givenDate, endOfMonthPlusOneYear(incorporationDate))
+        SubmissionDates (givenDate, givenDate, endOfMonthPlusOneYear(givenDate))
     }
   }
 
