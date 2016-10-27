@@ -24,7 +24,7 @@ import connectors.{AuthConnector, BusinessRegistrationConnector, BusinessRegistr
 import models.des._
 import models.{BusinessRegistration, ConfirmationReferences, CorporationTaxRegistration}
 import org.joda.time.DateTime
-import play.api.libs.json.Json
+import play.api.libs.json.{JsObject, Json}
 import repositories.{HeldSubmissionRepository, CorporationTaxRegistrationRepository, Repositories, SequenceRepository, StateDataRepository}
 import uk.gov.hmrc.play.http.HeaderCarrier
 
@@ -71,7 +71,7 @@ trait CorporationTaxRegistrationService {
       heldSubmission <- buildPartialDesSubmission(rID, ackRef)
     } yield {
       //todo need to save submission into CR after build SCRS-2283
-      heldSubmissionRepository.storePartialSubmission(rID, ackRef, Json.toJson(heldSubmission))
+      heldSubmissionRepository.storePartialSubmission(rID, ackRef, Json.toJson(heldSubmission).as[JsObject])
       updatedRef
     }
   }
@@ -139,7 +139,6 @@ trait CorporationTaxRegistrationService {
 
   private[services] def buildInterimSubmission(ackRef: String, sessionId: String, credId: String,
                                                brMetadata: BusinessRegistration, ctData: CorporationTaxRegistration, currentDateTime: DateTime): InterimDesRegistration = {
-
     InterimDesRegistration(
       ackRef = ackRef,
       metadata = Metadata(

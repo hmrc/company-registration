@@ -155,10 +155,9 @@ object InterimCorporationTax {
 case class InterimDesRegistration(ackRef: String, metadata: Metadata, interimCorporationTax: InterimCorporationTax)
 
 object InterimDesRegistration {
-  implicit val format = (
+  implicit val writes: Writes[InterimDesRegistration] = (
     (__ \ "acknowledgementReference").write[String] and
     (__ \ "registration" \ "metadata").write[Metadata] and
     (__ \ "registration" \ "corporationTax").write[InterimCorporationTax]
-
     )(unlift(InterimDesRegistration.unapply))
 }
