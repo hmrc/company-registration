@@ -19,22 +19,31 @@ package services
 import java.text.SimpleDateFormat
 import java.util.{Date, TimeZone}
 
-import models.{ConfirmationReferences, CorporationTaxRegistration}
+import config.MicroserviceAuthConnector
+import connectors.{AuthConnector, BusinessRegistrationConnector, BusinessRegistrationSuccessResponse}
+import models.des._
+import models.{BusinessRegistration, ConfirmationReferences, CorporationTaxRegistration}
 import org.joda.time.DateTime
 import repositories.{CorporationTaxRegistrationRepository, Repositories, SequenceRepository}
+import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.util.control.NoStackTrace
 
 object CorporationTaxRegistrationService extends CorporationTaxRegistrationService {
-  override val CorporationTaxRegistrationRepository = Repositories.cTRepository
+  override val corporationTaxRegistrationRepository = Repositories.cTRepository
   override val sequenceRepository = Repositories.sequenceRepository
+  override val microserviceAuthConnector = AuthConnector
+  override val brConnector = BusinessRegistrationConnector
 }
 
 trait CorporationTaxRegistrationService {
 
-  val CorporationTaxRegistrationRepository: CorporationTaxRegistrationRepository
+  val corporationTaxRegistrationRepository: CorporationTaxRegistrationRepository
   val sequenceRepository: SequenceRepository
+  val microserviceAuthConnector : AuthConnector
+  val brConnector : BusinessRegistrationConnector
 
   def createCorporationTaxRegistrationRecord(OID: String, registrationId: String, language: String): Future[CorporationTaxRegistration] = {
     val record = CorporationTaxRegistration(
@@ -43,25 +52,26 @@ trait CorporationTaxRegistrationService {
       formCreationTimestamp = generateTimestamp(new DateTime()),
       language = language)
 
-    CorporationTaxRegistrationRepository.createCorporationTaxRegistration(record)
+    corporationTaxRegistrationRepository.createCorporationTaxRegistration(record)
   }
 
   def retrieveCorporationTaxRegistrationRecord(rID: String): Future[Option[CorporationTaxRegistration]] = {
-    CorporationTaxRegistrationRepository.retrieveCorporationTaxRegistration(rID)
+    corporationTaxRegistrationRepository.retrieveCorporationTaxRegistration(rID)
   }
 
-  def updateConfirmationReferences(rID: String, refs : ConfirmationReferences): Future[Option[ConfirmationReferences]] = {
+  def updateConfirmationReferences(rID: String, refs : ConfirmationReferences)(implicit hc: HeaderCarrier) : Future[Option[ConfirmationReferences]] = {
     for{
-      ref <- generateAcknowledgementReference
-      updatedRef <- CorporationTaxRegistrationRepository.updateConfirmationReferences(rID, refs.copy(acknowledgementReference = ref))
+      ackRef <- generateAcknowledgementReference
+      updatedRef <- corporationTaxRegistrationRepository.updateConfirmationReferences(rID, refs.copy(acknowledgementReference = ackRef))
 //      partialDesSubmission <- buildPartialDesSubmission
     } yield {
+      buildPartialDesSubmission(rID, ackRef)
       updatedRef
     }
   }
 
   def retrieveConfirmationReference(rID: String): Future[Option[ConfirmationReferences]] = {
-    CorporationTaxRegistrationRepository.retrieveConfirmationReference(rID)
+    corporationTaxRegistrationRepository.retrieveConfirmationReference(rID)
   }
 
   private def generateTimestamp(timeStamp: DateTime) : String = {
@@ -81,15 +91,84 @@ trait CorporationTaxRegistrationService {
       f"BRCT$ref%011d"
     }
   }
-  def buildPartialDesSubmission(ackRef : String) : Unit = {
+
+  def buildPartialDesSubmission(regId: String, ackRef : String)(implicit hc: HeaderCarrier) : Future[InterimDesRegistration] = {
+
+    // TODO - check behaviour if session header is missing
+    val sessionId = hc.headers.collect{ case ("X-Session-ID", x) => x }.head
+
+    for {
+      credId <- retrieveCredId
+      brMetadata <- busMetadata(regId)
+      ctData <- retrieveCTData(regId)
+    } yield {
+      buildInterimSubmission(ackRef, sessionId, credId, brMetadata, ctData)
+    }
 
 
-    val sessionId = ""
-//    credId: String,
-//    language: String,
-//    submissionTs: DateTime,
-//    completionCapacity: CompletionCapacity
+//    // Metadata block
+//    for {
+//      authority <- microserviceAuthConnector.getCurrentAuthority
+//      brResponse <- brConnector.retrieveMetadata
+//    } yield {
+//      brResponse
+//      val sessionId = hc.headers.collect{ case ("X-Session-ID", x) => x }.head
+//      val language = "pulled from BR"
+//      val submissionTimeStamp = generateTimestamp(DateTime.now())
+//      val completionCapacity = brResponse // NB only a single field is stored on Mongo with Directory / Agent or what the user types
+//    }
+  }
 
 
+  private[services] def retrieveCredId(implicit hc: HeaderCarrier) : Future[String] = {
+    microserviceAuthConnector.getCurrentAuthority flatMap {
+      case Some(a) => Future.successful(a.gatewayId)
+      case _ => Future.failed(new NoStackTrace {}) // TODO YUK!
+    }
+  }
+
+  private[services] def busMetadata(regId: String)(implicit hc: HeaderCarrier) : Future[BusinessRegistration] = {
+    brConnector.retrieveMetadata flatMap {
+      case BusinessRegistrationSuccessResponse(metadata) if metadata.registrationID == regId => Future.successful(metadata)
+      case _ => Future.failed( new NoStackTrace {} ) // TODO YUK!
+    }
+  }
+
+  private[services] def retrieveCTData( regId: String ) : Future[CorporationTaxRegistration] = {
+    corporationTaxRegistrationRepository.retrieveCorporationTaxRegistration(regId) flatMap {
+      case Some(ct) => Future.successful(ct)
+      case _ => Future.failed( new NoStackTrace {} ) // TODO YUK!
+    }
+  }
+
+  private[services] def buildInterimSubmission(ackRef: String, sessionId: String, credId: String, brMetadata: BusinessRegistration, ctData: CorporationTaxRegistration): InterimDesRegistration = {
+    InterimDesRegistration(
+      ackRef = ackRef,
+      metadata = Metadata(
+        sessionId = sessionId,
+        credId = credId,
+        language = brMetadata.language,
+        submissionTs = DateTime.parse(generateTimestamp(DateTime.now())),
+        completionCapacity = CompletionCapacity(brMetadata.completionCapacity)
+      ),
+      interimCorporationTax = InterimCorporationTax(
+        companyName = "",
+        returnsOnCT61 = false,
+        businessAddress = BusinessAddress(
+          "", "", None, None, None, None
+        ),
+        businessContactName = BusinessContactName(
+          "", None, None
+        ),
+        businessContactDetails = BusinessContactDetails(
+          None, None, None
+        )
+      )
+//        companyName : String,
+//      returnsOnCT61 : Boolean,
+//      businessAddress : BusinessAddress,
+//      businessContactName : BusinessContactName,
+//      businessContactDetails : BusinessContactDetails
+    )
   }
 }

@@ -33,6 +33,7 @@ object OidExtractor {
 case class Authority(
                       uri: String,
                       oid: String,
+                      gatewayId: String,
                       userDetailsLink: String
                     )
 
@@ -54,8 +55,9 @@ trait AuthConnector extends ServicesConfig with RawResponseReads {
           case OK => {
             val uri = (response.json \ "uri").as[String]
             val oid = OidExtractor.userIdToOid(uri)
+            val gatewayId = (response.json \ "credentials" \ "gatewayId").as[String]
             val userDetails = (response.json \ "userDetailsLink").as[String]
-            Some(Authority(uri, oid, userDetails))
+            Some(Authority(uri, oid, gatewayId, userDetails))
           }
           case status => None
         }

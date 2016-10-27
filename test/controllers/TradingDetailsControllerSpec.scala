@@ -55,7 +55,7 @@ class TradingDetailsControllerSpec extends SCRSSpec with AuthFixture {
     }
 
     "use the correct resourceConn" in {
-      TradingDetailsController.resourceConn shouldBe CorporationTaxRegistrationService.CorporationTaxRegistrationRepository
+      TradingDetailsController.resourceConn shouldBe CorporationTaxRegistrationService.corporationTaxRegistrationRepository
     }
   }
 

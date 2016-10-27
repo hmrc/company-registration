@@ -23,6 +23,12 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 class InterimDesRegistrationSpec extends UnitSpec {
 
+  "CompletionCapacity" should {
+    "Construct a director" in { CompletionCapacity("Director") shouldBe Director }
+    "Construct an agent" in { CompletionCapacity("Agent") shouldBe Agent }
+    "Construct an other capacity" in { CompletionCapacity("foo") shouldBe Other("foo") }
+  }
+
   "Registration metadata model" should {
 
     "Simple model should produce valid JSON for a director" in {
@@ -88,15 +94,11 @@ class InterimDesRegistrationSpec extends UnitSpec {
   "The Interim Registration corporationTax model" should {
     "Produce valid JSON for a simple model" in {
       val expectedJson : String = s"""{
-                                      |  "companyOfficeNumber" : "123",
-                                      |  "companyActiveDate" : "01-11-2016",
+                                      |  "companyOfficeNumber" : "001",
                                       |  "hasCompanyTakenOverBusiness" : false,
                                       |  "companyMemberOfGroup" : false,
                                       |  "companiesHouseCompanyName" : "DG Limited",
-                                      |  "crn" : "1234567890",
-                                      |  "startDateOfFirstAccountingPeriod" : "01-11-2016",
-                                      |  "intendedAccountsPreparationDate" : "01-11-2016",
-                                      |  "returnsOnCT61" : "N",
+                                      |  "returnsOnCT61" : false,
                                       |  "companyACharity" : false,
                                       |  "businessAddress" : {
                                       |                       "line1" : "1 Acacia Avenue",
@@ -138,13 +140,8 @@ class InterimDesRegistrationSpec extends UnitSpec {
       )
 
       val desModel = InterimCorporationTax(
-                                  "123",
-                                  "01-11-2016",
                                   "DG Limited",
-                                  "1234567890",
-                                  "01-11-2016",
-                                  "01-11-2016",
-                                  "N",
+                                  false,
                                   desBusinessAddress,
                                   desBusinessContactName,
                                   desBusinessContactContactDetails
@@ -172,15 +169,11 @@ class InterimDesRegistrationSpec extends UnitSpec {
                                       |  "declareAccurateAndComplete": true
                                       |  },
                                       |  "corporationTax" : {
-                                      |  "companyOfficeNumber" : "123",
-                                      |  "companyActiveDate" : "01-11-2016",
+                                      |  "companyOfficeNumber" : "001",
                                       |  "hasCompanyTakenOverBusiness" : false,
                                       |  "companyMemberOfGroup" : false,
                                       |  "companiesHouseCompanyName" : "DG Limited",
-                                      |  "crn" : "1234567890",
-                                      |  "startDateOfFirstAccountingPeriod" : "01-11-2016",
-                                      |  "intendedAccountsPreparationDate" : "01-11-2016",
-                                      |  "returnsOnCT61" : "N",
+                                      |  "returnsOnCT61" : false,
                                       |  "companyACharity" : false,
                                       |  "businessAddress" : {
                                       |                       "line1" : "1 Acacia Avenue",
@@ -226,13 +219,8 @@ class InterimDesRegistrationSpec extends UnitSpec {
       )
 
       val testInterimCorporationTax = InterimCorporationTax(
-        "123",
-        "01-11-2016",
         "DG Limited",
-        "1234567890",
-        "01-11-2016",
-        "01-11-2016",
-        "N",
+        false,
         desBusinessAddress,
         desBusinessContactName,
         desBusinessContactContactDetails

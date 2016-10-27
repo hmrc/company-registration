@@ -32,7 +32,7 @@ import scala.concurrent.Future
 
 object AccountingDetailsController extends AccountingDetailsController{
   override val auth = AuthConnector
-  override val resourceConn = CorporationTaxRegistrationService.CorporationTaxRegistrationRepository
+  override val resourceConn = CorporationTaxRegistrationService.corporationTaxRegistrationRepository
   override val accountingDetailsService = AccountingDetailsService
 }
 

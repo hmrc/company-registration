@@ -65,7 +65,7 @@ class AuthorisationSpec extends FakeApplication with WordSpecLike with ShouldMat
 
             val regId = "xxx"
             val oid = "yyy"
-            val a = Authority("x", oid, "z")
+            val a = Authority("x", oid, "", "z")
 
             when(mockAuth.getCurrentAuthority()(Matchers.any())).thenReturn(Future.successful(Some(a)))
             when(mockResource.getOid(Matchers.eq(regId))).thenReturn(Future.successful(Some((regId, oid))))
@@ -82,7 +82,7 @@ class AuthorisationSpec extends FakeApplication with WordSpecLike with ShouldMat
 
             val regId = "xxx"
             val oid = "yyy"
-            val a = Authority("x", oid, "z")
+            val a = Authority("x", oid, "","z")
 
             when(mockAuth.getCurrentAuthority()(Matchers.any())).thenReturn(Future.successful(Some(a)))
             when(mockResource.getOid(Matchers.eq(regId))).thenReturn(Future.successful(Some((regId, oid+"xxx"))))
@@ -98,7 +98,7 @@ class AuthorisationSpec extends FakeApplication with WordSpecLike with ShouldMat
 
         "provided a not-found result when logged in and no resource for the identifier" in {
 
-            val a = Authority("x", "y", "z")
+            val a = Authority("x", "y", "", "z")
 
             when(mockAuth.getCurrentAuthority()(Matchers.any())).thenReturn(Future.successful(Some(a)))
             when(mockResource.getOid(Matchers.any())).thenReturn(Future.successful(None))

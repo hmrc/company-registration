@@ -50,7 +50,7 @@ trait SCRSMocks
 			when(mockCTDataService.retrieveCorporationTaxRegistrationRecord(Matchers.eq(regId)))
 				.thenReturn(Future.successful(result))
 		}
-    def updateConfirmationReferences(regID: String, returns: Option[ConfirmationReferences]) = {
+    def updateConfirmationReferences(regID: String, returns: Option[ConfirmationReferences])(implicit hc: HeaderCarrier) = {
       when(mockCTDataService.updateConfirmationReferences(Matchers.contains(regID), Matchers.eq(ConfirmationReferences("transactID","payRef","payAmount",""))))
         .thenReturn(Future.successful(returns))
     }

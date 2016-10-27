@@ -40,6 +40,12 @@ object CompletionCapacity {
   implicit val writes = new Writes[CompletionCapacity] {
     def writes( cc: CompletionCapacity ) = JsString(cc.text)
   }
+
+  def apply(text: String): CompletionCapacity = text match {
+    case Director.text => Director
+    case Agent.text => Agent
+    case _ => Other(text)
+  }
 }
 
 case object Director extends CompletionCapacity { val text = "Director" }
@@ -104,30 +110,21 @@ object Metadata {
 }
 
 case class InterimCorporationTax(
-                      companyOfficeNumber : String,
-                      companyActiveDate : String,
-                      companiesHouseCompanyName : String,
-                      crn : String,
-                      startDateOfFirstAccountingPeriod : String,
-                      intendedAccountsPreparationDate : String,
-                      returnsOnCT61 : String,
-                      businessAddress : BusinessAddress,
-                      businessContactName : BusinessContactName,
-                      businessContactDetails : BusinessContactDetails
+                                  companyName : String,
+                                  returnsOnCT61 : Boolean,
+                                  businessAddress : BusinessAddress,
+                                  businessContactName : BusinessContactName,
+                                  businessContactDetails : BusinessContactDetails
                                  )
 object InterimCorporationTax {
 
   implicit val writes = new Writes[InterimCorporationTax] {
     def writes(m: InterimCorporationTax) = {
       Json.obj(
-        "companyOfficeNumber" -> m.companyOfficeNumber,
-        "companyActiveDate" -> m.companyActiveDate,
+        "companyOfficeNumber" -> "001", // TODO SCRS-2283 check default value
         "hasCompanyTakenOverBusiness" -> false,
         "companyMemberOfGroup" -> false,
-        "companiesHouseCompanyName" -> m.companiesHouseCompanyName,
-        "crn" -> m. crn,
-        "startDateOfFirstAccountingPeriod" -> m.startDateOfFirstAccountingPeriod,
-        "intendedAccountsPreparationDate" -> m.intendedAccountsPreparationDate,
+        "companiesHouseCompanyName" -> m.companyName,
         "returnsOnCT61" -> m.returnsOnCT61,
         "companyACharity" -> false,
         "businessAddress" -> Json.obj(

@@ -16,31 +16,39 @@
 
 package services
 
-import fixtures.{CorporationTaxRegistrationFixture, MongoFixture}
+import connectors.BusinessRegistrationConnector
+import fixtures.{AuthFixture, CorporationTaxRegistrationFixture, MongoFixture}
 import helpers.SCRSSpec
 import models.ConfirmationReferences
 import org.mockito.Matchers
 import org.mockito.Mockito._
+import org.specs2.matcher.ShouldExpectable
 import play.api.libs.json.Json
 import play.api.test.Helpers._
 import repositories.{CorporationTaxRegistrationRepository, Repositories}
+import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.Future
 
-class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTaxRegistrationFixture with MongoFixture{
+class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTaxRegistrationFixture with MongoFixture with AuthFixture{
 
 	implicit val mongo = mongoDB
+	implicit val hc = HeaderCarrier()
+
+  val mockBusinessRegistrationConnector = mock[BusinessRegistrationConnector]
 
 	class Setup {
 		val service = new CorporationTaxRegistrationService {
-			override val CorporationTaxRegistrationRepository = mockCTDataRepository
+			override val corporationTaxRegistrationRepository = mockCTDataRepository
 			override val sequenceRepository = mockSequenceRepository
+			override val microserviceAuthConnector = mockAuthConnector
+			override val brConnector = mockBusinessRegistrationConnector
 		}
 	}
 
 	"CorporationTaxRegistrationService" should {
 		"use the correct CorporationTaxRegistrationRepository" in {
-			CorporationTaxRegistrationService.CorporationTaxRegistrationRepository shouldBe Repositories.cTRepository
+			CorporationTaxRegistrationService.corporationTaxRegistrationRepository shouldBe Repositories.cTRepository
 		}
 	}
 
@@ -74,6 +82,9 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
 			val expected = ConfirmationReferences("testTransaction","testPayRef","testPayAmount","")
 			when(mockCTDataRepository.updateConfirmationReferences(Matchers.any(), Matchers.any()))
 				.thenReturn(Future.successful(Some(expected)))
+			when(mockAuthConnector.getCurrentAuthority()(Matchers.any()))
+			  .thenReturn(Future.successful(Some(validAuthority)))
+
 
       SequenceRepositoryMocks.getNext("testSeqID", 3)
 
@@ -118,15 +129,11 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
 																			|  "declareAccurateAndComplete": true
 																			|  },
 																			|  "corporationTax" : {
-																			|  "companyOfficeNumber" : "123",
-																			|  "companyActiveDate" : "01-11-2016",
+																			|  "companyOfficeNumber" : "001",
 																			|  "hasCompanyTakenOverBusiness" : false,
 																			|  "companyMemberOfGroup" : false,
 																			|  "companiesHouseCompanyName" : "DG Limited",
-																			|  "crn" : "1234567890",
-																			|  "startDateOfFirstAccountingPeriod" : "01-11-2016",
-																			|  "intendedAccountsPreparationDate" : "01-11-2016",
-																			|  "returnsOnCT61" : "N",
+																			|  "returnsOnCT61" : false,
 																			|  "companyACharity" : false,
 																			|  "businessAddress" : {
 																			|                       "line1" : "1 Acacia Avenue",
@@ -151,10 +158,17 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
 																			|}""".stripMargin
 
 
-			val result = service.buildPartialDesSubmission
+//			val result = service.buildPartialDesSubmission("123")
 
 
-			result shouldBe expectedJson
+//			result shouldBe expectedJson
 		}
 	}
+
+  "Invoking the retrieveCredId funtion" should {
+    "return the credential id" in new Setup{
+
+    }
+  }
+
 }
