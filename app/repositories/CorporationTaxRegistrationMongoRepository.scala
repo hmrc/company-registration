@@ -19,7 +19,6 @@ package repositories
 import auth.AuthorisationResource
 import models._
 import reactivemongo.api.DB
-import reactivemongo.api.commands.WriteResult
 import reactivemongo.bson._
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
@@ -42,6 +41,7 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def updateConfirmationReferences(registrationID: String, confirmationReferences: ConfirmationReferences) : Future[Option[ConfirmationReferences]]
   def retrieveContactDetails(registrationID: String): Future[Option[ContactDetails]]
   def retrieveAcknowledgementRef(registrationID: String): Future[Option[String]]
+  def updateCompanyEndDate(registrationID: String, model: AccountsPreparationDate): Future[Option[AccountsPreparationDate]]
 }
 
 class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
@@ -168,13 +168,22 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
       }
     }
   }
-
-    override def getOid(id: String): Future[Option[(String, String)]] = {
-      retrieveCorporationTaxRegistration(id) map {
-        case None => None
-        case Some(m) => Some(m.registrationID -> m.OID)
-      }
+  override def updateCompanyEndDate(registrationID: String, model: AccountsPreparationDate): Future[Option[AccountsPreparationDate]] = {
+    retrieveCorporationTaxRegistration(registrationID) flatMap {
+      case Some(ct) =>
+        collection.update(registrationIDSelector(registrationID), ct.copy(accountsPreparation = Some(model)), upsert = false)
+          .map(_=>Some(model))
+        case None => Future.successful(None)
     }
+  }
+
+
+  override def getOid(id: String): Future[Option[(String, String)]] = {
+    retrieveCorporationTaxRegistration(id) map {
+      case None => None
+      case Some(m) => Some(m.registrationID -> m.OID)
+    }
+  }
 
   def dropCollection = {
     collection.drop()

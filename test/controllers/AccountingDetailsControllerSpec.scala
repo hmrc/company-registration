@@ -152,7 +152,7 @@ class AccountingDetailsControllerSpec extends SCRSSpec with AuthFixture with Acc
       val response = FakeRequest().withBody(Json.toJson(validAccountingDetails))
 
       val result = call(controller.updateAccountingDetails(registrationID), response)
-//      status(result) shouldBe FORBIDDEN
+      status(result) shouldBe FORBIDDEN
     }
 
     "return a 403 when the user is not logged in" in new Setup {

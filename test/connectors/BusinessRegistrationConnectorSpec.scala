@@ -22,16 +22,18 @@ import helpers.SCRSSpec
 import models.BusinessRegistration
 import org.mockito.Matchers
 import org.mockito.Mockito._
-import play.api.libs.json.JsValue
+import play.api.libs.json.{Json, JsValue}
 import uk.gov.hmrc.play.http.{ForbiddenException, HeaderCarrier, NotFoundException}
 
 import scala.concurrent.Future
 
 class BusinessRegistrationConnectorSpec extends SCRSSpec with BusinessRegistrationFixture {
 
+  val busRegBaseUrl = "testBusinessRegUrl"
+
   trait Setup {
     val connector = new BusinessRegistrationConnector {
-      override val businessRegUrl = "testBusinessRegUrl"
+      override val businessRegUrl = busRegBaseUrl
       override val http = mockWSHttp
     }
   }
@@ -81,6 +83,32 @@ class BusinessRegistrationConnectorSpec extends SCRSSpec with BusinessRegistrati
         .thenReturn(Future.failed(new Exception("exception")))
 
       await(connector.retrieveMetadata).getClass shouldBe BusinessRegistrationErrorResponse(new Exception).getClass
+    }
+  }
+
+  "dropMetadata" should {
+
+    val url = s"$busRegBaseUrl//business-registration/test-only/drop-collection"
+
+    val successMessage = Json.parse("""{"message":"success"}""")
+    val failureMessage = Json.parse("""{"message":"failed"}""")
+
+    "return a success message upon successfully dropping the collection" in new Setup {
+      when(mockWSHttp.GET[JsValue](Matchers.any())(Matchers.any(), Matchers.any()))
+        .thenReturn(Future.successful(successMessage))
+
+      val result = connector.dropMetadataCollection
+
+      await(result) shouldBe "success"
+    }
+
+    "return a failed message upon successfully dropping the collection" in new Setup {
+      when(mockWSHttp.GET[JsValue](Matchers.any())(Matchers.any(), Matchers.any()))
+        .thenReturn(Future.successful(failureMessage))
+
+      val result = connector.dropMetadataCollection
+
+      await(result) shouldBe "failed"
     }
   }
 }
