@@ -17,7 +17,7 @@
 package repositories
 
 import org.joda.time.{DateTime, DateTimeZone}
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsValue, JsObject, Json}
 import reactivemongo.api.DB
 import reactivemongo.api.commands.DefaultWriteResult
 import reactivemongo.bson.BSONObjectID
@@ -31,11 +31,10 @@ import reactivemongo.api.indexes.{Index, IndexType}
 
 import scala.collection.Seq
 
-case class HeldSubmissionData(
-                               _id: String,
-                               acknowledgementReference: String,
-                               partialSubmission: String,
-                               heldTime: DateTime = HeldSubmissionData.now
+case class HeldSubmissionData(_id: String,
+                              acknowledgementReference: String,
+                              partialSubmission: String,
+                              heldTime: DateTime = HeldSubmissionData.now
                              ) {
   def registrationID = _id
 }
@@ -46,7 +45,7 @@ object HeldSubmissionData {
 }
 
 trait HeldSubmissionRepository extends Repository[HeldSubmissionData, BSONObjectID]{
-  def storePartialSubmission(regId: String, ackRef:String, partialSubmission: JsObject): Future[Option[HeldSubmissionData]]
+  def storePartialSubmission(regId: String, ackRef:String, partialSubmission: JsValue): Future[Option[HeldSubmissionData]]
 }
 
 class HeldSubmissionMongoRepository(implicit mongo: () => DB)
@@ -60,7 +59,7 @@ class HeldSubmissionMongoRepository(implicit mongo: () => DB)
     )
   )
 
-  def storePartialSubmission(regId: String, ackRef:String, partialSubmission: JsObject): Future[Option[HeldSubmissionData]] = {
+  def storePartialSubmission(regId: String, ackRef:String, partialSubmission: JsValue): Future[Option[HeldSubmissionData]] = {
 
     val data = HeldSubmissionData(
       _id = regId,
