@@ -46,7 +46,7 @@ class AuthenticationSpec extends FakeApplication with WordSpecLike with ShouldMa
 
         "provided a logged in auth result when there is a valid bearer token" in {
 
-            val a = Authority("x", "y", "z")
+            val a = Authority("x", "y", "", "z")
 
             when(mockAuth.getCurrentAuthority()(Matchers.any())).
                 thenReturn(Future.successful(Some(a)))

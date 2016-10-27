@@ -61,7 +61,7 @@ class PrepareAccountControllerSpec extends SCRSSpec {
     val rID = "testRegID"
     val oID = "testOID"
 
-    lazy val validAuthority = Authority("test.url", oID, "test.userDetailsLink")
+    lazy val validAuthority = Authority("test.url", oID, "cred-1", "test.userDetailsLink")
 
     val prepareAccountModel = PrepareAccountModel("HMRCEndDate", Some("2010"), Some("12"), Some("12"))
 

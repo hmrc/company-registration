@@ -30,7 +30,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 object CorporationTaxRegistrationController extends CorporationTaxRegistrationController {
   val ctService = CorporationTaxRegistrationService
-  val resourceConn = CorporationTaxRegistrationService.CorporationTaxRegistrationRepository
+  val resourceConn = CorporationTaxRegistrationService.corporationTaxRegistrationRepository
   val auth = AuthConnector
 }
 
@@ -106,7 +106,6 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
 
   def updateReferences(registrationID : String) = Action.async[JsValue](parse.json) {
     implicit request =>
-      println("Hello XXXXXXXXXXXXXXXXXX" + hc.headers)
       authorised(registrationID) {
         case Authorised(_) =>
           withJsonBody[ConfirmationReferences] {

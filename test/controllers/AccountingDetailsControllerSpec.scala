@@ -47,7 +47,7 @@ class AccountingDetailsControllerSpec extends SCRSSpec with AuthFixture with Acc
       AccountingDetailsController.auth shouldBe AuthConnector
     }
     "use the correct resource connector" in {
-      AccountingDetailsController.resourceConn shouldBe CorporationTaxRegistrationService.CorporationTaxRegistrationRepository
+      AccountingDetailsController.resourceConn shouldBe CorporationTaxRegistrationService.corporationTaxRegistrationRepository
     }
     "use the correct service" in {
       AccountingDetailsController.accountingDetailsService shouldBe AccountingDetailsService

@@ -30,7 +30,7 @@ import scala.concurrent.Future
 
 object PrepareAccountController extends PrepareAccountController {
   override val auth = AuthConnector
-  override val resourceConn = CorporationTaxRegistrationService.CorporationTaxRegistrationRepository
+  override val resourceConn = CorporationTaxRegistrationService.corporationTaxRegistrationRepository
   override val service = PrepareAccountService
 }
 

@@ -42,7 +42,7 @@ class ContactDetailsControllerSpec extends SCRSSpec with ContactDetailsFixture w
       ContactDetailsController.auth shouldBe AuthConnector
     }
     "use the correct resource connector" in {
-      ContactDetailsController.resourceConn shouldBe CorporationTaxRegistrationService.CorporationTaxRegistrationRepository
+      ContactDetailsController.resourceConn shouldBe CorporationTaxRegistrationService.corporationTaxRegistrationRepository
     }
     "use the correct service" in {
       ContactDetailsController.contactDetailsService shouldBe ContactDetailsService

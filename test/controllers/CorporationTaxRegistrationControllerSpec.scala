@@ -28,6 +28,7 @@ import play.api.test.Helpers._
 
 import scala.concurrent.Future
 import org.mockito.Mockito._
+import uk.gov.hmrc.play.http.HeaderCarrier
 
 class CorporationTaxRegistrationControllerSpec extends SCRSSpec with CorporationTaxRegistrationFixture with AuthFixture {
 
@@ -235,10 +236,11 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
   "updateReferences" should {
 
     val regId = "testRegId"
+		implicit val hc = HeaderCarrier()
 
     "return a 200 and an acknowledgement ref is one exists" in new Setup {
 			val expectedRefs = ConfirmationReferences("BRCT00000000123", "tx", "py", "12.00")
-			when(mockCTDataService.updateConfirmationReferences(Matchers.contains(regId), Matchers.any()))
+			when(mockCTDataService.updateConfirmationReferences(Matchers.contains(regId), Matchers.any())(Matchers.any[HeaderCarrier]))
 				.thenReturn(Future.successful(Some(expectedRefs)))
 
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
@@ -253,7 +255,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
     }
 
     "return a 404 if a record cannot be found" in new Setup {
-			when(mockCTDataService.updateConfirmationReferences(Matchers.contains(regId), Matchers.any()))
+			when(mockCTDataService.updateConfirmationReferences(Matchers.contains(regId), Matchers.any())(Matchers.any()))
 				.thenReturn(Future.successful(None))
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       AuthorisationMocks.getOID(validAuthority.oid, Some((regId, validAuthority.oid)))
