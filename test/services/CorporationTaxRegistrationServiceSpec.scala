@@ -27,13 +27,14 @@ import play.api.libs.json.Json
 import play.api.test.Helpers._
 import repositories.{CorporationTaxRegistrationRepository, Repositories}
 import uk.gov.hmrc.play.http.HeaderCarrier
+import uk.gov.hmrc.play.http.logging.SessionId
 
 import scala.concurrent.Future
 
 class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTaxRegistrationFixture with MongoFixture with AuthFixture{
 
 	implicit val mongo = mongoDB
-	implicit val hc = HeaderCarrier()
+	implicit val hc = HeaderCarrier(sessionId = Some(SessionId("testSessionId")))
 
   val mockBusinessRegistrationConnector = mock[BusinessRegistrationConnector]
 
