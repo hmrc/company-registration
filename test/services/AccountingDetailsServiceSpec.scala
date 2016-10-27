@@ -146,7 +146,7 @@ class AccountingDetailsServiceSpec extends SCRSSpec with AccountingDetailsFixtur
       "return the date of Incorporation and Accounting preparation date as provided by user" in {
         val futureDate = date("2020-1-1")
         val providedDate = date("2021-1-1")
-        val dateOfIncorp: DateTime = date("2020-1-1")
+        val dateOfIncorp = date("2020-1-1")
 
         val result = calculateSubmissionDates(dateOfIncorp, ActiveInFuture(futureDate), Some(providedDate))
 
@@ -157,7 +157,7 @@ class AccountingDetailsServiceSpec extends SCRSSpec with AccountingDetailsFixtur
 
       "return the date of Incorporation and Accounting preparation date calculated as the end of the month 1 year from the Future date" in {
         val futureDate = date("2020-1-1")
-        val dateOfIncorp: DateTime = date("2021-6-8")
+        val dateOfIncorp: DateTime = date("2019-6-8")
         val targetPrepDate = date("2021-1-31")
 
         val result = calculateSubmissionDates(dateOfIncorp, ActiveInFuture(futureDate), None)
