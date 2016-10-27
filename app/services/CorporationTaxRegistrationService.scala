@@ -24,7 +24,8 @@ import connectors.{AuthConnector, BusinessRegistrationConnector, BusinessRegistr
 import models.des._
 import models.{BusinessRegistration, ConfirmationReferences, CorporationTaxRegistration}
 import org.joda.time.DateTime
-import repositories.{CorporationTaxRegistrationRepository, Repositories, SequenceRepository, StateDataRepository}
+import play.api.libs.json.Json
+import repositories.{HeldSubmissionRepository, CorporationTaxRegistrationRepository, Repositories, SequenceRepository, StateDataRepository}
 import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -37,6 +38,7 @@ object CorporationTaxRegistrationService extends CorporationTaxRegistrationServi
   override val stateDataRepository = Repositories.stateDataRepository
   override val microserviceAuthConnector = AuthConnector
   override val brConnector = BusinessRegistrationConnector
+  val heldSubmissionRepository = Repositories.heldSubmissionRepository
 }
 
 trait CorporationTaxRegistrationService {
@@ -46,6 +48,7 @@ trait CorporationTaxRegistrationService {
   val stateDataRepository: StateDataRepository
   val microserviceAuthConnector : AuthConnector
   val brConnector : BusinessRegistrationConnector
+  val heldSubmissionRepository: HeldSubmissionRepository
 
   def createCorporationTaxRegistrationRecord(OID: String, registrationId: String, language: String): Future[CorporationTaxRegistration] = {
     val record = CorporationTaxRegistration(
@@ -65,9 +68,10 @@ trait CorporationTaxRegistrationService {
     for{
       ackRef <- generateAcknowledgementReference
       updatedRef <- corporationTaxRegistrationRepository.updateConfirmationReferences(rID, refs.copy(acknowledgementReference = ackRef))
-//      partialDesSubmission <- buildPartialDesSubmission
+      heldSubmission <- buildPartialDesSubmission(rID, ackRef)
     } yield {
-      buildPartialDesSubmission(rID, ackRef)
+      //todo need to save submission into CR after build SCRS-2283
+      heldSubmissionRepository.storePartialSubmission(rID, ackRef, Json.toJson(heldSubmission))
       updatedRef
     }
   }
@@ -76,7 +80,7 @@ trait CorporationTaxRegistrationService {
     corporationTaxRegistrationRepository.retrieveConfirmationReference(rID)
   }
 
-  private def generateTimestamp(timeStamp: DateTime) : String = {
+  private[services] def generateTimestamp(timeStamp: DateTime) : String = {
     val timeStampFormat = "yyyy-MM-dd'T'HH:mm:ssXXX"
     val UTC: TimeZone = TimeZone.getTimeZone("UTC")
     val format: SimpleDateFormat = new SimpleDateFormat(timeStampFormat)
@@ -85,13 +89,9 @@ trait CorporationTaxRegistrationService {
   }
 
   private def generateAcknowledgementReference: Future[String] = {
-
     val sequenceID = "AcknowledgementID"
     sequenceRepository.getNext(sequenceID)
-      .map {
-        ref =>
-      f"BRCT$ref%011d"
-    }
+      .map(ref => f"BRCT$ref%011d")
   }
 
   def checkAndProcessSubmission = ???
@@ -103,76 +103,74 @@ trait CorporationTaxRegistrationService {
 
     for {
       credId <- retrieveCredId
-      brMetadata <- busMetadata(regId)
+      brMetadata <- retrieveBRMetadata(regId)
       ctData <- retrieveCTData(regId)
     } yield {
-      buildInterimSubmission(ackRef, sessionId, credId, brMetadata, ctData)
+      buildInterimSubmission(ackRef, sessionId, credId, brMetadata, ctData, DateTime.now())
     }
-
-
-//    // Metadata block
-//    for {
-//      authority <- microserviceAuthConnector.getCurrentAuthority
-//      brResponse <- brConnector.retrieveMetadata
-//    } yield {
-//      brResponse
-//      val sessionId = hc.headers.collect{ case ("X-Session-ID", x) => x }.head
-//      val language = "pulled from BR"
-//      val submissionTimeStamp = generateTimestamp(DateTime.now())
-//      val completionCapacity = brResponse // NB only a single field is stored on Mongo with Directory / Agent or what the user types
-//    }
   }
 
+  private[services] class FailedToGetCredId extends NoStackTrace
 
   private[services] def retrieveCredId(implicit hc: HeaderCarrier) : Future[String] = {
     microserviceAuthConnector.getCurrentAuthority flatMap {
       case Some(a) => Future.successful(a.gatewayId)
-      case _ => Future.failed(new NoStackTrace {}) // TODO YUK!
+      case _ => Future.failed(new FailedToGetCredId)
     }
   }
 
-  private[services] def busMetadata(regId: String)(implicit hc: HeaderCarrier) : Future[BusinessRegistration] = {
+  private[services] class FailedToGetBRMetadata extends NoStackTrace
+
+  private[services] def retrieveBRMetadata(regId: String)(implicit hc: HeaderCarrier) : Future[BusinessRegistration] = {
     brConnector.retrieveMetadata flatMap {
       case BusinessRegistrationSuccessResponse(metadata) if metadata.registrationID == regId => Future.successful(metadata)
-      case _ => Future.failed( new NoStackTrace {} ) // TODO YUK!
+      case _ => Future.failed(new FailedToGetBRMetadata)
     }
   }
 
-  private[services] def retrieveCTData( regId: String ) : Future[CorporationTaxRegistration] = {
+  private[services] class FailedToGetCTData extends NoStackTrace
+
+  private[services] def retrieveCTData(regId: String) : Future[CorporationTaxRegistration] = {
     corporationTaxRegistrationRepository.retrieveCorporationTaxRegistration(regId) flatMap {
       case Some(ct) => Future.successful(ct)
-      case _ => Future.failed( new NoStackTrace {} ) // TODO YUK!
+      case _ => Future.failed(new FailedToGetCTData)
     }
   }
 
-  private[services] def buildInterimSubmission(ackRef: String, sessionId: String, credId: String, brMetadata: BusinessRegistration, ctData: CorporationTaxRegistration): InterimDesRegistration = {
+  private[services] def buildInterimSubmission(ackRef: String, sessionId: String, credId: String,
+                                               brMetadata: BusinessRegistration, ctData: CorporationTaxRegistration, currentDateTime: DateTime): InterimDesRegistration = {
+
     InterimDesRegistration(
       ackRef = ackRef,
       metadata = Metadata(
         sessionId = sessionId,
         credId = credId,
         language = brMetadata.language,
-        submissionTs = DateTime.parse(generateTimestamp(DateTime.now())),
+        submissionTs = DateTime.parse(generateTimestamp(currentDateTime)),
         completionCapacity = CompletionCapacity(brMetadata.completionCapacity)
       ),
       interimCorporationTax = InterimCorporationTax(
-        companyName = "",
+        companyName = ctData.companyDetails.get.companyName,
         returnsOnCT61 = false,
-        businessAddress = BusinessAddress(
-          "", "", None, None, None, None
+        businessAddress = BusinessAddress( //todo check if optional SCRS-2283
+          line1 = "",
+          line2 = "",
+          line3 = None,
+          line4 = None,
+          postcode = None,
+          country = None
         ),
         businessContactName = BusinessContactName(
-          "", None, None
+          firstName = ctData.contactDetails.get.contactFirstName.get,
+          middleNames = ctData.contactDetails.get.contactMiddleName,
+          lastName = ctData.contactDetails.get.contactSurname
         ),
         businessContactDetails = BusinessContactDetails(
-          None, None, None
+          phoneNumber =  ctData.contactDetails.get.contactDaytimeTelephoneNumber,
+          mobileNumber = ctData.contactDetails.get.contactMobileNumber,
+          email = ctData.contactDetails.get.contactEmail
         )
       )
-//        companyName : String,
-//      returnsOnCT61 : Boolean,
-//      businessAddress : BusinessAddress,
-//      businessContactName : BusinessContactName,
-//      businessContactDetails : BusinessContactDetails
     )
   }
 }
