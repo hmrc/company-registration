@@ -86,7 +86,7 @@ trait CorporationTaxRegistrationService {
     }
   }
 
-  def updateSubmissionStatus(rID: String, status: String) = {
+  def updateSubmissionStatus(rID: String, status: String): Future[String] = {
     corporationTaxRegistrationRepository.updateSubmissionStatus(rID, status)
   }
 

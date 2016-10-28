@@ -182,15 +182,22 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
 
   override def updateSubmissionStatus(registrationID: String, status: String): Future[String] = {
     val modifier = BSONDocument("$set" -> BSONDocument("status" -> status))
-    collection.findAndUpdate(registrationIDSelector(registrationID), modifier, fetchNewObject = false, upsert = false) map { r =>
+    collection.findAndUpdate(registrationIDSelector(registrationID), modifier, fetchNewObject = true, upsert = false) map { r =>
       (r.result[JsValue].get \ "status").as[String]
     }
   }
 
   override def removeTaxRegistrationInformation(registrationId: String): Future[Boolean] = {
-    val modifier = BSONDocument("$unset" -> BSONDocument("tradingDetails" -> 1))
-    collection.findAndUpdate(registrationIDSelector(registrationId), modifier, fetchNewObject = false, upsert = false) map { r =>
-      (r.result[JsValue].get \ "tradingDetails").asOpt[JsObject].fold(true)(_ => false)
+    val modifier = BSONDocument("$unset" -> BSONDocument("tradingDetails" -> 1, "contactDetails" -> 1, "companyDetails" -> 1))
+    collection.findAndUpdate(registrationIDSelector(registrationId), modifier, fetchNewObject = true, upsert = false) map { r =>
+      val tradingDetails = (r.result[JsValue].get \ "tradingDetails").asOpt[JsObject].fold(true)(_ => false)
+      val contactDetails = (r.result[JsValue].get \ "contactDetails").asOpt[JsObject].fold(true)(_ => false)
+      val companyDetails = (r.result[JsValue].get \ "companyDetails").asOpt[JsObject].fold(true)(_ => false)
+
+      (tradingDetails, contactDetails, companyDetails) match {
+        case (true, true, true) => true
+        case _ => false
+      }
     }
   }
 
