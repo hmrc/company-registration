@@ -45,7 +45,7 @@ class StateDataMongoRepositorySpec extends UnitSpec with ScalaFutures with Mongo
 
       val beforeCount: Int = await(repository.count)
 
-      val oResult = await(repository.update(randomTimepoint))
+      val oResult = await(repository.updateTimepoint(randomTimepoint))
 
       await(repository.count) shouldBe (beforeCount + 1)
 
@@ -55,10 +55,10 @@ class StateDataMongoRepositorySpec extends UnitSpec with ScalaFutures with Mongo
     }
     "be able to update the document when it does exist" in new Setup {
       val randomTimepoint = timepoint
-      val oResult = await(repository.update(randomTimepoint))
+      val oResult = await(repository.updateTimepoint(randomTimepoint))
 
       val newTimepoint = "123456"
-      val result = await(repository.update(newTimepoint))
+      val result = await(repository.updateTimepoint(newTimepoint))
 
       result shouldBe newTimepoint
     }
@@ -71,7 +71,7 @@ class StateDataMongoRepositorySpec extends UnitSpec with ScalaFutures with Mongo
       result shouldBe None
     }
     "return an optional Time point when there is one stored" in new Setup{
-      repository.update(timepoint)
+      repository.updateTimepoint(timepoint)
 
       val result = await(repository.retrieveTimePoint)
 

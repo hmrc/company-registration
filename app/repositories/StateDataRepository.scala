@@ -46,7 +46,7 @@ class StateDataMongoRepository(implicit mongo: () => DB)
 
   private val selector = BSONDocument("_id" -> "CH-INCORPSTATUS-TIMEPOINT")
 
-  def update(timePoint: String) = {
+  def updateTimepoint(timePoint: String) = {
     val modifier = BSONDocument("$set" -> BSONDocument("timepoint" -> timePoint))
 
     collection.findAndUpdate(selector, modifier, fetchNewObject = true, upsert = true) map { r =>
