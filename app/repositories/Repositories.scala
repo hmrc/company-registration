@@ -16,11 +16,7 @@
 
 package repositories
 
-import models.HandoffCHData
 import play.modules.reactivemongo.ReactiveMongoPlugin
-import reactivemongo.api.commands.MultiBulkWriteResult
-
-import scala.concurrent.{ExecutionContext, Future}
 
 object Repositories {
   private implicit val connection = {
