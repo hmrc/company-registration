@@ -170,7 +170,10 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
     )
 
     "return the updated reference acknowledgement number" in new Setup {
+
+      val heldStatus = "held"
 			val expected = ConfirmationReferences("testTransaction","testPayRef","testPayAmount","")
+
       when(mockBusinessRegistrationConnector.retrieveMetadata(Matchers.any(), Matchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
       when(mockCTDataRepository.updateConfirmationReferences(Matchers.any(), Matchers.any()))
@@ -181,6 +184,10 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
         .thenReturn(Future.successful(Some(corporationTaxRegistration)))
       when(mockHeldSubmissionRepository.storePartialSubmission(Matchers.eq(registrationId), Matchers.any(), Matchers.any()))
         .thenReturn(Future.successful(Some(heldSubmission)))
+      when(mockCTDataRepository.updateSubmissionStatus(Matchers.any(), Matchers.any()))
+        .thenReturn(Future.successful(heldStatus))
+      when(mockCTDataRepository.removeTaxRegistrationInformation(registrationId))
+        .thenReturn(Future.successful(true))
 
       SequenceRepositoryMocks.getNext("testSeqID", 3)
 
