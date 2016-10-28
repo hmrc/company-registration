@@ -16,7 +16,7 @@
 
 package mocks
 
-import connectors.{AuthConnector, Authority}
+import connectors.{AuthConnector, Authority, SubmissionCheckAPIConnector}
 import models._
 import org.mockito.Matchers
 import org.mockito.Mockito._
@@ -41,6 +41,7 @@ trait SCRSMocks
 	lazy val mockContactDetailsService = mock[ContactDetailsService]
 	lazy val mockSequenceRepository = mock[SequenceRepository]
 	lazy val mockStateDataRepository = mock[StateDataRepository]
+	lazy val mockSubmissionCheckAPIConnector = mock[SubmissionCheckAPIConnector]
 
 	object CTServiceMocks {
 		def createCTDataRecord(result: CorporationTaxRegistration): OngoingStubbing[Future[CorporationTaxRegistration]] = {

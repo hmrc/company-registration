@@ -17,15 +17,17 @@
 package services
 
 import java.text.SimpleDateFormat
-import java.util.{Date, TimeZone}
+import java.util.Date
 
-import config.MicroserviceAuthConnector
 import connectors.{AuthConnector, BusinessRegistrationConnector, BusinessRegistrationSuccessResponse}
 import models.des._
-import models.{RegistrationStatus, BusinessRegistration, ConfirmationReferences, CorporationTaxRegistration}
-import org.joda.time.{DateTimeZone, DateTime}
+import models.{BusinessRegistration, RegistrationStatus}
 import play.api.libs.json.{JsObject, Json}
-import repositories.{HeldSubmissionRepository, CorporationTaxRegistrationRepository, Repositories, SequenceRepository, StateDataRepository}
+import repositories.HeldSubmissionRepository
+import connectors.SubmissionCheckAPIConnector
+import models.{ConfirmationReferences, CorporationTaxRegistration, SubmissionCheckResponse}
+import org.joda.time.{DateTime, DateTimeZone}
+import repositories.{CorporationTaxRegistrationRepository, Repositories, SequenceRepository, StateDataRepository}
 import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -40,6 +42,7 @@ object CorporationTaxRegistrationService extends CorporationTaxRegistrationServi
   override val brConnector = BusinessRegistrationConnector
   val heldSubmissionRepository = Repositories.heldSubmissionRepository
   def currentDateTime = DateTime.now(DateTimeZone.UTC)
+  override val submissionCheckAPIConnector = SubmissionCheckAPIConnector
 }
 
 trait CorporationTaxRegistrationService {
@@ -51,6 +54,7 @@ trait CorporationTaxRegistrationService {
   val brConnector : BusinessRegistrationConnector
   val heldSubmissionRepository: HeldSubmissionRepository
   def currentDateTime: DateTime
+  val submissionCheckAPIConnector: SubmissionCheckAPIConnector
 
   def createCorporationTaxRegistrationRecord(OID: String, registrationId: String, language: String): Future[CorporationTaxRegistration] = {
     val record = CorporationTaxRegistration(
@@ -107,8 +111,6 @@ trait CorporationTaxRegistrationService {
     sequenceRepository.getNext(sequenceID)
       .map(ref => f"BRCT$ref%011d")
   }
-
-  def checkAndProcessSubmission = ???
 
   private[services] def buildPartialDesSubmission(regId: String, ackRef : String)(implicit hc: HeaderCarrier) : Future[InterimDesRegistration] = {
 
@@ -185,5 +187,26 @@ trait CorporationTaxRegistrationService {
         )
       )
     )
+  }
+
+  //TODO This needs tests
+  private def checkSubmission(implicit hc: HeaderCarrier) = {
+    stateDataRepository.retrieveTimePoint
+      .flatMap {
+        timepoint => submissionCheckAPIConnector.checkSubmission(timepoint)
+      }
+  }
+
+  private def processSubmission(submission : SubmissionCheckResponse) = {
+    //TODO This should construct the full submission and send it to DES
+  }
+
+  //TODO This needs tests
+  def checkAndProcessSubmission(implicit hc: HeaderCarrier) = {
+    val status = checkSubmission
+
+    status map {
+      response => processSubmission(response)
+    }
   }
 }
