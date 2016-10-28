@@ -36,7 +36,7 @@ object TimePoint {
 }
 
 trait StateDataRepository extends Repository[TimePoint, BSONObjectID] {
-  def update(s: String) : Future[String]
+  def updateTimepoint(s: String) : Future[String]
   def retrieveTimePoint : Future[Option[String]]
 }
 
