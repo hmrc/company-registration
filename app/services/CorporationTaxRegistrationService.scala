@@ -21,7 +21,7 @@ import java.util.{Date, TimeZone}
 
 import models.{ConfirmationReferences, CorporationTaxRegistration}
 import org.joda.time.DateTime
-import repositories.{CorporationTaxRegistrationRepository, Repositories, SequenceRepository}
+import repositories.{CorporationTaxRegistrationRepository, Repositories, SequenceRepository, StateDataRepository}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -29,12 +29,14 @@ import scala.concurrent.Future
 object CorporationTaxRegistrationService extends CorporationTaxRegistrationService {
   override val CorporationTaxRegistrationRepository = Repositories.cTRepository
   override val sequenceRepository = Repositories.sequenceRepository
+  override val stateDataRepository = Repositories.stateDataRepository
 }
 
 trait CorporationTaxRegistrationService {
 
   val CorporationTaxRegistrationRepository: CorporationTaxRegistrationRepository
   val sequenceRepository: SequenceRepository
+  val stateDataRepository: StateDataRepository
 
   def createCorporationTaxRegistrationRecord(OID: String, registrationId: String, language: String): Future[CorporationTaxRegistration] = {
     val record = CorporationTaxRegistration(
@@ -80,4 +82,6 @@ trait CorporationTaxRegistrationService {
       f"BRCT$ref%011d"
     }
   }
+
+  def checkAndProcessSubmission = ???
 }

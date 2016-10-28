@@ -16,11 +16,7 @@
 
 package repositories
 
-import models.HandoffCHData
 import play.modules.reactivemongo.ReactiveMongoPlugin
-import reactivemongo.api.commands.MultiBulkWriteResult
-
-import scala.concurrent.{ExecutionContext, Future}
 
 object Repositories {
   private implicit val connection = {
@@ -31,4 +27,5 @@ object Repositories {
   lazy val cTRepository = new CorporationTaxRegistrationMongoRepository
   lazy val sequenceRepository = new SequenceMongoRepository()
   lazy val throttleRepository = new ThrottleMongoRepository()
+  lazy val stateDataRepository = new StateDataMongoRepository()
 }
