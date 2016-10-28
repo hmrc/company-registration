@@ -39,7 +39,7 @@ class HeldSubmissionMongoRepositoryISpec extends UnitSpec with ScalaFutures with
     await(repository.drop)
   }
 
-  def newId() = UUID.randomUUID().toString
+  def newId = UUID.randomUUID().toString
 
   "Held submission repository storage" should {
     "be able to store an simple Json document as a string" in new Setup {

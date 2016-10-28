@@ -22,7 +22,7 @@ import org.mockito.Matchers
 import org.mockito.Mockito._
 import org.mockito.stubbing.OngoingStubbing
 import org.scalatest.mock.MockitoSugar
-import repositories.{CorporationTaxRegistrationMongoRepository, SequenceRepository}
+import repositories.{CorporationTaxRegistrationMongoRepository, SequenceRepository, StateDataRepository}
 import services._
 import uk.gov.hmrc.play.http.HeaderCarrier
 
@@ -40,6 +40,7 @@ trait SCRSMocks
 	lazy val mockCompanyDetailsService = mock[CompanyDetailsService]
 	lazy val mockContactDetailsService = mock[ContactDetailsService]
 	lazy val mockSequenceRepository = mock[SequenceRepository]
+	lazy val mockStateDataRepository = mock[StateDataRepository]
 
 	object CTServiceMocks {
 		def createCTDataRecord(result: CorporationTaxRegistration): OngoingStubbing[Future[CorporationTaxRegistration]] = {

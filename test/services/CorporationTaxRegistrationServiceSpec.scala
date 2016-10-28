@@ -35,6 +35,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
 		val service = new CorporationTaxRegistrationService {
 			override val CorporationTaxRegistrationRepository = mockCTDataRepository
 			override val sequenceRepository = mockSequenceRepository
+			override val stateDataRepository = mockStateDataRepository
 		}
 	}
 
