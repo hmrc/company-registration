@@ -24,7 +24,8 @@ import models.des._
 import org.joda.time.DateTime
 import org.mockito.Matchers
 import org.mockito.Mockito._
-import repositories.{HeldSubmissionMongoRepository, Repositories}
+import play.api.libs.json.{JsObject, Json}
+import repositories.{HeldSubmissionData, HeldSubmissionMongoRepository, Repositories}
 import services.CorporationTaxRegistrationService.{FailedToGetCredId, FailedToGetBRMetadata, FailedToGetCTData}
 import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.http.logging.SessionId
@@ -45,7 +46,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
 			override val sequenceRepository = mockSequenceRepository
 			override val microserviceAuthConnector = mockAuthConnector
 			override val brConnector = mockBusinessRegistrationConnector
-      val heldSubmissionRepository = mockHeldSubmissionRepository
+      override val heldSubmissionRepository = mockHeldSubmissionRepository
 		}
 	}
 
@@ -81,17 +82,109 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
 	}
 
   "updateConfirmationReferences" should {
+    val registrationId = "testRegId"
+    val ackRef = "testAckRef"
+    val timestamp = "2016-10-27T17:06:23.000Z"
+    val dateTime = DateTime.parse("2016-10-27T17:28:59.184+01:00")
+
+    val businessRegistration = BusinessRegistration(
+      registrationId,
+      timestamp,
+      "en",
+      "Director",
+      Links(Some("testSelfLink"))
+    )
+
+    val corporationTaxRegistration = CorporationTaxRegistration(
+      OID = "testOID",
+      registrationID = registrationId,
+      formCreationTimestamp = dateTime.toString,
+      language = "en",
+      companyDetails = Some(CompanyDetails(
+        "testCompanyName",
+        CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
+        ROAddress("10", "test street", "test town", "test area", "test county", "XX1 1ZZ", "test country"),
+        PPOBAddress("10", "test street", Some("test town"), Some("test area"), Some("test county"), "XX1 1ZZ", "test country"),
+        "testJurisdiction"
+      )),
+      contactDetails = Some(ContactDetails(
+        Some("testFirstName"),
+        Some("testMiddleName"),
+        Some("testSurname"),
+        Some("0123456789"),
+        Some("0123456789"),
+        Some("test@email.co.uk")
+      ))
+    )
+
+    val partialDesSubmission = Json.parse(
+      s"""
+        |{
+        | "acknowledgementReference":"$ackRef",
+        | "registration":{
+        |   "metadata":{
+        |     "businessType":"Limited company",
+        |     "submissionFromAgent":false,
+        |     "declareAccurateAndComplete":true,
+        |     "sessionId":"session-40fdf8c0-e2b1-437c-83b5-8689c2e1bc43",
+        |     "credentialId":"cred-id-543212311772",
+        |     "language":"en",
+        |     "formCreationTimestamp":"$timestamp",
+        |     "completionCapacity":"Other",
+        |     "completionCapacityOther":"director"
+        |   },
+        |   "corporationTax":{
+        |     "companyOfficeNumber":"001",
+        |     "hasCompanyTakenOverBusiness":false,
+        |     "companyMemberOfGroup":false,
+        |     "companiesHouseCompanyName":"testCompanyName",
+        |     "returnsOnCT61":false,
+        |     "companyACharity":false,
+        |     "businessAddress":{
+        |       "line1":"",
+        |       "line2":"",
+        |       "line3":null,
+        |       "line4":null,
+        |       "postcode":null,
+        |       "country":null
+        |     },
+        |     "businessContactName":{
+        |       "firstName":"Jenifer",
+        |       "middleNames":null,
+        |       "lastName":null
+        |     },
+        |     "businessContactDetails":{
+        |       "phoneNumber":"123",
+        |       "mobileNumber":"123",
+        |       "email":"6email@whatever.com"
+        |     }
+        |   }
+        | }
+        |}
+      """.stripMargin).as[JsObject]
+
+    val heldSubmission = HeldSubmissionData(
+      registrationId,
+      ackRef,
+      partialDesSubmission.toString()
+    )
+
     "return the updated reference acknowledgement number" in new Setup {
 			val expected = ConfirmationReferences("testTransaction","testPayRef","testPayAmount","")
-			when(mockCTDataRepository.updateConfirmationReferences(Matchers.any(), Matchers.any()))
-				.thenReturn(Future.successful(Some(expected)))
-			when(mockAuthConnector.getCurrentAuthority()(Matchers.any()))
-			  .thenReturn(Future.successful(Some(validAuthority)))
-
+      when(mockBusinessRegistrationConnector.retrieveMetadata(Matchers.any(), Matchers.any()))
+        .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
+      when(mockCTDataRepository.updateConfirmationReferences(Matchers.any(), Matchers.any()))
+        .thenReturn(Future.successful(Some(expected)))
+      when(mockAuthConnector.getCurrentAuthority()(Matchers.any()))
+        .thenReturn(Future.successful(Some(validAuthority)))
+      when(mockCTDataRepository.retrieveCorporationTaxRegistration(Matchers.eq(registrationId)))
+        .thenReturn(Future.successful(Some(corporationTaxRegistration)))
+      when(mockHeldSubmissionRepository.storePartialSubmission(Matchers.eq(registrationId), Matchers.any(), Matchers.any()))
+        .thenReturn(Future.successful(Some(heldSubmission)))
 
       SequenceRepositoryMocks.getNext("testSeqID", 3)
 
-      val result = service.updateConfirmationReferences("testRegID", ConfirmationReferences("testTransaction","testPayRef","testPayAmount",""))
+      val result = service.updateConfirmationReferences(registrationId, ConfirmationReferences("testTransaction","testPayRef","testPayAmount",""))
       await(result) shouldBe Some(expected)
     }
   }
@@ -227,7 +320,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
         "testCompanyName",
         CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
         ROAddress("10", "test street", "test town", "test area", "test county", "XX1 1ZZ", "test country"),
-        PPOBAddress("10", "test street", "test town", "test area", "test county", "XX1 1ZZ", "test country"),
+        PPOBAddress("10", "test street", Some("test town"), Some("test area"), Some("test county"), "XX1 1ZZ", "test country"),
         "testJurisdiction"
       )),
       contactDetails = Some(ContactDetails(
@@ -248,7 +341,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
         InterimCorporationTax(
           corporationTaxRegistration.companyDetails.get.companyName,
           returnsOnCT61 = false,
-          BusinessAddress("", "", None, None, None, None),
+          BusinessAddress("10", "test street",  Some("test town"), Some("test area"), Some("XX1 1ZZ"), Some("test country")),
           BusinessContactName(
             corporationTaxRegistration.contactDetails.get.contactFirstName.get,
             corporationTaxRegistration.contactDetails.get.contactMiddleName,

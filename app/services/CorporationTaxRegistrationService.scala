@@ -22,7 +22,7 @@ import java.util.{Date, TimeZone}
 import config.MicroserviceAuthConnector
 import connectors.{AuthConnector, BusinessRegistrationConnector, BusinessRegistrationSuccessResponse}
 import models.des._
-import models.{BusinessRegistration, ConfirmationReferences, CorporationTaxRegistration}
+import models.{RegistrationStatus, BusinessRegistration, ConfirmationReferences, CorporationTaxRegistration}
 import org.joda.time.DateTime
 import play.api.libs.json.{JsObject, Json}
 import repositories.{HeldSubmissionRepository, CorporationTaxRegistrationRepository, Repositories, SequenceRepository}
@@ -67,11 +67,25 @@ trait CorporationTaxRegistrationService {
       ackRef <- generateAcknowledgementReference
       updatedRef <- corporationTaxRegistrationRepository.updateConfirmationReferences(rID, refs.copy(acknowledgementReference = ackRef))
       heldSubmission <- buildPartialDesSubmission(rID, ackRef)
+      heldSubmissionData <- heldSubmissionRepository.storePartialSubmission(rID, ackRef, Json.toJson(heldSubmission).as[JsObject])
+      submissionStatus <- updateSubmissionStatus(rID, RegistrationStatus.HELD)
+      _ <- removeTaxRegistrationInformation(rID)
     } yield {
-      //todo need to save submission into CR after build SCRS-2283
-      heldSubmissionRepository.storePartialSubmission(rID, ackRef, Json.toJson(heldSubmission).as[JsObject])
       updatedRef
     }
+  }
+
+  private[services] class FailedToRemoveTaxRegistrationInformation extends NoStackTrace
+
+  private[services] def removeTaxRegistrationInformation(registrationId: String): Future[Boolean] = {
+    corporationTaxRegistrationRepository.removeTaxRegistrationInformation(registrationId) flatMap {
+      case true => Future.successful(true)
+      case false => Future.failed(new FailedToRemoveTaxRegistrationInformation)
+    }
+  }
+
+  def updateSubmissionStatus(rID: String, status: String) = {
+    corporationTaxRegistrationRepository.updateSubmissionStatus(rID, status)
   }
 
   def retrieveConfirmationReference(rID: String): Future[Option[ConfirmationReferences]] = {
@@ -147,13 +161,13 @@ trait CorporationTaxRegistrationService {
       interimCorporationTax = InterimCorporationTax(
         companyName = ctData.companyDetails.get.companyName,
         returnsOnCT61 = false,
-        businessAddress = BusinessAddress( //todo check if optional SCRS-2283
-          line1 = "",
-          line2 = "",
-          line3 = None,
-          line4 = None,
-          postcode = None,
-          country = None
+        businessAddress = BusinessAddress(
+          line1 = ctData.companyDetails.get.pPOBAddress.houseNameNumber,
+          line2 = ctData.companyDetails.get.pPOBAddress.addressLine1,
+          line3 = ctData.companyDetails.get.pPOBAddress.addressLine2,
+          line4 = ctData.companyDetails.get.pPOBAddress.addressLine3,
+          postcode = Some(ctData.companyDetails.get.pPOBAddress.postCode),
+          country =  Some(ctData.companyDetails.get.pPOBAddress.country)
         ),
         businessContactName = BusinessContactName(
           firstName = ctData.contactDetails.get.contactFirstName.get,

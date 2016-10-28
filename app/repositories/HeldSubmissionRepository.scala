@@ -41,7 +41,7 @@ case class HeldSubmissionData(_id: String,
 
 object HeldSubmissionData {
   implicit val formats = Json.format[HeldSubmissionData]
-  def now = DateTime.now.withZone(DateTimeZone.UTC)
+  def now = DateTime.now(DateTimeZone.UTC)
 }
 
 trait HeldSubmissionRepository extends Repository[HeldSubmissionData, BSONObjectID]{

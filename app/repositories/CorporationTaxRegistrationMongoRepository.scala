@@ -18,6 +18,7 @@ package repositories
 
 import auth.AuthorisationResource
 import models._
+import play.api.libs.json.{JsObject, JsValue}
 import reactivemongo.api.DB
 import reactivemongo.bson._
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
@@ -42,6 +43,8 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def retrieveContactDetails(registrationID: String): Future[Option[ContactDetails]]
   def retrieveAcknowledgementRef(registrationID: String): Future[Option[String]]
   def updateCompanyEndDate(registrationID: String, model: AccountsPreparationDate): Future[Option[AccountsPreparationDate]]
+  def updateSubmissionStatus(registrationID: String, status: String): Future[String]
+  def removeTaxRegistrationInformation(registrationId: String): Future[Boolean]
 }
 
 class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
@@ -174,6 +177,20 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
         collection.update(registrationIDSelector(registrationID), ct.copy(accountsPreparation = Some(model)), upsert = false)
           .map(_=>Some(model))
         case None => Future.successful(None)
+    }
+  }
+
+  override def updateSubmissionStatus(registrationID: String, status: String): Future[String] = {
+    val modifier = BSONDocument("$set" -> BSONDocument("status" -> status))
+    collection.findAndUpdate(registrationIDSelector(registrationID), modifier, fetchNewObject = false, upsert = false) map { r =>
+      (r.result[JsValue].get \ "status").as[String]
+    }
+  }
+
+  override def removeTaxRegistrationInformation(registrationId: String): Future[Boolean] = {
+    val modifier = BSONDocument("$unset" -> BSONDocument("tradingDetails" -> 1))
+    collection.findAndUpdate(registrationIDSelector(registrationId), modifier, fetchNewObject = false, upsert = false) map { r =>
+      (r.result[JsValue].get \ "tradingDetails").asOpt[JsObject].fold(true)(_ => false)
     }
   }
 
