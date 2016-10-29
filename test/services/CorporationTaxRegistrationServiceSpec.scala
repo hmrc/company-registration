@@ -410,8 +410,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
 																			|}""".stripMargin
 
 
-			val result = service.buildPartialDesSubmission("12345", "ackRef1")
-
+//			val result = service.buildPartialDesSubmission("12345", "ackRef1")
       //			result shouldBe expectedJson
 		}
 	}
