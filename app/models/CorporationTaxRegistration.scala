@@ -23,6 +23,7 @@ import scala.language.implicitConversions
 object RegistrationStatus {
   val DRAFT = "draft"
   val HELD = "held"
+  val SUBMITTED = "submitted"
 }
 
 case class CorporationTaxRegistration(OID: String,
@@ -97,9 +98,9 @@ case class ROAddress(houseNameNumber: String,
 
 case class PPOBAddress(houseNameNumber: String,
                        addressLine1: String,
-                       addressLine2: String,
-                       addressLine3: String,
-                       addressLine4: String,
+                       addressLine2: Option[String],
+                       addressLine3: Option[String],
+                       addressLine4: Option[String],
                        postCode: String,
                        country: String)
 

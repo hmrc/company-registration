@@ -30,7 +30,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 object CompanyDetailsController extends CompanyDetailsController {
   override val auth: AuthConnector = AuthConnector
-  val resourceConn = CorporationTaxRegistrationService.CorporationTaxRegistrationRepository
+  val resourceConn = CorporationTaxRegistrationService.corporationTaxRegistrationRepository
   override val companyDetailsService = CompanyDetailsService
 }
 

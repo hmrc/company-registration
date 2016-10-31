@@ -28,4 +28,5 @@ object Repositories {
   lazy val sequenceRepository = new SequenceMongoRepository()
   lazy val throttleRepository = new ThrottleMongoRepository()
   lazy val stateDataRepository = new StateDataMongoRepository()
+  lazy val heldSubmissionRepository = new HeldSubmissionMongoRepository
 }

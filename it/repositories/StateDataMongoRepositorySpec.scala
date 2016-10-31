@@ -71,7 +71,8 @@ class StateDataMongoRepositorySpec extends UnitSpec with ScalaFutures with Mongo
       result shouldBe None
     }
     "return an optional Time point when there is one stored" in new Setup{
-      repository.updateTimepoint(timepoint)
+
+      await(repository.updateTimepoint(timepoint))
 
       val result = await(repository.retrieveTimePoint)
 

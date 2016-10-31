@@ -30,7 +30,7 @@ import scala.concurrent.Future
 
 object TradingDetailsController extends TradingDetailsController {
   val tradingDetailsService = TradingDetailsService
-  val resourceConn = CorporationTaxRegistrationService.CorporationTaxRegistrationRepository
+  val resourceConn = CorporationTaxRegistrationService.corporationTaxRegistrationRepository
   val auth = AuthConnector
 }
 

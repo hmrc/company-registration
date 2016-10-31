@@ -17,7 +17,7 @@
 package repositories
 
 import org.joda.time.{DateTime, DateTimeZone}
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsValue, JsObject, Json}
 import reactivemongo.api.DB
 import reactivemongo.api.commands.DefaultWriteResult
 import reactivemongo.bson.BSONObjectID
@@ -31,18 +31,17 @@ import reactivemongo.api.indexes.{Index, IndexType}
 
 import scala.collection.Seq
 
-case class HeldSubmissionData(
-                               _id: String,
-                               acknowledgementReference: String,
-                               partialSubmission: String,
-                               heldTime: DateTime = HeldSubmissionData.now
+case class HeldSubmissionData(_id: String,
+                              acknowledgementReference: String,
+                              partialSubmission: String,
+                              heldTime: DateTime = HeldSubmissionData.now
                              ) {
   def registrationID = _id
 }
 
 object HeldSubmissionData {
   implicit val formats = Json.format[HeldSubmissionData]
-  def now = DateTime.now.withZone(DateTimeZone.UTC)
+  def now = DateTime.now(DateTimeZone.UTC)
 }
 
 trait HeldSubmissionRepository extends Repository[HeldSubmissionData, BSONObjectID]{

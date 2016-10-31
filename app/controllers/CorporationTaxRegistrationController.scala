@@ -30,7 +30,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 object CorporationTaxRegistrationController extends CorporationTaxRegistrationController {
   val ctService = CorporationTaxRegistrationService
-  val resourceConn = CorporationTaxRegistrationService.CorporationTaxRegistrationRepository
+  val resourceConn = CorporationTaxRegistrationService.corporationTaxRegistrationRepository
   val auth = AuthConnector
 }
 
