@@ -25,10 +25,11 @@ import org.joda.time.DateTime
 import org.mockito.Matchers
 import org.mockito.Mockito._
 import play.api.libs.json.{JsObject, Json}
-import repositories.{HeldSubmissionData, HeldSubmissionMongoRepository, Repositories}
+import repositories.{HeldSubmissionData, HeldSubmissionMongoRepository}
 import services.CorporationTaxRegistrationService.{FailedToGetCredId, FailedToGetBRMetadata, FailedToGetCTData}
 import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.http.logging.SessionId
+import repositories.Repositories
 
 import scala.concurrent.Future
 

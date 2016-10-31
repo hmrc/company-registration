@@ -25,6 +25,7 @@ import org.scalatest.mock.MockitoSugar
 import org.scalatest.{ShouldMatchers, WordSpecLike}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 import org.mockito.Mockito._
+import services.CorporationTaxRegistrationService
 import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.Future
@@ -39,6 +40,7 @@ class SubmissionCheckAPIConnectorSpec extends WordSpecLike with ShouldMatchers w
     val connector = new SubmissionCheckAPIConnector {
       override val proxyUrl = testProxyUrl
       override val http = mockWSHttp
+      override val cTRegistrationService = mock[CorporationTaxRegistrationService]
     }
   }
 

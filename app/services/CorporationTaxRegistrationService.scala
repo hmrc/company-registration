@@ -198,7 +198,9 @@ trait CorporationTaxRegistrationService {
   }
 
   private def processSubmission(submission : SubmissionCheckResponse) = {
+    //TODO This needs to check for 'Held' status
     //TODO This should construct the full submission and send it to DES
+    //TODO This needs to delete submission from holding pen and update status to 'Submitted'
   }
 
   //TODO This needs tests

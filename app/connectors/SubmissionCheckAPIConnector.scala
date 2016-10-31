@@ -18,6 +18,7 @@ package connectors
 
 import config.WSHttp
 import models.SubmissionCheckResponse
+import services.CorporationTaxRegistrationService
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http._
 
@@ -26,16 +27,22 @@ import scala.concurrent.Future
 object SubmissionCheckAPIConnector extends SubmissionCheckAPIConnector with ServicesConfig {
   override val proxyUrl = baseUrl("company-registration-frontend")
   override val http = WSHttp
+  override val cTRegistrationService = CorporationTaxRegistrationService
 }
 
 trait SubmissionCheckAPIConnector {
 
+  val cTRegistrationService : CorporationTaxRegistrationService
   val proxyUrl: String
   val http: HttpGet with HttpPost
 
+  def triggerSubmissionCheck(implicit hc: HeaderCarrier) = {
+    cTRegistrationService.checkAndProcessSubmission
+  }
+
   def checkSubmission(timepoint: Option[String] = None)(implicit hc: HeaderCarrier): Future[SubmissionCheckResponse] = {
     val tp = timepoint match {
-      case Some(t) => "?request=" + t
+      case Some(t) => "?timepoint=" + t
       case _ => ""
     }
     http.GET[SubmissionCheckResponse](s"$proxyUrl/company-registration/internal/check-submission" + tp)
