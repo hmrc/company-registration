@@ -40,6 +40,8 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
   val mockBusinessRegistrationConnector = mock[BusinessRegistrationConnector]
   val mockHeldSubmissionRepository = mock[HeldSubmissionMongoRepository]
 
+  val dateTime = DateTime.parse("2016-10-27T16:28:59.000")
+
 	class Setup {
 		val service = new CorporationTaxRegistrationService {
 			override val corporationTaxRegistrationRepository = mockCTDataRepository
@@ -48,6 +50,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
 			override val microserviceAuthConnector = mockAuthConnector
 			override val brConnector = mockBusinessRegistrationConnector
       override val heldSubmissionRepository = mockHeldSubmissionRepository
+      val currentDateTime = dateTime
 		}
 	}
 
@@ -86,7 +89,6 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
     val registrationId = "testRegId"
     val ackRef = "testAckRef"
     val timestamp = "2016-10-27T17:06:23.000Z"
-    val dateTime = DateTime.parse("2016-10-27T17:28:59.184+01:00")
 
     val businessRegistration = BusinessRegistration(
       registrationId,
@@ -189,6 +191,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
         .thenReturn(Future.successful(heldStatus))
       when(mockCTDataRepository.removeTaxRegistrationInformation(registrationId))
         .thenReturn(Future.successful(true))
+
 
       SequenceRepositoryMocks.getNext("testSeqID", 3)
 
@@ -309,8 +312,6 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
     val sessionId = "testSessionId"
     val credId = "testCredId"
 
-    val dateTime = DateTime.parse("2016-10-27T17:28:59.184+01:00")
-
     val businessRegistration = BusinessRegistration(
       registrationId,
       dateTime.toString,
@@ -366,52 +367,71 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
   }
 
 	"Build partial DES submission" should {
-		"return a valid partial DES submission" in new Setup {
 
-			val expectedJson : String = s"""{  "acknowledgementReference" : "ackRef1",
-																			|  "registration" : {
-																			|  "metadata" : {
-																			|  "businessType" : "Limited company",
-																			|  "sessionId" : "session-123",
-																			|  "credentialId" : "cred-123",
-																			|  "formCreationTimestamp": "1970-01-01T00:00:00.000Z",
-																			|  "submissionFromAgent": false,
-																			|  "language" : "ENG",
-																			|  "completionCapacity" : "Director",
-																			|  "declareAccurateAndComplete": true
-																			|  },
-																			|  "corporationTax" : {
-																			|  "companyOfficeNumber" : "001",
-																			|  "hasCompanyTakenOverBusiness" : false,
-																			|  "companyMemberOfGroup" : false,
-																			|  "companiesHouseCompanyName" : "DG Limited",
-																			|  "returnsOnCT61" : false,
-																			|  "companyACharity" : false,
-																			|  "businessAddress" : {
-																			|                       "line1" : "1 Acacia Avenue",
-																			|                       "line2" : "Hollinswood",
-																			|                       "line3" : "Telford",
-																			|                       "line4" : "Shropshire",
-																			|                       "postcode" : "TF3 4ER",
-																			|                       "country" : "England"
-																			|                           },
-																			|  "businessContactName" : {
-																			|                           "firstName" : "Adam",
-																			|                           "middleNames" : "the",
-																			|                           "lastName" : "ant"
-																			|                           },
-																			|  "businessContactDetails" : {
-																			|                           "phoneNumber" : "0121 000 000",
-																			|                           "mobileNumber" : "0700 000 000",
-																			|                           "email" : "d@ddd.com"
-																			|                             }
-																			|                             }
-																			|  }
-																			|}""".stripMargin
+    val registrationId = "testRegId"
+    val ackRef = "testAckRef"
+    val sessionId = "testSessionId"
+    val credId = "testCredId"
+    val authority = Authority("testURI", "testOID", credId, "testUserDetailsLink")
 
+    val businessRegistration = BusinessRegistration(
+    registrationId,
+    "testTimeStamp",
+    "en",
+    "Director",
+    Links(Some("testSelfLink"))
+    )
 
-//			val result = service.buildPartialDesSubmission("12345", "ackRef1")
-      //			result shouldBe expectedJson
+    val corporationTaxRegistration = CorporationTaxRegistration(
+      OID = "testOID",
+      registrationID = registrationId,
+      formCreationTimestamp = dateTime.toString,
+      language = "en",
+      companyDetails = Some(CompanyDetails(
+        "testCompanyName",
+        CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
+        ROAddress("10", "test street", "test town", "test area", "test county", "XX1 1ZZ", "test country"),
+        PPOBAddress("10", "test street", Some("test town"), Some("test area"), Some("test county"), "XX1 1ZZ", "test country"),
+        "testJurisdiction"
+      )),
+      contactDetails = Some(ContactDetails(
+        Some("testFirstName"),
+        Some("testMiddleName"),
+        Some("testSurname"),
+        Some("0123456789"),
+        Some("0123456789"),
+        Some("test@email.co.uk")
+      ))
+    )
+
+    "return a valid partial DES submission" in new Setup {
+      implicit val hc = HeaderCarrier(sessionId = Some(SessionId("testSessionId")))
+
+      val interimDesRegistration = InterimDesRegistration(
+        ackRef,
+        Metadata(sessionId, credId, "en", dateTime, Director),
+        InterimCorporationTax(
+          corporationTaxRegistration.companyDetails.get.companyName,
+          returnsOnCT61 = false,
+          BusinessAddress("10", "test street",  Some("test town"), Some("test area"), Some("XX1 1ZZ"), Some("test country")),
+          BusinessContactName(
+            corporationTaxRegistration.contactDetails.get.contactFirstName.get,
+            corporationTaxRegistration.contactDetails.get.contactMiddleName,
+            corporationTaxRegistration.contactDetails.get.contactSurname
+          ),
+          BusinessContactDetails(Some("0123456789"), Some("0123456789"), Some("test@email.co.uk"))
+        )
+      )
+
+      when(mockBusinessRegistrationConnector.retrieveMetadata(Matchers.any(), Matchers.any()))
+        .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
+      when(mockAuthConnector.getCurrentAuthority()(Matchers.any()))
+        .thenReturn(Future.successful(Some(authority)))
+      when(mockCTDataRepository.retrieveCorporationTaxRegistration(Matchers.eq(registrationId)))
+        .thenReturn(Future.successful(Some(corporationTaxRegistration)))
+
+      val result = service.buildPartialDesSubmission(registrationId, ackRef)
+      await(result).toString shouldBe interimDesRegistration.toString
 		}
 	}
 

@@ -23,7 +23,7 @@ import config.MicroserviceAuthConnector
 import connectors.{AuthConnector, BusinessRegistrationConnector, BusinessRegistrationSuccessResponse}
 import models.des._
 import models.{RegistrationStatus, BusinessRegistration, ConfirmationReferences, CorporationTaxRegistration}
-import org.joda.time.DateTime
+import org.joda.time.{DateTimeZone, DateTime}
 import play.api.libs.json.{JsObject, Json}
 import repositories.{HeldSubmissionRepository, CorporationTaxRegistrationRepository, Repositories, SequenceRepository, StateDataRepository}
 import uk.gov.hmrc.play.http.HeaderCarrier
@@ -39,6 +39,7 @@ object CorporationTaxRegistrationService extends CorporationTaxRegistrationServi
   override val microserviceAuthConnector = AuthConnector
   override val brConnector = BusinessRegistrationConnector
   val heldSubmissionRepository = Repositories.heldSubmissionRepository
+  def currentDateTime = DateTime.now(DateTimeZone.UTC)
 }
 
 trait CorporationTaxRegistrationService {
@@ -49,12 +50,13 @@ trait CorporationTaxRegistrationService {
   val microserviceAuthConnector : AuthConnector
   val brConnector : BusinessRegistrationConnector
   val heldSubmissionRepository: HeldSubmissionRepository
+  def currentDateTime: DateTime
 
   def createCorporationTaxRegistrationRecord(OID: String, registrationId: String, language: String): Future[CorporationTaxRegistration] = {
     val record = CorporationTaxRegistration(
       OID = OID,
       registrationID = registrationId,
-      formCreationTimestamp = generateTimestamp(new DateTime()),
+      formCreationTimestamp = generateTimestamp(currentDateTime),
       language = language)
 
     corporationTaxRegistrationRepository.createCorporationTaxRegistration(record)
@@ -96,9 +98,7 @@ trait CorporationTaxRegistrationService {
 
   private[services] def generateTimestamp(timeStamp: DateTime) : String = {
     val timeStampFormat = "yyyy-MM-dd'T'HH:mm:ssXXX"
-    val UTC: TimeZone = TimeZone.getTimeZone("UTC")
     val format: SimpleDateFormat = new SimpleDateFormat(timeStampFormat)
-    format.setTimeZone(UTC)
     format.format(new Date(timeStamp.getMillis))
   }
 
@@ -110,7 +110,7 @@ trait CorporationTaxRegistrationService {
 
   def checkAndProcessSubmission = ???
 
-  def buildPartialDesSubmission(regId: String, ackRef : String)(implicit hc: HeaderCarrier) : Future[InterimDesRegistration] = {
+  private[services] def buildPartialDesSubmission(regId: String, ackRef : String)(implicit hc: HeaderCarrier) : Future[InterimDesRegistration] = {
 
     // TODO - check behaviour if session header is missing
     val sessionId = hc.headers.collect{ case ("X-Session-ID", x) => x }.head
@@ -120,7 +120,7 @@ trait CorporationTaxRegistrationService {
       brMetadata <- retrieveBRMetadata(regId)
       ctData <- retrieveCTData(regId)
     } yield {
-      buildInterimSubmission(ackRef, sessionId, credId, brMetadata, ctData, DateTime.now())
+      buildInterimSubmission(ackRef, sessionId, credId, brMetadata, ctData, currentDateTime)
     }
   }
 
