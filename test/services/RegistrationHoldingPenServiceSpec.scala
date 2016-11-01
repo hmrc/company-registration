@@ -16,12 +16,122 @@
 
 package services
 
+import connectors.IncorporationCheckAPIConnector
+import models.SubmissionDates
+import org.joda.time.DateTime
+import org.scalatest.mock.MockitoSugar
+import play.api.libs.json.{JsObject, Json}
+import repositories.StateDataRepository
 import uk.gov.hmrc.play.test.UnitSpec
 
-class RegistrationHoldingPenServiceSpec extends UnitSpec {
+class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar {
 
-  class Setup {
-
+  trait Setup {
+    val service = new RegistrationHoldingPenService{
+      val stateDataRepository = mock[StateDataRepository]
+      val incorporationCheckAPIConnector = mock[IncorporationCheckAPIConnector]
+    }
   }
+
+  val exampleDate = DateTime.parse("2012-12-12")
+  val exampleDate1 = DateTime.parse("2020-5-10")
+  val exampleDate2 = DateTime.parse("2025-6-6")
+
+  "appendDataToSubmission" should{
+    "be able to add final Json additions to the PartialSubmission" in new Setup {
+
+      val crn = "012345"
+      val dates = SubmissionDates(exampleDate,exampleDate1, exampleDate2)
+      val submission: JsObject = Json.parse(s"""{  "acknowledgementReference" : "ackRef1",
+                                     |  "registration" : {
+                                     |  "metadata" : {
+                                     |  "businessType" : "Limited company",
+                                     |  "sessionId" : "session-123",
+                                     |  "credentialId" : "cred-123",
+                                     |  "formCreationTimestamp": "1970-01-01T00:00:00.000Z",
+                                     |  "submissionFromAgent": false,
+                                     |  "language" : "ENG",
+                                     |  "completionCapacity" : "Director",
+                                     |  "declareAccurateAndComplete": true
+                                     |  },
+                                     |  "corporationTax" : {
+                                     |  "companyOfficeNumber" : "001",
+                                     |  "hasCompanyTakenOverBusiness" : false,
+                                     |  "companyMemberOfGroup" : false,
+                                     |  "companiesHouseCompanyName" : "DG Limited",
+                                     |  "returnsOnCT61" : false,
+                                     |  "companyACharity" : false,
+                                     |  "businessAddress" : {
+                                     |                       "line1" : "1 Acacia Avenue",
+                                     |                       "line2" : "Hollinswood",
+                                     |                       "line3" : "Telford",
+                                     |                       "line4" : "Shropshire",
+                                     |                       "postcode" : "TF3 4ER",
+                                     |                       "country" : "England"
+                                     |                           },
+                                     |  "businessContactName" : {
+                                     |                           "firstName" : "Adam",
+                                     |                           "middleNames" : "the",
+                                     |                           "lastName" : "ant"
+                                     |                           },
+                                     |  "businessContactDetails" : {
+                                     |                           "phoneNumber" : "0121 000 000",
+                                     |                           "mobileNumber" : "0700 000 000",
+                                     |                           "email" : "d@ddd.com"
+                                     |                             }
+                                     |                             }
+                                     |  }
+                                     |}""".stripMargin).as[JsObject]
+
+      val expected = Json.parse(s"""{  "acknowledgementReference" : "ackRef1",
+                                    |  "registration" : {
+                                    |  "metadata" : {
+                                    |  "businessType" : "Limited company",
+                                    |  "sessionId" : "session-123",
+                                    |  "credentialId" : "cred-123",
+                                    |  "formCreationTimestamp": "1970-01-01T00:00:00.000Z",
+                                    |  "submissionFromAgent": false,
+                                    |  "language" : "ENG",
+                                    |  "completionCapacity" : "Director",
+                                    |  "declareAccurateAndComplete": true
+                                    |  },
+                                    |  "corporationTax" : {
+                                    |  "companyOfficeNumber" : "001",
+                                    |  "hasCompanyTakenOverBusiness" : false,
+                                    |  "companyMemberOfGroup" : false,
+                                    |  "companiesHouseCompanyName" : "DG Limited",
+                                    |  "returnsOnCT61" : false,
+                                    |  "companyACharity" : false,
+                                    |  "businessAddress" : {
+                                    |                       "line1" : "1 Acacia Avenue",
+                                    |                       "line2" : "Hollinswood",
+                                    |                       "line3" : "Telford",
+                                    |                       "line4" : "Shropshire",
+                                    |                       "postcode" : "TF3 4ER",
+                                    |                       "country" : "England"
+                                    |                           },
+                                    |  "businessContactName" : {
+                                    |                           "firstName" : "Adam",
+                                    |                           "middleNames" : "the",
+                                    |                           "lastName" : "ant"
+                                    |                           },
+                                    |  "businessContactDetails" : {
+                                    |                           "phoneNumber" : "0121 000 000",
+                                    |                           "mobileNumber" : "0700 000 000",
+                                    |                           "email" : "d@ddd.com"
+                                    |                             },
+                                    |  "crn" : "012345",
+                                    |  "companyActiveDate": "2012-12-12",
+                                    |  "startDateOfFirstAccountingPeriod": "2020-05-10",
+                                    |  "intendedAccountsPreparationDate": "2025-06-06"
+                                    |  }
+                                    |  }
+                                    |}""".stripMargin).as[JsObject]
+
+      val result = service.appendDataToSubmission(crn, dates, submission)
+
+      result shouldBe expected
+  }
+}
 
 }

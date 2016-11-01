@@ -17,22 +17,22 @@
 package services
 
 import connectors.IncorporationCheckAPIConnector
-import models.SubmissionCheckResponse
+import models.{SubmissionCheckResponse, SubmissionDates}
+import play.api.libs.json.{JsObject, Json}
 import repositories.{Repositories, StateDataRepository}
 import uk.gov.hmrc.play.http.HeaderCarrier
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object RegistrationHoldingPenService extends RegistrationHoldingPenService {
   override val stateDataRepository = Repositories.stateDataRepository
-  override val submissionCheckAPIConnector = IncorporationCheckAPIConnector
+  override val incorporationCheckAPIConnector = IncorporationCheckAPIConnector
 }
 
 trait RegistrationHoldingPenService {
 
   val stateDataRepository: StateDataRepository
-  val submissionCheckAPIConnector: IncorporationCheckAPIConnector
+  val incorporationCheckAPIConnector: IncorporationCheckAPIConnector
 
 //  private[services] def retrieveSubmissionStatus(rID: String): Future[String] = {
 //    corporationTaxRegistrationRepository.retrieveRegistrationByTransactionID(rID) map {
@@ -40,12 +40,26 @@ trait RegistrationHoldingPenService {
 //    }
 //  }
 
+  private[services] def appendDataToSubmission(crn: String, dates: SubmissionDates, partialSubmission: JsObject) : JsObject = {
+    partialSubmission deepMerge
+      Json.obj("registration" ->
+        Json.obj("corporationTax" ->
+          Json.obj(
+            "crn" -> crn,
+            "companyActiveDate" -> dates.companyActiveDate.toString.substring(0,10),
+            "startDateOfFirstAccountingPeriod" -> dates.startDateOfFirstAccountingPeriod.toString.substring(0,10),
+            "intendedAccountsPreparationDate" -> dates.intendedAccountsPreparationDate.toString.substring(0,10)
+          )//TODO This needs to look cleaner - SubmissionDates used format yyyy-MM-dd
+        )
+      )
+  }
+
   //TODO This needs tests
-  private[services] def checkSubmission(implicit hc: HeaderCarrier) : Future[SubmissionCheckResponse] = {
-    stateDataRepository.retrieveTimePoint
-      .flatMap {
-        timepoint => submissionCheckAPIConnector.checkSubmission(timepoint)
-      }
+  private[services] def checkSubmission(implicit hc: HeaderCarrier) = {
+//    stateDataRepository.retrieveTimePoint
+//      .flatMap {
+//        timepoint => submissionCheckAPIConnector.checkSubmission(timepoint)
+//      }
   }
 
 //  //TODO This needs tests
