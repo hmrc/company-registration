@@ -17,6 +17,7 @@
 package controllers
 
 import config.WSHttp
+import controllers.test.{DesController, HttpResponse}
 import helpers.SCRSSpec
 import mocks.WSHttpMock
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterEach}

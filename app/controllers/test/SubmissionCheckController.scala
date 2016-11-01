@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package controllers
+package controllers.test
 
 import play.api.mvc.Action
 import services.RegistrationHoldingPenService
