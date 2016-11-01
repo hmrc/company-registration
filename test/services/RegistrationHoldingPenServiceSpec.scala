@@ -14,26 +14,14 @@
  * limitations under the License.
  */
 
-package controllers
+package services
 
-import play.api.mvc.Action
-import services.RegistrationHoldingPenService
-import uk.gov.hmrc.play.microservice.controller.BaseController
+import uk.gov.hmrc.play.test.UnitSpec
 
-import scala.concurrent.Future
+class RegistrationHoldingPenServiceSpec extends UnitSpec {
 
-object SubmissionCheckController extends SubmissionCheckController {
-  val service = RegistrationHoldingPenService
-}
+  class Setup {
 
-trait SubmissionCheckController extends BaseController {
-
-  val service : RegistrationHoldingPenService
-
-  def triggerSubmissionCheck = Action.async {
-    implicit request =>
-      service.checkAndProcessSubmission
-      Future.successful(Ok)
   }
 
 }

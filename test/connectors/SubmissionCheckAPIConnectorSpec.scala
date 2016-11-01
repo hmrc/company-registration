@@ -19,7 +19,7 @@ package connectors
 import java.util.UUID
 
 import mocks.WSHttpMock
-import models.SubmissionCheckResponse
+import models.{IncorpUpdate, SubmissionCheckResponse}
 import org.mockito.Matchers
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{ShouldMatchers, WordSpecLike}
@@ -45,12 +45,15 @@ class SubmissionCheckAPIConnectorSpec extends WordSpecLike with ShouldMatchers w
   }
 
   val validSubmissionResponse = SubmissionCheckResponse(
-                                  "transactionId",
-                                  "status",
-                                  "crn",
-                                  "incorpDate",
-                                  "timepoint"
-                                )
+                                  Seq(
+                                    IncorpUpdate(
+                                      "transactionId",
+                                      "status",
+                                      "crn",
+                                      "incorpDate",
+                                      100000011)
+                                  ),
+                                  "testNextLink")
 
   "checkSubmission" should {
     "return a submission status response when no timepoint is provided" in new Setup {

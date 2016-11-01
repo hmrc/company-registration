@@ -16,16 +16,37 @@
 
 package models
 
-import play.api.libs.json.Json
+import play.api.libs.json._
+import play.api.libs.json.Reads._
+import play.api.libs.functional.syntax._
 
-case class SubmissionCheckResponse (
-                                    transactionId : String,
-                                    status : String,
-                                    crn : String,
-                                    incorpDate:  String,
-                                    timepoint : String
-                                   )
+case class SubmissionCheckResponse(
+                                  items: Seq[IncorpUpdate],
+                                  nextLink: String
+                                  )
+
+case class IncorpUpdate(
+                        transactionId : String,
+                        status : String,
+                        crn : String,
+                        incorpDate:  String,
+                        timepoint : Long
+                       )
+
+
 
 object SubmissionCheckResponse {
-  implicit val formats = Json.format[SubmissionCheckResponse]
+  implicit val incorpReads : Reads[IncorpUpdate] = (
+      ( __ \ "transaction_id" ).read[String] and
+      ( __ \ "transaction_status" ).read[String] and
+      ( __ \ "company_number" ).read[String] and
+      ( __ \ "incorporated_on" ).read[String] and
+      ( __ \ "timepoint" ).read[Long]
+    )(IncorpUpdate.apply _)
+
+  implicit val reads : Reads[SubmissionCheckResponse] = (
+      ( __ \ "items" ).read[Seq[IncorpUpdate]] and
+      (__ \ "links" \ "next").read[String]
+    )(SubmissionCheckResponse.apply _)
+
 }
