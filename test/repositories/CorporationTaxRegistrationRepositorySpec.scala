@@ -46,6 +46,7 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
 	}
 
   val registrationID = "12345"
+  val txID = s"tx${registrationID}"
 
 	"createCorporationTaxRegistration" should {
 		val randomRegid = UUID.randomUUID().toString
@@ -103,6 +104,14 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
 
       val result = await(repository.retrieveCompanyDetails(registrationID))
       result shouldBe validDraftCorporationTaxRegistration.companyDetails
+    }
+
+    "fetch a document by transactionID if it exists" in {
+      val selector = BSONDocument("transactionID" -> BSONString(txID))
+      setupFindFor(repository.collection, selector, Some(validHeldCorporationTaxRegistration))
+
+      val result = await(repository.retrieveRegistrationByTransactionID(txID))
+      result shouldBe Some(validHeldCorporationTaxRegistration)
     }
 
     "return None when the record to retrieve doesn't exists" in {

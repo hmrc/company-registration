@@ -17,22 +17,22 @@
 package controllers
 
 import play.api.mvc.Action
-import services.CorporationTaxRegistrationService
+import services.{CorporationTaxRegistrationService, RegistrationHoldingPenService}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.Future
 
 object SubmissionCheckController extends SubmissionCheckController {
-  val cTRegistrationService = CorporationTaxRegistrationService
+  val service = RegistrationHoldingPenService
 }
 
 trait SubmissionCheckController extends BaseController {
 
-  val cTRegistrationService : CorporationTaxRegistrationService
+  val service : RegistrationHoldingPenService
 
   def triggerSubmissionCheck = Action.async {
     implicit request =>
-      cTRegistrationService.checkAndProcessSubmission
+      service.checkAndProcessSubmission
       Future.successful(Ok)
   }
 

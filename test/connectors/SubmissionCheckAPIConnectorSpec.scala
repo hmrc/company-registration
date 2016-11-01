@@ -37,7 +37,7 @@ class SubmissionCheckAPIConnectorSpec extends WordSpecLike with ShouldMatchers w
   implicit val hc = HeaderCarrier()
 
   trait Setup {
-    val connector = new SubmissionCheckAPIConnector {
+    val connector = new IncorporationCheckAPIConnector {
       override val proxyUrl = testProxyUrl
       override val http = mockWSHttp
       override val cTRegistrationService = mock[CorporationTaxRegistrationService]

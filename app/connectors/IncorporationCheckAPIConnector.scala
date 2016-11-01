@@ -24,21 +24,17 @@ import uk.gov.hmrc.play.http._
 
 import scala.concurrent.Future
 
-object SubmissionCheckAPIConnector extends SubmissionCheckAPIConnector with ServicesConfig {
+object IncorporationCheckAPIConnector extends IncorporationCheckAPIConnector with ServicesConfig {
   override val proxyUrl = baseUrl("company-registration-frontend")
   override val http = WSHttp
   override val cTRegistrationService = CorporationTaxRegistrationService
 }
 
-trait SubmissionCheckAPIConnector {
+trait IncorporationCheckAPIConnector {
 
   val cTRegistrationService : CorporationTaxRegistrationService
   val proxyUrl: String
   val http: HttpGet with HttpPost
-
-  def triggerSubmissionCheck(implicit hc: HeaderCarrier) = {
-    cTRegistrationService.checkAndProcessSubmission
-  }
 
   def checkSubmission(timepoint: Option[String] = None)(implicit hc: HeaderCarrier): Future[SubmissionCheckResponse] = {
     val tp = timepoint match {
@@ -47,5 +43,4 @@ trait SubmissionCheckAPIConnector {
     }
     http.GET[SubmissionCheckResponse](s"$proxyUrl/company-registration/internal/check-submission" + tp)
   }
-
 }

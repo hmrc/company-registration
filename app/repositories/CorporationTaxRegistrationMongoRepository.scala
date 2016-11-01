@@ -20,7 +20,7 @@ import auth.AuthorisationResource
 import models._
 import play.api.libs.json.{JsObject, JsValue}
 import reactivemongo.api.DB
-import reactivemongo.bson._
+import reactivemongo.bson.{BSONDocument, _}
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
 
@@ -29,7 +29,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegistration, BSONObjectID]{
   def createCorporationTaxRegistration(metadata: CorporationTaxRegistration): Future[CorporationTaxRegistration]
-  def retrieveCorporationTaxRegistration(regI: String): Future[Option[CorporationTaxRegistration]]
+  def retrieveCorporationTaxRegistration(regID: String): Future[Option[CorporationTaxRegistration]]
+  def retrieveRegistrationByTransactionID(regID: String): Future[Option[CorporationTaxRegistration]]
   def retrieveCompanyDetails(registrationID: String): Future[Option[CompanyDetails]]
   def retrieveAccountingDetails(registrationID: String): Future[Option[AccountingDetails]]
   def updateCompanyDetails(registrationID: String, companyDetails: CompanyDetails): Future[Option[CompanyDetails]]
@@ -65,7 +66,12 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
       collection.find(selector).one[CorporationTaxRegistration]
     }
 
-    override def updateCompanyDetails(registrationID: String, companyDetails: CompanyDetails): Future[Option[CompanyDetails]] = {
+    override def retrieveRegistrationByTransactionID(transactionID: String): Future[Option[CorporationTaxRegistration]] = {
+      val selector = BSONDocument("transactionID" -> BSONString(transactionID))
+      collection.find(selector).one[CorporationTaxRegistration]
+    }
+
+  override def updateCompanyDetails(registrationID: String, companyDetails: CompanyDetails): Future[Option[CompanyDetails]] = {
       retrieveCorporationTaxRegistration(registrationID).flatMap {
         case Some(data) => collection.update(registrationIDSelector(registrationID), data.copy(companyDetails = Some(companyDetails)), upsert = false)
           .map(_ => Some(companyDetails))

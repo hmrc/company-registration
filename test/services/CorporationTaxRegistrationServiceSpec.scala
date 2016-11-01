@@ -52,7 +52,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
 			override val brConnector = mockBusinessRegistrationConnector
       override val heldSubmissionRepository = mockHeldSubmissionRepository
       val currentDateTime = dateTime
-			override val submissionCheckAPIConnector = mockSubmissionCheckAPIConnector
+			override val submissionCheckAPIConnector = mockIncorporationCheckAPIConnector
 		}
 	}
 

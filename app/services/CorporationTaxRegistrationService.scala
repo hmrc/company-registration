@@ -24,7 +24,7 @@ import models.des._
 import models.{BusinessRegistration, RegistrationStatus}
 import play.api.libs.json.{JsObject, Json}
 import repositories.HeldSubmissionRepository
-import connectors.SubmissionCheckAPIConnector
+import connectors.IncorporationCheckAPIConnector
 import models.{ConfirmationReferences, CorporationTaxRegistration, SubmissionCheckResponse}
 import org.joda.time.{DateTime, DateTimeZone}
 import repositories.{CorporationTaxRegistrationRepository, Repositories, SequenceRepository, StateDataRepository}
@@ -42,7 +42,7 @@ object CorporationTaxRegistrationService extends CorporationTaxRegistrationServi
   override val brConnector = BusinessRegistrationConnector
   val heldSubmissionRepository = Repositories.heldSubmissionRepository
   def currentDateTime = DateTime.now(DateTimeZone.UTC)
-  override val submissionCheckAPIConnector = SubmissionCheckAPIConnector
+  override val submissionCheckAPIConnector = IncorporationCheckAPIConnector
 }
 
 trait CorporationTaxRegistrationService {
@@ -54,7 +54,7 @@ trait CorporationTaxRegistrationService {
   val brConnector : BusinessRegistrationConnector
   val heldSubmissionRepository: HeldSubmissionRepository
   def currentDateTime: DateTime
-  val submissionCheckAPIConnector: SubmissionCheckAPIConnector
+  val submissionCheckAPIConnector: IncorporationCheckAPIConnector
 
   def createCorporationTaxRegistrationRecord(OID: String, registrationId: String, language: String): Future[CorporationTaxRegistration] = {
     val record = CorporationTaxRegistration(
@@ -187,28 +187,5 @@ trait CorporationTaxRegistrationService {
         )
       )
     )
-  }
-
-  //TODO This needs tests
-  private def checkSubmission(implicit hc: HeaderCarrier) = {
-    stateDataRepository.retrieveTimePoint
-      .flatMap {
-        timepoint => submissionCheckAPIConnector.checkSubmission(timepoint)
-      }
-  }
-
-  private def processSubmission(submission : SubmissionCheckResponse) = {
-    //TODO This needs to check for 'Held' status
-    //TODO This should construct the full submission and send it to DES
-    //TODO This needs to delete submission from holding pen and update status to 'Submitted'
-  }
-
-  //TODO This needs tests
-  def checkAndProcessSubmission(implicit hc: HeaderCarrier) = {
-    val status = checkSubmission
-
-    status map {
-      response => processSubmission(response)
-    }
   }
 }
