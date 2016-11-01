@@ -18,11 +18,13 @@ package services
 
 import connectors.IncorporationCheckAPIConnector
 import models.{SubmissionCheckResponse, SubmissionDates}
+import org.joda.time.DateTime
 import play.api.libs.json.{JsObject, Json}
 import repositories.{Repositories, StateDataRepository}
 import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 object RegistrationHoldingPenService extends RegistrationHoldingPenService {
   override val stateDataRepository = Repositories.stateDataRepository
@@ -46,15 +48,24 @@ trait RegistrationHoldingPenService {
         Json.obj("corporationTax" ->
           Json.obj(
             "crn" -> crn,
-            "companyActiveDate" -> dates.companyActiveDate.toString.substring(0,10),
-            "startDateOfFirstAccountingPeriod" -> dates.startDateOfFirstAccountingPeriod.toString.substring(0,10),
-            "intendedAccountsPreparationDate" -> dates.intendedAccountsPreparationDate.toString.substring(0,10)
-          )//TODO This needs to look cleaner - SubmissionDates used format yyyy-MM-dd
+            "companyActiveDate" -> formatDate(dates.companyActiveDate),
+            "startDateOfFirstAccountingPeriod" -> formatDate(dates.startDateOfFirstAccountingPeriod),
+            "intendedAccountsPreparationDate" -> formatDate(dates.intendedAccountsPreparationDate)
+          )
         )
       )
   }
 
-  //TODO This needs tests
+  private[services] def fetchSubmission(implicit hc: HeaderCarrier) = {
+    for {
+      timepoint <- stateDataRepository.retrieveTimePoint
+      submission <- incorporationCheckAPIConnector.checkSubmission(timepoint)
+    } yield {
+      submission
+    }
+  }
+
+  //TODO This needs tests - use fetchSubmission to retrieve the submission
   private[services] def checkSubmission(implicit hc: HeaderCarrier) = {
 //    stateDataRepository.retrieveTimePoint
 //      .flatMap {
@@ -77,5 +88,9 @@ trait RegistrationHoldingPenService {
 //    status map {
 //      response => processSubmission(response)
 //    }
+  }
+
+  private[services] def formatDate(date: DateTime): String = {
+    date.toString("yyyy-MM-dd")
   }
 }
