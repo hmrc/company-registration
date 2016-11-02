@@ -52,7 +52,7 @@ class SubmissionCheckResponseSpec extends UnitSpec {
            |    {"company_number" : "99999999",        "transaction_status" : "accepted",
            |     "transaction_type" : "incorporation", "company_profile_link" : "http://api.companieshouse.gov.uk/company/99999999",
            |     "transaction_id" : "0987654322",      "incorporated_on" : "2016-08-10",
-           |     "timepoint": 123456787
+           |     "timepoint": "123456787"
            |    }
            |  ],
            |  "links": {
@@ -61,7 +61,7 @@ class SubmissionCheckResponseSpec extends UnitSpec {
            |}
        """.stripMargin
 
-      val testIncorpUpdate = IncorpUpdate("0987654322", "accepted", "99999999", "2016-08-10", 123456787)
+      val testIncorpUpdate = IncorpUpdate("0987654322", "accepted", "99999999", "2016-08-10", "123456787")
       val testModel1 = SubmissionCheckResponse(Seq(testIncorpUpdate), "https://ewf.companieshouse.gov.uk/submissions?timepoint=123456789")
 
       Json.fromJson[SubmissionCheckResponse](Json.parse(json1)).get shouldBe testModel1
@@ -78,12 +78,12 @@ class SubmissionCheckResponseSpec extends UnitSpec {
            |    {"company_number" : "99999999",        "transaction_status" : "accepted",
            |     "transaction_type" : "incorporation", "company_profile_link" : "http://api.companieshouse.gov.uk/company/99999999",
            |     "transaction_id" : "0987654322",      "incorporated_on" : "2016-08-10",
-           |     "timepoint": 123456787
+           |     "timepoint": "123456787"
            |    },
            |    {"company_number" : "99999998",        "transaction_status" : "accepted",
            |     "transaction_type" : "incorporation", "company_profile_link" : "http://api.companieshouse.gov.uk/company/99999998",
            |     "transaction_id" : "0987654321",      "incorporated_on" : "2016-08-10",
-           |     "timepoint": 123456789
+           |     "timepoint": "123456789"
            |    }
            |  ],
            |  "links": {
@@ -92,8 +92,8 @@ class SubmissionCheckResponseSpec extends UnitSpec {
            |}
        """.stripMargin
 
-      val testIncorpUpdate = IncorpUpdate("0987654322", "accepted", "99999999", "2016-08-10", 123456787)
-      val testIncorpUpdate2 = IncorpUpdate("0987654321","accepted", "99999998", "2016-08-10", 123456789)
+      val testIncorpUpdate = IncorpUpdate("0987654322", "accepted", "99999999", "2016-08-10", "123456787")
+      val testIncorpUpdate2 = IncorpUpdate("0987654321","accepted", "99999998", "2016-08-10", "123456789")
 
       val testModel1 = SubmissionCheckResponse(
         Seq(testIncorpUpdate,testIncorpUpdate2),

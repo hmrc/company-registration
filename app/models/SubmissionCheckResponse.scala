@@ -30,7 +30,7 @@ case class IncorpUpdate(
                         status : String,
                         crn : String,
                         incorpDate:  String,
-                        timepoint : Long
+                        timepoint : String
                        )
 
 
@@ -41,7 +41,7 @@ object SubmissionCheckResponse {
       ( __ \ "transaction_status" ).read[String] and
       ( __ \ "company_number" ).read[String] and
       ( __ \ "incorporated_on" ).read[String] and
-      ( __ \ "timepoint" ).read[Long]
+      ( __ \ "timepoint" ).read[String]
     )(IncorpUpdate.apply _)
 
   implicit val reads : Reads[SubmissionCheckResponse] = (

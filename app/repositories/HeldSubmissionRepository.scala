@@ -48,6 +48,8 @@ object HeldSubmissionData {
 
 trait HeldSubmissionRepository extends Repository[HeldSubmissionData, BSONObjectID]{
   def storePartialSubmission(regId: String, ackRef:String, partialSubmission: JsObject): Future[Option[HeldSubmissionData]]
+  def retrieveSubmissionByRegId(regId: String): Future[Option[HeldSubmission]]
+  def retrieveSubmissionByAckRef(ackRef: String): Future[Option[HeldSubmission]]
 }
 
 class HeldSubmissionMongoRepository(implicit mongo: () => DB)

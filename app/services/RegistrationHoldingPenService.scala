@@ -17,24 +17,31 @@
 package services
 
 import connectors.IncorporationCheckAPIConnector
-import models.{SubmissionCheckResponse, SubmissionDates}
+import models.{CorporationTaxRegistration, SubmissionDates}
 import org.joda.time.DateTime
 import play.api.libs.json.{JsObject, Json}
-import repositories.{Repositories, StateDataRepository}
+import repositories._
 import uk.gov.hmrc.play.http.HeaderCarrier
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scala.util.control.NoStackTrace
 
 object RegistrationHoldingPenService extends RegistrationHoldingPenService {
   override val stateDataRepository = Repositories.stateDataRepository
+  override val ctRepository = Repositories.cTRepository
   override val incorporationCheckAPIConnector = IncorporationCheckAPIConnector
+  override val heldRepo = Repositories.heldSubmissionRepository
+  override val accountingService = AccountingDetailsService
 }
 
 trait RegistrationHoldingPenService {
 
   val stateDataRepository: StateDataRepository
   val incorporationCheckAPIConnector: IncorporationCheckAPIConnector
+  val ctRepository : CorporationTaxRegistrationRepository
+  val heldRepo : HeldSubmissionRepository
+  val accountingService : AccountingDetailsService
 
 //  private[services] def retrieveSubmissionStatus(rID: String): Future[String] = {
 //    corporationTaxRegistrationRepository.retrieveRegistrationByTransactionID(rID) map {
@@ -56,38 +63,59 @@ trait RegistrationHoldingPenService {
       )
   }
 
-  private[services] def fetchSubmission(implicit hc: HeaderCarrier) = {
+  private[services] def fetchIncorpUpdate(implicit hc: HeaderCarrier) = {
     for {
       timepoint <- stateDataRepository.retrieveTimePoint
       submission <- incorporationCheckAPIConnector.checkSubmission(timepoint)
     } yield {
-      submission
+      submission.items.head
     }
   }
 
-  //TODO This needs tests - use fetchSubmission to retrieve the submission
-  private[services] def checkSubmission(implicit hc: HeaderCarrier) = {
-//    stateDataRepository.retrieveTimePoint
-//      .flatMap {
-//        timepoint => submissionCheckAPIConnector.checkSubmission(timepoint)
-//      }
+  private[services] class FailedToRetrieveByTxId  extends NoStackTrace
+
+  private[services] def fetchRegistrationByTxId(transId : String): Future[CorporationTaxRegistration] = {
+    ctRepository.retrieveRegistrationByTransactionID(transId) flatMap {
+      case Some(s) => Future.successful(s)
+      case None => Future.failed(new FailedToRetrieveByTxId)
+    }
   }
 
-//  //TODO This needs tests
-//  private[services] def processSubmission(submission : SubmissionCheckResponse) = {
-//    retrieveSubmissionStatus(submission.transactionId)
+  private[services] class FailedToRetrieveByAckRef extends NoStackTrace
+
+  private[services] def fetchHeldData(ackRef : String) = {
+    heldRepo.retrieveSubmissionByAckRef(ackRef) flatMap {
+      case Some(held) => Future.successful(held)
+      case None => Future.failed(new FailedToRetrieveByAckRef)
+    }
+  }
+
+  private[services] def updateSubmission(implicit hc: HeaderCarrier): Future[JsObject] = {
+    fetchIncorpUpdate map {
+      item => fetchRegistrationByTxId(item.transactionId) map {
+        i => {
+          val refs = i.confirmationReferences
+//          appendDataToSubmission(
+//            item.crn,
+//            //TODO Need a function to generate values for calculateSubmissionDates from stored data
+//            accountingService.calculateSubmissionDates(DateTime.parse(item.incorpDate), i.accountingDetails, i.accountsPreparation),
+//            fetchHeldData(refs.getOrElse("acknowledgementReference"))
 //
-//    //TODO This should construct the full submission and send it to DES
-//    //TODO This needs to delete submission from holding pen and update status to 'Submitted'
-//  }
+//          )
 
-  //TODO This needs tests
+        }
+      }
+    }
+    ???
+  }
+
   def checkAndProcessSubmission(implicit hc: HeaderCarrier) = {
-    val status = checkSubmission
+    val heldData : JsObject = ???
+    val incorporationStatus = fetchIncorpUpdate
 
-//    status map {
-//      response => processSubmission(response)
-//    }
+    incorporationStatus map {
+      response => appendDataToSubmission("", ???, heldData)
+    }
   }
 
   private[services] def formatDate(date: DateTime): String = {

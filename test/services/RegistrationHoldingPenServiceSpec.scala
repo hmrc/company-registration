@@ -16,34 +16,145 @@
 
 package services
 
+import java.util.UUID
+
 import connectors.IncorporationCheckAPIConnector
+import fixtures.CorporationTaxRegistrationFixture
 import models.{IncorpUpdate, SubmissionCheckResponse, SubmissionDates}
 import org.joda.time.DateTime
 import org.mockito.Matchers
 import org.scalatest.mock.MockitoSugar
 import play.api.libs.json.{JsObject, Json}
-import repositories.StateDataRepository
+import repositories.{CorporationTaxRegistrationRepository, HeldSubmission, HeldSubmissionRepository, StateDataRepository}
 import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
 import org.mockito.Mockito._
 
 import scala.concurrent.Future
 
-class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar {
+class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with CorporationTaxRegistrationFixture {
 
   val mockStateDataRepository = mock[StateDataRepository]
   val mockIncorporationCheckAPIConnector = mock[IncorporationCheckAPIConnector]
+  val mockctRepository = mock[CorporationTaxRegistrationRepository]
+  val mockheldRepo = mock[HeldSubmissionRepository]
 
   trait Setup {
-    val service = new RegistrationHoldingPenService{
+    val service = new RegistrationHoldingPenService {
       val stateDataRepository = mockStateDataRepository
       val incorporationCheckAPIConnector = mockIncorporationCheckAPIConnector
+      val ctRepository = mockctRepository
+      val heldRepo = mockheldRepo
+      val accountingService = AccountingDetailsService
     }
   }
+  val validCR = validHeldCorporationTaxRegistration
+
+  val timepoint = "123456789"
+  val testAckRef = UUID.randomUUID.toString
+  val testRegId = UUID.randomUUID.toString
+  val validHeld = HeldSubmission(testRegId, testAckRef, Json.obj("x" -> "y"))
+  val transId = UUID.randomUUID().toString
+  val submissionCheckResponse = SubmissionCheckResponse(
+    Seq(
+      IncorpUpdate(
+        "transactionId",
+        "status",
+        "crn",
+        "incorpDate",
+        "100000011")
+    ),
+    "testNextLink")
 
   val exampleDate = DateTime.parse("2012-12-12")
   val exampleDate1 = DateTime.parse("2020-5-10")
   val exampleDate2 = DateTime.parse("2025-6-6")
+
+  val submission: JsObject = Json.parse(s"""{  "acknowledgementReference" : "ackRef1",
+                                            |  "registration" : {
+                                            |  "metadata" : {
+                                            |  "businessType" : "Limited company",
+                                            |  "sessionId" : "session-123",
+                                            |  "credentialId" : "cred-123",
+                                            |  "formCreationTimestamp": "1970-01-01T00:00:00.000Z",
+                                            |  "submissionFromAgent": false,
+                                            |  "language" : "ENG",
+                                            |  "completionCapacity" : "Director",
+                                            |  "declareAccurateAndComplete": true
+                                            |  },
+                                            |  "corporationTax" : {
+                                            |  "companyOfficeNumber" : "001",
+                                            |  "hasCompanyTakenOverBusiness" : false,
+                                            |  "companyMemberOfGroup" : false,
+                                            |  "companiesHouseCompanyName" : "DG Limited",
+                                            |  "returnsOnCT61" : false,
+                                            |  "companyACharity" : false,
+                                            |  "businessAddress" : {
+                                            |                       "line1" : "1 Acacia Avenue",
+                                            |                       "line2" : "Hollinswood",
+                                            |                       "line3" : "Telford",
+                                            |                       "line4" : "Shropshire",
+                                            |                       "postcode" : "TF3 4ER",
+                                            |                       "country" : "England"
+                                            |                           },
+                                            |  "businessContactName" : {
+                                            |                           "firstName" : "Adam",
+                                            |                           "middleNames" : "the",
+                                            |                           "lastName" : "ant"
+                                            |                           },
+                                            |  "businessContactDetails" : {
+                                            |                           "phoneNumber" : "0121 000 000",
+                                            |                           "mobileNumber" : "0700 000 000",
+                                            |                           "email" : "d@ddd.com"
+                                            |                             }
+                                            |                             }
+                                            |  }
+                                            |}""".stripMargin).as[JsObject]
+
+  val validDesSubmission = Json.parse(s"""{  "acknowledgementReference" : "ackRef1",
+                                          |  "registration" : {
+                                          |  "metadata" : {
+                                          |  "businessType" : "Limited company",
+                                          |  "sessionId" : "session-123",
+                                          |  "credentialId" : "cred-123",
+                                          |  "formCreationTimestamp": "1970-01-01T00:00:00.000Z",
+                                          |  "submissionFromAgent": false,
+                                          |  "language" : "ENG",
+                                          |  "completionCapacity" : "Director",
+                                          |  "declareAccurateAndComplete": true
+                                          |  },
+                                          |  "corporationTax" : {
+                                          |  "companyOfficeNumber" : "001",
+                                          |  "hasCompanyTakenOverBusiness" : false,
+                                          |  "companyMemberOfGroup" : false,
+                                          |  "companiesHouseCompanyName" : "DG Limited",
+                                          |  "returnsOnCT61" : false,
+                                          |  "companyACharity" : false,
+                                          |  "businessAddress" : {
+                                          |                       "line1" : "1 Acacia Avenue",
+                                          |                       "line2" : "Hollinswood",
+                                          |                       "line3" : "Telford",
+                                          |                       "line4" : "Shropshire",
+                                          |                       "postcode" : "TF3 4ER",
+                                          |                       "country" : "England"
+                                          |                           },
+                                          |  "businessContactName" : {
+                                          |                           "firstName" : "Adam",
+                                          |                           "middleNames" : "the",
+                                          |                           "lastName" : "ant"
+                                          |                           },
+                                          |  "businessContactDetails" : {
+                                          |                           "phoneNumber" : "0121 000 000",
+                                          |                           "mobileNumber" : "0700 000 000",
+                                          |                           "email" : "d@ddd.com"
+                                          |                             },
+                                          |  "crn" : "012345",
+                                          |  "companyActiveDate": "2012-12-12",
+                                          |  "startDateOfFirstAccountingPeriod": "2020-05-10",
+                                          |  "intendedAccountsPreparationDate": "2025-06-06"
+                                          |  }
+                                          |  }
+                                          |}""".stripMargin).as[JsObject]
 
   "appendDataToSubmission" should {
 
@@ -51,121 +162,25 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar {
 
       val crn = "012345"
       val dates = SubmissionDates(exampleDate, exampleDate1, exampleDate2)
-      val submission: JsObject = Json.parse(s"""{  "acknowledgementReference" : "ackRef1",
-                                     |  "registration" : {
-                                     |  "metadata" : {
-                                     |  "businessType" : "Limited company",
-                                     |  "sessionId" : "session-123",
-                                     |  "credentialId" : "cred-123",
-                                     |  "formCreationTimestamp": "1970-01-01T00:00:00.000Z",
-                                     |  "submissionFromAgent": false,
-                                     |  "language" : "ENG",
-                                     |  "completionCapacity" : "Director",
-                                     |  "declareAccurateAndComplete": true
-                                     |  },
-                                     |  "corporationTax" : {
-                                     |  "companyOfficeNumber" : "001",
-                                     |  "hasCompanyTakenOverBusiness" : false,
-                                     |  "companyMemberOfGroup" : false,
-                                     |  "companiesHouseCompanyName" : "DG Limited",
-                                     |  "returnsOnCT61" : false,
-                                     |  "companyACharity" : false,
-                                     |  "businessAddress" : {
-                                     |                       "line1" : "1 Acacia Avenue",
-                                     |                       "line2" : "Hollinswood",
-                                     |                       "line3" : "Telford",
-                                     |                       "line4" : "Shropshire",
-                                     |                       "postcode" : "TF3 4ER",
-                                     |                       "country" : "England"
-                                     |                           },
-                                     |  "businessContactName" : {
-                                     |                           "firstName" : "Adam",
-                                     |                           "middleNames" : "the",
-                                     |                           "lastName" : "ant"
-                                     |                           },
-                                     |  "businessContactDetails" : {
-                                     |                           "phoneNumber" : "0121 000 000",
-                                     |                           "mobileNumber" : "0700 000 000",
-                                     |                           "email" : "d@ddd.com"
-                                     |                             }
-                                     |                             }
-                                     |  }
-                                     |}""".stripMargin).as[JsObject]
-
-      val expected = Json.parse(s"""{  "acknowledgementReference" : "ackRef1",
-                                    |  "registration" : {
-                                    |  "metadata" : {
-                                    |  "businessType" : "Limited company",
-                                    |  "sessionId" : "session-123",
-                                    |  "credentialId" : "cred-123",
-                                    |  "formCreationTimestamp": "1970-01-01T00:00:00.000Z",
-                                    |  "submissionFromAgent": false,
-                                    |  "language" : "ENG",
-                                    |  "completionCapacity" : "Director",
-                                    |  "declareAccurateAndComplete": true
-                                    |  },
-                                    |  "corporationTax" : {
-                                    |  "companyOfficeNumber" : "001",
-                                    |  "hasCompanyTakenOverBusiness" : false,
-                                    |  "companyMemberOfGroup" : false,
-                                    |  "companiesHouseCompanyName" : "DG Limited",
-                                    |  "returnsOnCT61" : false,
-                                    |  "companyACharity" : false,
-                                    |  "businessAddress" : {
-                                    |                       "line1" : "1 Acacia Avenue",
-                                    |                       "line2" : "Hollinswood",
-                                    |                       "line3" : "Telford",
-                                    |                       "line4" : "Shropshire",
-                                    |                       "postcode" : "TF3 4ER",
-                                    |                       "country" : "England"
-                                    |                           },
-                                    |  "businessContactName" : {
-                                    |                           "firstName" : "Adam",
-                                    |                           "middleNames" : "the",
-                                    |                           "lastName" : "ant"
-                                    |                           },
-                                    |  "businessContactDetails" : {
-                                    |                           "phoneNumber" : "0121 000 000",
-                                    |                           "mobileNumber" : "0700 000 000",
-                                    |                           "email" : "d@ddd.com"
-                                    |                             },
-                                    |  "crn" : "012345",
-                                    |  "companyActiveDate": "2012-12-12",
-                                    |  "startDateOfFirstAccountingPeriod": "2020-05-10",
-                                    |  "intendedAccountsPreparationDate": "2025-06-06"
-                                    |  }
-                                    |  }
-                                    |}""".stripMargin).as[JsObject]
 
       val result = service.appendDataToSubmission(crn, dates, submission)
 
-      result shouldBe expected
+      result shouldBe validDesSubmission
     }
   }
 
   "checkSubmission" should {
 
-    val timepoint = "123456789"
-
     implicit val hc = HeaderCarrier()
 
-    val submissionCheckResponse = SubmissionCheckResponse(
-      Seq(
-        IncorpUpdate(
-          "transactionId",
-          "status",
-          "crn",
-          "incorpDate",
-          100000011)
-      ),
-      "testNextLink")
+
 
     "return a submission if a timepoint was retrieved successfully" in new Setup {
       when(mockStateDataRepository.retrieveTimePoint).thenReturn(Future.successful(Some(timepoint)))
       when(mockIncorporationCheckAPIConnector.checkSubmission(Matchers.eq(Some(timepoint)))(Matchers.any()))
         .thenReturn(Future.successful(submissionCheckResponse))
 
-      await(service.fetchSubmission) shouldBe submissionCheckResponse
+      await(service.fetchIncorpUpdate) shouldBe submissionCheckResponse.items
     }
 
     "return a submission if a timepoint was not retrieved" in new Setup {
@@ -173,7 +188,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar {
       when(mockIncorporationCheckAPIConnector.checkSubmission(Matchers.eq(None))(Matchers.any()))
         .thenReturn(Future.successful(submissionCheckResponse))
 
-      await(service.fetchSubmission) shouldBe submissionCheckResponse
+      await(service.fetchIncorpUpdate) shouldBe submissionCheckResponse.items
     }
   }
 
@@ -184,4 +199,56 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar {
       service.formatDate(date) shouldBe "1970-01-01"
     }
   }
+
+  "fetchHeldData" should {
+    import RegistrationHoldingPenService.FailedToRetrieveByAckRef
+
+    "return a valid Held record found" in new Setup {
+      when(mockheldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
+        .thenReturn(Future.successful(Some(validHeld)))
+
+      val result = service.fetchHeldData(testAckRef)
+      await(result) shouldBe validHeld
+    }
+    "return a FailedToRetrieveByTxId when a record cannot be retrieved" in new Setup {
+      when(mockheldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
+        .thenReturn(Future.successful(None))
+
+      val result = service.fetchHeldData(testAckRef)
+      intercept[FailedToRetrieveByAckRef](await(result))
+    }
+  }
+
+  "fetchRegistrationByTxIds" should {
+    import RegistrationHoldingPenService.FailedToRetrieveByTxId
+
+    "return a CorporationTaxRegistration document when one is found by Transaction ID" in new Setup{
+      when(mockctRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
+        .thenReturn(Future.successful(Some(validCR)))
+
+      await(service.fetchRegistrationByTxId(transId)) shouldBe validCR
+
+    }
+    "return a FailedToRetrieveByTxId when one is not found" in new Setup {
+      when(mockctRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
+        .thenReturn(Future.successful(None))
+
+      intercept[FailedToRetrieveByTxId](await(service.fetchRegistrationByTxId(transId)))
+    }
+  }
+
+  "doStuff" should {
+    "do stuff" in {
+      when(mockStateDataRepository.retrieveTimePoint).thenReturn(Future.successful(Some(timepoint)))
+      when(mockIncorporationCheckAPIConnector.checkSubmission(Matchers.eq(Some(timepoint)))(Matchers.any()))
+        .thenReturn(Future.successful(submissionCheckResponse))
+      when(mockheldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
+        .thenReturn(Future.successful(Some(validHeld)))
+      when(mockctRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
+        .thenReturn(Future.successful(Some(validCR)))
+
+      await(service.doStuff) shouldBe validDesSubmission
+    }
+  }
+
 }

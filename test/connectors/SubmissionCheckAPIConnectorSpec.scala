@@ -53,7 +53,7 @@ class SubmissionCheckAPIConnectorSpec extends UnitSpec with MockitoSugar with Wi
                                       "status",
                                       "crn",
                                       "incorpDate",
-                                      100000011)
+                                      "100000011")
                                   ),
                                   "testNextLink")
 
