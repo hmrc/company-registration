@@ -17,12 +17,22 @@
 package connectors
 
 import config.WSHttp
-import play.api.libs.json.{JsObject, JsValue, Writes}
+import play.api.Logger
+import play.api.http.Status._
+import play.api.libs.json.{JsObject, Writes}
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.play.http.logging.Authorization
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.concurrent.Future
+
+sealed trait Response
+case object SuccessResponse extends Response
+case object NotFoundResponse extends Response
+case object ConflictResponse extends Response
+case object InvalidRequest extends Response
+
 
 trait DesConnector extends ServicesConfig with RawResponseReads {
 
@@ -35,8 +45,25 @@ trait DesConnector extends ServicesConfig with RawResponseReads {
 
   val http: HttpGet with HttpPost with HttpPut = WSHttp
 
-  def ctSubmission(submission: JsObject)(implicit headerCarrier: HeaderCarrier): Future[HttpResponse] = {
-    cPOST(s"""${serviceURL}${baseURI}${ctRegistrationURI}""", submission)
+  def ctSubmission(ackRef:String, submission: JsObject)(implicit headerCarrier: HeaderCarrier): Future[Response] = {
+    val response = cPOST(s"""${serviceURL}${baseURI}${ctRegistrationURI}""", submission)
+    response map { r =>
+      r.status match {
+        case OK => SuccessResponse
+        case ACCEPTED => SuccessResponse
+        case CONFLICT => {
+          Logger.warn(s"ETMP reported a duplicate submission for ack ref ${ackRef}")
+          SuccessResponse
+        }
+        case NOT_FOUND => NotFoundResponse
+        case BAD_REQUEST => {
+          val message = (r.json \ "reason").toString
+          Logger.warn(s"ETMP reported an error with the request ${message}")
+          InvalidRequest
+        }
+        case _ => InvalidRequest // TODO SCRS-2298
+      }
+    }
   }
 
 

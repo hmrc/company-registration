@@ -72,10 +72,10 @@ class DesConnectorSpec extends UnitSpec with OneServerPerSuite with MockitoSugar
       when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
         thenReturn(Future.successful(HttpResponse(200, responseJson = Some(Json.obj()))))
 
-      val result = await(connector.ctSubmission(submission))
+      val result = await(connector.ctSubmission("",submission))
 
-      result.status shouldBe 200
-      result.json shouldBe Json.obj()
+      result shouldBe SuccessResponse
+
     }
   }
 }

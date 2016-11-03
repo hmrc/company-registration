@@ -22,6 +22,7 @@ import org.joda.time.DateTime
 import play.api.libs.json.{JsObject, Json}
 import repositories._
 import uk.gov.hmrc.play.http.HeaderCarrier
+import play.api.http.Status._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -60,7 +61,7 @@ trait RegistrationHoldingPenService {
       timepoint <- stateDataRepository.retrieveTimePoint
       submission <- incorporationCheckAPIConnector.checkSubmission(timepoint)
     } yield {
-      submission.items.head
+      submission.items.head //TODO SCRS-2298 This needs to return the full sequence, for now it returns the first only
     }
   }
 
@@ -128,28 +129,51 @@ trait RegistrationHoldingPenService {
 
   def updateNextSubmissionByTimepoint(implicit hc: HeaderCarrier): Future[JsObject] = {
     fetchIncorpUpdate flatMap { item =>
-      fetchRegistrationByTxId(item.transactionId) flatMap {
-        ctReg => ctReg.status match {
-          case "held" =>
-            for {
-              heldData <- fetchHeldData(getAckRef(ctReg))
+      fetchRegistrationByTxId(item.transactionId) flatMap { ctReg =>
+          import RegistrationStatus.{HELD,SUBMITTED,DRAFT}
+          val ackRef = getAckRef(ctReg)
+          ctReg.status match {
+          case HELD =>
+            val submission = for {
+              heldData <- fetchHeldData(ackRef)
               dates <- calculateDates(item, ctReg.accountingDetails, ctReg.accountsPreparation)
             } yield {
               appendDataToSubmission(item.crn, dates, heldData.submission)
             }
-          case "submitted" => Future.successful(Json.obj())
-          case "draft" => Future.successful(Json.obj())
-          case _ => Future.successful(Json.obj())
+
+            submission map { s =>
+              postSubmissionToDes(ackRef.get, s) //TODO SCRS-2298 .get!!!
+              // TODO SCRS-2298 - deal with response
+            }
+
+            submission
+          case SUBMITTED => Future.successful(Json.obj()) // TODO SCRS-2298
+          case _ => { ??? // TODO SCRS-2298
+//            Logger.error("WTF!")
+//            Future.failed(xxx)
+          }
         }
       }
     }
   }
 
-  private[services] def postSubmissionToDes(submission: JsObject)(implicit hc: HeaderCarrier) = {
-    desConnector.ctSubmission(submission)
+  private[services] def postSubmissionToDes(ackRef: String, submission: JsObject)(implicit hc: HeaderCarrier) = {
+    desConnector.ctSubmission(ackRef, submission)
   }
 
   private[services] def formatDate(date: DateTime): String = {
     date.toString("yyyy-MM-dd")
   }
+
+//  def checkAndProcessSubmission(implicit hc: HeaderCarrier) = {
+//    for {
+//      submission <- updateNextSubmissionByTimepoint
+//      response <- postSubmissionToDes(submission)
+//    } yield {
+//      response.status match {
+//        case ACCEPTED => ???
+//        case _ => ???
+//      }
+//    }
+//  }
 }
