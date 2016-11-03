@@ -18,7 +18,7 @@ package services
 
 import java.util.UUID
 
-import connectors.{DesConnector, IncorporationCheckAPIConnector}
+import connectors.{DesConnector, IncorporationCheckAPIConnector, InvalidDesRequest, SuccessDesResponse}
 import fixtures.CorporationTaxRegistrationFixture
 import models.{IncorpUpdate, SubmissionCheckResponse, SubmissionDates}
 import org.joda.time.DateTime
@@ -209,14 +209,14 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockheldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
         .thenReturn(Future.successful(Some(validHeld)))
 
-      val result = service.fetchHeldData(Some(testAckRef))
+      val result = service.fetchHeldData(testAckRef)
       await(result) shouldBe validHeld
     }
     "return a FailedToRetrieveByTxId when a record cannot be retrieved" in new Setup {
       when(mockheldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
         .thenReturn(Future.successful(None))
 
-      val result = service.fetchHeldData(Some(testAckRef))
+      val result = service.fetchHeldData(testAckRef)
       intercept[FailedToRetrieveByAckRef](await(result))
     }
   }
@@ -258,7 +258,33 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockAccountService.calculateSubmissionDates(Matchers.any(), Matchers.any(), Matchers.any()))
         .thenReturn(SubmissionDates(date(2012,12,12), date(2020,5,10), date(2025,6,6)))
 
+      when(mockDesConnector.ctSubmission(Matchers.any(), Matchers.any())(Matchers.any()))
+        .thenReturn(Future.successful(SuccessDesResponse))
+
       await(service.updateNextSubmissionByTimepoint) shouldBe validDesSubmission
+    }
+
+    "fail if DES states invalid" in new Setup {
+      when(mockStateDataRepository.retrieveTimePoint).thenReturn(Future.successful(Some(timepoint)))
+
+      when(mockIncorporationCheckAPIConnector.checkSubmission(Matchers.eq(Some(timepoint)))(Matchers.any()))
+        .thenReturn(Future.successful(submissionCheckResponse))
+
+      when(mockctRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
+        .thenReturn(Future.successful(Some(validCR)))
+
+      when(mockheldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
+        .thenReturn(Future.successful(Some(validHeld)))
+
+      when(mockAccountService.calculateSubmissionDates(Matchers.any(), Matchers.any(), Matchers.any()))
+        .thenReturn(SubmissionDates(date(2012,12,12), date(2020,5,10), date(2025,6,6)))
+
+      when(mockDesConnector.ctSubmission(Matchers.any(), Matchers.any())(Matchers.any()))
+        .thenReturn(Future.successful(InvalidDesRequest("wibble")))
+
+      intercept[InvalidSubmission] {
+        await(service.updateNextSubmissionByTimepoint)
+      }.message should endWith ("""- reason "wibble" """)
     }
   }
 

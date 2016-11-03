@@ -64,18 +64,45 @@ class DesConnectorSpec extends UnitSpec with OneServerPerSuite with MockitoSugar
   }
 
   "DesConnector" should {
-    "for a successful submission, return ..." in new Setup {
-      val submission = Json.obj("x" -> "y")
+    val submission = Json.obj("x" -> "y")
+    implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
 
-      implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
-
+    "for a successful submission, return success" in new Setup {
       when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
         thenReturn(Future.successful(HttpResponse(200, responseJson = Some(Json.obj()))))
 
       val result = await(connector.ctSubmission("",submission))
 
-      result shouldBe SuccessResponse
-
+      result shouldBe SuccessDesResponse
     }
+
+    "for accepted submission, return success" in new Setup {
+      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
+        thenReturn(Future.successful(HttpResponse(202, responseJson = Some(Json.obj()))))
+
+      val result = await(connector.ctSubmission("",submission))
+
+      result shouldBe SuccessDesResponse
+    }
+
+    "for a conflicted submission, return success" in new Setup {
+      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
+        thenReturn(Future.successful(HttpResponse(409, responseJson = Some(Json.obj()))))
+
+      val result = await(connector.ctSubmission("",submission))
+
+      result shouldBe SuccessDesResponse
+    }
+
+    "for an invalid request, return the reason" in new Setup {
+      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
+        thenReturn(Future.successful(HttpResponse(400, responseJson = Some(Json.obj("reason" -> "wibble")))))
+
+      val result = await(connector.ctSubmission("",submission))
+
+      result shouldBe InvalidDesRequest("wibble")
+    }
+
+
   }
 }

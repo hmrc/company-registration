@@ -27,11 +27,10 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.concurrent.Future
 
-sealed trait Response
-case object SuccessResponse extends Response
-case object NotFoundResponse extends Response
-case object ConflictResponse extends Response
-case object InvalidRequest extends Response
+sealed trait DesResponse
+case object SuccessDesResponse extends DesResponse
+case object NotFoundDesResponse extends DesResponse
+case class InvalidDesRequest(message: String) extends DesResponse
 
 
 trait DesConnector extends ServicesConfig with RawResponseReads {
@@ -45,23 +44,23 @@ trait DesConnector extends ServicesConfig with RawResponseReads {
 
   val http: HttpGet with HttpPost with HttpPut = WSHttp
 
-  def ctSubmission(ackRef:String, submission: JsObject)(implicit headerCarrier: HeaderCarrier): Future[Response] = {
+  def ctSubmission(ackRef:String, submission: JsObject)(implicit headerCarrier: HeaderCarrier): Future[DesResponse] = {
     val response = cPOST(s"""${serviceURL}${baseURI}${ctRegistrationURI}""", submission)
     response map { r =>
       r.status match {
-        case OK => SuccessResponse
-        case ACCEPTED => SuccessResponse
+        case OK => SuccessDesResponse
+        case ACCEPTED => SuccessDesResponse
         case CONFLICT => {
           Logger.warn(s"ETMP reported a duplicate submission for ack ref ${ackRef}")
-          SuccessResponse
+          SuccessDesResponse
         }
-        case NOT_FOUND => NotFoundResponse
+        case NOT_FOUND => NotFoundDesResponse
         case BAD_REQUEST => {
-          val message = (r.json \ "reason").toString
+          val message = (r.json \ "reason").as[String]
           Logger.warn(s"ETMP reported an error with the request ${message}")
-          InvalidRequest
+          InvalidDesRequest(message)
         }
-        case _ => InvalidRequest // TODO SCRS-2298
+        case _ => InvalidDesRequest("EEK!") // TODO SCRS-2298
       }
     }
   }

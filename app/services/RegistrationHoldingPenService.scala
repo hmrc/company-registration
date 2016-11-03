@@ -16,9 +16,10 @@
 
 package services
 
-import connectors.{DesConnector, IncorporationCheckAPIConnector}
+import connectors._
 import models._
 import org.joda.time.DateTime
+import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import repositories._
 import uk.gov.hmrc.play.http.HeaderCarrier
@@ -36,6 +37,8 @@ object RegistrationHoldingPenService extends RegistrationHoldingPenService {
   override val heldRepo = Repositories.heldSubmissionRepository
   override val accountingService = AccountingDetailsService
 }
+
+private[services] class InvalidSubmission(val message: String) extends NoStackTrace
 
 trait RegistrationHoldingPenService {
 
@@ -85,14 +88,10 @@ trait RegistrationHoldingPenService {
   private[services] class FailedToRetrieveByAckRef extends NoStackTrace
   private[services] class MissingAckRef extends NoStackTrace
 
-  private[services] def fetchHeldData(someAckRef : Option[String]) = {
-    someAckRef match {
-      case Some(ackRef) =>
-        heldRepo.retrieveSubmissionByAckRef(ackRef) flatMap {
-          case Some(held) => Future.successful(held)
-          case None => Future.failed(new FailedToRetrieveByAckRef)
-        }
-      case None => Future.failed(new MissingAckRef)
+  private[services] def fetchHeldData(ackRef: String) = {
+    heldRepo.retrieveSubmissionByAckRef(ackRef) flatMap {
+      case Some(held) => Future.successful(held)
+      case None => Future.failed(new FailedToRetrieveByAckRef)
     }
   }
 
@@ -130,23 +129,37 @@ trait RegistrationHoldingPenService {
   def updateNextSubmissionByTimepoint(implicit hc: HeaderCarrier): Future[JsObject] = {
     fetchIncorpUpdate flatMap { item =>
       fetchRegistrationByTxId(item.transactionId) flatMap { ctReg =>
-          import RegistrationStatus.{HELD,SUBMITTED,DRAFT}
-          val ackRef = getAckRef(ctReg)
-          ctReg.status match {
+        import RegistrationStatus.{HELD,SUBMITTED,DRAFT}
+        ctReg.status match {
           case HELD =>
-            val submission = for {
-              heldData <- fetchHeldData(ackRef)
-              dates <- calculateDates(item, ctReg.accountingDetails, ctReg.accountsPreparation)
-            } yield {
-              appendDataToSubmission(item.crn, dates, heldData.submission)
-            }
+            getAckRef(ctReg) match {
+              case Some(ackRef) => {
+                val submission = for {
+                  heldData <- fetchHeldData(ackRef)
+                  dates <- calculateDates(item, ctReg.accountingDetails, ctReg.accountsPreparation)
+                } yield {
+                  appendDataToSubmission(item.crn, dates, heldData.submission)
+                }
 
-            submission map { s =>
-              postSubmissionToDes(ackRef.get, s) //TODO SCRS-2298 .get!!!
-              // TODO SCRS-2298 - deal with response
+                submission flatMap { s =>
+                  postSubmissionToDes(ackRef, s) flatMap {
+                    // TODO SCRS-2298 - deal with response
+                    case SuccessDesResponse => {Future.successful(s)}
+                    case InvalidDesRequest(message) => {
+                      val errMsg = s"""Invalid request sent to DES for ack ref ${ackRef} - reason "${message}" """
+                      Logger.error(errMsg)
+                      Future.failed(new InvalidSubmission(errMsg))
+                    }
+                    case NotFoundDesResponse => {
+                      val errMsg = s"""Request sent to DES for ack ref ${ackRef} not found" """
+                      Logger.error(errMsg)
+                      Future.failed(new InvalidSubmission(errMsg))
+                    }
+                  }
+                }
+              }
+              case None => Future.failed(new MissingAckRef)
             }
-
-            submission
           case SUBMITTED => Future.successful(Json.obj()) // TODO SCRS-2298
           case _ => { ??? // TODO SCRS-2298
 //            Logger.error("WTF!")
