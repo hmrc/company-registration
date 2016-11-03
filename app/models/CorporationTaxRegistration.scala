@@ -181,7 +181,15 @@ object PrepareAccountModel {
     Reads[DateTime](js => js.validate[String].map(DateTime.parse(_, DateTimeFormat.forPattern("yyyy-MM-dd"))))
   }
 
-  implicit val writes = Json.writes[PrepareAccountModel]
+  val dateWrites: Writes[DateTime] = new Writes[DateTime] {
+    def writes(d: DateTime): JsValue = JsString(d.toString("yyyy-MM-dd"))
+  }
+
+  implicit val writes: Writes[PrepareAccountModel] = (
+    (__ \ "businessEndDateChoice").write[String] and
+    (__ \ "businessEndDate").writeNullable[DateTime](dateWrites)
+    )(unlift(PrepareAccountModel.unapply))
+
   implicit val reads: Reads[PrepareAccountModel] = (
     (__ \ "businessEndDateChoice").read[String] and
     (__ \ "businessEndDate").readNullable[DateTime](dateReads)
