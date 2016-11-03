@@ -17,7 +17,8 @@
 package services
 
 import helpers.SCRSSpec
-import models.{AccountsPreparationDate, PrepareAccountModel}
+import models.PrepareAccountModel
+import org.joda.time.DateTime
 import org.mockito.Matchers
 import org.mockito.Mockito._
 
@@ -35,12 +36,11 @@ class PrepareAccountServiceSpec extends SCRSSpec {
 
     val rID = "testRegID"
 
-    val prepareAccountModel = PrepareAccountModel("HMRCEndDate", Some("2010"), Some("12"), Some("12"))
-    val accountPrepModel = AccountsPreparationDate("HMRCEndDate", Some("2010/12/12"))
+    val prepareAccountModel = PrepareAccountModel("HMRCEndDate", Some(DateTime.parse("1980-12-12")))
 
     "return a PrepareAccountModel on successful update" in new Setup {
       when(mockCTDataRepository.updateCompanyEndDate(Matchers.eq(rID), Matchers.any()))
-        .thenReturn(Future.successful(Some(accountPrepModel)))
+        .thenReturn(Future.successful(Some(prepareAccountModel)))
 
       val result = prepareAccountService.updateEndDate(rID, prepareAccountModel)
       await(result) shouldBe Some(prepareAccountModel)

@@ -42,7 +42,7 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def updateConfirmationReferences(registrationID: String, confirmationReferences: ConfirmationReferences) : Future[Option[ConfirmationReferences]]
   def retrieveContactDetails(registrationID: String): Future[Option[ContactDetails]]
   def retrieveAcknowledgementRef(registrationID: String): Future[Option[String]]
-  def updateCompanyEndDate(registrationID: String, model: AccountsPreparationDate): Future[Option[AccountsPreparationDate]]
+  def updateCompanyEndDate(registrationID: String, model: PrepareAccountModel): Future[Option[PrepareAccountModel]]
   def updateSubmissionStatus(registrationID: String, status: String): Future[String]
   def removeTaxRegistrationInformation(registrationId: String): Future[Boolean]
 }
@@ -171,10 +171,10 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
       }
     }
   }
-  override def updateCompanyEndDate(registrationID: String, model: AccountsPreparationDate): Future[Option[AccountsPreparationDate]] = {
+  override def updateCompanyEndDate(registrationID: String, model: PrepareAccountModel): Future[Option[PrepareAccountModel]] = {
     retrieveCorporationTaxRegistration(registrationID) flatMap {
       case Some(ct) =>
-        collection.update(registrationIDSelector(registrationID), ct.copy(accountsPreparation = Some(model)), upsert = false)
+        collection.update(registrationIDSelector(registrationID), ct.copy(accountsPreparation = Some(model.toMongoModel)), upsert = false)
           .map(_=>Some(model))
         case None => Future.successful(None)
     }

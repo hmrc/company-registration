@@ -16,6 +16,8 @@
 
 package models
 
+import org.joda.time.DateTime
+import org.joda.time.format.DateTimeFormat
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import scala.language.implicitConversions
@@ -36,7 +38,7 @@ case class CorporationTaxRegistration(OID: String,
                                       accountingDetails: Option[AccountingDetails] = None,
                                       tradingDetails: Option[TradingDetails] = None,
                                       contactDetails: Option[ContactDetails] = None,
-                                      accountsPreparation: Option[AccountsPreparationDate] = None
+                                      accountsPreparation: Option[PrepareAccountMongoModel] = None
                                      )
 
 object CorporationTaxRegistration {
@@ -48,7 +50,7 @@ object CorporationTaxRegistration {
   implicit val formatAccountingDetails = Json.format[AccountingDetails]
   implicit val formatContactDetails = Json.format[ContactDetails]
   implicit val formatConfirmationReferences = Json.format[ConfirmationReferences]
-  implicit val formatAccountsPrepDate = Json.format[AccountsPreparationDate]
+  implicit val formatAccountsPrepDate = Json.format[PrepareAccountMongoModel]
   implicit val formats = Json.format[CorporationTaxRegistration]
 }
 
@@ -155,47 +157,43 @@ object TradingDetails {
   implicit val format = Json.format[TradingDetails]
 }
 
-case class AccountsPreparationDate (businessEndDate : String,
-                             accountsPrepDate: Option[String])
+case class PrepareAccountMongoModel(businessEndDateChoice : String,
+                                    businessEndDate : Option[String])
 
-object AccountsPreparationDate {
-  implicit val formats = Json.format[AccountsPreparationDate]
-  def toPrepareAccountModel(model:AccountsPreparationDate):PrepareAccountModel= {
-    model.accountsPrepDate match {
-      case Some(date) =>
-        val splitDate = date.split("/")
-        PrepareAccountModel(
-        model.businessEndDate,
-        Some(splitDate(0)),
-        Some(splitDate(1)),
-        Some(splitDate(2))
-      )
-      case None =>
-        PrepareAccountModel(
-        model.businessEndDate,
-        None,
-        None,
-        None
-      )
-    }
-
-  }
-
+object PrepareAccountMongoModel {
+  implicit val formats = Json.format[PrepareAccountMongoModel]
 }
 
-case class PrepareAccountModel (businessEndDate : String,
-                                businessEndDateyear :Option[String],
-                                businessEndDatemonth :Option[String],
-                                businessEndDateday :Option[String]
-                               )
+case class PrepareAccountModel(businessEndDateChoice : String,
+                               businessEndDate : Option[DateTime]){
+
+  def toMongoModel : PrepareAccountMongoModel = {
+    PrepareAccountMongoModel(
+      businessEndDateChoice,
+      businessEndDate.fold[Option[String]](None)(date => Some(date.toString("yyyy-MM-dd")))
+    )
+  }
+}
 
 object PrepareAccountModel {
-  def empty = PrepareAccountModel("", None, None, None)
-  implicit val formats = Json.format[PrepareAccountModel]
-  def toAccountsPrepDate(model:PrepareAccountModel):AccountsPreparationDate = {
-    val date: Option[String] = if (model.businessEndDateyear.isDefined && model.businessEndDatemonth.isDefined && model.businessEndDateday.isDefined){
-      Some(s"${model.businessEndDateyear.get}/${model.businessEndDatemonth.get}/${model.businessEndDateday.get}")
-    } else { None }
-    AccountsPreparationDate(model.businessEndDate, date)
+
+  val dateReads: Reads[DateTime] = {
+    Reads[DateTime](js => js.validate[String].map(DateTime.parse(_, DateTimeFormat.forPattern("yyyy-MM-dd"))))
   }
+
+  val dateWrites: Writes[DateTime] = new Writes[DateTime] {
+    def writes(d: DateTime): JsValue = JsString(d.toString("yyyy-MM-dd"))
+  }
+
+  implicit val writes: Writes[PrepareAccountModel] = (
+    (__ \ "businessEndDateChoice").write[String] and
+    (__ \ "businessEndDate").writeNullable[DateTime](dateWrites)
+    )(unlift(PrepareAccountModel.unapply))
+
+  implicit val reads: Reads[PrepareAccountModel] = (
+    (__ \ "businessEndDateChoice").read[String] and
+    (__ \ "businessEndDate").readNullable[DateTime](dateReads)
+    )(PrepareAccountModel.apply _)
+
+  def empty = PrepareAccountModel("", None)
 }

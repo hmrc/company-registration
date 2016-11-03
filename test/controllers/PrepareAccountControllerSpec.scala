@@ -19,6 +19,7 @@ package controllers
 import connectors.{AuthConnector, Authority}
 import helpers.SCRSSpec
 import models.PrepareAccountModel
+import org.joda.time.DateTime
 import org.mockito.Matchers
 import org.mockito.Mockito._
 import play.api.libs.json.{Json, JsValue}
@@ -63,7 +64,7 @@ class PrepareAccountControllerSpec extends SCRSSpec {
 
     lazy val validAuthority = Authority("test.url", oID, "testGatewayId", "test.userDetailsLink")
 
-    val prepareAccountModel = PrepareAccountModel("HMRCEndDate", Some("2010"), Some("12"), Some("12"))
+    val prepareAccountModel = PrepareAccountModel("HMRCEndDate", Some(DateTime.parse("1980-12-12")))
 
     "return a 200 http response and a PrepareAccountModel as json" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
