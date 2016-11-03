@@ -57,14 +57,14 @@ class DesControllerSpec extends SCRSSpec with WSHttpMock with WithFakeApplicatio
   "submit" should {
 
     "return a 202 status" in new Setup {
-      val response = HttpResponse(202, "Response message")
+      val response = HttpResp(202, "Response message")
       val request = FakeRequest().withJsonBody(Json.toJson("{}"))
       mockHttpPOST(controller.desUrl, response)
       status(call(controller.submit, request)) shouldBe ACCEPTED
     }
 
     "return a 400 status" in new Setup {
-      val response = HttpResponse(400, "Response message")
+      val response = HttpResp(400, "Response message")
       val request = FakeRequest().withJsonBody(Json.toJson("{}"))
       mockHttpPOST(controller.desUrl, response)
       status(call(controller.submit, request)) shouldBe BAD_REQUEST

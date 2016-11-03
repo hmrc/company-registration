@@ -18,9 +18,7 @@ package controllers
 
 import auth._
 import connectors.AuthConnector
-import models.PrepareAccountModel
-import org.joda.time.DateTime
-import org.joda.time.format.DateTimeFormat
+import models.{HttpResponse, PrepareAccountModel}
 import play.api.Logger
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Action
@@ -50,7 +48,7 @@ trait PrepareAccountController extends BaseController with Authenticated with Au
               Ok(Json.toJson(res))
             case None =>
               Logger.error(s"[PrepareAccountController] [updateCompanyEndDate] Company preparation date for user: $registrationID not found")
-              NotFound
+              NotFound(Json.toJson(HttpResponse(NOT_FOUND, "An existing Corporation Tax Registration record was not found")))
           }
          }
        case NotLoggedInOrAuthorised =>

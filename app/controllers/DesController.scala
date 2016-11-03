@@ -32,10 +32,10 @@ object DesController extends DesController with ServicesConfig {
   val http = WSHttp
 }
 
-case class HttpResponse(status: Int, msg: String)
+case class HttpResp(status: Int, msg: String)
 
-object HttpResponse {
-  implicit val format = Json.format[HttpResponse]
+object HttpResp {
+  implicit val format = Json.format[HttpResp]
 }
 
 trait DesController extends BaseController {
@@ -45,7 +45,7 @@ trait DesController extends BaseController {
 
   val submit = Action.async(parse.json) { implicit request =>
     withJsonBody[JsValue] {
-      json => http.POST[JsValue, HttpResponse](desUrl, json).map{
+      json => http.POST[JsValue, HttpResp](desUrl, json).map{
         res => res.status match {
           case ACCEPTED => Accepted
           case BAD_REQUEST => BadRequest
