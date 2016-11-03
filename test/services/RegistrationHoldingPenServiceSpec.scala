@@ -18,7 +18,7 @@ package services
 
 import java.util.UUID
 
-import connectors.IncorporationCheckAPIConnector
+import connectors.{DesConnector, IncorporationCheckAPIConnector}
 import fixtures.CorporationTaxRegistrationFixture
 import models.{IncorpUpdate, SubmissionCheckResponse, SubmissionDates}
 import org.joda.time.DateTime
@@ -39,6 +39,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
   val mockctRepository = mock[CorporationTaxRegistrationRepository]
   val mockheldRepo = mock[HeldSubmissionRepository]
   val mockAccountService = mock[AccountingDetailsService]
+  val mockDesConnector = mock[DesConnector]
 
   trait Setup {
     val service = new RegistrationHoldingPenService {
@@ -47,6 +48,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       val ctRepository = mockctRepository
       val heldRepo = mockheldRepo
       val accountingService = mockAccountService
+      val desConnector = mockDesConnector
     }
   }
   val timepoint = "123456789"
@@ -256,7 +258,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockAccountService.calculateSubmissionDates(Matchers.any(), Matchers.any(), Matchers.any()))
         .thenReturn(SubmissionDates(date(2012,12,12), date(2020,5,10), date(2025,6,6)))
 
-      await(service.updateSubmission) shouldBe validDesSubmission
+      await(service.updateNextSubmissionByTimepoint) shouldBe validDesSubmission
     }
   }
 

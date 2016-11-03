@@ -16,7 +16,7 @@
 
 package services
 
-import connectors.IncorporationCheckAPIConnector
+import connectors.{DesConnector, IncorporationCheckAPIConnector}
 import models._
 import org.joda.time.DateTime
 import play.api.libs.json.{JsObject, Json}
@@ -28,6 +28,7 @@ import scala.concurrent.Future
 import scala.util.control.NoStackTrace
 
 object RegistrationHoldingPenService extends RegistrationHoldingPenService {
+  override val desConnector = DesConnector
   override val stateDataRepository = Repositories.stateDataRepository
   override val ctRepository = Repositories.cTRepository
   override val incorporationCheckAPIConnector = IncorporationCheckAPIConnector
@@ -37,19 +38,22 @@ object RegistrationHoldingPenService extends RegistrationHoldingPenService {
 
 trait RegistrationHoldingPenService {
 
+  val desConnector : DesConnector
   val stateDataRepository: StateDataRepository
   val incorporationCheckAPIConnector: IncorporationCheckAPIConnector
   val ctRepository : CorporationTaxRegistrationRepository
   val heldRepo : HeldSubmissionRepository
   val accountingService : AccountingDetailsService
 
-//  private[services] def retrieveSubmissionStatus(rID: String): Future[String] = {
-//    corporationTaxRegistrationRepository.retrieveRegistrationByTransactionID(rID) map {
-//      case Some(reg) => reg.status
-//    }
-//  }
 
+  private def asDate(s: String): DateTime = {
+    // TODO SCRS-2298 - find the usage of this and refactor so that the repo returns a DateTime
+    DateTime.parse(s)
+  }
 
+  private def getAckRef(reg: CorporationTaxRegistration): Option[String] = {
+    reg.confirmationReferences map (_.acknowledgementReference )
+  }
 
   private[services] def fetchIncorpUpdate(implicit hc: HeaderCarrier) = {
     for {
@@ -69,66 +73,40 @@ trait RegistrationHoldingPenService {
     }
   }
 
-  private[services] class FailedToRetrieveByAckRef extends NoStackTrace
-  private[services] class MissingAckRef extends NoStackTrace
-  private[services] class MissingAccountingDates extends NoStackTrace
-
-  private[services] def fetchHeldData(someAckRef : Option[String]) = {
-    someAckRef match {
-      case Some(ackRef) => {
-        heldRepo.retrieveSubmissionByAckRef(ackRef) flatMap {
-          case Some(held) => Future.successful(held)
-          case None => Future.failed(new FailedToRetrieveByAckRef)
-        }
-      }
-      case None => Future.failed(new MissingAckRef)
-    }
-  }
-
-  private def asDate(s: String): DateTime = {
-    // TODO SCRS-2298 - find the usage of this and refactor so that the repo returns a DateTime
-    DateTime.parse(s)
-  }
-
   private[services] def activeDate(date: AccountingDetails) = {
     (date.accountingDateStatus, date.startDateOfBusiness) match {
       case (_, Some(givenDate))  => ActiveInFuture(asDate(givenDate))
-      case (status, _) if status == "whenRegistered" => ActiveOnIncorporation
+      case (status, _) if status == "WHEN_REGISTERED" => ActiveOnIncorporation
       case _ => DoNotIntendToTrade
     }
   }
 
-  private def getAckRef(reg: CorporationTaxRegistration): Option[String] = {
-    reg.confirmationReferences map (_.acknowledgementReference )
-  }
+  private[services] class FailedToRetrieveByAckRef extends NoStackTrace
+  private[services] class MissingAckRef extends NoStackTrace
 
-  private def calculateDates(item: IncorpUpdate,
-                     accountingDetails: Option[AccountingDetails],
-                     accountsPreparation: Option[AccountsPreparationDate]
-                    ): Future[SubmissionDates] = {
-
-    accountingDetails map {
-      details =>
-        val prepDate = accountsPreparation flatMap (_.accountsPrepDate map asDate)
-        accountingService.calculateSubmissionDates(item.incorpDate, activeDate(details), prepDate)
-    } match {
-      case Some(dates) => {
-        Future.successful(dates)
-      }
-      case None => Future.failed(new MissingAccountingDates)
+  private[services] def fetchHeldData(someAckRef : Option[String]) = {
+    someAckRef match {
+      case Some(ackRef) =>
+        heldRepo.retrieveSubmissionByAckRef(ackRef) flatMap {
+          case Some(held) => Future.successful(held)
+          case None => Future.failed(new FailedToRetrieveByAckRef)
+        }
+      case None => Future.failed(new MissingAckRef)
     }
   }
 
-  private[services] def updateSubmission(implicit hc: HeaderCarrier): Future[JsObject] = {
+  private[services] class MissingAccountingDates extends NoStackTrace
 
-    fetchIncorpUpdate flatMap { item =>
-        for {
-          reg <- fetchRegistrationByTxId(item.transactionId)
-          heldData <- fetchHeldData(getAckRef(reg))
-          dates <- calculateDates(item, reg.accountingDetails, reg.accountsPreparation)
-        } yield {
-          appendDataToSubmission(item.crn, dates, heldData.submission)
-        }
+  private def calculateDates(item: IncorpUpdate,
+                             accountingDetails: Option[AccountingDetails],
+                             accountsPreparation: Option[PrepareAccountMongoModel]): Future[SubmissionDates] = {
+
+    accountingDetails map { details =>
+      val prepDate = accountsPreparation flatMap (_.businessEndDate map asDate)
+      accountingService.calculateSubmissionDates(item.incorpDate, activeDate(details), prepDate)
+    } match {
+      case Some(dates) => Future.successful(dates)
+      case None => Future.failed(new MissingAccountingDates)
     }
   }
 
@@ -146,6 +124,29 @@ trait RegistrationHoldingPenService {
           )
         )
       )
+  }
+
+  def updateNextSubmissionByTimepoint(implicit hc: HeaderCarrier): Future[JsObject] = {
+    fetchIncorpUpdate flatMap { item =>
+      fetchRegistrationByTxId(item.transactionId) flatMap {
+        ctReg => ctReg.status match {
+          case "held" =>
+            for {
+              heldData <- fetchHeldData(getAckRef(ctReg))
+              dates <- calculateDates(item, ctReg.accountingDetails, ctReg.accountsPreparation)
+            } yield {
+              appendDataToSubmission(item.crn, dates, heldData.submission)
+            }
+          case "submitted" => Future.successful(Json.obj())
+          case "draft" => Future.successful(Json.obj())
+          case _ => Future.successful(Json.obj())
+        }
+      }
+    }
+  }
+
+  private[services] def postSubmissionToDes(submission: JsObject)(implicit hc: HeaderCarrier) = {
+    desConnector.ctSubmission(submission)
   }
 
   private[services] def formatDate(date: DateTime): String = {
