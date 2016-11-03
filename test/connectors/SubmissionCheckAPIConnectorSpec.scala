@@ -20,6 +20,7 @@ import java.util.UUID
 
 import mocks.WSHttpMock
 import models.{IncorpUpdate, SubmissionCheckResponse}
+import org.joda.time.DateTime
 import org.mockito.{ArgumentCaptor, Matchers}
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{ShouldMatchers, WordSpecLike}
@@ -52,7 +53,7 @@ class SubmissionCheckAPIConnectorSpec extends UnitSpec with MockitoSugar with Wi
                                       "transactionId",
                                       "status",
                                       "crn",
-                                      "incorpDate",
+                                      new DateTime(2016, 8, 10, 0, 0),
                                       "100000011")
                                   ),
                                   "testNextLink")

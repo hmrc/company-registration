@@ -17,7 +17,7 @@
 package services
 
 import connectors.IncorporationCheckAPIConnector
-import models.{CorporationTaxRegistration, SubmissionDates}
+import models._
 import org.joda.time.DateTime
 import play.api.libs.json.{JsObject, Json}
 import repositories._
@@ -49,19 +49,7 @@ trait RegistrationHoldingPenService {
 //    }
 //  }
 
-  private[services] def appendDataToSubmission(crn: String, dates: SubmissionDates, partialSubmission: JsObject) : JsObject = {
-    partialSubmission deepMerge
-      Json.obj("registration" ->
-        Json.obj("corporationTax" ->
-          Json.obj(
-            "crn" -> crn,
-            "companyActiveDate" -> formatDate(dates.companyActiveDate),
-            "startDateOfFirstAccountingPeriod" -> formatDate(dates.startDateOfFirstAccountingPeriod),
-            "intendedAccountsPreparationDate" -> formatDate(dates.intendedAccountsPreparationDate)
-          )
-        )
-      )
-  }
+
 
   private[services] def fetchIncorpUpdate(implicit hc: HeaderCarrier) = {
     for {
@@ -82,40 +70,82 @@ trait RegistrationHoldingPenService {
   }
 
   private[services] class FailedToRetrieveByAckRef extends NoStackTrace
+  private[services] class MissingAckRef extends NoStackTrace
+  private[services] class MissingAccountingDates extends NoStackTrace
 
-  private[services] def fetchHeldData(ackRef : String) = {
-    heldRepo.retrieveSubmissionByAckRef(ackRef) flatMap {
-      case Some(held) => Future.successful(held)
-      case None => Future.failed(new FailedToRetrieveByAckRef)
+  private[services] def fetchHeldData(someAckRef : Option[String]) = {
+    someAckRef match {
+      case Some(ackRef) => {
+        heldRepo.retrieveSubmissionByAckRef(ackRef) flatMap {
+          case Some(held) => Future.successful(held)
+          case None => Future.failed(new FailedToRetrieveByAckRef)
+        }
+      }
+      case None => Future.failed(new MissingAckRef)
+    }
+  }
+
+  private def asDate(s: String): DateTime = {
+    // TODO SCRS-2298 - find the usage of this and refactor so that the repo returns a DateTime
+    DateTime.parse(s)
+  }
+
+  private[services] def activeDate(date: AccountingDetails) = {
+    (date.accountingDateStatus, date.startDateOfBusiness) match {
+      case (_, Some(givenDate))  => ActiveInFuture(asDate(givenDate))
+      case (status, _) if status == "whenRegistered" => ActiveOnIncorporation
+      case _ => DoNotIntendToTrade
+    }
+  }
+
+  private def getAckRef(reg: CorporationTaxRegistration): Option[String] = {
+    reg.confirmationReferences map (_.acknowledgementReference )
+  }
+
+  private def calculateDates(item: IncorpUpdate,
+                     accountingDetails: Option[AccountingDetails],
+                     accountsPreparation: Option[AccountsPreparationDate]
+                    ): Future[SubmissionDates] = {
+
+    accountingDetails map {
+      details =>
+        val prepDate = accountsPreparation flatMap (_.accountsPrepDate map asDate)
+        accountingService.calculateSubmissionDates(item.incorpDate, activeDate(details), prepDate)
+    } match {
+      case Some(dates) => {
+        Future.successful(dates)
+      }
+      case None => Future.failed(new MissingAccountingDates)
     }
   }
 
   private[services] def updateSubmission(implicit hc: HeaderCarrier): Future[JsObject] = {
-    fetchIncorpUpdate map {
-      item => fetchRegistrationByTxId(item.transactionId) map {
-        i => {
-          val refs = i.confirmationReferences
-//          appendDataToSubmission(
-//            item.crn,
-//            //TODO Need a function to generate values for calculateSubmissionDates from stored data
-//            accountingService.calculateSubmissionDates(DateTime.parse(item.incorpDate), i.accountingDetails, i.accountsPreparation),
-//            fetchHeldData(refs.getOrElse("acknowledgementReference"))
-//
-//          )
 
+    fetchIncorpUpdate flatMap { item =>
+        for {
+          reg <- fetchRegistrationByTxId(item.transactionId)
+          heldData <- fetchHeldData(getAckRef(reg))
+          dates <- calculateDates(item, reg.accountingDetails, reg.accountsPreparation)
+        } yield {
+          appendDataToSubmission(item.crn, dates, heldData.submission)
         }
-      }
     }
-    ???
   }
 
-  def checkAndProcessSubmission(implicit hc: HeaderCarrier) = {
-    val heldData : JsObject = ???
-    val incorporationStatus = fetchIncorpUpdate
-
-    incorporationStatus map {
-      response => appendDataToSubmission("", ???, heldData)
-    }
+  private[services] def appendDataToSubmission(crn: String, dates: SubmissionDates, partialSubmission: JsObject) : JsObject = {
+    partialSubmission deepMerge
+      Json.obj("registration" ->
+        Json.obj("corporationTax" ->
+          Json.obj(
+            "crn" -> crn,
+            "companyActiveDate" ->
+              formatDate(
+                dates.companyActiveDate),
+            "startDateOfFirstAccountingPeriod" -> formatDate(dates.startDateOfFirstAccountingPeriod),
+            "intendedAccountsPreparationDate" -> formatDate(dates.intendedAccountsPreparationDate)
+          )
+        )
+      )
   }
 
   private[services] def formatDate(date: DateTime): String = {

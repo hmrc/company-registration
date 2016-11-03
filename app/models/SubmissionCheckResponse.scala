@@ -16,6 +16,8 @@
 
 package models
 
+import org.joda.time.DateTime
+import org.joda.time.format.DateTimeFormat
 import play.api.libs.json._
 import play.api.libs.json.Reads._
 import play.api.libs.functional.syntax._
@@ -29,18 +31,23 @@ case class IncorpUpdate(
                         transactionId : String,
                         status : String,
                         crn : String,
-                        incorpDate:  String,
+                        incorpDate:  DateTime,
                         timepoint : String
                        )
 
 
 
 object SubmissionCheckResponse {
+  implicit val dateReads = Reads[DateTime]( js =>
+    js.validate[String].map[DateTime](
+      DateTime.parse(_, DateTimeFormat.forPattern("yyyy-MM-dd"))
+    )
+  )
   implicit val incorpReads : Reads[IncorpUpdate] = (
       ( __ \ "transaction_id" ).read[String] and
       ( __ \ "transaction_status" ).read[String] and
       ( __ \ "company_number" ).read[String] and
-      ( __ \ "incorporated_on" ).read[String] and
+      ( __ \ "incorporated_on" ).read[DateTime](dateReads) and
       ( __ \ "timepoint" ).read[String]
     )(IncorpUpdate.apply _)
 

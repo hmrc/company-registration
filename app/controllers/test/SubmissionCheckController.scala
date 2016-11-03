@@ -32,7 +32,7 @@ trait SubmissionCheckController extends BaseController {
 
   def triggerSubmissionCheck = Action.async {
     implicit request =>
-      service.checkAndProcessSubmission
+//      service.checkAndProcessSubmission // TODO - SCRS-2298 re-enable the test endpoint
       Future.successful(Ok)
   }
 

@@ -38,6 +38,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
   val mockIncorporationCheckAPIConnector = mock[IncorporationCheckAPIConnector]
   val mockctRepository = mock[CorporationTaxRegistrationRepository]
   val mockheldRepo = mock[HeldSubmissionRepository]
+  val mockAccountService = mock[AccountingDetailsService]
 
   trait Setup {
     val service = new RegistrationHoldingPenService {
@@ -45,32 +46,29 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       val incorporationCheckAPIConnector = mockIncorporationCheckAPIConnector
       val ctRepository = mockctRepository
       val heldRepo = mockheldRepo
-      val accountingService = AccountingDetailsService
+      val accountingService = mockAccountService
     }
   }
-  val validCR = validHeldCorporationTaxRegistration
-
   val timepoint = "123456789"
   val testAckRef = UUID.randomUUID.toString
   val testRegId = UUID.randomUUID.toString
-  val validHeld = HeldSubmission(testRegId, testAckRef, Json.obj("x" -> "y"))
   val transId = UUID.randomUUID().toString
+  val validCR = validHeldCTRegWithData(Some(testAckRef))
   val submissionCheckResponse = SubmissionCheckResponse(
     Seq(
       IncorpUpdate(
-        "transactionId",
+        transId,
         "status",
-        "crn",
-        "incorpDate",
+        "012345",
+        new DateTime(2016, 8, 10, 0, 0),
         "100000011")
     ),
     "testNextLink")
-
   val exampleDate = DateTime.parse("2012-12-12")
+
   val exampleDate1 = DateTime.parse("2020-5-10")
   val exampleDate2 = DateTime.parse("2025-6-6")
-
-  val submission: JsObject = Json.parse(s"""{  "acknowledgementReference" : "ackRef1",
+  val submission: JsObject = Json.parse(s"""{  "acknowledgementReference" : "${testAckRef}",
                                             |  "registration" : {
                                             |  "metadata" : {
                                             |  "businessType" : "Limited company",
@@ -111,7 +109,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
                                             |  }
                                             |}""".stripMargin).as[JsObject]
 
-  val validDesSubmission = Json.parse(s"""{  "acknowledgementReference" : "ackRef1",
+  val validDesSubmission = Json.parse(s"""{  "acknowledgementReference" : "${testAckRef}",
                                           |  "registration" : {
                                           |  "metadata" : {
                                           |  "businessType" : "Limited company",
@@ -156,6 +154,8 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
                                           |  }
                                           |}""".stripMargin).as[JsObject]
 
+  val validHeld = HeldSubmission(testRegId, testAckRef, submission)
+
   "appendDataToSubmission" should {
 
     "be able to add final Json additions to the PartialSubmission" in new Setup {
@@ -180,7 +180,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockIncorporationCheckAPIConnector.checkSubmission(Matchers.eq(Some(timepoint)))(Matchers.any()))
         .thenReturn(Future.successful(submissionCheckResponse))
 
-      await(service.fetchIncorpUpdate) shouldBe submissionCheckResponse.items
+      Seq(await(service.fetchIncorpUpdate)) shouldBe submissionCheckResponse.items
     }
 
     "return a submission if a timepoint was not retrieved" in new Setup {
@@ -188,7 +188,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockIncorporationCheckAPIConnector.checkSubmission(Matchers.eq(None))(Matchers.any()))
         .thenReturn(Future.successful(submissionCheckResponse))
 
-      await(service.fetchIncorpUpdate) shouldBe submissionCheckResponse.items
+      Seq(await(service.fetchIncorpUpdate)) shouldBe submissionCheckResponse.items
     }
   }
 
@@ -207,14 +207,14 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockheldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
         .thenReturn(Future.successful(Some(validHeld)))
 
-      val result = service.fetchHeldData(testAckRef)
+      val result = service.fetchHeldData(Some(testAckRef))
       await(result) shouldBe validHeld
     }
     "return a FailedToRetrieveByTxId when a record cannot be retrieved" in new Setup {
       when(mockheldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
         .thenReturn(Future.successful(None))
 
-      val result = service.fetchHeldData(testAckRef)
+      val result = service.fetchHeldData(Some(testAckRef))
       intercept[FailedToRetrieveByAckRef](await(result))
     }
   }
@@ -237,17 +237,26 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
     }
   }
 
-  "doStuff" should {
-    "do stuff" in {
+  def date(year: Int, month: Int, day: Int) = new DateTime(year,month,day,0,0)
+
+  "updateSubmission" should {
+    implicit val hc = HeaderCarrier()
+    "return a valid DES ready submission" in new Setup {
       when(mockStateDataRepository.retrieveTimePoint).thenReturn(Future.successful(Some(timepoint)))
+
       when(mockIncorporationCheckAPIConnector.checkSubmission(Matchers.eq(Some(timepoint)))(Matchers.any()))
         .thenReturn(Future.successful(submissionCheckResponse))
-      when(mockheldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
-        .thenReturn(Future.successful(Some(validHeld)))
+
       when(mockctRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
         .thenReturn(Future.successful(Some(validCR)))
 
-      await(service.doStuff) shouldBe validDesSubmission
+      when(mockheldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
+        .thenReturn(Future.successful(Some(validHeld)))
+
+      when(mockAccountService.calculateSubmissionDates(Matchers.any(), Matchers.any(), Matchers.any()))
+        .thenReturn(SubmissionDates(date(2012,12,12), date(2020,5,10), date(2025,6,6)))
+
+      await(service.updateSubmission) shouldBe validDesSubmission
     }
   }
 
