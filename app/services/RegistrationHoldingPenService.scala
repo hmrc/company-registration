@@ -30,15 +30,18 @@ import scala.concurrent.Future
 import scala.util.control.NoStackTrace
 
 object RegistrationHoldingPenService extends RegistrationHoldingPenService {
+
   override val desConnector = DesConnector
   override val stateDataRepository = Repositories.stateDataRepository
   override val ctRepository = Repositories.cTRepository
   override val incorporationCheckAPIConnector = IncorporationCheckAPIConnector
   override val heldRepo = Repositories.heldSubmissionRepository
   override val accountingService = AccountingDetailsService
+
 }
 
 private[services] class InvalidSubmission(val message: String) extends NoStackTrace
+private[services] class MissingAckRef(val message: String) extends NoStackTrace
 
 trait RegistrationHoldingPenService {
 
@@ -51,7 +54,6 @@ trait RegistrationHoldingPenService {
 
   private[services] class FailedToRetrieveByTxId  extends NoStackTrace
   private[services] class FailedToRetrieveByAckRef extends NoStackTrace
-  private[services] class MissingAckRef extends NoStackTrace
   private[services] class MissingAccountingDates extends NoStackTrace
 
   def updateNextSubmissionByTimepoint(): Future[JsObject] = {
@@ -79,7 +81,7 @@ trait RegistrationHoldingPenService {
                   // TODO SCRS-2298 - deal with response
                   case SuccessDesResponse => {Future.successful(s)}
                   case InvalidDesRequest(message) => {
-                    val errMsg = s"""Invalid request sent to DES for ack ref ${ackRef} - reason "${message}" """
+                    val errMsg = s"""Invalid request sent to DES for ack ref ${ackRef} - reason "${message}"."""
                     Logger.error(errMsg)
                     Future.failed(new InvalidSubmission(errMsg))
                   }
@@ -91,7 +93,11 @@ trait RegistrationHoldingPenService {
                 }
               }
             }
-            case None => Future.failed(new MissingAckRef)
+            case None => {
+              val errMsg = s"""Held Registration doc is missing the ack ref for tx_id "${item.transactionId}"."""
+              Logger.error(errMsg)
+              Future.failed(new MissingAckRef(errMsg))
+            }
           }
         case SUBMITTED => Future.successful(Json.obj()) // TODO SCRS-2298
         case _ => { ??? // TODO SCRS-2298
@@ -133,9 +139,10 @@ trait RegistrationHoldingPenService {
   }
 
   private[services] def activeDate(date: AccountingDetails) = {
+    import AccountingDetails.WHEN_REGISTERED
     (date.accountingDateStatus, date.startDateOfBusiness) match {
       case (_, Some(givenDate))  => ActiveInFuture(asDate(givenDate))
-      case (status, _) if status == "WHEN_REGISTERED" => ActiveOnIncorporation
+      case (status, _) if status == WHEN_REGISTERED => ActiveOnIncorporation
       case _ => DoNotIntendToTrade
     }
   }
@@ -147,7 +154,7 @@ trait RegistrationHoldingPenService {
     }
   }
 
-  private def calculateDates(item: IncorpUpdate,
+  private[services] def calculateDates(item: IncorpUpdate,
   accountingDetails: Option[AccountingDetails],
   accountsPreparation: Option[PrepareAccountMongoModel]): Future[SubmissionDates] = {
 

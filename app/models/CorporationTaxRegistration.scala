@@ -84,6 +84,10 @@ object ConfirmationReferences {
 case class AccountingDetails(accountingDateStatus : String, startDateOfBusiness : Option[String])
 
 object AccountingDetails {
+  val WHEN_REGISTERED = "WHEN_REGISTERED"
+  val FUTURE_DATE = "FUTURE_DATE"
+  val NOT_PLANNING_TO_YET = "NOT_PLANNING_TO_YET"
+
   implicit val formats = Json.format[AccountingDetails]
 }
 
