@@ -49,26 +49,81 @@ trait RegistrationHoldingPenService {
   val heldRepo : HeldSubmissionRepository
   val accountingService : AccountingDetailsService
 
+  private[services] class FailedToRetrieveByTxId  extends NoStackTrace
+  private[services] class FailedToRetrieveByAckRef extends NoStackTrace
+  private[services] class MissingAckRef extends NoStackTrace
+  private[services] class MissingAccountingDates extends NoStackTrace
+
+  def updateNextSubmissionByTimepoint(): Future[JsObject] = {
+    fetchIncorpUpdate flatMap { item =>
+      updateSubmission(item)
+    }
+  }
+
+  private[services] def updateSubmission(item: IncorpUpdate): Future[JsObject] = {
+    fetchRegistrationByTxId(item.transactionId) flatMap { ctReg =>
+      import RegistrationStatus.{HELD,SUBMITTED,DRAFT}
+      ctReg.status match {
+        case HELD =>
+          getAckRef(ctReg) match {
+            case Some(ackRef) => {
+              val submission = for {
+                heldData <- fetchHeldData(ackRef)
+                dates <- calculateDates(item, ctReg.accountingDetails, ctReg.accountsPreparation)
+              } yield {
+                appendDataToSubmission(item.crn, dates, heldData.submission)
+              }
+
+              submission flatMap { s =>
+                postSubmissionToDes(ackRef, s) flatMap {
+                  // TODO SCRS-2298 - deal with response
+                  case SuccessDesResponse => {Future.successful(s)}
+                  case InvalidDesRequest(message) => {
+                    val errMsg = s"""Invalid request sent to DES for ack ref ${ackRef} - reason "${message}" """
+                    Logger.error(errMsg)
+                    Future.failed(new InvalidSubmission(errMsg))
+                  }
+                  case NotFoundDesResponse => {
+                    val errMsg = s"""Request sent to DES for ack ref ${ackRef} not found" """
+                    Logger.error(errMsg)
+                    Future.failed(new InvalidSubmission(errMsg))
+                  }
+                }
+              }
+            }
+            case None => Future.failed(new MissingAckRef)
+          }
+        case SUBMITTED => Future.successful(Json.obj()) // TODO SCRS-2298
+        case _ => { ??? // TODO SCRS-2298
+          //            Logger.error("WTF!")
+          //            Future.failed(xxx)
+        }
+      }
+    }
+  }
 
   private def asDate(s: String): DateTime = {
     // TODO SCRS-2298 - find the usage of this and refactor so that the repo returns a DateTime
     DateTime.parse(s)
   }
 
+  private[services] def formatDate(date: DateTime): String = {
+    date.toString("yyyy-MM-dd")
+  }
+
   private def getAckRef(reg: CorporationTaxRegistration): Option[String] = {
     reg.confirmationReferences map (_.acknowledgementReference )
   }
 
-  private[services] def fetchIncorpUpdate(implicit hc: HeaderCarrier) = {
+  private[services] def fetchIncorpUpdate() = {
+    val hc = new HeaderCarrier()
     for {
       timepoint <- stateDataRepository.retrieveTimePoint
-      submission <- incorporationCheckAPIConnector.checkSubmission(timepoint)
+      submission <- incorporationCheckAPIConnector.checkSubmission(timepoint)(hc)
     } yield {
       submission.items.head //TODO SCRS-2298 This needs to return the full sequence, for now it returns the first only
     }
   }
-
-  private[services] class FailedToRetrieveByTxId  extends NoStackTrace
 
   private[services] def fetchRegistrationByTxId(transId : String): Future[CorporationTaxRegistration] = {
     ctRepository.retrieveRegistrationByTransactionID(transId) flatMap {
@@ -85,9 +140,6 @@ trait RegistrationHoldingPenService {
     }
   }
 
-  private[services] class FailedToRetrieveByAckRef extends NoStackTrace
-  private[services] class MissingAckRef extends NoStackTrace
-
   private[services] def fetchHeldData(ackRef: String) = {
     heldRepo.retrieveSubmissionByAckRef(ackRef) flatMap {
       case Some(held) => Future.successful(held)
@@ -95,11 +147,9 @@ trait RegistrationHoldingPenService {
     }
   }
 
-  private[services] class MissingAccountingDates extends NoStackTrace
-
   private def calculateDates(item: IncorpUpdate,
-                             accountingDetails: Option[AccountingDetails],
-                             accountsPreparation: Option[PrepareAccountMongoModel]): Future[SubmissionDates] = {
+  accountingDetails: Option[AccountingDetails],
+  accountsPreparation: Option[PrepareAccountMongoModel]): Future[SubmissionDates] = {
 
     accountingDetails map { details =>
       val prepDate = accountsPreparation flatMap (_.businessEndDate map asDate)
@@ -126,67 +176,8 @@ trait RegistrationHoldingPenService {
       )
   }
 
-  def updateNextSubmissionByTimepoint(implicit hc: HeaderCarrier): Future[JsObject] = {
-    fetchIncorpUpdate flatMap { item =>
-      fetchRegistrationByTxId(item.transactionId) flatMap { ctReg =>
-        import RegistrationStatus.{HELD,SUBMITTED,DRAFT}
-        ctReg.status match {
-          case HELD =>
-            getAckRef(ctReg) match {
-              case Some(ackRef) => {
-                val submission = for {
-                  heldData <- fetchHeldData(ackRef)
-                  dates <- calculateDates(item, ctReg.accountingDetails, ctReg.accountsPreparation)
-                } yield {
-                  appendDataToSubmission(item.crn, dates, heldData.submission)
-                }
-
-                submission flatMap { s =>
-                  postSubmissionToDes(ackRef, s) flatMap {
-                    // TODO SCRS-2298 - deal with response
-                    case SuccessDesResponse => {Future.successful(s)}
-                    case InvalidDesRequest(message) => {
-                      val errMsg = s"""Invalid request sent to DES for ack ref ${ackRef} - reason "${message}" """
-                      Logger.error(errMsg)
-                      Future.failed(new InvalidSubmission(errMsg))
-                    }
-                    case NotFoundDesResponse => {
-                      val errMsg = s"""Request sent to DES for ack ref ${ackRef} not found" """
-                      Logger.error(errMsg)
-                      Future.failed(new InvalidSubmission(errMsg))
-                    }
-                  }
-                }
-              }
-              case None => Future.failed(new MissingAckRef)
-            }
-          case SUBMITTED => Future.successful(Json.obj()) // TODO SCRS-2298
-          case _ => { ??? // TODO SCRS-2298
-//            Logger.error("WTF!")
-//            Future.failed(xxx)
-          }
-        }
-      }
-    }
+  private[services] def postSubmissionToDes(ackRef: String, submission: JsObject) = {
+    val hc = new HeaderCarrier()
+    desConnector.ctSubmission(ackRef, submission)(hc)
   }
-
-  private[services] def postSubmissionToDes(ackRef: String, submission: JsObject)(implicit hc: HeaderCarrier) = {
-    desConnector.ctSubmission(ackRef, submission)
-  }
-
-  private[services] def formatDate(date: DateTime): String = {
-    date.toString("yyyy-MM-dd")
-  }
-
-//  def checkAndProcessSubmission(implicit hc: HeaderCarrier) = {
-//    for {
-//      submission <- updateNextSubmissionByTimepoint
-//      response <- postSubmissionToDes(submission)
-//    } yield {
-//      response.status match {
-//        case ACCEPTED => ???
-//        case _ => ???
-//      }
-//    }
-//  }
 }
