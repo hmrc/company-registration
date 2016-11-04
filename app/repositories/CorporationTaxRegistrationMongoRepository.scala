@@ -63,7 +63,7 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
     Index(
       key = Seq("confirmationReferences.acknowledgementReference" -> IndexType.Ascending),
       name = Some("AckRefIndex"),
-      unique = true,
+      unique = false,
       sparse = false
     )
   )
