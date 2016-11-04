@@ -18,7 +18,7 @@ package controllers
 
 import auth._
 import connectors.AuthConnector
-import models.{ConfirmationReferences, CorporationTaxRegistrationRequest}
+import models.{AcknowledgementReferences, ConfirmationReferences, CorporationTaxRegistrationRequest}
 import play.api.Logger
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Action
@@ -139,6 +139,17 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
           Logger.info(s"[CorporationTaxRegistrationController] [retrieveConfirmationReference] User logged in but not authorised for resource $registrationID")
           Future.successful(Forbidden)
         case AuthResourceNotFound(_) => Future.successful(NotFound)
+      }
+  }
+
+  def acknowledgementConfirmation(ackRef : String) = Action.async[JsValue](parse.json) {
+    implicit request =>
+      withJsonBody[AcknowledgementReferences] {
+        ackRefsPayload =>
+          ctService.updateCTRecordWithAckRefs(ackRef, ackRefsPayload) map {
+            case Some(record) => Ok
+            case None => NotFound
+          }
       }
   }
 }

@@ -16,17 +16,20 @@
 
 package repositories
 
+import models.RegistrationStatus._
 import models._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import reactivemongo.api.commands.WriteResult
+import uk.gov.hmrc.domain.CtUtr
 import uk.gov.hmrc.mongo.MongoSpecSupport
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class CorporationTaxRegistrationMongoRepositoryISpec extends UnitSpec with MongoSpecSupport with BeforeAndAfterEach with ScalaFutures with Eventually with WithFakeApplication {
+class CorporationTaxRegistrationMongoRepositoryISpec
+  extends UnitSpec with MongoSpecSupport with BeforeAndAfterEach with ScalaFutures with Eventually with WithFakeApplication {
 
 	class Setup {
 		val repository = new CorporationTaxRegistrationMongoRepository()
@@ -86,6 +89,78 @@ class CorporationTaxRegistrationMongoRepositoryISpec extends UnitSpec with Mongo
 
       val response = repository.removeTaxRegistrationInformation(registrationId)
       await(response) shouldBe true
+    }
+  }
+
+  "updateCTRecordWithAcknowledgments" should {
+
+    val ackRef = "BRCT12345678910"
+
+    val validConfirmationReferences = ConfirmationReferences(
+      acknowledgementReference = "BRCT12345678910",
+      transactionId = "TX1",
+      paymentReference = "PY1",
+      paymentAmount = "12.00"
+    )
+
+    val validAckRefs = AcknowledgementReferences(
+      ctUtr = "CTUTR123456789",
+      timestamp = "856412556487",
+      status = "success"
+    )
+
+    val validHeldCorporationTaxRegistration = CorporationTaxRegistration(
+      OID = "9876543210",
+      registrationID = "0123456789",
+      status = HELD,
+      formCreationTimestamp = "2001-12-31T12:00:00Z",
+      language = "en",
+      acknowledgementReferences = Some(validAckRefs),
+      confirmationReferences = Some(validConfirmationReferences),
+      companyDetails = None,
+      accountingDetails = None,
+      tradingDetails = None,
+      contactDetails = None
+    )
+
+    "return a WriteResult with no errors" in new Setup {
+      val result = await(repository.updateCTRecordWithAcknowledgments(ackRef, validHeldCorporationTaxRegistration))
+      result.hasErrors shouldBe false
+    }
+  }
+
+  "getHeldCTRecord" should {
+
+    val ackRef = "BRCT12345678910"
+
+    val validConfirmationReferences = ConfirmationReferences(
+      acknowledgementReference = "BRCT12345678910",
+      transactionId = "TX1",
+      paymentReference = "PY1",
+      paymentAmount = "12.00"
+    )
+
+    val validHeldCorporationTaxRegistration = CorporationTaxRegistration(
+      OID = "9876543210",
+      registrationID = "0123456789",
+      status = HELD,
+      formCreationTimestamp = "2001-12-31T12:00:00Z",
+      language = "en",
+      acknowledgementReferences = None,
+      confirmationReferences = Some(validConfirmationReferences),
+      companyDetails = None,
+      accountingDetails = None,
+      tradingDetails = None,
+      contactDetails = None
+    )
+
+    "return an optional ct record" when {
+      "given an ack ref" in new Setup {
+        await(setupCollection(repository, validHeldCorporationTaxRegistration))
+
+        val result = await(repository.getHeldCTRecord(ackRef)).get
+        result shouldBe validHeldCorporationTaxRegistration
+      }
     }
   }
 }

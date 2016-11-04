@@ -20,6 +20,8 @@ import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
+import uk.gov.hmrc.domain.CtUtr
+
 import scala.language.implicitConversions
 
 object RegistrationStatus {
@@ -33,6 +35,7 @@ case class CorporationTaxRegistration(OID: String,
                                       status: String = RegistrationStatus.DRAFT,
                                       formCreationTimestamp: String,
                                       language: String,
+                                      acknowledgementReferences: Option[AcknowledgementReferences] = None,
                                       confirmationReferences: Option[ConfirmationReferences] = None,
                                       companyDetails: Option[CompanyDetails] = None,
                                       accountingDetails: Option[AccountingDetails] = None,
@@ -49,17 +52,26 @@ object CorporationTaxRegistration {
   implicit val formatCompanyDetails = Json.format[CompanyDetails]
   implicit val formatAccountingDetails = Json.format[AccountingDetails]
   implicit val formatContactDetails = Json.format[ContactDetails]
+  implicit val formatAck = Json.format[AcknowledgementReferences]
   implicit val formatConfirmationReferences = Json.format[ConfirmationReferences]
   implicit val formatAccountsPrepDate = Json.format[PrepareAccountMongoModel]
   implicit val formats = Json.format[CorporationTaxRegistration]
 }
 
-case class ConfirmationReferences(
-                                   acknowledgementReference: String = "",
-                                   transactionId: String,
-                                   paymentReference: String,
-                                   paymentAmount: String
-                                 )
+
+case class AcknowledgementReferences(ctUtr : String,
+                                     timestamp : String,
+                                     status : String)
+
+object AcknowledgementReferences {
+  implicit val format = Json.format[AcknowledgementReferences]
+}
+
+case class ConfirmationReferences(acknowledgementReference: String = "",
+                                  transactionId: String,
+                                  paymentReference: String,
+                                  paymentAmount: String)
+
 object ConfirmationReferences {
   implicit val format = (
       ( __ \ "acknowledgement-reference" ).format[String] and
