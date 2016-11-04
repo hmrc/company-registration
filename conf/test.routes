@@ -1,4 +1,3 @@
 GET        /modify-throttled-users/:usersIn                    controllers.test.TestEndpointController.modifyThrottledUsers(usersIn: Int)
 GET        /drop-ct                                            controllers.test.TestEndpointController.dropJourneyCollections
-POST       /des-stub                                           controllers.test.DesController.submit
 POST       /submission-check                                   controllers.test.SubmissionCheckController.triggerSubmissionCheck
