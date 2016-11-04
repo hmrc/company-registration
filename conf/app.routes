@@ -23,6 +23,4 @@ PUT        /corporation-tax-registration/:registrationID/confirmation-references
 
 PUT        /corporation-tax-registration/:registrationID/accounts-preparation-date          controllers.PrepareAccountController.updateCompanyEndDate(registrationID)
 
-POST       /corporation-tax-registration/des-stub                                           controllers.DesController.submit
-
 POST       /corporation-tax-registration/acknowledgement-references                         controllers.CorporationTaxRegistrationController.acknowledgementConfirmation(acknowledgementreference : String)

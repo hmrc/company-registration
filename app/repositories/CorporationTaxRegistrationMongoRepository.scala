@@ -84,13 +84,6 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
     collection.find(selector).one[CorporationTaxRegistration]
   }
 
-  override def updateCompanyDetails(registrationID: String, companyDetails: CompanyDetails): Future[Option[CompanyDetails]] = {
-    retrieveCorporationTaxRegistration(registrationID).flatMap {
-      case Some(data) => collection.update(registrationIDSelector(registrationID), data.copy(companyDetails = Some(companyDetails)), upsert = false)
-        .map(_ => Some(companyDetails))
-      case None => Future.successful(None)
-    }
-  }
 
   private def registrationIDSelector(registrationID: String): BSONDocument = BSONDocument(
     "registrationID" -> BSONString(registrationID)
