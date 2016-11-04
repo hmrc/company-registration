@@ -16,9 +16,9 @@
 
 package services
 
-import connectors.{BusinessRegistrationNotFoundResponse, BusinessRegistrationSuccessResponse, Authority, BusinessRegistrationConnector}
+import connectors.{Authority, BusinessRegistrationConnector, BusinessRegistrationNotFoundResponse, BusinessRegistrationSuccessResponse}
 import fixtures.{AuthFixture, CorporationTaxRegistrationFixture, MongoFixture}
-import helpers.SCRSSpec
+import helpers.{MongoMocks, SCRSSpec}
 import models._
 import models.des._
 import org.joda.time.DateTime
@@ -26,14 +26,14 @@ import org.mockito.Matchers
 import org.mockito.Mockito._
 import play.api.libs.json.{JsObject, Json}
 import repositories.{HeldSubmissionData, HeldSubmissionMongoRepository}
-import services.CorporationTaxRegistrationService.{FailedToGetCredId, FailedToGetBRMetadata, FailedToGetCTData}
+import services.CorporationTaxRegistrationService.{FailedToGetBRMetadata, FailedToGetCTData, FailedToGetCredId}
 import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.http.logging.SessionId
 import repositories.Repositories
 
 import scala.concurrent.Future
 
-class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTaxRegistrationFixture with MongoFixture with AuthFixture{
+class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTaxRegistrationFixture with MongoFixture with AuthFixture with MongoMocks {
 
 	implicit val mongo = mongoDB
 	implicit val hc = HeaderCarrier(sessionId = Some(SessionId("testSessionId")))
@@ -437,4 +437,38 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
 		}
 	}
 
+
+  "updateCTRecordWithAckRefs" should {
+
+    val ackRef = "testAckRef"
+
+    val refs = AcknowledgementReferences("aaa","bbb","ccc")
+
+    val updated = validHeldCorporationTaxRegistration.copy(acknowledgementReferences = Some(refs))
+
+    val successfulWrite = mockWriteResult()
+
+    "return None" when {
+      "the given ack ref cant be matched against a CT record" in new Setup {
+        when(mockCTDataRepository.getHeldCTRecord(Matchers.eq(ackRef)))
+          .thenReturn(Future.successful(None))
+
+        val result = await(service.updateCTRecordWithAckRefs(ackRef, refs))
+        result shouldBe None
+      }
+    }
+
+    "return an optional ack ref payload" when {
+      "the ct record has been found and subsequently updated" in new Setup {
+        when(mockCTDataRepository.getHeldCTRecord(Matchers.eq(ackRef)))
+          .thenReturn(Future.successful(Some(validHeldCorporationTaxRegistration)))
+
+        when(mockCTDataRepository.updateCTRecordWithAcknowledgments(Matchers.eq(ackRef), Matchers.eq(updated)))
+          .thenReturn(Future.successful(successfulWrite))
+
+        val result = await(service.updateCTRecordWithAckRefs(ackRef, refs))
+        result shouldBe Some(validHeldCorporationTaxRegistration)
+      }
+    }
+  }
 }

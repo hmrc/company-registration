@@ -37,6 +37,7 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
 
 	class MockedCorporationTaxRegistrationRepository extends CorporationTaxRegistrationMongoRepository {
 		override lazy val collection = mockCollection()
+    override def indexes = Seq()
 	}
 
 	val repository = new MockedCorporationTaxRegistrationRepository()

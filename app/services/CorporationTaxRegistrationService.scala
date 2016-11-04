@@ -22,12 +22,13 @@ import java.util.Date
 import connectors.{AuthConnector, BusinessRegistrationConnector, BusinessRegistrationSuccessResponse}
 import models.des._
 import models.{BusinessRegistration, RegistrationStatus}
-import play.api.libs.json.{JsObject, Json}
 import repositories.HeldSubmissionRepository
 import connectors.IncorporationCheckAPIConnector
-import models.{ConfirmationReferences, CorporationTaxRegistration, SubmissionCheckResponse}
-import org.joda.time.{DateTime, DateTimeZone}
+import models.{ConfirmationReferences, CorporationTaxRegistration}
 import repositories.{CorporationTaxRegistrationRepository, Repositories, SequenceRepository, StateDataRepository}
+import models._
+import org.joda.time.{DateTime, DateTimeZone}
+import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -55,6 +56,17 @@ trait CorporationTaxRegistrationService {
   val heldSubmissionRepository: HeldSubmissionRepository
   def currentDateTime: DateTime
   val submissionCheckAPIConnector: IncorporationCheckAPIConnector
+
+
+  def updateCTRecordWithAckRefs(ackRef : String, refPayload : AcknowledgementReferences) : Future[Option[CorporationTaxRegistration]] = {
+    corporationTaxRegistrationRepository.getHeldCTRecord(ackRef) flatMap {
+      case Some(record) =>
+        corporationTaxRegistrationRepository.updateCTRecordWithAcknowledgments(ackRef, record.copy(acknowledgementReferences = Some(refPayload))) map {
+          _ => Some(record)
+        }
+      case None => Future.successful(None)
+    }
+  }
 
   def createCorporationTaxRegistrationRecord(OID: String, registrationId: String, language: String): Future[CorporationTaxRegistration] = {
     val record = CorporationTaxRegistration(

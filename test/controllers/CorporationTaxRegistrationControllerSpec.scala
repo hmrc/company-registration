@@ -19,7 +19,7 @@ package controllers
 import connectors.AuthConnector
 import fixtures.{AuthFixture, CorporationTaxRegistrationFixture}
 import helpers.SCRSSpec
-import models.{ConfirmationReferences, CorporationTaxRegistration}
+import models.{AcknowledgementReferences, ConfirmationReferences, CorporationTaxRegistration}
 import org.mockito.Matchers
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
@@ -289,6 +289,54 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
 
       val result = controller.updateReferences(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId","testPaymentRef","testPaymentAmount",""))))
       status(result) shouldBe NOT_FOUND
+    }
+  }
+
+  "acknowledgementConfirmation" should {
+    "return a bad request" when {
+      "given invalid json" in new Setup {
+        val request = FakeRequest().withJsonBody(Json.toJson(""))
+        val result = controller.acknowledgementConfirmation("TestAckRef")(request).run
+        status(result) shouldBe BAD_REQUEST
+      }
+    }
+
+    "return an OK" when {
+
+      val ackRef = "TestAckRef"
+
+      val refs = AcknowledgementReferences("aaa","bbb","ccc")
+
+      val jsonBody = Json.toJson(refs)
+
+      val request = FakeRequest().withBody(jsonBody)
+
+      "a CT record cannot be found against the given ack ref" in new Setup {
+        when(mockCTDataService.updateCTRecordWithAckRefs(Matchers.eq(ackRef), Matchers.eq(refs)))
+          .thenReturn(Future.successful(Some(validHeldCorporationTaxRegistration)))
+
+        val result = controller.acknowledgementConfirmation(ackRef)(request)
+        status(result) shouldBe OK
+      }
+    }
+
+    "return a Not found" when {
+
+      val ackRef = "TestAckRef"
+
+      val refs = AcknowledgementReferences("aaa","bbb","ccc")
+
+      val jsonBody = Json.toJson(refs)
+
+      val request = FakeRequest().withBody(jsonBody)
+
+      "a CT record cannot be found against the given ack ref" in new Setup {
+        when(mockCTDataService.updateCTRecordWithAckRefs(Matchers.eq(ackRef), Matchers.eq(refs)))
+          .thenReturn(Future.successful(None))
+
+        val result = controller.acknowledgementConfirmation(ackRef)(request)
+        status(result) shouldBe NOT_FOUND
+      }
     }
   }
 }
