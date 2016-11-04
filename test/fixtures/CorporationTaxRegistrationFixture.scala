@@ -48,25 +48,28 @@ trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with Accou
 		contactDetails = Some(contactDetails)
 	)
 
-	val validConfirmationReferences = ConfirmationReferences(
-		acknowledgementReference = "BRCT12345678910",
+	def validConfRefsWithData(ackRef: Option[String] = None) = ConfirmationReferences(
+		acknowledgementReference = ackRef.getOrElse("BRCT12345678910"),
 		transactionId = "TX1",
 		paymentReference = "PY1",
 		paymentAmount = "12.00"
 	)
+	val validConfirmationReferences = validConfRefsWithData()
 
-	val validHeldCorporationTaxRegistration = CorporationTaxRegistration(
+	def validHeldCTRegWithData(ackRef:Option[String] = None) = CorporationTaxRegistration(
 		OID = "9876543210",
 		registrationID = "0123456789",
 		status = HELD,
 		formCreationTimestamp = "2001-12-31T12:00:00Z",
 		language = "en",
-		confirmationReferences = Some(validConfirmationReferences),
+		confirmationReferences = Some(validConfRefsWithData(ackRef)),
 		companyDetails = None,
-		accountingDetails = None,
+		accountingDetails = Some(AccountingDetails("COMPANY_DEFINED", Some("2019-12-31"))),
 		tradingDetails = None,
 		contactDetails = None
 	)
+
+	val validHeldCorporationTaxRegistration = validHeldCTRegWithData()
 
 	val validCorporationTaxRegistrationResponse = CorporationTaxRegistrationResponse(
 		registrationID = "0123456789",

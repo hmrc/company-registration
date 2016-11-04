@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package controllers
+package controllers.test
 
 import config.WSHttp
 import play.api.libs.json.{JsValue, Json}

@@ -18,6 +18,7 @@ package repositories
 
 import java.util.UUID
 
+import com.fasterxml.jackson.core.JsonParseException
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatest.concurrent.ScalaFutures
 import play.api.libs.json.Json
@@ -26,6 +27,7 @@ import uk.gov.hmrc.mongo.MongoSpecSupport
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 class HeldSubmissionMongoRepositoryISpec extends UnitSpec with ScalaFutures with MongoSpecSupport with BeforeAndAfterEach with BeforeAndAfterAll with WithFakeApplication {
 
@@ -96,6 +98,49 @@ class HeldSubmissionMongoRepositoryISpec extends UnitSpec with ScalaFutures with
         }
       }
 
+    }
+  }
+
+  "Retrieving a held submission" should {
+    val randomRegid = newId
+    val randomAckid = newId
+
+    "Return a held submission by registrations id" in new Setup {
+      val heldSubmission = Json.obj("x" -> "y")
+
+      val f: Future[Option[HeldSubmission]] = repository.storePartialSubmission(randomRegid, randomAckid, heldSubmission) flatMap { _ =>
+        repository.retrieveSubmissionByRegId(randomRegid)
+      }
+
+      val data = await(f)
+
+      data shouldBe defined
+      data shouldBe Some(HeldSubmission(randomRegid, randomAckid, heldSubmission))
+    }
+
+    "Return a held submission by ack ref" in new Setup {
+      val heldSubmission = Json.obj("x" -> "y")
+
+      val f: Future[Option[HeldSubmission]] = repository.storePartialSubmission(randomRegid, randomAckid, heldSubmission) flatMap { _ =>
+        repository.retrieveSubmissionByAckRef(randomAckid)
+      }
+
+      val data = await(f)
+
+      data shouldBe defined
+      data shouldBe Some(HeldSubmission(randomRegid, randomAckid, heldSubmission))
+    }
+
+    "Return None when the submission does not exist" in new Setup {
+      val data = await( repository.retrieveSubmissionByRegId(randomRegid) )
+      data shouldBe None
+    }
+
+    "Error if the submission isn't Json" in new Setup {
+      await(repository.insert(HeldSubmissionData(randomRegid, randomAckid, "foo" )))
+
+      val f = repository.retrieveSubmissionByRegId(randomRegid)
+      intercept[JsonParseException] { await(f) }
     }
 
   }

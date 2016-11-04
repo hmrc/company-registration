@@ -17,10 +17,10 @@
 package repositories
 
 import org.joda.time.{DateTime, DateTimeZone}
-import play.api.libs.json.{JsValue, JsObject, Json}
+import play.api.libs.json.{JsObject, JsValue, Json}
 import reactivemongo.api.DB
 import reactivemongo.api.commands.DefaultWriteResult
-import reactivemongo.bson.BSONObjectID
+import reactivemongo.bson.{BSONDocument, BSONObjectID, BSONString, BSONValue, DefaultBSONHandlers}
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
 
@@ -30,6 +30,8 @@ import play.api.Logger
 import reactivemongo.api.indexes.{Index, IndexType}
 
 import scala.collection.Seq
+
+case class HeldSubmission( regId: String, ackRef: String, submission: JsObject )
 
 case class HeldSubmissionData(_id: String,
                               acknowledgementReference: String,
@@ -46,6 +48,8 @@ object HeldSubmissionData {
 
 trait HeldSubmissionRepository extends Repository[HeldSubmissionData, BSONObjectID]{
   def storePartialSubmission(regId: String, ackRef:String, partialSubmission: JsObject): Future[Option[HeldSubmissionData]]
+  def retrieveSubmissionByRegId(regId: String): Future[Option[HeldSubmission]]
+  def retrieveSubmissionByAckRef(ackRef: String): Future[Option[HeldSubmission]]
 }
 
 class HeldSubmissionMongoRepository(implicit mongo: () => DB)
@@ -75,6 +79,25 @@ class HeldSubmissionMongoRepository(implicit mongo: () => DB)
         Logger.error(s"Unexpected result : $err")
         None
       }
+    }
+  }
+
+  private def mapHeldSubmission(mongoData: HeldSubmissionData) : HeldSubmission = {
+    val json = Json.parse(mongoData.partialSubmission).as[JsObject]
+    HeldSubmission(mongoData.registrationID, mongoData.acknowledgementReference, json)
+  }
+
+  def retrieveSubmissionByRegId(regId: String): Future[Option[HeldSubmission]] = {
+    val selector = BSONDocument("_id" -> BSONString(regId))
+    collection.find(selector).one[HeldSubmissionData] map {
+      _ map { mapHeldSubmission( _ ) }
+    }
+  }
+
+  def retrieveSubmissionByAckRef(ackRef: String): Future[Option[HeldSubmission]] = {
+    val selector = BSONDocument("acknowledgementReference" -> BSONString(ackRef))
+    collection.find(selector).one[HeldSubmissionData] map {
+      _ map { mapHeldSubmission( _ ) }
     }
   }
 }
