@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-package controllers
+package controllers.test
 
 import config.WSHttp
-import controllers.test.{DesController, HttpResponse}
 import helpers.SCRSSpec
 import mocks.WSHttpMock
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterEach}
@@ -46,13 +45,6 @@ class DesControllerSpec extends SCRSSpec with WSHttpMock with WithFakeApplicatio
       DesController.http shouldBe WSHttp
     }
 
-  }
-
-  "reading the coho url from config" should {
-
-    "" in {
-
-    }
   }
 
   "submit" should {
