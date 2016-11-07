@@ -108,7 +108,7 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
     }
 
     "fetch a document by transactionID if it exists" in {
-      val selector = BSONDocument("transactionID" -> BSONString(txID))
+      val selector = BSONDocument("confirmationReferences.transactionId" -> BSONString(txID))
       setupFindFor(repository.collection, selector, Some(validHeldCorporationTaxRegistration))
 
       val result = await(repository.retrieveRegistrationByTransactionID(txID))

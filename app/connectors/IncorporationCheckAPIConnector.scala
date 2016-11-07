@@ -34,7 +34,7 @@ trait IncorporationCheckAPIConnector {
   val http: HttpGet with HttpPost
 
   def checkSubmission(timepoint: Option[String] = None)(implicit hc: HeaderCarrier): Future[SubmissionCheckResponse] = {
-    val tp = timepoint.fold("")(t => s"?timepoint=$t")
-    http.GET[SubmissionCheckResponse](s"$proxyUrl/company-registration/internal/check-submission$tp")
+    val tp = timepoint.fold("")(t => s"timepoint=$t&")
+    http.GET[SubmissionCheckResponse](s"$proxyUrl/internal/check-submission?${tp}items_per_page=1")
   }
 }

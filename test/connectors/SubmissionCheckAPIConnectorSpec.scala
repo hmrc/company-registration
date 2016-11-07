@@ -81,7 +81,7 @@ class SubmissionCheckAPIConnectorSpec extends UnitSpec with MockitoSugar with Wi
     }
 
     "verify a timepoint is appended as a query string to the url when one is supplied" in new Setup {
-      val url = s"$testProxyUrl/company-registration/internal/check-submission?timepoint=$testTimepoint"
+      val url = s"$testProxyUrl/internal/check-submission?timepoint=$testTimepoint&items_per_page=1"
 
       val urlCaptor = ArgumentCaptor.forClass(classOf[String])
 
@@ -94,7 +94,7 @@ class SubmissionCheckAPIConnectorSpec extends UnitSpec with MockitoSugar with Wi
     }
 
     "verify nothing is appended as a query string if a timepoint is not supplied" in new Setup {
-      val url = s"$testProxyUrl/company-registration/internal/check-submission"
+      val url = s"$testProxyUrl/internal/check-submission?items_per_page=1"
 
       val urlCaptor = ArgumentCaptor.forClass(classOf[String])
 
