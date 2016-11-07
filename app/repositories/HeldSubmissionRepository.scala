@@ -33,6 +33,10 @@ import scala.collection.Seq
 
 case class HeldSubmission( regId: String, ackRef: String, submission: JsObject )
 
+object HeldSubmission {
+  implicit val formats = Json.format[HeldSubmission]
+}
+
 case class HeldSubmissionData(_id: String,
                               acknowledgementReference: String,
                               partialSubmission: String,
