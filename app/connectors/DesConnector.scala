@@ -35,7 +35,9 @@ case class InvalidDesRequest(message: String) extends DesResponse
 
 trait DesConnector extends ServicesConfig with RawResponseReads {
 
+  // $COVERAGE-OFF$
   lazy val serviceURL = baseUrl("des-service")
+  // $COVERAGE-OFF$
   val baseURI = "/business-registration"
   val ctRegistrationURI = "/corporation-tax"
 
@@ -79,6 +81,8 @@ trait DesConnector extends ServicesConfig with RawResponseReads {
 }
 
 object DesConnector extends DesConnector {
+  // $COVERAGE-OFF$
   override val urlHeaderEnvironment: String = config("des-service").getString("environment").getOrElse("")
   override val urlHeaderAuthorization: String = s"Bearer ${config("des-service").getString("authorization-token").getOrElse("")}"
+  // $COVERAGE-OFF$
 }
