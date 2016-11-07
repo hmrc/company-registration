@@ -17,11 +17,13 @@
 package controllers.test
 
 import connectors.BusinessRegistrationConnector
+import models.ConfirmationReferences
 import org.mockito.Matchers
 import org.scalatest.mock.MockitoSugar
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import repositories._
+import services.CorporationTaxRegistrationService
 import uk.gov.hmrc.play.test.{WithFakeApplication, UnitSpec}
 import org.mockito.Mockito._
 import play.api.test.Helpers._
@@ -34,6 +36,7 @@ class TestEndpointControllerSpec extends UnitSpec with MockitoSugar with WithFak
   val mockCTRepository = mock[CorporationTaxRegistrationMongoRepository]
   val mockBusRegConnector = mock[BusinessRegistrationConnector]
   val mockHeldRepository = mock[HeldSubmissionRepository]
+  val mockCTService = mock[CorporationTaxRegistrationService]
 
   class Setup {
     val controller = new TestEndpointController {
@@ -41,6 +44,7 @@ class TestEndpointControllerSpec extends UnitSpec with MockitoSugar with WithFak
       val cTMongoRepository = mockCTRepository
       val bRConnector = mockBusRegConnector
       val heldRepository = mockHeldRepository
+      val cTService = mockCTService
     }
   }
 
@@ -136,6 +140,29 @@ class TestEndpointControllerSpec extends UnitSpec with MockitoSugar with WithFak
       val result = await(call(controller.storeHeldData(registrationId, ackRef), FakeRequest().withJsonBody(request)))
       status(result) shouldBe BAD_REQUEST
 
+    }
+  }
+
+  "updateConfirmationRefs" should {
+
+    val registrationId = "testRegId"
+
+    val confirmationRefs = ConfirmationReferences("", "testTransID", "testPaymentRef", "12")
+
+    "return a 200 if the document was successfully updated with a set of confirmation refs" in new Setup {
+      when(mockCTService.updateConfirmationReferences(Matchers.eq(registrationId), Matchers.any())(Matchers.any()))
+        .thenReturn(Future.successful(Some(confirmationRefs)))
+
+      val result = await(controller.updateConfirmationRefs(registrationId)(FakeRequest()))
+      status(result) shouldBe OK
+    }
+
+    "return a 404 if the document could not be updated / found" in new Setup {
+      when(mockCTService.updateConfirmationReferences(Matchers.eq(registrationId), Matchers.any())(Matchers.any()))
+        .thenReturn(Future.successful(None))
+
+      val result = await(controller.updateConfirmationRefs(registrationId)(FakeRequest()))
+      status(result) shouldBe NOT_FOUND
     }
   }
 }

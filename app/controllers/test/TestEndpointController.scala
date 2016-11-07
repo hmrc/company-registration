@@ -18,18 +18,22 @@ package controllers.test
 
 import connectors.BusinessRegistrationConnector
 import helpers.DateHelper
+import models.ConfirmationReferences
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.{Result, Action}
 import repositories._
+import services.CorporationTaxRegistrationService
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 object TestEndpointController extends TestEndpointController {
   val throttleMongoRepository = Repositories.throttleRepository
   val cTMongoRepository = Repositories.cTRepository
   val bRConnector = BusinessRegistrationConnector
   val heldRepository = Repositories.heldSubmissionRepository
+  val cTService = CorporationTaxRegistrationService
 }
 
 trait TestEndpointController extends BaseController {
@@ -38,6 +42,7 @@ trait TestEndpointController extends BaseController {
   val cTMongoRepository: CorporationTaxRegistrationMongoRepository
   val bRConnector: BusinessRegistrationConnector
   val heldRepository: HeldSubmissionRepository
+  val cTService: CorporationTaxRegistrationService
 
   def modifyThrottledUsers(usersIn: Int) = Action.async {
     implicit request =>
@@ -77,4 +82,35 @@ trait TestEndpointController extends BaseController {
             .map(_.fold[Result](BadRequest)(_ => Ok))
       }
   }
+
+  def updateSubmissionStatusToHeld(registrationId: String) = Action.async {
+    implicit request =>
+      cTMongoRepository.updateSubmissionStatus(registrationId, "Held").map(_ => Ok)
+  }
+
+  def updateConfirmationRefs(registrationId: String) = Action.async {
+    implicit request =>
+      val confirmationRefs = ConfirmationReferences("", "testOnlyTransactionId", "testOnlyPaymentRef", "12")
+      cTService.updateConfirmationReferences(registrationId, confirmationRefs).map(_.fold(NotFound)(refs => Ok))
+  }
+
+  def removeTaxRegistrationInformation(registrationId: String) = Action.async {
+    implicit request =>
+      cTMongoRepository.removeTaxRegistrationInformation(registrationId) map(if(_) Ok else BadRequest)
+  }
+
+  /* TODO - split into separate test endpoints
+   *
+   * working assumption (amend later)
+   *  - user is logged in
+   *  - user calls test endpoint on frontend
+   *  - endpoint calls to create a BR footprint - todo - MOOT - as logging in creates footprint in BR and CR
+   *  - endpoint calls a function to do the following:
+   *
+   * - create a new CR document - CorporationTaxRegistrationService.createCorporationTaxRegistrationRecord - todo - see moot point
+   * - store passed json as held data //todo - done (this endpoint cannot be triggered with the rest unless the held data is supplied with the initial call)
+   * - add confirmation refs to document -> CorporationTaxRegistrationService.updateConfirmationReferences //todo - done
+   * - remove all other sub-documents (other than dates?) -- CorporationTaxRegistrationRepository.removeTaxRegistrationInformation //todo - done
+   * - update status of submission to held -- CorporationTaxRegistrationRepository.updateSubmissionStatus //todo - done
+   **/
 }
