@@ -28,7 +28,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 sealed trait DesResponse
-case object SuccessDesResponse extends DesResponse
+case class SuccessDesResponse(response: JsObject) extends DesResponse
 case object NotFoundDesResponse extends DesResponse
 case class InvalidDesRequest(message: String) extends DesResponse
 
@@ -50,11 +50,11 @@ trait DesConnector extends ServicesConfig with RawResponseReads {
     val response = cPOST(s"""${serviceURL}${baseURI}${ctRegistrationURI}""", submission)
     response map { r =>
       r.status match {
-        case OK => SuccessDesResponse
-        case ACCEPTED => SuccessDesResponse
+        case OK => SuccessDesResponse(r.json.as[JsObject])
+        case ACCEPTED => SuccessDesResponse(r.json.as[JsObject])
         case CONFLICT => {
           Logger.warn(s"ETMP reported a duplicate submission for ack ref ${ackRef}")
-          SuccessDesResponse
+          SuccessDesResponse(r.json.as[JsObject])
         }
         case NOT_FOUND => NotFoundDesResponse
         case BAD_REQUEST => {

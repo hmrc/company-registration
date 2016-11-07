@@ -52,6 +52,7 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
 
   def updateCTRecordWithAcknowledgments(ackRef : String, ctRecord : CorporationTaxRegistration) : Future[WriteResult]
   def getHeldCTRecord(ackRef : String) : Future[Option[CorporationTaxRegistration]]
+  def updateSubmissionForIncorp(registrationId: String, crn: String, submissionTS: String): Future[Boolean]
 }
 
 class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
@@ -85,7 +86,7 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
   }
 
 
-  private def registrationIDSelector(registrationID: String): BSONDocument = BSONDocument(
+  private[repositories] def registrationIDSelector(registrationID: String): BSONDocument = BSONDocument(
     "registrationID" -> BSONString(registrationID)
   )
 
@@ -234,6 +235,17 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
     }
   }
 
+  override def updateSubmissionForIncorp(registrationId: String, crn: String, submissionTS: String): Future[Boolean] = {
+    retrieveCorporationTaxRegistration(registrationId) flatMap {
+      case Some(ct) =>
+        collection.update(
+          registrationIDSelector(registrationId),
+          ct.copy(crn = Some(crn), submissionTimestamp = Some(submissionTS)),
+          upsert = false
+        ).map( _ => true )
+      case None => Future.successful(false)
+    }
+  }
 
   override def getOid(id: String): Future[Option[(String, String)]] = {
     retrieveCorporationTaxRegistration(id) map {

@@ -41,7 +41,9 @@ case class CorporationTaxRegistration(OID: String,
                                       accountingDetails: Option[AccountingDetails] = None,
                                       tradingDetails: Option[TradingDetails] = None,
                                       contactDetails: Option[ContactDetails] = None,
-                                      accountsPreparation: Option[PrepareAccountMongoModel] = None
+                                      accountsPreparation: Option[PrepareAccountMongoModel] = None,
+                                      crn: Option[String] = None,
+                                      submissionTimestamp: Option[String] = None
                                      )
 
 object CorporationTaxRegistration {

@@ -69,29 +69,29 @@ class DesConnectorSpec extends UnitSpec with OneServerPerSuite with MockitoSugar
 
     "for a successful submission, return success" in new Setup {
       when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
-        thenReturn(Future.successful(HttpResponse(200, responseJson = Some(Json.obj()))))
+        thenReturn(Future.successful(HttpResponse(200, responseJson = Some(Json.obj("x"->"y")))))
 
       val result = await(connector.ctSubmission("",submission))
 
-      result shouldBe SuccessDesResponse
+      result shouldBe SuccessDesResponse(Json.obj("x"->"y"))
     }
 
     "for accepted submission, return success" in new Setup {
       when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
-        thenReturn(Future.successful(HttpResponse(202, responseJson = Some(Json.obj()))))
+        thenReturn(Future.successful(HttpResponse(202, responseJson = Some(Json.obj("x"->"y")))))
 
       val result = await(connector.ctSubmission("",submission))
 
-      result shouldBe SuccessDesResponse
+      result shouldBe SuccessDesResponse(Json.obj("x"->"y"))
     }
 
     "for a conflicted submission, return success" in new Setup {
       when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
-        thenReturn(Future.successful(HttpResponse(409, responseJson = Some(Json.obj()))))
+        thenReturn(Future.successful(HttpResponse(409, responseJson = Some(Json.obj("x"->"y")))))
 
       val result = await(connector.ctSubmission("",submission))
 
-      result shouldBe SuccessDesResponse
+      result shouldBe SuccessDesResponse(Json.obj("x"->"y"))
     }
 
     "for an invalid request, return the reason" in new Setup {

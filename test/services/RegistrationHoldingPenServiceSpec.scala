@@ -120,10 +120,12 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
   val validHeld = HeldSubmission(testRegId, testAckRef, interimSubmission)
 
-//  "check object is setup correctly" should {
-//    "des connector" in { RegistrationHoldingPenService.desConnector shouldBe DesConnector }
-//    "incorp API connector" in { RegistrationHoldingPenService.incorporationCheckAPIConnector shouldBe IncorporationCheckAPIConnector }
-//  }
+  "formatDate" should {
+    "format a DateTime timestamp into the format yyyy-mm-dd" in new Setup {
+      val date = DateTime.parse("1970-01-01T00:00:00.000Z")
+      service.formatDate(date) shouldBe "1970-01-01"
+    }
+  }
 
   "appendDataToSubmission" should {
     "be able to add final Json additions to the PartialSubmission" in new Setup {
@@ -148,14 +150,6 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
         .thenReturn(Future.successful(submissionCheckResponseSingle))
 
       await(service.fetchIncorpUpdate) shouldBe submissionCheckResponseSingle.items
-    }
-  }
-
-  "formatDate" should {
-
-    "format a DateTime timestamp into the format yyyy-mm-dd" in new Setup {
-      val date = DateTime.parse("1970-01-01T00:00:00.000Z")
-      service.formatDate(date) shouldBe "1970-01-01"
     }
   }
 
@@ -234,11 +228,8 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
     }
   }
 
-  "updateSubmission" should {
+  "updateHeldSubmission" should {
     "return a valid DES ready submission" in new Setup {
-      when(mockctRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
-        .thenReturn(Future.successful(Some(validCR)))
-
       when(mockheldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
         .thenReturn(Future.successful(Some(validHeld)))
 
@@ -246,15 +237,12 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
         .thenReturn(dates)
 
       when(mockDesConnector.ctSubmission(Matchers.any(), Matchers.any())(Matchers.any()))
-        .thenReturn(Future.successful(SuccessDesResponse))
+        .thenReturn(Future.successful(SuccessDesResponse(Json.obj("x"->"y"))))
 
-      await(service.updateSubmission(incorpSuccess1)) shouldBe validDesSubmission
+      await(service.updateHeldSubmission(incorpSuccess1, validCR)) shouldBe Json.obj("x"->"y")
     }
 
     "fail if DES states invalid" in new Setup {
-      when(mockctRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
-        .thenReturn(Future.successful(Some(validCR)))
-
       when(mockheldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
         .thenReturn(Future.successful(Some(validHeld)))
 
@@ -265,14 +253,11 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
         .thenReturn(Future.successful(InvalidDesRequest("wibble")))
 
       intercept[InvalidSubmission] {
-        await(service.updateSubmission(incorpSuccess1))
+        await(service.updateHeldSubmission(incorpSuccess1, validCR))
       }.message should endWith ("""- reason "wibble".""")
     }
 
     "fail if DES states not found" in new Setup {
-      when(mockctRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
-        .thenReturn(Future.successful(Some(validCR)))
-
       when(mockheldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
         .thenReturn(Future.successful(Some(validHeld)))
 
@@ -283,22 +268,35 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
         .thenReturn(Future.successful(NotFoundDesResponse))
 
       intercept[InvalidSubmission] {
-        await(service.updateSubmission(incorpSuccess1))
+        await(service.updateHeldSubmission(incorpSuccess1, validCR))
       }
     }
 
     "fail if missing ackref" in new Setup {
-      when(mockctRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
-        .thenReturn(Future.successful(Some(validCR.copy(confirmationReferences = None))))
-
       intercept[MissingAckRef] {
-        await(service.updateSubmission(incorpSuccess1))
+        await(service.updateHeldSubmission(incorpSuccess1, validCR.copy(confirmationReferences = None)))
       }.message should endWith (s"""tx_id "${transId}".""")
     }
+  }
+
+  "updateSubmission" should {
+    trait SetupNoProcess {
+      val expected = Json.obj("key" -> UUID.randomUUID().toString)
+      val service = new mockService {
+        override def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration) = Future.successful(expected)
+      }
+    }
+    "return a valid DES ready submission" in new SetupNoProcess {
+      when(mockctRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
+        .thenReturn(Future.successful(Some(validCR)))
+
+      await(service.updateSubmission(incorpSuccess1)) shouldBe expected
+    }
+
+    // TODO SCRS-2298 - add other status scenarios
 
   }
 
-  // TODO SCRS-2298 - test multiple
   "updateNextSubmissionByTimepoint" should {
     val expected = Json.obj("key" -> UUID.randomUUID().toString)
     trait SetupNoProcess {
