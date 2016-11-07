@@ -23,7 +23,6 @@ import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import repositories._
 import uk.gov.hmrc.play.http.HeaderCarrier
-import play.api.http.Status._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -52,13 +51,15 @@ trait RegistrationHoldingPenService {
   val heldRepo : HeldSubmissionRepository
   val accountingService : AccountingDetailsService
 
-  private[services] class FailedToRetrieveByTxId  extends NoStackTrace
+  private[services] class FailedToRetrieveByTxId(transId: String)  extends NoStackTrace
   private[services] class FailedToRetrieveByAckRef extends NoStackTrace
   private[services] class MissingAccountingDates extends NoStackTrace
 
   def updateNextSubmissionByTimepoint(): Future[Seq[JsObject]] = {
     fetchIncorpUpdate flatMap { items =>
-      val results = items.map { item =>
+      Logger.debug(s"""Got items "${items}" """)
+      val results = items map { item =>
+        Logger.debug(s"""Got item "${item}" """)
         updateSubmission(item)
       }
       Future.sequence(results)
@@ -66,6 +67,7 @@ trait RegistrationHoldingPenService {
   }
 
   private[services] def updateSubmission(item: IncorpUpdate): Future[JsObject] = {
+    Logger.debug(s"""Got tx_id "${item.transactionId}" """)
     fetchRegistrationByTxId(item.transactionId) flatMap { ctReg =>
       import RegistrationStatus.{HELD,SUBMITTED,DRAFT}
       ctReg.status match {
@@ -130,14 +132,15 @@ trait RegistrationHoldingPenService {
       timepoint <- stateDataRepository.retrieveTimePoint
       submission <- incorporationCheckAPIConnector.checkSubmission(timepoint)(hc)
     } yield {
-      submission.items //TODO SCRS-2298 This needs to return the full sequence, for now it returns the first only
+      submission.items
     }
   }
 
   private[services] def fetchRegistrationByTxId(transId : String): Future[CorporationTaxRegistration] = {
+    Logger.debug(s"""Got tx_id "${transId}" """)
     ctRepository.retrieveRegistrationByTransactionID(transId) flatMap {
       case Some(s) => Future.successful(s)
-      case None => Future.failed(new FailedToRetrieveByTxId)
+      case None => Future.failed(new FailedToRetrieveByTxId(transId))
     }
   }
 

@@ -65,6 +65,12 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
       name = Some("AckRefIndex"),
       unique = false,
       sparse = false
+    ),
+    Index(
+      key = Seq("confirmationReferences.transactionId" -> IndexType.Ascending),
+      name = Some("TransIdIndex"),
+      unique = false,
+      sparse = false
     )
   )
 
@@ -82,7 +88,7 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
 
 
   override def retrieveRegistrationByTransactionID(transactionID: String): Future[Option[CorporationTaxRegistration]] = {
-    val selector = BSONDocument("transactionID" -> BSONString(transactionID))
+    val selector = BSONDocument("confirmationReferences.transactionId" -> BSONString(transactionID))
     collection.find(selector).one[CorporationTaxRegistration]
   }
 

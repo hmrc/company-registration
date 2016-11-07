@@ -16,11 +16,13 @@
 
 package controllers.test
 
+import play.api.libs.json.JsObject
 import play.api.mvc.Action
 import services.RegistrationHoldingPenService
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 object SubmissionCheckController extends SubmissionCheckController {
   val service = RegistrationHoldingPenService
@@ -32,8 +34,9 @@ trait SubmissionCheckController extends BaseController {
 
   def triggerSubmissionCheck = Action.async {
     implicit request =>
-//      service.checkAndProcessSubmission // TODO - SCRS-2298 re-enable the test endpoint
-      Future.successful(Ok)
+      service.updateNextSubmissionByTimepoint() map {
+        res => Ok(res.head)
+      }
   }
 
 }

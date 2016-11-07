@@ -1,6 +1,8 @@
 # microservice specific routes
 GET        /throttle/check-user-access                                                      controllers.UserAccessController.checkUserAccess
 
+GET        /corporation-tax-registration/submission-check                                   controllers.test.SubmissionCheckController.triggerSubmissionCheck
+
 GET        /corporation-tax-registration/:registrationId                                    controllers.CorporationTaxRegistrationController.retrieveCorporationTaxRegistration(registrationId)
 PUT        /corporation-tax-registration/:registrationId                                    controllers.CorporationTaxRegistrationController.createCorporationTaxRegistration(registrationId)
 
