@@ -63,7 +63,9 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
   val transId = UUID.randomUUID().toString
   val validCR = validHeldCTRegWithData(Some(testAckRef)).copy(accountsPreparation = Some(PrepareAccountMongoModel("",Some("2017-01-01"))))
   val incorpSuccess1 = IncorpUpdate(transId, "status", "012345", new DateTime(2016, 8, 10, 0, 0), "100000011")
-  val submissionCheckResponse = SubmissionCheckResponse(Seq(incorpSuccess1), "testNextLink")
+  val submissionCheckResponseSingle = SubmissionCheckResponse(Seq(incorpSuccess1), "testNextLink")
+  val submissionCheckResponseDouble = SubmissionCheckResponse(Seq(incorpSuccess1,incorpSuccess1), "testNextLink")
+  val submissionCheckResponseNone = SubmissionCheckResponse(Seq(), "testNextLink")
 
   def sub(a:String, others:Option[(String, String, String, String)] = None) = {
     val extra = others match {
@@ -135,17 +137,17 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
     "return a submission if a timepoint was retrieved successfully" in new Setup {
       when(mockStateDataRepository.retrieveTimePoint).thenReturn(Future.successful(Some(timepoint)))
       when(mockIncorporationCheckAPIConnector.checkSubmission(Matchers.eq(Some(timepoint)))(Matchers.any()))
-        .thenReturn(Future.successful(submissionCheckResponse))
+        .thenReturn(Future.successful(submissionCheckResponseSingle))
 
-      Seq(await(service.fetchIncorpUpdate)) shouldBe submissionCheckResponse.items
+      await(service.fetchIncorpUpdate) shouldBe submissionCheckResponseSingle.items
     }
 
     "return a submission if a timepoint was not retrieved" in new Setup {
       when(mockStateDataRepository.retrieveTimePoint).thenReturn(Future.successful(None))
       when(mockIncorporationCheckAPIConnector.checkSubmission(Matchers.eq(None))(Matchers.any()))
-        .thenReturn(Future.successful(submissionCheckResponse))
+        .thenReturn(Future.successful(submissionCheckResponseSingle))
 
-      Seq(await(service.fetchIncorpUpdate)) shouldBe submissionCheckResponse.items
+      await(service.fetchIncorpUpdate) shouldBe submissionCheckResponseSingle.items
     }
   }
 
@@ -296,6 +298,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
   }
 
+  // TODO SCRS-2298 - test multiple
   "updateNextSubmissionByTimepoint" should {
     val expected = Json.obj("key" -> UUID.randomUUID().toString)
     trait SetupNoProcess {
@@ -303,16 +306,44 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
         override def updateSubmission(item: IncorpUpdate) = Future.successful(expected)
       }
     }
-    "return a Json.object for each incorp update" in new SetupNoProcess {
+
+    "return a Json.object for a single incorp update" in new SetupNoProcess {
 
       when(mockStateDataRepository.retrieveTimePoint).thenReturn(Future.successful(Some(timepoint)))
 
       when(mockIncorporationCheckAPIConnector.checkSubmission(Matchers.eq(Some(timepoint)))(Matchers.any()))
-        .thenReturn(Future.successful(submissionCheckResponse))
+        .thenReturn(Future.successful(submissionCheckResponseSingle))
 
       val result = await(service.updateNextSubmissionByTimepoint)
 
-      result shouldBe expected
+      result.length shouldBe 1
+      result shouldBe Seq(expected)
     }
+
+    "return a Json.object for each of two incorp updates" in new SetupNoProcess {
+
+      when(mockStateDataRepository.retrieveTimePoint).thenReturn(Future.successful(Some(timepoint)))
+
+      when(mockIncorporationCheckAPIConnector.checkSubmission(Matchers.eq(Some(timepoint)))(Matchers.any()))
+        .thenReturn(Future.successful(submissionCheckResponseDouble))
+
+      val result = await(service.updateNextSubmissionByTimepoint)
+
+      result.length shouldBe 2
+      result shouldBe Seq(expected, expected)
+    }
+
+    "return a Json.object when there's no incorp updates" in new SetupNoProcess {
+
+      when(mockStateDataRepository.retrieveTimePoint).thenReturn(Future.successful(Some(timepoint)))
+
+      when(mockIncorporationCheckAPIConnector.checkSubmission(Matchers.eq(Some(timepoint)))(Matchers.any()))
+        .thenReturn(Future.successful(submissionCheckResponseNone))
+
+      val result = await(service.updateNextSubmissionByTimepoint)
+
+      result shouldBe Seq()
+    }
+
   }
 }

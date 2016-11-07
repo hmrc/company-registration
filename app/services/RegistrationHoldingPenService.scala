@@ -56,9 +56,12 @@ trait RegistrationHoldingPenService {
   private[services] class FailedToRetrieveByAckRef extends NoStackTrace
   private[services] class MissingAccountingDates extends NoStackTrace
 
-  def updateNextSubmissionByTimepoint(): Future[JsObject] = {
-    fetchIncorpUpdate flatMap { item =>
-      updateSubmission(item)
+  def updateNextSubmissionByTimepoint(): Future[Seq[JsObject]] = {
+    fetchIncorpUpdate flatMap { items =>
+      val results = items.map { item =>
+        updateSubmission(item)
+      }
+      Future.sequence(results)
     }
   }
 
@@ -121,13 +124,13 @@ trait RegistrationHoldingPenService {
     reg.confirmationReferences map (_.acknowledgementReference )
   }
 
-  private[services] def fetchIncorpUpdate() = {
+  private[services] def fetchIncorpUpdate(): Future[Seq[IncorpUpdate]] = {
     val hc = new HeaderCarrier()
     for {
       timepoint <- stateDataRepository.retrieveTimePoint
       submission <- incorporationCheckAPIConnector.checkSubmission(timepoint)(hc)
     } yield {
-      submission.items.head //TODO SCRS-2298 This needs to return the full sequence, for now it returns the first only
+      submission.items //TODO SCRS-2298 This needs to return the full sequence, for now it returns the first only
     }
   }
 
