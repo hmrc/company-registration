@@ -28,6 +28,7 @@ import models.{ConfirmationReferences, CorporationTaxRegistration}
 import repositories.{CorporationTaxRegistrationRepository, Repositories, SequenceRepository, StateDataRepository}
 import models._
 import org.joda.time.{DateTime, DateTimeZone}
+import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.play.http.HeaderCarrier
 
@@ -61,10 +62,18 @@ trait CorporationTaxRegistrationService {
   def updateCTRecordWithAckRefs(ackRef : String, refPayload : AcknowledgementReferences) : Future[Option[CorporationTaxRegistration]] = {
     corporationTaxRegistrationRepository.getHeldCTRecord(ackRef) flatMap {
       case Some(record) =>
-        corporationTaxRegistrationRepository.updateCTRecordWithAcknowledgments(ackRef, record.copy(acknowledgementReferences = Some(refPayload))) map {
-          _ => Some(record)
+        record.acknowledgementReferences match {
+          case Some(refs) =>
+            Logger.info(s"[CorporationTaxRegistrationService] - [updateCTRecordWithAckRefs] : Record previously updated")
+            Future.successful(Some(record))
+          case None =>
+            corporationTaxRegistrationRepository.updateCTRecordWithAcknowledgments(ackRef, record.copy(acknowledgementReferences = Some(refPayload), status = "acknowledged")) map {
+              _ => Some(record)
+            }
         }
-      case None => Future.successful(None)
+      case None =>
+        Logger.info(s"[CorporationTaxRegistrationService] - [updateCTRecordWithAckRefs] : No record could not be found using this ackref")
+        Future.successful(None)
     }
   }
 

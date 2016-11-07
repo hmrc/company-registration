@@ -148,7 +148,7 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
         ackRefsPayload =>
           ctService.updateCTRecordWithAckRefs(ackRef, ackRefsPayload) map {
             case Some(record) => Ok
-            case None => NotFound
+            case None => NotFound("Ack ref not found")
           }
       }
   }

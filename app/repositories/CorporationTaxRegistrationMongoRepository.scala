@@ -69,7 +69,9 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
   )
 
   override def updateCTRecordWithAcknowledgments(ackRef : String, ctRecord: CorporationTaxRegistration): Future[WriteResult] = {
-    val updateSelector = BSONDocument("confirmationReferences.acknowledgementReference" -> BSONString(ackRef))
+    val updateSelector = BSONDocument(
+      "confirmationReferences.acknowledgementReference" -> BSONString(ackRef)
+    )
     collection.update(updateSelector, ctRecord, upsert = false)
   }
 

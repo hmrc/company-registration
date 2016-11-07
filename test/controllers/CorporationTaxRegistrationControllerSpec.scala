@@ -26,6 +26,8 @@ import play.api.test.FakeRequest
 import services.CorporationTaxRegistrationService
 import play.api.test.Helpers._
 
+import play.api.mvc.Results.Status
+
 import scala.concurrent.Future
 import org.mockito.Mockito._
 import uk.gov.hmrc.play.http.HeaderCarrier
@@ -320,7 +322,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
       }
     }
 
-    "return a Not found" when {
+    "return an AckRefNotFound" when {
 
       val ackRef = "TestAckRef"
 

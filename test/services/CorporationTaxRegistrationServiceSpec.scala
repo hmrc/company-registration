@@ -444,7 +444,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
 
     val refs = AcknowledgementReferences("aaa","bbb","ccc")
 
-    val updated = validHeldCorporationTaxRegistration.copy(acknowledgementReferences = Some(refs))
+    val updated = validHeldCorporationTaxRegistration.copy(acknowledgementReferences = Some(refs), status = "acknowledged")
 
     val successfulWrite = mockWriteResult()
 
@@ -468,6 +468,14 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
 
         val result = await(service.updateCTRecordWithAckRefs(ackRef, refs))
         result shouldBe Some(validHeldCorporationTaxRegistration)
+      }
+
+      "the ct record has been found but has been already updated" in new Setup {
+        when(mockCTDataRepository.getHeldCTRecord(Matchers.eq(ackRef)))
+          .thenReturn(Future.successful(Some(updated)))
+
+        val result = await(service.updateCTRecordWithAckRefs(ackRef, refs))
+        result shouldBe Some(updated)
       }
     }
   }
