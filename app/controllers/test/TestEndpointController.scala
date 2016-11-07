@@ -18,9 +18,9 @@ package controllers.test
 
 import connectors.BusinessRegistrationConnector
 import helpers.DateHelper
-import play.api.libs.json.Json
-import play.api.mvc.Action
-import repositories.{CorporationTaxRegistrationMongoRepository, Repositories, ThrottleMongoRepository}
+import play.api.libs.json.{JsObject, Json}
+import play.api.mvc.{Result, Action}
+import repositories._
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -29,6 +29,7 @@ object TestEndpointController extends TestEndpointController {
   val throttleMongoRepository = Repositories.throttleRepository
   val cTMongoRepository = Repositories.cTRepository
   val bRConnector = BusinessRegistrationConnector
+  val heldRepository = Repositories.heldSubmissionRepository
 }
 
 trait TestEndpointController extends BaseController {
@@ -36,6 +37,7 @@ trait TestEndpointController extends BaseController {
   val throttleMongoRepository: ThrottleMongoRepository
   val cTMongoRepository: CorporationTaxRegistrationMongoRepository
   val bRConnector: BusinessRegistrationConnector
+  val heldRepository: HeldSubmissionRepository
 
   def modifyThrottledUsers(usersIn: Int) = Action.async {
     implicit request =>
@@ -59,4 +61,20 @@ trait TestEndpointController extends BaseController {
         Ok(Json.parse(s"""{"message":"$cTDrop $bRDrop"}"""))
       }
     }
+
+  def fetchHeldData(registrationId: String) = Action.async {
+    implicit request =>
+      heldRepository.retrieveSubmissionByRegId(registrationId).map(_.fold[Result](NotFound){
+        heldSub => Ok(Json.toJson(heldSub))
+      })
+  }
+
+  def storeHeldData(registrationId: String, ackRef: String) = Action.async(parse.json) {
+    implicit request =>
+      withJsonBody[JsObject] {
+        partialSub =>
+          heldRepository.storePartialSubmission(registrationId, ackRef, partialSub)
+            .map(_.fold[Result](BadRequest)(_ => Ok))
+      }
+  }
 }
