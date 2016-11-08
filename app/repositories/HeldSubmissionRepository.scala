@@ -58,6 +58,7 @@ trait HeldSubmissionRepository extends Repository[HeldSubmissionData, BSONObject
   def storePartialSubmission(regId: String, ackRef:String, partialSubmission: JsObject): Future[Option[HeldSubmissionData]]
   def retrieveSubmissionByRegId(regId: String): Future[Option[HeldSubmission]]
   def retrieveSubmissionByAckRef(ackRef: String): Future[Option[HeldSubmission]]
+  def removeHeldDocument(regId: String): Future[Boolean]
 }
 
 class HeldSubmissionMongoRepository(implicit mongo: () => DB)

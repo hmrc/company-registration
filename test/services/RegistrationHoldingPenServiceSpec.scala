@@ -233,6 +233,12 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockheldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
         .thenReturn(Future.successful(Some(validHeld)))
 
+      when(mockctRepository.updateHeldToSubmitted(Matchers.eq(validCR.registrationID), Matchers.eq(incorpSuccess1.crn), Matchers.any()))
+        .thenReturn(Future.successful(true))
+
+      when(mockheldRepo.removeHeldDocument(Matchers.eq(validCR.registrationID)))
+        .thenReturn(Future.successful(true))
+
       when(mockAccountService.calculateSubmissionDates(Matchers.any(), Matchers.any(), Matchers.any()))
         .thenReturn(dates)
 
