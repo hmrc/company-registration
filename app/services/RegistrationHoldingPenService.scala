@@ -62,7 +62,7 @@ trait RegistrationHoldingPenService extends DateHelper {
     fetchIncorpUpdate flatMap { items =>
       val results = items map { item =>
         //TODO see SCRS-3766
-        updateSubmission(item)
+        processIncorporationUpdate(item)
       }
       Future.sequence(results) flatMap { r =>
         //TODO For day one, take the first timepoint - see SCRS-3766
@@ -71,6 +71,13 @@ trait RegistrationHoldingPenService extends DateHelper {
           case None => Future.successful("")
         }
       }
+    }
+  }
+
+  private[services] def processIncorporationUpdate(item : IncorpUpdate) = {
+    item.status match {
+      case "accepted" => updateSubmission(item)
+      case "rejected" => Future.successful(true) //TODO SCRS-2302 Wipe data and log item.statusDescription
     }
   }
 
