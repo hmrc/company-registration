@@ -16,26 +16,25 @@
 
 package controllers.test
 
-import play.api.libs.json.JsObject
-import play.api.mvc.Action
-import services.RegistrationHoldingPenService
+import play.api.libs.json.Json
+import play.api.mvc.{Result, Action}
+import repositories.{HeldSubmissionMongoRepository, Repositories}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-object SubmissionCheckController extends SubmissionCheckController {
-  val service = RegistrationHoldingPenService
+object HeldSubmissionController extends HeldSubmissionController {
+  val heldSubmissionRepo = Repositories.heldSubmissionRepository
 }
 
-trait SubmissionCheckController extends BaseController {
+trait HeldSubmissionController extends BaseController {
 
-  val service : RegistrationHoldingPenService
+  val heldSubmissionRepo: HeldSubmissionMongoRepository
 
-  def triggerSubmissionCheck = Action.async {
+  def fetchHeldSubmission(registrationId: String) = Action.async {
     implicit request =>
-      service.updateNextSubmissionByTimepoint() map {
-        res => Ok(res.head)
-      }
+      heldSubmissionRepo.retrieveSubmissionByRegId(registrationId).map(_.fold[Result](NotFound){
+        heldSub => Ok(Json.toJson(heldSub))
+      })
   }
 }
