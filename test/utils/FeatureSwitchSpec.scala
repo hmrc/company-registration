@@ -23,9 +23,8 @@ import uk.gov.hmrc.play.test.UnitSpec
 class FeatureSwitchSpec extends UnitSpec with BeforeAndAfterEach {
 
   override def beforeEach() {
+    System.clearProperty("feature.submissionCheck")
     System.clearProperty("feature.test")
-    System.clearProperty("feature.cohoFirstHandOff")
-    System.clearProperty("feature.businessActivitiesHandOff")
   }
 
   "apply" should {
@@ -239,6 +238,34 @@ class FeatureSwitchSpec extends UnitSpec with BeforeAndAfterEach {
       val now = new DateTime("2000-01-23T14:30:00.00Z")
 
       TimedFeatureSwitch("test", None, endDatetime, now).enabled shouldBe true
+    }
+  }
+
+  "SCRSFeatureSwitches" should {
+    "return a disabled feature when the associated system property doesn't exist" in {
+      SCRSFeatureSwitches.scheduler.enabled shouldBe false
+    }
+
+    "return an enabled feature when the associated system property is true" in {
+      FeatureSwitch.enable(SCRSFeatureSwitches.scheduler)
+
+      SCRSFeatureSwitches.scheduler.enabled shouldBe true
+    }
+
+    "return a disable feature when the associated system property is false" in {
+      FeatureSwitch.disable(SCRSFeatureSwitches.scheduler)
+
+      SCRSFeatureSwitches.scheduler.enabled shouldBe false
+    }
+
+    "return a submissionCheck feature if it exists" in {
+      System.setProperty("feature.submissionCheck", "true")
+
+      SCRSFeatureSwitches("submissionCheck") shouldBe Some(BooleanFeatureSwitch("submissionCheck", true))
+    }
+
+    "return an empty option if the submissionCheck system property doesn't exist when using the apply function" in {
+      SCRSFeatureSwitches("submissionCheck") shouldBe Some(BooleanFeatureSwitch("submissionCheck", false))
     }
   }
 }

@@ -31,6 +31,7 @@ trait CheckSubmissionJob extends ExclusiveScheduledJob with JobConfig {
   val lock: LockKeeper
   val regHoldingPenService: RegistrationHoldingPenService
 
+  //$COVERAGE-OFF$
   override def executeInMutex(implicit ec: ExecutionContext): Future[Result] = {
     SCRSFeatureSwitches.scheduler.enabled match {
       case true => lock.tryLock {
@@ -49,6 +50,7 @@ trait CheckSubmissionJob extends ExclusiveScheduledJob with JobConfig {
       case false => Future.successful(Result(s"Feature is turned off"))
     }
   }
+  //$COVERAGE-ON$
 }
 
 object CheckSubmissionJob extends CheckSubmissionJob {
