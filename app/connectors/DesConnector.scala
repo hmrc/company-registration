@@ -62,7 +62,7 @@ trait DesConnector extends ServicesConfig with RawResponseReads {
           Logger.warn(s"ETMP reported an error with the request ${message}")
           InvalidDesRequest(message)
         }
-        case _ => InvalidDesRequest("EEK!") // TODO SCRS-2298
+        case _ => InvalidDesRequest(s"Unexpected Des response with HTTP code: ${r.status}")
       }
     }
   }

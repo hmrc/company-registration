@@ -321,50 +321,6 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
     }
   }
 
-  "updateAcknowledgementRef" should {
-    "return an Ack ref if a CT registration exists" in {
-      val selector = BSONDocument("registrationID" -> BSONString(registrationID))
-      setupFindFor(repository.collection, selector, Some(validDraftCorporationTaxRegistration))
-      setupAnyUpdateOn(repository.collection)
-
-      val result = await(repository.updateAcknowledgementRef(registrationID, "BRCT12345678910"))
-      result shouldBe Some("BRCT12345678910")
-    }
-
-    "return an empty option when a CT registration doesn't exist" in {
-      val selector = BSONDocument("registrationID" -> BSONString(registrationID))
-      setupFindFor(repository.collection, selector, None)
-      setupAnyUpdateOn(repository.collection)
-
-      val result = await(repository.updateAcknowledgementRef(registrationID, "BRCT12345678910"))
-      result shouldBe None
-    }
-  }
-
-  "retrieveAcknowledgementRef" should {
-    "not return an Ack ref for a draft CT registration" in {
-      val selector = BSONDocument("registrationID" -> BSONString(registrationID))
-      setupFindFor(repository.collection, selector, Some(validDraftCorporationTaxRegistration))
-
-      val result = await(repository.retrieveAcknowledgementRef(registrationID))
-      result shouldBe None
-    }
-    "return an Ack ref if a held CT registration exists" in {
-      val selector = BSONDocument("registrationID" -> BSONString(registrationID))
-      setupFindFor(repository.collection, selector, Some(validHeldCorporationTaxRegistration))
-
-      val result = await(repository.retrieveAcknowledgementRef(registrationID))
-      result shouldBe Some("BRCT12345678910")
-    }
-    "return an empty option if a CT registration doesn't exists" in {
-      val selector = BSONDocument("registrationID" -> BSONString(registrationID))
-      setupFindFor(repository.collection, selector, None)
-
-      val result = await(repository.retrieveAcknowledgementRef(registrationID))
-      result shouldBe None
-    }
-  }
-
   "updateCompanyEndDate" should {
 
     val accountsPreparationDateModel = PrepareAccountModel("HMRCEndDate", Some(DateTime.parse("1980-12-12")))
