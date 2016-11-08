@@ -19,7 +19,6 @@ package services
 import connectors._
 import helpers.DateHelper
 import models._
-import org.joda.time.DateTime
 import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import repositories._
@@ -62,6 +61,7 @@ trait RegistrationHoldingPenService extends DateHelper {
   def updateNextSubmissionByTimepoint(): Future[String] = {
     fetchIncorpUpdate flatMap { items =>
       val results = items map { item =>
+        //TODO see SCRS-3766
         updateSubmission(item)
       }
       Future.sequence(results) flatMap { r =>

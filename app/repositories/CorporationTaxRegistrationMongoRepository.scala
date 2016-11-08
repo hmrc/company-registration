@@ -29,6 +29,7 @@ import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.control.NoStackTrace
 
 trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegistration, BSONObjectID]{
   def createCorporationTaxRegistration(metadata: CorporationTaxRegistration): Future[CorporationTaxRegistration]
@@ -54,6 +55,8 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def getHeldCTRecord(ackRef : String) : Future[Option[CorporationTaxRegistration]]
   def updateHeldToSubmitted(registrationId: String, crn: String, submissionTS: String): Future[Boolean]
 }
+
+private[repositories] class MissingCTDocument(regId: String) extends NoStackTrace
 
 class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
   extends ReactiveRepository[CorporationTaxRegistration, BSONObjectID]("corporation-tax-registration-information", mongo, CorporationTaxRegistration.formats, ReactiveMongoFormats.objectIdFormats)
@@ -237,7 +240,7 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
           updatedDoc,
           upsert = false
         ).map( _ => true )
-      case None => Future.successful(false)
+      case None => Future.failed(new MissingCTDocument(registrationId))
     }
   }
 

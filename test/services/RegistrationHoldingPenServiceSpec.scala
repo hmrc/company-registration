@@ -62,7 +62,10 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
   val testRegId = UUID.randomUUID.toString
   val transId = UUID.randomUUID().toString
   val validCR = validHeldCTRegWithData(Some(testAckRef)).copy(accountsPreparation = Some(PrepareAccountMongoModel("",Some("2017-01-01"))))
-  val incorpSuccess1 = IncorpUpdate(transId, "status", "012345", new DateTime(2016, 8, 10, 0, 0), timepoint)
+  import RegistrationStatus._
+  val submittedCR = validCR.copy(status = SUBMITTED)
+  val failCaseCR = validCR.copy(status = DRAFT)
+  val incorpSuccess1 = IncorpUpdate(transId, "held", "012345", new DateTime(2016, 8, 10, 0, 0), timepoint)
   val submissionCheckResponseSingle = SubmissionCheckResponse(Seq(incorpSuccess1), "testNextLink")
   val submissionCheckResponseDouble = SubmissionCheckResponse(Seq(incorpSuccess1,incorpSuccess1), "testNextLink")
   val submissionCheckResponseNone = SubmissionCheckResponse(Seq(), "testNextLink")
@@ -189,7 +192,6 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
   }
 
   "calculateDates" should {
-    import RegistrationHoldingPenService.FailedToRetrieveByAckRef
 
     "return valid dates if correct detail is passed" in new Setup {
       when(mockAccountService.calculateSubmissionDates(Matchers.any(), Matchers.any(), Matchers.any()))
@@ -229,7 +231,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
   }
 
   "updateHeldSubmission" should {
-    "return a valid DES ready submission" in new Setup {
+    "return a true for a DES ready submission" in new Setup {
       when(mockheldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
         .thenReturn(Future.successful(Some(validHeld)))
 
@@ -291,14 +293,24 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
         override def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration) = Future.successful(true)
       }
     }
-    "return a valid DES ready submission" in new SetupNoProcess {
+    "return true for a DES ready submission" in new SetupNoProcess {
       when(mockctRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
         .thenReturn(Future.successful(Some(validCR)))
 
       await(service.updateSubmission(incorpSuccess1)) shouldBe true
     }
+    "return false for a submission that is already 'Submitted" in new SetupNoProcess {
+      when(mockctRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
+        .thenReturn(Future.successful(Some(submittedCR)))
 
-    // TODO SCRS-2298 - add other status scenarios
+      await(service.updateSubmission(incorpSuccess1)) shouldBe true
+    }
+    "return false for a submission that is neither 'Held' nor 'Submitted'" in new SetupNoProcess {
+      when(mockctRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
+        .thenReturn(Future.successful(Some(failCaseCR)))
+
+      intercept[UnexpectedStatus]{await(service.updateSubmission(incorpSuccess1))}
+    }
 
   }
 
