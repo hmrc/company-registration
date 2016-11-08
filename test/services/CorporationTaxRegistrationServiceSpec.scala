@@ -348,7 +348,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
 
       val interimDesRegistration = InterimDesRegistration(
         ackRef,
-        Metadata(sessionId, credId, "en", DateTime.parse(service.generateTimestamp(dateTime)), Director),
+        Metadata(sessionId, credId, "en", DateTime.parse(service.formatTimestamp(dateTime)), Director),
         InterimCorporationTax(
           corporationTaxRegistration.companyDetails.get.companyName,
           returnsOnCT61 = false,

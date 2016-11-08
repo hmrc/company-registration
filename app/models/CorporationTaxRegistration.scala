@@ -41,7 +41,9 @@ case class CorporationTaxRegistration(OID: String,
                                       accountingDetails: Option[AccountingDetails] = None,
                                       tradingDetails: Option[TradingDetails] = None,
                                       contactDetails: Option[ContactDetails] = None,
-                                      accountsPreparation: Option[PrepareAccountMongoModel] = None
+                                      accountsPreparation: Option[PrepareAccountMongoModel] = None,
+                                      crn: Option[String] = None,
+                                      submissionTimestamp: Option[String] = None
                                      )
 
 object CorporationTaxRegistration {
@@ -192,6 +194,8 @@ case class PrepareAccountModel(businessEndDateChoice : String,
 }
 
 object PrepareAccountModel {
+  val HMRC_DEFINED = "HMRC_DEFINED"
+  val COMPANY_DEFINED = "COMPANY_DEFINED"
 
   val dateReads: Reads[DateTime] = {
     Reads[DateTime](js => js.validate[String].map(DateTime.parse(_, DateTimeFormat.forPattern("yyyy-MM-dd"))))
@@ -210,6 +214,4 @@ object PrepareAccountModel {
     (__ \ "businessEndDateChoice").read[String] and
     (__ \ "businessEndDate").readNullable[DateTime](dateReads)
     )(PrepareAccountModel.apply _)
-
-  def empty = PrepareAccountModel("", None)
 }

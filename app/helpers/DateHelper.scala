@@ -16,16 +16,34 @@
 
 package helpers
 
-import org.joda.time.DateTime
-import uk.gov.hmrc.time.DateTimeUtils
+import java.text.SimpleDateFormat
+import java.util.Date
 
-object DateHelper {
+import org.joda.time.{DateTime, DateTimeZone}
+
+trait DateHelper {
 
   def now: DateTime = {
-    DateTimeUtils.now
+    DateTime.now(DateTimeZone.UTC)
   }
 
   def getCurrentDay: String = {
     now.toString("yyyy-MM-dd")
   }
+
+  def asDate(s: String): DateTime = {
+    DateTime.parse(s)
+  }
+
+  def formatDate(date: DateTime): String = {
+    date.toString("yyyy-MM-dd")
+  }
+
+  def formatTimestamp(timeStamp: DateTime) : String = {
+    val timeStampFormat = "yyyy-MM-dd'T'HH:mm:ssXXX"
+    val format: SimpleDateFormat = new SimpleDateFormat(timeStampFormat)
+    format.format(new Date(timeStamp.getMillis))
+  }
 }
+
+object DateHelper extends DateHelper

@@ -16,14 +16,12 @@
 
 package services
 
-import java.text.SimpleDateFormat
-import java.util.Date
-
 import connectors.{AuthConnector, BusinessRegistrationConnector, BusinessRegistrationSuccessResponse}
 import models.des._
 import models.{BusinessRegistration, RegistrationStatus}
 import repositories.HeldSubmissionRepository
 import connectors.IncorporationCheckAPIConnector
+import helpers.DateHelper
 import models.{ConfirmationReferences, CorporationTaxRegistration}
 import repositories.{CorporationTaxRegistrationRepository, Repositories, SequenceRepository, StateDataRepository}
 import models._
@@ -47,7 +45,7 @@ object CorporationTaxRegistrationService extends CorporationTaxRegistrationServi
   override val submissionCheckAPIConnector = IncorporationCheckAPIConnector
 }
 
-trait CorporationTaxRegistrationService {
+trait CorporationTaxRegistrationService extends DateHelper {
 
   val corporationTaxRegistrationRepository: CorporationTaxRegistrationRepository
   val sequenceRepository: SequenceRepository
@@ -81,7 +79,7 @@ trait CorporationTaxRegistrationService {
     val record = CorporationTaxRegistration(
       OID = OID,
       registrationID = registrationId,
-      formCreationTimestamp = generateTimestamp(currentDateTime),
+      formCreationTimestamp = formatTimestamp(currentDateTime),
       language = language)
 
     corporationTaxRegistrationRepository.createCorporationTaxRegistration(record)
@@ -119,12 +117,6 @@ trait CorporationTaxRegistrationService {
 
   def retrieveConfirmationReference(rID: String): Future[Option[ConfirmationReferences]] = {
     corporationTaxRegistrationRepository.retrieveConfirmationReference(rID)
-  }
-
-  private[services] def generateTimestamp(timeStamp: DateTime) : String = {
-    val timeStampFormat = "yyyy-MM-dd'T'HH:mm:ssXXX"
-    val format: SimpleDateFormat = new SimpleDateFormat(timeStampFormat)
-    format.format(new Date(timeStamp.getMillis))
   }
 
   private def generateAcknowledgementReference: Future[String] = {
@@ -182,7 +174,7 @@ trait CorporationTaxRegistrationService {
         sessionId = sessionId,
         credId = credId,
         language = brMetadata.language,
-        submissionTs = DateTime.parse(generateTimestamp(currentDateTime)),
+        submissionTs = DateTime.parse(formatTimestamp(currentDateTime)),
         completionCapacity = CompletionCapacity(brMetadata.completionCapacity)
       ),
       interimCorporationTax = InterimCorporationTax(
