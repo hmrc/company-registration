@@ -22,6 +22,7 @@ import repositories.Repositories
 import services.RegistrationHoldingPenService
 import uk.gov.hmrc.lock.LockKeeper
 import uk.gov.hmrc.play.scheduling.ExclusiveScheduledJob
+import utils.SCRSFeatureSwitches
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -31,20 +32,23 @@ trait CheckSubmissionJob extends ExclusiveScheduledJob with JobConfig {
   val regHoldingPenService: RegistrationHoldingPenService
 
   override def executeInMutex(implicit ec: ExecutionContext): Future[Result] = {
-    lock.tryLock {
-      Logger.info(s"Triggered $name")
-      regHoldingPenService.updateNextSubmissionByTimepoint()
-    } map {
-      case Some(x) =>
-        Logger.info(s"successfully acquired lock for $name")
-        Result(s"$name")
-      case None =>
-        Logger.info(s"failed to acquire lock for $name")
-        Result(s"$name failed")
-    } recover {
+    SCRSFeatureSwitches.scheduler.enabled match {
+      case true => lock.tryLock {
+        Logger.info(s"Triggered $name")
+        regHoldingPenService.updateNextSubmissionByTimepoint()
+      } map {
+        case Some(x) =>
+          Logger.info(s"successfully acquired lock for $name")
+          Result(s"$name")
+        case None =>
+          Logger.info(s"failed to acquire lock for $name")
+          Result(s"$name failed")
+      } recover {
         case _: Exception => Result(s"$name failed")
       }
+      case false => Future.successful(Result(s"Feature is turned off"))
     }
+  }
 }
 
 object CheckSubmissionJob extends CheckSubmissionJob {
