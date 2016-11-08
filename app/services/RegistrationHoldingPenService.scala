@@ -31,10 +31,12 @@ import scala.util.control.NoStackTrace
 
 object RegistrationHoldingPenService extends RegistrationHoldingPenService {
 
+  //$COVERAGE-OFF$
   override val desConnector = DesConnector
+  override val incorporationCheckAPIConnector = IncorporationCheckAPIConnector
+  //$COVERAGE-ON$
   override val stateDataRepository = Repositories.stateDataRepository
   override val ctRepository = Repositories.cTRepository
-  override val incorporationCheckAPIConnector = IncorporationCheckAPIConnector
   override val heldRepo = Repositories.heldSubmissionRepository
   override val accountingService = AccountingDetailsService
 
@@ -105,8 +107,12 @@ trait RegistrationHoldingPenService extends DateHelper {
 
 
   private def processSuccessDesResponse(item: IncorpUpdate, ctReg: CorporationTaxRegistration, response: JsObject): Future[JsObject] = {
-    ctRepository.updateHeldToSubmitted(ctReg.registrationID, item.crn, formatTimestamp(now))
-    Future.successful(response)
+    for {
+      updated <- ctRepository.updateHeldToSubmitted(ctReg.registrationID, item.crn, formatTimestamp(now))
+      deleted <- heldRepo.removeHeldDocument(ctReg.registrationID)
+    } yield {
+      response
+    }
   }
 
   private def processInvalidDesRequest(ackRef: String, message: String) = {
