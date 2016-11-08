@@ -74,19 +74,19 @@ trait RegistrationHoldingPenService extends DateHelper {
     }
   }
 
-  private[services] def updateSubmission(item: IncorpUpdate): Future[JsObject] = {
+  private[services] def updateSubmission(item: IncorpUpdate): Future[Boolean] = {
     Logger.debug(s"""Got tx_id "${item.transactionId}" """)
     fetchRegistrationByTxId(item.transactionId) flatMap { ctReg =>
       import RegistrationStatus.{HELD,SUBMITTED}
       ctReg.status match {
         case HELD => updateHeldSubmission(item, ctReg)
-        case SUBMITTED => updateSubmittedSubmission(item)
+        case SUBMITTED => updateSubmittedSubmission(ctReg)
         case unknown => updateOtherSubmission(ctReg.registrationID, item.transactionId, unknown)
       }
     }
   }
 
-  private[services] def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration): Future[JsObject] = {
+  private[services] def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration): Future[Boolean] = {
     getAckRef(ctReg) match {
       case Some(ackRef) => {
         val fResponse = for {
@@ -96,7 +96,7 @@ trait RegistrationHoldingPenService extends DateHelper {
           response
         }
         fResponse flatMap {
-          case SuccessDesResponse(response) => processSuccessDesResponse(item, ctReg, response)
+          case SuccessDesResponse(response) => processSuccessDesResponse(item, ctReg)
           case InvalidDesRequest(message) => processInvalidDesRequest(ackRef, message)
           case NotFoundDesResponse => processNotFoundDesResponse(ackRef)
         }
@@ -109,12 +109,12 @@ trait RegistrationHoldingPenService extends DateHelper {
     }
   }
 
-  private def processSuccessDesResponse(item: IncorpUpdate, ctReg: CorporationTaxRegistration, response: JsObject): Future[JsObject] = {
+  private def processSuccessDesResponse(item: IncorpUpdate, ctReg: CorporationTaxRegistration): Future[Boolean] = {
     for {
       updated <- ctRepository.updateHeldToSubmitted(ctReg.registrationID, item.crn, formatTimestamp(now))
       deleted <- heldRepo.removeHeldDocument(ctReg.registrationID)
     } yield {
-      response
+      updated && deleted
     }
   }
 
@@ -130,13 +130,11 @@ trait RegistrationHoldingPenService extends DateHelper {
     Future.failed(new InvalidSubmission(errMsg))
   }
 
-  private def updateSubmittedSubmission(item: IncorpUpdate): Future[JsObject] = {
-    stateDataRepository.updateTimepoint(item.timepoint) map {
-      r => Json.obj("timepoint" -> r)
-    }
+  private def updateSubmittedSubmission(ctReg: CorporationTaxRegistration): Future[Boolean] = {
+    heldRepo.removeHeldDocument(ctReg.registrationID)
   }
 
-  private def updateOtherSubmission(regId: String, txId: String, status: String): Future[JsObject] = {
+  private def updateOtherSubmission(regId: String, txId: String, status: String) = {
     Logger.error(s"""Tried to process a submission (${regId}/${txId}) with an unexpected status of "${status}" """)
     Future.failed(new UnexpectedStatus(status))
   }

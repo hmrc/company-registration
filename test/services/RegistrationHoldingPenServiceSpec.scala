@@ -245,7 +245,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockDesConnector.ctSubmission(Matchers.any(), Matchers.any())(Matchers.any()))
         .thenReturn(Future.successful(SuccessDesResponse(Json.obj("x"->"y"))))
 
-      await(service.updateHeldSubmission(incorpSuccess1, validCR)) shouldBe Json.obj("x"->"y")
+      await(service.updateHeldSubmission(incorpSuccess1, validCR)) shouldBe true
     }
 
     "fail if DES states invalid" in new Setup {
@@ -287,16 +287,15 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
   "updateSubmission" should {
     trait SetupNoProcess {
-      val expected = Json.obj("key" -> UUID.randomUUID().toString)
       val service = new mockService {
-        override def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration) = Future.successful(expected)
+        override def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration) = Future.successful(true)
       }
     }
     "return a valid DES ready submission" in new SetupNoProcess {
       when(mockctRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
         .thenReturn(Future.successful(Some(validCR)))
 
-      await(service.updateSubmission(incorpSuccess1)) shouldBe expected
+      await(service.updateSubmission(incorpSuccess1)) shouldBe true
     }
 
     // TODO SCRS-2298 - add other status scenarios
@@ -307,7 +306,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
     val expected = Json.obj("key" -> timepoint)
     trait SetupNoProcess {
       val service = new mockService {
-        override def updateSubmission(item: IncorpUpdate) = Future.successful(expected)
+        override def updateSubmission(item: IncorpUpdate) = Future.successful(true)
       }
     }
 
