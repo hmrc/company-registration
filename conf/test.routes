@@ -2,3 +2,5 @@ GET        /modify-throttled-users/:usersIn                    controllers.test.
 GET        /drop-ct                                            controllers.test.TestEndpointController.dropJourneyCollections
 GET        /fetch-held-submission/:registrationId              controllers.test.TestEndpointController.fetchHeldData(registrationId: String)
 POST       /store-held-data/:registrationId                    controllers.test.TestEndpointController.storeHeldData(registrationId: String, ackRef: String)
+
+GET        /fetch-held-submission/:registrationId              controllers.test.HeldSubmissionController.fetchHeldSubmission(registrationId: String)

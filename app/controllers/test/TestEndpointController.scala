@@ -18,18 +18,22 @@ package controllers.test
 
 import connectors.BusinessRegistrationConnector
 import helpers.DateHelper
+import models.ConfirmationReferences
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.{Result, Action}
 import repositories._
+import services.CorporationTaxRegistrationService
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 object TestEndpointController extends TestEndpointController {
   val throttleMongoRepository = Repositories.throttleRepository
   val cTMongoRepository = Repositories.cTRepository
   val bRConnector = BusinessRegistrationConnector
   val heldRepository = Repositories.heldSubmissionRepository
+  val cTService = CorporationTaxRegistrationService
 }
 
 trait TestEndpointController extends BaseController {
@@ -38,6 +42,7 @@ trait TestEndpointController extends BaseController {
   val cTMongoRepository: CorporationTaxRegistrationMongoRepository
   val bRConnector: BusinessRegistrationConnector
   val heldRepository: HeldSubmissionRepository
+  val cTService: CorporationTaxRegistrationService
 
   def modifyThrottledUsers(usersIn: Int) = Action.async {
     implicit request =>
@@ -76,5 +81,21 @@ trait TestEndpointController extends BaseController {
           heldRepository.storePartialSubmission(registrationId, ackRef, partialSub)
             .map(_.fold[Result](BadRequest)(_ => Ok))
       }
+  }
+
+  def updateSubmissionStatusToHeld(registrationId: String) = Action.async {
+    implicit request =>
+      cTMongoRepository.updateSubmissionStatus(registrationId, "Held").map(_ => Ok)
+  }
+
+  def updateConfirmationRefs(registrationId: String) = Action.async {
+    implicit request =>
+      val confirmationRefs = ConfirmationReferences("", "testOnlyTransactionId", "testOnlyPaymentRef", "12")
+      cTService.updateConfirmationReferences(registrationId, confirmationRefs).map(_.fold(NotFound)(refs => Ok))
+  }
+
+  def removeTaxRegistrationInformation(registrationId: String) = Action.async {
+    implicit request =>
+      cTMongoRepository.removeTaxRegistrationInformation(registrationId) map(if(_) Ok else BadRequest)
   }
 }
