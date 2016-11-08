@@ -19,7 +19,6 @@ package services
 import connectors._
 import helpers.DateHelper
 import models._
-import org.joda.time.DateTime
 import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import repositories._
@@ -59,40 +58,45 @@ trait RegistrationHoldingPenService extends DateHelper {
   private[services] class FailedToRetrieveByAckRef extends NoStackTrace
   private[services] class MissingAccountingDates extends NoStackTrace
 
-  def updateNextSubmissionByTimepoint(): Future[Seq[JsObject]] = {
+  def updateNextSubmissionByTimepoint(): Future[String] = {
     fetchIncorpUpdate flatMap { items =>
-      Logger.debug(s"""Got items "${items}" """)
       val results = items map { item =>
-        Logger.debug(s"""Got item "${item}" """)
+        //TODO see SCRS-3766
         updateSubmission(item)
       }
-      Future.sequence(results)
+      Future.sequence(results) flatMap { r =>
+        //TODO For day one, take the first timepoint - see SCRS-3766
+        items.headOption match {
+          case Some(head) => stateDataRepository.updateTimepoint(head.timepoint)
+          case None => Future.successful("")
+        }
+      }
     }
   }
 
-  private[services] def updateSubmission(item: IncorpUpdate): Future[JsObject] = {
+  private[services] def updateSubmission(item: IncorpUpdate): Future[Boolean] = {
     Logger.debug(s"""Got tx_id "${item.transactionId}" """)
     fetchRegistrationByTxId(item.transactionId) flatMap { ctReg =>
-      import RegistrationStatus.{HELD,SUBMITTED,DRAFT}
+      import RegistrationStatus.{HELD,SUBMITTED}
       ctReg.status match {
         case HELD => updateHeldSubmission(item, ctReg)
-        case SUBMITTED => updateSubmittedSubmission() // TODO SCRS-2298
+        case SUBMITTED => updateSubmittedSubmission(ctReg)
         case unknown => updateOtherSubmission(ctReg.registrationID, item.transactionId, unknown)
       }
     }
   }
 
-  private[services] def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration): Future[JsObject] = {
+  private[services] def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration): Future[Boolean] = {
     getAckRef(ctReg) match {
       case Some(ackRef) => {
-        val response = for {
+        val fResponse = for {
           submission <- constructFullSubmission(item, ctReg, ackRef)
           response <- postSubmissionToDes(ackRef, submission)
         } yield {
           response
         }
-        response flatMap {
-          case SuccessDesResponse(response) => processSuccessDesResponse(item, ctReg, response)
+        fResponse flatMap {
+          case SuccessDesResponse(response) => processSuccessDesResponse(item, ctReg)
           case InvalidDesRequest(message) => processInvalidDesRequest(ackRef, message)
           case NotFoundDesResponse => processNotFoundDesResponse(ackRef)
         }
@@ -105,13 +109,12 @@ trait RegistrationHoldingPenService extends DateHelper {
     }
   }
 
-
-  private def processSuccessDesResponse(item: IncorpUpdate, ctReg: CorporationTaxRegistration, response: JsObject): Future[JsObject] = {
+  private def processSuccessDesResponse(item: IncorpUpdate, ctReg: CorporationTaxRegistration): Future[Boolean] = {
     for {
       updated <- ctRepository.updateHeldToSubmitted(ctReg.registrationID, item.crn, formatTimestamp(now))
       deleted <- heldRepo.removeHeldDocument(ctReg.registrationID)
     } yield {
-      response
+      updated && deleted
     }
   }
 
@@ -127,14 +130,14 @@ trait RegistrationHoldingPenService extends DateHelper {
     Future.failed(new InvalidSubmission(errMsg))
   }
 
+  private def updateSubmittedSubmission(ctReg: CorporationTaxRegistration): Future[Boolean] = {
+    heldRepo.removeHeldDocument(ctReg.registrationID)
+  }
 
-  private def updateSubmittedSubmission(): Future[JsObject] = ???  // TODO SCRS-2298
-
-  private def updateOtherSubmission(regId: String, txId: String, status: String): Future[JsObject] = {
+  private def updateOtherSubmission(regId: String, txId: String, status: String) = {
     Logger.error(s"""Tried to process a submission (${regId}/${txId}) with an unexpected status of "${status}" """)
     Future.failed(new UnexpectedStatus(status))
   }
-
 
   private def constructFullSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration, ackRef: String): Future[JsObject] = {
     for {

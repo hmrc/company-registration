@@ -62,7 +62,10 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
   val testRegId = UUID.randomUUID.toString
   val transId = UUID.randomUUID().toString
   val validCR = validHeldCTRegWithData(Some(testAckRef)).copy(accountsPreparation = Some(PrepareAccountMongoModel("",Some("2017-01-01"))))
-  val incorpSuccess1 = IncorpUpdate(transId, "status", "012345", new DateTime(2016, 8, 10, 0, 0), "100000011")
+  import RegistrationStatus._
+  val submittedCR = validCR.copy(status = SUBMITTED)
+  val failCaseCR = validCR.copy(status = DRAFT)
+  val incorpSuccess1 = IncorpUpdate(transId, "held", "012345", new DateTime(2016, 8, 10, 0, 0), timepoint)
   val submissionCheckResponseSingle = SubmissionCheckResponse(Seq(incorpSuccess1), "testNextLink")
   val submissionCheckResponseDouble = SubmissionCheckResponse(Seq(incorpSuccess1,incorpSuccess1), "testNextLink")
   val submissionCheckResponseNone = SubmissionCheckResponse(Seq(), "testNextLink")
@@ -189,7 +192,6 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
   }
 
   "calculateDates" should {
-    import RegistrationHoldingPenService.FailedToRetrieveByAckRef
 
     "return valid dates if correct detail is passed" in new Setup {
       when(mockAccountService.calculateSubmissionDates(Matchers.any(), Matchers.any(), Matchers.any()))
@@ -229,7 +231,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
   }
 
   "updateHeldSubmission" should {
-    "return a valid DES ready submission" in new Setup {
+    "return a true for a DES ready submission" in new Setup {
       when(mockheldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
         .thenReturn(Future.successful(Some(validHeld)))
 
@@ -245,7 +247,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockDesConnector.ctSubmission(Matchers.any(), Matchers.any())(Matchers.any()))
         .thenReturn(Future.successful(SuccessDesResponse(Json.obj("x"->"y"))))
 
-      await(service.updateHeldSubmission(incorpSuccess1, validCR)) shouldBe Json.obj("x"->"y")
+      await(service.updateHeldSubmission(incorpSuccess1, validCR)) shouldBe true
     }
 
     "fail if DES states invalid" in new Setup {
@@ -287,54 +289,69 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
   "updateSubmission" should {
     trait SetupNoProcess {
-      val expected = Json.obj("key" -> UUID.randomUUID().toString)
       val service = new mockService {
-        override def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration) = Future.successful(expected)
+        override def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration) = Future.successful(true)
       }
     }
-    "return a valid DES ready submission" in new SetupNoProcess {
+    "return true for a DES ready submission" in new SetupNoProcess {
       when(mockctRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
         .thenReturn(Future.successful(Some(validCR)))
 
-      await(service.updateSubmission(incorpSuccess1)) shouldBe expected
+      await(service.updateSubmission(incorpSuccess1)) shouldBe true
     }
+    "return false for a submission that is already 'Submitted" in new SetupNoProcess {
+      when(mockctRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
+        .thenReturn(Future.successful(Some(submittedCR)))
 
-    // TODO SCRS-2298 - add other status scenarios
+      await(service.updateSubmission(incorpSuccess1)) shouldBe true
+    }
+    "return false for a submission that is neither 'Held' nor 'Submitted'" in new SetupNoProcess {
+      when(mockctRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
+        .thenReturn(Future.successful(Some(failCaseCR)))
+
+      intercept[UnexpectedStatus]{await(service.updateSubmission(incorpSuccess1))}
+    }
 
   }
 
   "updateNextSubmissionByTimepoint" should {
-    val expected = Json.obj("key" -> UUID.randomUUID().toString)
+    val expected = Json.obj("key" -> timepoint)
     trait SetupNoProcess {
       val service = new mockService {
-        override def updateSubmission(item: IncorpUpdate) = Future.successful(expected)
+        override def updateSubmission(item: IncorpUpdate) = Future.successful(true)
       }
     }
 
-    "return a Json.object for a single incorp update" in new SetupNoProcess {
+    "return the first Timepoint for a single incorp update" in new SetupNoProcess {
 
       when(mockStateDataRepository.retrieveTimePoint).thenReturn(Future.successful(Some(timepoint)))
 
       when(mockIncorporationCheckAPIConnector.checkSubmission(Matchers.eq(Some(timepoint)))(Matchers.any()))
         .thenReturn(Future.successful(submissionCheckResponseSingle))
 
-      val result = await(service.updateNextSubmissionByTimepoint)
+      when(mockStateDataRepository.updateTimepoint(Matchers.eq(timepoint)))
+          .thenReturn(Future.successful(timepoint))
 
-      result.length shouldBe 1
-      result shouldBe Seq(expected)
+      val result = await(service.updateNextSubmissionByTimepoint())
+
+      result.length shouldBe 9
+      result shouldBe timepoint
     }
 
-    "return a Json.object for each of two incorp updates" in new SetupNoProcess {
+    "return the first Timepoint for a response with two incorp updates" in new SetupNoProcess {
 
       when(mockStateDataRepository.retrieveTimePoint).thenReturn(Future.successful(Some(timepoint)))
 
       when(mockIncorporationCheckAPIConnector.checkSubmission(Matchers.eq(Some(timepoint)))(Matchers.any()))
         .thenReturn(Future.successful(submissionCheckResponseDouble))
 
-      val result = await(service.updateNextSubmissionByTimepoint)
+      when(mockStateDataRepository.updateTimepoint(Matchers.eq(timepoint)))
+        .thenReturn(Future.successful(timepoint))
 
-      result.length shouldBe 2
-      result shouldBe Seq(expected, expected)
+      val result = await(service.updateNextSubmissionByTimepoint())
+
+      result.length shouldBe 9
+      result shouldBe timepoint
     }
 
     "return a Json.object when there's no incorp updates" in new SetupNoProcess {
@@ -344,9 +361,9 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockIncorporationCheckAPIConnector.checkSubmission(Matchers.eq(Some(timepoint)))(Matchers.any()))
         .thenReturn(Future.successful(submissionCheckResponseNone))
 
-      val result = await(service.updateNextSubmissionByTimepoint)
+      val result = await(service.updateNextSubmissionByTimepoint())
 
-      result shouldBe Seq()
+      result shouldBe ""
     }
 
   }

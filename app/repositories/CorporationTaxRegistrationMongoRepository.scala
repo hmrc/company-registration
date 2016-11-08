@@ -29,6 +29,7 @@ import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.control.NoStackTrace
 
 trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegistration, BSONObjectID]{
   def createCorporationTaxRegistration(metadata: CorporationTaxRegistration): Future[CorporationTaxRegistration]
@@ -40,12 +41,12 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def updateAccountingDetails(registrationID: String, accountingDetails: AccountingDetails): Future[Option[AccountingDetails]]
   def retrieveTradingDetails(registrationID : String) : Future[Option[TradingDetails]]
   def updateTradingDetails(registrationID : String, tradingDetails: TradingDetails) : Future[Option[TradingDetails]]
-  def updateAcknowledgementRef(registrationID: String, acknowledgementRef: String): Future[Option[String]]
+//  def updateAcknowledgementRef(registrationID: String, acknowledgementRef: String): Future[Option[String]]
   def updateContactDetails(registrationID: String, contactDetails: ContactDetails): Future[Option[ContactDetails]]
   def retrieveConfirmationReference(registrationID: String) : Future[Option[ConfirmationReferences]]
   def updateConfirmationReferences(registrationID: String, confirmationReferences: ConfirmationReferences) : Future[Option[ConfirmationReferences]]
   def retrieveContactDetails(registrationID: String): Future[Option[ContactDetails]]
-  def retrieveAcknowledgementRef(registrationID: String): Future[Option[String]]
+//  def retrieveAcknowledgementRef(registrationID: String): Future[Option[String]]
   def updateCompanyEndDate(registrationID: String, model: PrepareAccountModel): Future[Option[PrepareAccountModel]]
   def updateSubmissionStatus(registrationID: String, status: String): Future[String]
   def removeTaxRegistrationInformation(registrationId: String): Future[Boolean]
@@ -54,6 +55,8 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def getHeldCTRecord(ackRef : String) : Future[Option[CorporationTaxRegistration]]
   def updateHeldToSubmitted(registrationId: String, crn: String, submissionTS: String): Future[Boolean]
 }
+
+private[repositories] class MissingCTDocument(regId: String) extends NoStackTrace
 
 class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
   extends ReactiveRepository[CorporationTaxRegistration, BSONObjectID]("corporation-tax-registration-information", mongo, CorporationTaxRegistration.formats, ReactiveMongoFormats.objectIdFormats)
@@ -191,28 +194,6 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
     }
   }
 
-  // TODO remove this
-    override def updateAcknowledgementRef(registrationID: String, acknowledgementRef: String): Future[Option[String]] = {
-      retrieveCorporationTaxRegistration(registrationID) flatMap {
-        case Some(reg) => collection.update(
-                                             registrationIDSelector(registrationID),
-                                             reg.copy(confirmationReferences = Some(ConfirmationReferences(acknowledgementRef,"","",""))),
-                                             upsert = false)
-            .map(_ => Some(acknowledgementRef))
-        case None => Future.successful(None)
-      }
-    }
-
-  // TODO remove this
-  override def retrieveAcknowledgementRef(registrationID: String): Future[Option[String]] = {
-
-    retrieveCorporationTaxRegistration(registrationID) map { oreg => {
-        oreg flatMap {
-          reg => reg.confirmationReferences map { _.acknowledgementReference }
-        }
-      }
-    }
-  }
   override def updateCompanyEndDate(registrationID: String, model: PrepareAccountModel): Future[Option[PrepareAccountModel]] = {
     retrieveCorporationTaxRegistration(registrationID) flatMap {
       case Some(ct) =>
@@ -259,7 +240,7 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
           updatedDoc,
           upsert = false
         ).map( _ => true )
-      case None => Future.successful(false)
+      case None => Future.failed(new MissingCTDocument(registrationId))
     }
   }
 

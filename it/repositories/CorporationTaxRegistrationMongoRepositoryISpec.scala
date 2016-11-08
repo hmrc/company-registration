@@ -190,14 +190,14 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     }
 
     "fail to update the CRN" in new Setup {
+
       await(setupCollection(repository, heldReg.copy(registrationID = "ABC")))
 
       val crn = "foo1234"
       val submissionTS = "2001-12-31T12:00:00Z"
 
-      val result = await(repository.updateHeldToSubmitted(heldReg.registrationID, crn, submissionTS))
+      intercept[MissingCTDocument]{await(repository.updateHeldToSubmitted(heldReg.registrationID, crn, submissionTS))}
 
-      result shouldBe false
     }
 
   }
