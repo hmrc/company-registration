@@ -17,6 +17,7 @@
 package services
 
 import connectors._
+import helpers.DateHelper
 import models._
 import org.joda.time.DateTime
 import play.api.Logger
@@ -44,7 +45,7 @@ private[services] class InvalidSubmission(val message: String) extends NoStackTr
 private[services] class MissingAckRef(val message: String) extends NoStackTrace
 private[services] class UnexpectedStatus(val status: String) extends NoStackTrace
 
-trait RegistrationHoldingPenService {
+trait RegistrationHoldingPenService extends DateHelper {
 
   val desConnector : DesConnector
   val stateDataRepository: StateDataRepository
@@ -102,7 +103,7 @@ trait RegistrationHoldingPenService {
 
 
   private def processSuccessDesResponse(item: IncorpUpdate, ctReg: CorporationTaxRegistration, response: JsObject): Future[JsObject] = {
-    ctRepository.updateSubmissionForIncorp(ctReg.registrationID, item.crn, "")
+    ctRepository.updateHeldToSubmitted(ctReg.registrationID, item.crn, formatTimestamp(now))
     Future.successful(response)
   }
 
@@ -134,15 +135,6 @@ trait RegistrationHoldingPenService {
     } yield {
       appendDataToSubmission(item.crn, dates, heldData.submission)
     }
-  }
-
-  private def asDate(s: String): DateTime = {
-    // TODO SCRS-2298 - find the usage of this and refactor so that the repo returns a DateTime
-    DateTime.parse(s)
-  }
-
-  private[services] def formatDate(date: DateTime): String = {
-    date.toString("yyyy-MM-dd")
   }
 
   private def getAckRef(reg: CorporationTaxRegistration): Option[String] = {

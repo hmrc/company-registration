@@ -154,7 +154,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     }
   }
 
-  "Incorp status update with incorp data" should {
+  "Update registration to submitted (with data)" should {
 
     val ackRef = "BRCT12345678910"
 
@@ -164,7 +164,9 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       status = HELD,
       formCreationTimestamp = "2001-12-31T12:00:00Z",
       language = "en",
-      confirmationReferences = Some(ConfirmationReferences(ackRef, "TX1", "PY1", "12.00"))
+      confirmationReferences = Some(ConfirmationReferences(ackRef, "TX1", "PY1", "12.00")),
+      accountingDetails = Some(AccountingDetails(AccountingDetails.WHEN_REGISTERED, None)),
+      accountsPreparation = Some(PrepareAccountMongoModel(PrepareAccountModel.HMRC_DEFINED, None))
     )
 
     "update the CRN and timestamp" in new Setup {
@@ -173,14 +175,18 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       val crn = "foo1234"
       val submissionTS = "2001-12-31T12:00:00Z"
 
-      val result = await(repository.updateSubmissionForIncorp(heldReg.registrationID, crn, submissionTS))
+      val result = await(repository.updateHeldToSubmitted(heldReg.registrationID, crn, submissionTS))
 
       result shouldBe true
 
-      val actual = await(repository.retrieveCorporationTaxRegistration(heldReg.registrationID))
-      actual shouldBe defined
-      actual.get.crn shouldBe Some(crn)
-      actual.get.submissionTimestamp shouldBe Some(submissionTS)
+      val someActual = await(repository.retrieveCorporationTaxRegistration(heldReg.registrationID))
+      someActual shouldBe defined
+      val actual = someActual.get
+      actual.status shouldBe RegistrationStatus.SUBMITTED
+      actual.crn shouldBe Some(crn)
+      actual.submissionTimestamp shouldBe Some(submissionTS)
+      actual.accountingDetails shouldBe None
+      actual.accountsPreparation shouldBe None
     }
 
     "fail to update the CRN" in new Setup {
@@ -189,7 +195,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       val crn = "foo1234"
       val submissionTS = "2001-12-31T12:00:00Z"
 
-      val result = await(repository.updateSubmissionForIncorp(heldReg.registrationID, crn, submissionTS))
+      val result = await(repository.updateHeldToSubmitted(heldReg.registrationID, crn, submissionTS))
 
       result shouldBe false
     }

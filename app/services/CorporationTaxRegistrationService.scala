@@ -70,7 +70,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
     val record = CorporationTaxRegistration(
       OID = OID,
       registrationID = registrationId,
-      formCreationTimestamp = generateTimestamp(currentDateTime),
+      formCreationTimestamp = formatTimestamp(currentDateTime),
       language = language)
 
     corporationTaxRegistrationRepository.createCorporationTaxRegistration(record)
@@ -165,7 +165,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
         sessionId = sessionId,
         credId = credId,
         language = brMetadata.language,
-        submissionTs = DateTime.parse(generateTimestamp(currentDateTime)),
+        submissionTs = DateTime.parse(formatTimestamp(currentDateTime)),
         completionCapacity = CompletionCapacity(brMetadata.completionCapacity)
       ),
       interimCorporationTax = InterimCorporationTax(

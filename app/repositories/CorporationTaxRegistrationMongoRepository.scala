@@ -52,7 +52,7 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
 
   def updateCTRecordWithAcknowledgments(ackRef : String, ctRecord : CorporationTaxRegistration) : Future[WriteResult]
   def getHeldCTRecord(ackRef : String) : Future[Option[CorporationTaxRegistration]]
-  def updateSubmissionForIncorp(registrationId: String, crn: String, submissionTS: String): Future[Boolean]
+  def updateHeldToSubmitted(registrationId: String, crn: String, submissionTS: String): Future[Boolean]
 }
 
 class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
@@ -235,12 +235,20 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
     }
   }
 
-  override def updateSubmissionForIncorp(registrationId: String, crn: String, submissionTS: String): Future[Boolean] = {
+  override def updateHeldToSubmitted(registrationId: String, crn: String, submissionTS: String): Future[Boolean] = {
     retrieveCorporationTaxRegistration(registrationId) flatMap {
       case Some(ct) =>
+        import RegistrationStatus.SUBMITTED
+        val updatedDoc = ct.copy(
+          status = SUBMITTED,
+          crn = Some(crn),
+          submissionTimestamp = Some(submissionTS),
+          accountingDetails = None,
+          accountsPreparation = None
+        )
         collection.update(
           registrationIDSelector(registrationId),
-          ct.copy(crn = Some(crn), submissionTimestamp = Some(submissionTS)),
+          updatedDoc,
           upsert = false
         ).map( _ => true )
       case None => Future.successful(false)
