@@ -98,19 +98,4 @@ trait TestEndpointController extends BaseController {
     implicit request =>
       cTMongoRepository.removeTaxRegistrationInformation(registrationId) map(if(_) Ok else BadRequest)
   }
-
-  /* TODO - split into separate test endpoints
-   *
-   * working assumption (amend later)
-   *  - user is logged in
-   *  - user calls test endpoint on frontend
-   *  - endpoint calls to create a BR footprint - todo - MOOT - as logging in creates footprint in BR and CR
-   *  - endpoint calls a function to do the following:
-   *
-   * - create a new CR document - CorporationTaxRegistrationService.createCorporationTaxRegistrationRecord - todo - see moot point
-   * - store passed json as held data //todo - done (this endpoint cannot be triggered with the rest unless the held data is supplied with the initial call)
-   * - add confirmation refs to document -> CorporationTaxRegistrationService.updateConfirmationReferences //todo - done
-   * - remove all other sub-documents (other than dates?) -- CorporationTaxRegistrationRepository.removeTaxRegistrationInformation //todo - done
-   * - update status of submission to held -- CorporationTaxRegistrationRepository.updateSubmissionStatus //todo - done
-   **/
 }
