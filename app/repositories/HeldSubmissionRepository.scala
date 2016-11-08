@@ -30,6 +30,7 @@ import play.api.Logger
 import reactivemongo.api.indexes.{Index, IndexType}
 
 import scala.collection.Seq
+import scala.util.control.NoStackTrace
 
 case class HeldSubmission( regId: String, ackRef: String, submission: JsObject )
 
@@ -49,6 +50,9 @@ object HeldSubmissionData {
   implicit val formats = Json.format[HeldSubmissionData]
   def now = DateTime.now(DateTimeZone.UTC)
 }
+
+private class DeletionFailure(val message: String) extends NoStackTrace
+
 
 trait HeldSubmissionRepository extends Repository[HeldSubmissionData, BSONObjectID]{
   def storePartialSubmission(regId: String, ackRef:String, partialSubmission: JsObject): Future[Option[HeldSubmissionData]]
@@ -102,6 +106,25 @@ class HeldSubmissionMongoRepository(implicit mongo: () => DB)
     val selector = BSONDocument("acknowledgementReference" -> BSONString(ackRef))
     collection.find(selector).one[HeldSubmissionData] map {
       _ map { mapHeldSubmission( _ ) }
+    }
+  }
+
+  def removeHeldDocument(regId: String): Future[Boolean] = {
+    val logPrefix = "[HeldSubmissionRepository] [removeHeldDocument]"
+    val selector = BSONDocument("_id" -> BSONString(regId))
+    collection.remove(selector) flatMap {
+      case DefaultWriteResult(true, 1, _, _, _, _) => Future.successful(true)
+      case DefaultWriteResult(true, 0, _, _, _, _) => {
+        Logger.warn(s"[HeldSubmissionRepository] [removeHeldDocument] Didn't delete missing held submission for ${regId}")
+        Future.successful(false)
+      }
+      case unknown => {
+        //$COVERAGE-OFF$
+        Logger.error(s"${logPrefix} Unexpected error trying to - ${unknown}")
+        Future.failed(new DeletionFailure(unknown.toString))
+        //$COVERAGE-ON$
+
+      }
     }
   }
 }

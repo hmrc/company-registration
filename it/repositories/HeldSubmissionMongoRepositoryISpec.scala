@@ -142,6 +142,32 @@ class HeldSubmissionMongoRepositoryISpec extends UnitSpec with ScalaFutures with
       val f = repository.retrieveSubmissionByRegId(randomRegid)
       intercept[JsonParseException] { await(f) }
     }
+  }
 
+  "Clear down held document" should {
+    val randomRegid = newId
+
+    "Remove an existing doc if it exists" in new Setup {
+      val heldSubmission = Json.obj("x" -> "y")
+
+      val startCount = await(repository.count)
+
+      await(repository.storePartialSubmission(randomRegid, randomRegid, heldSubmission) flatMap { _ =>
+        repository.count} ) shouldBe (startCount + 1)
+
+      val result = await(repository.removeHeldDocument(randomRegid))
+      result shouldBe true
+
+      await(repository.count) shouldBe startCount
+    }
+
+    "Fail to remove a document that's not there" in new Setup {
+      val startCount = await(repository.count)
+
+      val result = await(repository.removeHeldDocument(randomRegid))
+      result shouldBe false
+
+      await(repository.count) shouldBe startCount
+    }
   }
 }

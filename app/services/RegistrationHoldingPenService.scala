@@ -31,10 +31,12 @@ import scala.util.control.NoStackTrace
 
 object RegistrationHoldingPenService extends RegistrationHoldingPenService {
 
+  //$COVERAGE-OFF$
   override val desConnector = DesConnector
+  override val incorporationCheckAPIConnector = IncorporationCheckAPIConnector
+  //$COVERAGE-ON$
   override val stateDataRepository = Repositories.stateDataRepository
   override val ctRepository = Repositories.cTRepository
-  override val incorporationCheckAPIConnector = IncorporationCheckAPIConnector
   override val heldRepo = Repositories.heldSubmissionRepository
   override val accountingService = AccountingDetailsService
 
