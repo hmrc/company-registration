@@ -32,18 +32,21 @@ private object AppDependencies {
   private val domainVersion = "3.7.0"
   private val hmrcTestVersion = "1.8.0"
   private val playReactivemongoVersion = "4.8.0"
+  private val playSchedulingVersion = "3.0.0"
+  private val mongoLockVersion = "3.3.0"
 
   val compile = Seq(
-    "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,
-
     ws,
+    "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,
     "uk.gov.hmrc" %% "microservice-bootstrap" % microserviceBootstrapVersion,
     "uk.gov.hmrc" %% "play-authorisation" % playAuthVersion,
     "uk.gov.hmrc" %% "play-health" % playHealthVersion,
     "uk.gov.hmrc" %% "play-url-binders" % playUrlBindersVersion,
     "uk.gov.hmrc" %% "play-config" % playConfigVersion,
     "uk.gov.hmrc" %% "play-json-logger" % playJsonLoggerVersion,
-    "uk.gov.hmrc" %% "domain" % domainVersion
+    "uk.gov.hmrc" %% "domain" % domainVersion,
+    "uk.gov.hmrc" %% "play-scheduling" % playSchedulingVersion,
+    "uk.gov.hmrc" %% "mongo-lock" % mongoLockVersion
   )
 
   trait TestDependencies {

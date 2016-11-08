@@ -4,3 +4,5 @@ GET        /fetch-held-submission/:registrationId              controllers.test.
 POST       /store-held-data/:registrationId                    controllers.test.TestEndpointController.storeHeldData(registrationId: String, ackRef: String)
 
 GET        /fetch-held-submission/:registrationId              controllers.test.HeldSubmissionController.fetchHeldSubmission(registrationId: String)
+
+GET        /feature-flag/:featureName/:featureStatus           controllers.test.FeatureSwitchController.switch(featureName: String, featureStatus: String)

@@ -17,6 +17,7 @@
 package repositories
 
 import play.modules.reactivemongo.ReactiveMongoPlugin
+import uk.gov.hmrc.lock.LockRepository
 
 object Repositories {
   private implicit val connection = {
@@ -29,4 +30,5 @@ object Repositories {
   lazy val throttleRepository = new ThrottleMongoRepository()
   lazy val stateDataRepository = new StateDataMongoRepository()
   lazy val heldSubmissionRepository = new HeldSubmissionMongoRepository
+  lazy val lockRepository = new LockRepository()
 }

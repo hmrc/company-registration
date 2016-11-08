@@ -82,7 +82,8 @@ trait DesConnector extends ServicesConfig with RawResponseReads {
 
 object DesConnector extends DesConnector {
   // $COVERAGE-OFF$
-  override val urlHeaderEnvironment: String = config("des-service").getString("environment").getOrElse("")
-  override val urlHeaderAuthorization: String = s"Bearer ${config("des-service").getString("authorization-token").getOrElse("")}"
+  val urlHeaderEnvironment: String = getConfString("des-service.environment", throw new Exception("could not find config value for des-service.environment"))
+  val urlHeaderAuthorization: String = s"Bearer ${getConfString("des-service.authorization-token",
+    throw new Exception("could not find config value for des-service.authorization-token"))}"
   // $COVERAGE-OFF$
 }
