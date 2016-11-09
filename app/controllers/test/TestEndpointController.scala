@@ -34,6 +34,7 @@ object TestEndpointController extends TestEndpointController {
   val bRConnector = BusinessRegistrationConnector
   val heldRepository = Repositories.heldSubmissionRepository
   val cTService = CorporationTaxRegistrationService
+  val stateRepo = Repositories.stateDataRepository
 }
 
 trait TestEndpointController extends BaseController {
@@ -43,6 +44,7 @@ trait TestEndpointController extends BaseController {
   val bRConnector: BusinessRegistrationConnector
   val heldRepository: HeldSubmissionRepository
   val cTService: CorporationTaxRegistrationService
+  val stateRepo: StateDataRepository
 
   def modifyThrottledUsers(usersIn: Int) = Action.async {
     implicit request =>
@@ -97,5 +99,10 @@ trait TestEndpointController extends BaseController {
   def removeTaxRegistrationInformation(registrationId: String) = Action.async {
     implicit request =>
       cTMongoRepository.removeTaxRegistrationInformation(registrationId) map(if(_) Ok else BadRequest)
+  }
+
+  def updateTimePoint(timepoint: String) = Action.async {
+    implicit request =>
+      stateRepo.updateTimepoint(timepoint).map(tp => Ok(Json.toJson(tp)))
   }
 }
