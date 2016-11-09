@@ -37,6 +37,7 @@ class TestEndpointControllerSpec extends UnitSpec with MockitoSugar with WithFak
   val mockBusRegConnector = mock[BusinessRegistrationConnector]
   val mockHeldRepository = mock[HeldSubmissionRepository]
   val mockCTService = mock[CorporationTaxRegistrationService]
+  val mockStateRepository = mock[StateDataMongoRepository]
 
   class Setup {
     val controller = new TestEndpointController {
@@ -45,6 +46,7 @@ class TestEndpointControllerSpec extends UnitSpec with MockitoSugar with WithFak
       val bRConnector = mockBusRegConnector
       val heldRepository = mockHeldRepository
       val cTService = mockCTService
+      val stateRepo = mockStateRepository
     }
   }
 
@@ -163,6 +165,20 @@ class TestEndpointControllerSpec extends UnitSpec with MockitoSugar with WithFak
 
       val result = await(controller.updateConfirmationRefs(registrationId)(FakeRequest()))
       status(result) shouldBe NOT_FOUND
+    }
+  }
+
+  "updateTimepoint" should {
+
+    val timepoint = "12345"
+
+    "return a 200" in new Setup {
+      when(mockStateRepository.updateTimepoint(Matchers.eq(timepoint)))
+        .thenReturn(Future.successful(timepoint))
+
+      val result = await(controller.updateTimePoint(timepoint)(FakeRequest()))
+      status(result) shouldBe OK
+      jsonBodyOf(result) shouldBe Json.toJson(timepoint)
     }
   }
 }
