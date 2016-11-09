@@ -52,6 +52,8 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def getHeldCTRecord(ackRef : String) : Future[Option[CorporationTaxRegistration]]
   def updateHeldToSubmitted(registrationId: String, crn: String, submissionTS: String): Future[Boolean]
   def removeTaxRegistrationById(registrationId: String): Future[Boolean]
+  def updateEmail(registrationId: String, email: Email): Future[Email]
+  def retrieveEmail(registrationId: String): Future[Email]
 }
 
 private[repositories] class MissingCTDocument(regId: String) extends NoStackTrace
@@ -258,5 +260,16 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
 
   def dropCollection = {
     collection.drop()
+  }
+
+  override def updateEmail(registrationId: String, email: Email): Future[Email] = {
+    collection.update(
+      registrationIDSelector(registrationId),
+      email
+    ) map ( _ => email)
+  }
+
+  override def retrieveEmail(registrationId: String): Future[Email] = {
+    collection.find(registrationIDSelector(registrationId)).one[Email].map(_.get)
   }
 }
