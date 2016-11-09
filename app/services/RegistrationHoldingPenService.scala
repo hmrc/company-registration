@@ -74,10 +74,19 @@ trait RegistrationHoldingPenService extends DateHelper {
     }
   }
 
-  private[services] def processIncorporationUpdate(item : IncorpUpdate) = {
+  private[services] def processIncorporationUpdate(item : IncorpUpdate): Future[Boolean] = {
     item.status match {
       case "accepted" => updateSubmission(item)
-      case "rejected" => Future.successful(true) //TODO SCRS-2302 Wipe data and log item.statusDescription
+      case "rejected" =>
+        val reason = item.statusDescription.fold("")(f => " Reason given:" + f)
+        Logger.info("Incorporation rejected for Transaction: " + item.transactionId + reason)
+        for{
+          ctReg <- fetchRegistrationByTxId(item.transactionId)
+          heldDeleted <- heldRepo.removeHeldDocument(ctReg.registrationID)
+          ctDeleted <- ctRepository.removeTaxRegistrationById(ctReg.registrationID)
+        } yield {
+          heldDeleted && ctDeleted
+        }
     }
   }
 

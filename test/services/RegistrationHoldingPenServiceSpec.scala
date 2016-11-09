@@ -385,6 +385,15 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       await(serviceFalse.processIncorporationUpdate(incorpSuccess)) shouldBe false
     }
     "return a future true when processing a rejected incorporation" in new Setup{
+      when(mockctRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
+        .thenReturn(Future.successful(Some(validCR)))
+
+      when(mockheldRepo.removeHeldDocument(Matchers.eq(validCR.registrationID)))
+        .thenReturn(Future.successful(true))
+
+      when(mockctRepository.removeTaxRegistrationById(Matchers.eq(validCR.registrationID)))
+        .thenReturn(Future.successful(true))
+
       await(service.processIncorporationUpdate(incorpRejected)) shouldBe true
     }
   }

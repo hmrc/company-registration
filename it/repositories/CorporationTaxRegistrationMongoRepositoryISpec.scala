@@ -16,6 +16,8 @@
 
 package repositories
 
+import java.util.UUID
+
 import models.RegistrationStatus._
 import models._
 import org.scalatest.BeforeAndAfterEach
@@ -200,5 +202,39 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
     }
 
+  }
+
+  "removeTaxRegistrationById" should {
+    val registrationId = UUID.randomUUID.toString
+
+    val corporationTaxRegistration = CorporationTaxRegistration(
+      OID = "testOID",
+      registrationID = registrationId,
+      formCreationTimestamp = "testDateTime",
+      language = "en",
+      companyDetails = Some(CompanyDetails(
+        "testCompanyName",
+        CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
+        ROAddress("10", "test street", "test town", "test area", "test county", "XX1 1ZZ", "test country"),
+        PPOBAddress("10", "test street", Some("test town"), Some("test area"), Some("test county"), "XX1 1ZZ", "test country"),
+        "testJurisdiction"
+      )),
+      contactDetails = Some(ContactDetails(
+        Some("testFirstName"), Some("testMiddleName"), Some("testSurname"), Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+      )),
+      tradingDetails = Some(TradingDetails(true))
+    )
+
+    "remove all details under that RegId from the collection" in new Setup {
+      await(setupCollection(repository, corporationTaxRegistration))
+
+      def retrieve = await(repository.retrieveCorporationTaxRegistration(registrationId))
+
+      lazy val response = repository.removeTaxRegistrationById(registrationId)
+
+      retrieve shouldBe Some(corporationTaxRegistration)
+      await(response) shouldBe true
+      retrieve  shouldBe None
+    }
   }
 }
