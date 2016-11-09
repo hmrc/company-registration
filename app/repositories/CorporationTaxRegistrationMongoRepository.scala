@@ -41,19 +41,17 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def updateAccountingDetails(registrationID: String, accountingDetails: AccountingDetails): Future[Option[AccountingDetails]]
   def retrieveTradingDetails(registrationID : String) : Future[Option[TradingDetails]]
   def updateTradingDetails(registrationID : String, tradingDetails: TradingDetails) : Future[Option[TradingDetails]]
-//  def updateAcknowledgementRef(registrationID: String, acknowledgementRef: String): Future[Option[String]]
   def updateContactDetails(registrationID: String, contactDetails: ContactDetails): Future[Option[ContactDetails]]
   def retrieveConfirmationReference(registrationID: String) : Future[Option[ConfirmationReferences]]
   def updateConfirmationReferences(registrationID: String, confirmationReferences: ConfirmationReferences) : Future[Option[ConfirmationReferences]]
   def retrieveContactDetails(registrationID: String): Future[Option[ContactDetails]]
-//  def retrieveAcknowledgementRef(registrationID: String): Future[Option[String]]
   def updateCompanyEndDate(registrationID: String, model: PrepareAccountModel): Future[Option[PrepareAccountModel]]
   def updateSubmissionStatus(registrationID: String, status: String): Future[String]
   def removeTaxRegistrationInformation(registrationId: String): Future[Boolean]
-
   def updateCTRecordWithAcknowledgments(ackRef : String, ctRecord : CorporationTaxRegistration) : Future[WriteResult]
   def getHeldCTRecord(ackRef : String) : Future[Option[CorporationTaxRegistration]]
   def updateHeldToSubmitted(registrationId: String, crn: String, submissionTS: String): Future[Boolean]
+  def removeTaxRegistrationById(registrationId: String): Future[Boolean]
 }
 
 private[repositories] class MissingCTDocument(regId: String) extends NoStackTrace
@@ -248,6 +246,13 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
     retrieveCorporationTaxRegistration(id) map {
       case None => None
       case Some(m) => Some(m.registrationID -> m.OID)
+    }
+  }
+
+  override def removeTaxRegistrationById(registrationId: String): Future[Boolean] = {
+    retrieveCorporationTaxRegistration(registrationId) flatMap {
+      case Some(ct) => collection.remove(registrationIDSelector(registrationId)) map { _ => true }
+      case None => Future.failed(new MissingCTDocument(registrationId))
     }
   }
 

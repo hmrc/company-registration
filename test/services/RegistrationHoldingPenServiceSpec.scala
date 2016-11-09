@@ -65,9 +65,10 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
   import RegistrationStatus._
   val submittedCR = validCR.copy(status = SUBMITTED)
   val failCaseCR = validCR.copy(status = DRAFT)
-  val incorpSuccess1 = IncorpUpdate(transId, "held", "012345", new DateTime(2016, 8, 10, 0, 0), timepoint)
-  val submissionCheckResponseSingle = SubmissionCheckResponse(Seq(incorpSuccess1), "testNextLink")
-  val submissionCheckResponseDouble = SubmissionCheckResponse(Seq(incorpSuccess1,incorpSuccess1), "testNextLink")
+  val incorpSuccess = IncorpUpdate(transId, "accepted", "012345", new DateTime(2016, 8, 10, 0, 0), timepoint)
+  val incorpRejected = IncorpUpdate(transId, "rejected", "012345", new DateTime(2016, 8, 10, 0, 0), timepoint)
+  val submissionCheckResponseSingle = SubmissionCheckResponse(Seq(incorpSuccess), "testNextLink")
+  val submissionCheckResponseDouble = SubmissionCheckResponse(Seq(incorpSuccess,incorpSuccess), "testNextLink")
   val submissionCheckResponseNone = SubmissionCheckResponse(Seq(), "testNextLink")
 
   def sub(a:String, others:Option[(String, String, String, String)] = None) = {
@@ -197,7 +198,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockAccountService.calculateSubmissionDates(Matchers.any(), Matchers.any(), Matchers.any()))
         .thenReturn(dates)
 
-      val result = service.calculateDates(incorpSuccess1, validCR.accountingDetails, validCR.accountsPreparation)
+      val result = service.calculateDates(incorpSuccess, validCR.accountingDetails, validCR.accountsPreparation)
 
       await(result) shouldBe dates
     }
@@ -205,7 +206,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockAccountService.calculateSubmissionDates(Matchers.any(), Matchers.any(), Matchers.any()))
         .thenReturn(dates)
 
-      val result = service.calculateDates(incorpSuccess1, None, validCR.accountsPreparation)
+      val result = service.calculateDates(incorpSuccess, None, validCR.accountsPreparation)
 
       intercept[MissingAccountingDates](await(result))
     }
@@ -235,7 +236,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockheldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
         .thenReturn(Future.successful(Some(validHeld)))
 
-      when(mockctRepository.updateHeldToSubmitted(Matchers.eq(validCR.registrationID), Matchers.eq(incorpSuccess1.crn), Matchers.any()))
+      when(mockctRepository.updateHeldToSubmitted(Matchers.eq(validCR.registrationID), Matchers.eq(incorpSuccess.crn), Matchers.any()))
         .thenReturn(Future.successful(true))
 
       when(mockheldRepo.removeHeldDocument(Matchers.eq(validCR.registrationID)))
@@ -247,7 +248,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockDesConnector.ctSubmission(Matchers.any(), Matchers.any())(Matchers.any()))
         .thenReturn(Future.successful(SuccessDesResponse(Json.obj("x"->"y"))))
 
-      await(service.updateHeldSubmission(incorpSuccess1, validCR)) shouldBe true
+      await(service.updateHeldSubmission(incorpSuccess, validCR)) shouldBe true
     }
 
     "fail if DES states invalid" in new Setup {
@@ -261,7 +262,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
         .thenReturn(Future.successful(InvalidDesRequest("wibble")))
 
       intercept[InvalidSubmission] {
-        await(service.updateHeldSubmission(incorpSuccess1, validCR))
+        await(service.updateHeldSubmission(incorpSuccess, validCR))
       }.message should endWith ("""- reason "wibble".""")
     }
 
@@ -276,13 +277,13 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
         .thenReturn(Future.successful(NotFoundDesResponse))
 
       intercept[InvalidSubmission] {
-        await(service.updateHeldSubmission(incorpSuccess1, validCR))
+        await(service.updateHeldSubmission(incorpSuccess, validCR))
       }
     }
 
     "fail if missing ackref" in new Setup {
       intercept[MissingAckRef] {
-        await(service.updateHeldSubmission(incorpSuccess1, validCR.copy(confirmationReferences = None)))
+        await(service.updateHeldSubmission(incorpSuccess, validCR.copy(confirmationReferences = None)))
       }.message should endWith (s"""tx_id "${transId}".""")
     }
   }
@@ -297,19 +298,19 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockctRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
         .thenReturn(Future.successful(Some(validCR)))
 
-      await(service.updateSubmission(incorpSuccess1)) shouldBe true
+      await(service.updateSubmission(incorpSuccess)) shouldBe true
     }
     "return false for a submission that is already 'Submitted" in new SetupNoProcess {
       when(mockctRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
         .thenReturn(Future.successful(Some(submittedCR)))
 
-      await(service.updateSubmission(incorpSuccess1)) shouldBe true
+      await(service.updateSubmission(incorpSuccess)) shouldBe true
     }
     "return false for a submission that is neither 'Held' nor 'Submitted'" in new SetupNoProcess {
       when(mockctRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
         .thenReturn(Future.successful(Some(failCaseCR)))
 
-      intercept[UnexpectedStatus]{await(service.updateSubmission(incorpSuccess1))}
+      intercept[UnexpectedStatus]{await(service.updateSubmission(incorpSuccess))}
     }
 
   }
@@ -318,7 +319,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
     val expected = Json.obj("key" -> timepoint)
     trait SetupNoProcess {
       val service = new mockService {
-        override def updateSubmission(item: IncorpUpdate) = Future.successful(true)
+        override def processIncorporationUpdate(item: IncorpUpdate) = Future.successful(true)
       }
     }
 
@@ -366,5 +367,34 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       result shouldBe ""
     }
 
+  }
+
+  "processIncorporationUpdate" should {
+
+    trait SetupBoolean {
+      val serviceTrue = new mockService {
+        override def updateSubmission(item: IncorpUpdate) = Future.successful(true)
+      }
+      val serviceFalse = new mockService {
+        override def updateSubmission(item: IncorpUpdate) = Future.successful(false)
+      }
+    }
+
+    "return a future true or false when processing an accepted incorporation" in new SetupBoolean {
+      await(serviceTrue.processIncorporationUpdate(incorpSuccess)) shouldBe true
+      await(serviceFalse.processIncorporationUpdate(incorpSuccess)) shouldBe false
+    }
+    "return a future true when processing a rejected incorporation" in new Setup{
+      when(mockctRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
+        .thenReturn(Future.successful(Some(validCR)))
+
+      when(mockheldRepo.removeHeldDocument(Matchers.eq(validCR.registrationID)))
+        .thenReturn(Future.successful(true))
+
+      when(mockctRepository.removeTaxRegistrationById(Matchers.eq(validCR.registrationID)))
+        .thenReturn(Future.successful(true))
+
+      await(service.processIncorporationUpdate(incorpRejected)) shouldBe true
+    }
   }
 }
