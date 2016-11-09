@@ -36,7 +36,7 @@ Authorization Bearer fNAao9C4kTby8cqa6g75emw1DZIyA5B72nr9oKHHetE=
 
 **Request body**
 
-No request body required
+No request body required.
 
 **Response body**
 
