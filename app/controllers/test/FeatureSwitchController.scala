@@ -16,6 +16,7 @@
 
 package controllers.test
 
+import play.api.libs.json.Json
 import play.api.mvc.Action
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import utils.{FeatureSwitch, SCRSFeatureSwitches}
@@ -40,7 +41,7 @@ trait FeatureSwitchController extends BaseController {
       SCRSFeatureSwitches(featureName) match {
         case Some(_) => {
           val f = feature
-          Future.successful(Ok(f.toString))
+          Future.successful(Ok(Json.toJson(f)))
         }
         case None => Future.successful(BadRequest)
       }

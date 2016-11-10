@@ -39,7 +39,7 @@ class FeatureSwitchControllerSpec extends UnitSpec with BeforeAndAfterEach {
 
       val result = controller.switch(featureName, featureState)(FakeRequest())
       status(result) shouldBe OK
-      bodyOf(await(result)) shouldBe "BooleanFeatureSwitch(submissionCheck,false)"
+      bodyOf(await(result)) shouldBe """{"name":"submissionCheck","enabled":false}"""
     }
 
     "return a submissionCheck feature state set to true when we specify on" in new Setup {
@@ -48,7 +48,7 @@ class FeatureSwitchControllerSpec extends UnitSpec with BeforeAndAfterEach {
 
       val result = controller.switch(featureName, featureState)(FakeRequest())
       status(result) shouldBe OK
-      bodyOf(await(result)) shouldBe "BooleanFeatureSwitch(submissionCheck,true)"
+      bodyOf(await(result)) shouldBe """{"name":"submissionCheck","enabled":true}"""
     }
 
     "return a submissionCheck feature state set to false as a default when we specify xxxx" in new Setup {
@@ -57,7 +57,7 @@ class FeatureSwitchControllerSpec extends UnitSpec with BeforeAndAfterEach {
 
       val result = controller.switch(featureName, featureState)(FakeRequest())
       status(result) shouldBe OK
-      bodyOf(await(result)) shouldBe "BooleanFeatureSwitch(submissionCheck,false)"
+      bodyOf(await(result)) shouldBe """{"name":"submissionCheck","enabled":false}"""
     }
 
     "return a bad request when we specify a non implemented feature name" in new Setup {
