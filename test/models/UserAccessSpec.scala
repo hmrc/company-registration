@@ -29,14 +29,16 @@ class UserAccessSpec extends UnitSpec {
         s"""
            |{
            |  "registration-id" : "regID",
-           |  "created" : true
+           |  "created" : true,
+           |  "confirmation-reference": false
            |}
        """.stripMargin
 
       val testModel1 =
         UserAccessSuccessResponse(
           "regID",
-          created= true
+          created= true,
+          confRefs = false
         )
 
       val result = Json.toJson[UserAccessSuccessResponse](testModel1)

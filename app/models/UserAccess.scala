@@ -19,12 +19,18 @@ package models
 import play.api.libs.json.{JsPath, Json, Writes}
 import play.api.libs.functional.syntax._
 
-case class UserAccessSuccessResponse(registrationId: String, created: Boolean)
+case class UserAccessSuccessResponse
+(
+  registrationId: String,
+  created: Boolean,
+  confRefs: Boolean
+)
 
 object UserAccessSuccessResponse {
   implicit val writes: Writes[UserAccessSuccessResponse] = (
     (JsPath \ "registration-id").write[String] and
-    (JsPath \ "created").write[Boolean]
+    (JsPath \ "created").write[Boolean] and
+    (JsPath \ "confirmation-reference").write[Boolean]
   )(unlift(UserAccessSuccessResponse.unapply))
 }
 
