@@ -59,19 +59,19 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
 private[repositories] class MissingCTDocument(regId: String) extends NoStackTrace
 
 class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
-  extends ReactiveRepository[CorporationTaxRegistration, BSONObjectID]("corporation-tax-registration-information", mongo, CorporationTaxRegistration.formats, ReactiveMongoFormats.objectIdFormats)
+  extends ReactiveRepository[CorporationTaxRegistration, BSONObjectID]("corporation-tax-registration-information", mongo, CorporationTaxRegistration.format, ReactiveMongoFormats.objectIdFormats)
   with CorporationTaxRegistrationRepository
   with AuthorisationResource[String] {
 
   override def indexes: Seq[Index] = Seq(
     Index(
-      key = Seq("confirmationReferences.acknowledgementReference" -> IndexType.Ascending),
+      key = Seq("confirmationReferences.acknowledgement-reference" -> IndexType.Ascending),
       name = Some("AckRefIndex"),
       unique = false,
       sparse = false
     ),
     Index(
-      key = Seq("confirmationReferences.transactionId" -> IndexType.Ascending),
+      key = Seq("confirmationReferences.transaction-id" -> IndexType.Ascending),
       name = Some("TransIdIndex"),
       unique = false,
       sparse = false
@@ -79,14 +79,12 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
   )
 
   override def updateCTRecordWithAcknowledgments(ackRef : String, ctRecord: CorporationTaxRegistration): Future[WriteResult] = {
-    val updateSelector = BSONDocument(
-      "confirmationReferences.acknowledgementReference" -> BSONString(ackRef)
-    )
+    val updateSelector = BSONDocument("confirmationReferences.acknowledgement-reference" -> BSONString(ackRef))
     collection.update(updateSelector, ctRecord, upsert = false)
   }
 
   override def getHeldCTRecord(ackRef: String) : Future[Option[CorporationTaxRegistration]] = {
-    val query = BSONDocument("confirmationReferences.acknowledgementReference" -> BSONString(ackRef))
+    val query = BSONDocument("confirmationReferences.acknowledgement-reference" -> BSONString(ackRef))
     collection.find(query).one[CorporationTaxRegistration]
   }
 

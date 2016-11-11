@@ -19,10 +19,11 @@ package models
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import play.api.libs.functional.syntax._
+import play.api.libs.json.Reads.{maxLength, minLength}
 import play.api.libs.json._
-import uk.gov.hmrc.domain.CtUtr
 
 import scala.language.implicitConversions
+
 
 object RegistrationStatus {
   val DRAFT = "draft"
@@ -48,18 +49,18 @@ case class CorporationTaxRegistration(OID: String,
                                      )
 
 object CorporationTaxRegistration {
-  implicit val formatCH = Json.format[CHROAddress]
-  implicit val formatRO = Json.format[ROAddress]
-  implicit val formatPPOB = Json.format[PPOBAddress]
-  implicit val formatTD = Json.format[TradingDetails]
-  implicit val formatCompanyDetails = Json.format[CompanyDetails]
-  implicit val formatAccountingDetails = Json.format[AccountingDetails]
-  implicit val formatContactDetails = Json.format[ContactDetails]
-  implicit val formatAck = Json.format[AcknowledgementReferences]
-  implicit val formatConfirmationReferences = Json.format[ConfirmationReferences]
-  implicit val formatAccountsPrepDate = Json.format[PrepareAccountMongoModel]
+  implicit val formatCH = CHROAddress.format
+  implicit val formatRO = ROAddress.format
+  implicit val formatPPOB = PPOBAddress.format
+  implicit val formatTD = TradingDetails.format
+  implicit val formatCompanyDetails = CompanyDetails.format
+  implicit val formatAccountingDetails = AccountingDetails.formats
+  implicit val formatContactDetails = ContactDetails.format
+  implicit val formatAck = AcknowledgementReferences.format
+  implicit val formatConfirmationReferences = ConfirmationReferences.format
+  implicit val formatAccountsPrepDate = PrepareAccountMongoModel.format
   implicit val formatEmail = Email.formats
-  implicit val formats = Json.format[CorporationTaxRegistration]
+  implicit val format = Json.format[CorporationTaxRegistration]
 }
 
 
@@ -78,7 +79,7 @@ case class ConfirmationReferences(acknowledgementReference: String = "",
 
 object ConfirmationReferences {
   implicit val format = (
-      ( __ \ "acknowledgement-reference" ).format[String] and
+      ( __ \ "acknowledgement-reference" ).format[String](maxLength[String](31)) and
       ( __ \ "transaction-id" ).format[String] and
       ( __ \ "payment-reference" ).format[String] and
       ( __ \ "payment-amount" ).format[String]
@@ -120,30 +121,53 @@ case class ROAddress(houseNameNumber: String,
 
 case class PPOBAddress(houseNameNumber: String,
                        addressLine1: String,
-                       addressLine2: Option[String],
+                       addressLine2: String,
                        addressLine3: Option[String],
                        addressLine4: Option[String],
-                       postCode: String,
-                       country: String)
+                       postCode: Option[String],
+                       country: Option[String])
 
 object CompanyDetails {
-  implicit val formatCH = Json.format[CHROAddress]
-  implicit val formatRO = Json.format[ROAddress]
-  implicit val formatPPOB = Json.format[PPOBAddress]
-  implicit val formatTD = Json.format[TradingDetails]
-  implicit val formats = Json.format[CompanyDetails]
+  implicit val formatCH = CHROAddress.format
+  implicit val formatRO = ROAddress.format
+  implicit val formatPPOB = PPOBAddress.format
+  implicit val formatTD = TradingDetails.format
+  implicit val format = (
+      ( __ \ "companyName" ).format[String](maxLength[String](160)) and
+      ( __ \ "cHROAddress" ).format[CHROAddress] and
+      ( __ \ "rOAddress" ).format[ROAddress] and
+      ( __ \ "pPOBAddress" ).format[PPOBAddress] and
+      ( __ \ "jurisdiction" ).format[String]
+    )(CompanyDetails.apply, unlift(CompanyDetails.unapply))
 }
 
-object CHROAddress {
-  implicit val format = Json.format[CHROAddress]
+object CHROAddress extends CHAddressValidator {
+  implicit val format = (
+      (__ \ "premises").format[String](premisesValidator) and
+      (__ \ "address_line_1").format[String](lineValidator) and
+      (__ \ "address_line_2").formatNullable[String](lineValidator) and
+      (__ \ "country").format[String](lineValidator) and
+      (__ \ "locality").format[String](lineValidator) and
+      (__ \ "po_box").formatNullable[String](lineValidator) and
+      (__ \ "postal_code").formatNullable[String](postcodeValidator) and
+      (__ \ "region").formatNullable[String] // ??? todo - what validation for CH RO region
+    )(CHROAddress.apply, unlift(CHROAddress.unapply))
 }
 
 object ROAddress {
   implicit val format = Json.format[ROAddress]
 }
 
-object PPOBAddress {
-  implicit val format = Json.format[PPOBAddress]
+object PPOBAddress extends HMRCAddressValidator {
+  implicit val format = (
+    ( __ \ "houseNameNumber").format[String](lineValidator) and   // ??? WTF
+    ( __ \ "addressLine1").format[String](lineValidator) and
+    ( __ \ "addressLine2").format[String](lineValidator) and
+    ( __ \ "addressLine3").formatNullable[String](lineValidator) and
+    ( __ \ "addressLine4").formatNullable[String](lineValidator) and
+    ( __ \ "postCode").formatNullable[String](postcodeValidator) and
+    ( __ \ "country").formatNullable[String](countryValidator)
+    )(PPOBAddress.apply, unlift(PPOBAddress.unapply))
 }
 
 case class CorporationTaxRegistrationRequest(language: String)
@@ -160,8 +184,8 @@ case class ContactDetails(contactFirstName: Option[String],
                           contactEmail: Option[String])
 
 object ContactDetails {
-  implicit val formatsLinks = Json.format[Links]
-  implicit val formats = Json.format[ContactDetails]
+  implicit val formatsLinks = Links.format
+  implicit val format = Json.format[ContactDetails]
 }
 
 case class Links(self: Option[String],
@@ -181,7 +205,7 @@ case class PrepareAccountMongoModel(businessEndDateChoice : String,
                                     businessEndDate : Option[String])
 
 object PrepareAccountMongoModel {
-  implicit val formats = Json.format[PrepareAccountMongoModel]
+  implicit val format = Json.format[PrepareAccountMongoModel]
 }
 
 case class PrepareAccountModel(businessEndDateChoice : String,

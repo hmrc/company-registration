@@ -109,7 +109,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
         "testCompanyName",
         CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
         ROAddress("10", "test street", "test town", "test area", "test county", "XX1 1ZZ", "test country"),
-        PPOBAddress("10", "test street", Some("test town"), Some("test area"), Some("test county"), "XX1 1ZZ", "test country"),
+        PPOBAddress("10", "test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country")),
         "testJurisdiction"
       )),
       contactDetails = Some(ContactDetails(
@@ -331,7 +331,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
         "testCompanyName",
         CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
         ROAddress("10", "test street", "test town", "test area", "test county", "XX1 1ZZ", "test country"),
-        PPOBAddress("10", "test street", Some("test town"), Some("test area"), Some("test county"), "XX1 1ZZ", "test country"),
+        PPOBAddress("10", "test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country")),
         "testJurisdiction"
       )),
       contactDetails = Some(ContactDetails(
@@ -352,7 +352,8 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
         InterimCorporationTax(
           corporationTaxRegistration.companyDetails.get.companyName,
           returnsOnCT61 = false,
-          BusinessAddress("10", "test street",  Some("test town"), Some("test area"), Some("XX1 1ZZ"), Some("test country")),
+//          BusinessAddress("10", "test street",  Some("test town"), Some("test area"), Some("XX1 1ZZ"), Some("test country")),  // TODO
+          BusinessAddress("10", "test street",  Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country")),
           BusinessContactName(
             corporationTaxRegistration.contactDetails.get.contactFirstName.get,
             corporationTaxRegistration.contactDetails.get.contactMiddleName,
@@ -393,7 +394,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
         "testCompanyName",
         CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
         ROAddress("10", "test street", "test town", "test area", "test county", "XX1 1ZZ", "test country"),
-        PPOBAddress("10", "test street", Some("test town"), Some("test area"), Some("test county"), "XX1 1ZZ", "test country"),
+        PPOBAddress("10", "test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country")),
         "testJurisdiction"
       )),
       contactDetails = Some(ContactDetails(
@@ -415,7 +416,8 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
         InterimCorporationTax(
           corporationTaxRegistration.companyDetails.get.companyName,
           returnsOnCT61 = false,
-          BusinessAddress("10", "test street",  Some("test town"), Some("test area"), Some("XX1 1ZZ"), Some("test country")),
+//          BusinessAddress("10", "test street",  Some("test town"), Some("test area"), Some("XX1 1ZZ"), Some("test country")),  // TODO - check the address
+          BusinessAddress("10", "test street",  Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country")),
           BusinessContactName(
             corporationTaxRegistration.contactDetails.get.contactFirstName.get,
             corporationTaxRegistration.contactDetails.get.contactMiddleName,

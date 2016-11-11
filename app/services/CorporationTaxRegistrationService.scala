@@ -182,11 +182,11 @@ trait CorporationTaxRegistrationService extends DateHelper {
         returnsOnCT61 = false,
         businessAddress = BusinessAddress(
           line1 = ctData.companyDetails.get.pPOBAddress.houseNameNumber,
-          line2 = ctData.companyDetails.get.pPOBAddress.addressLine1,
-          line3 = ctData.companyDetails.get.pPOBAddress.addressLine2,
-          line4 = ctData.companyDetails.get.pPOBAddress.addressLine3,
-          postcode = Some(ctData.companyDetails.get.pPOBAddress.postCode),
-          country =  Some(ctData.companyDetails.get.pPOBAddress.country)
+          line2 = ctData.companyDetails.get.pPOBAddress.addressLine1, // TODO - SCRS-2298 - WTF!
+          line3 = ctData.companyDetails.get.pPOBAddress.addressLine3,
+          line4 = ctData.companyDetails.get.pPOBAddress.addressLine4,
+          postcode = ctData.companyDetails.get.pPOBAddress.postCode,
+          country =  ctData.companyDetails.get.pPOBAddress.country
         ),
         businessContactName = BusinessContactName(
           firstName = ctData.contactDetails.get.contactFirstName.get,
