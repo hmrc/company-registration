@@ -18,7 +18,7 @@ package services
 
 import connectors.{BusinessRegistrationConnector, _}
 import fixtures.{BusinessRegistrationFixture, CorporationTaxRegistrationFixture}
-import models.{UserAccessLimitReachedResponse, UserAccessSuccessResponse}
+import models.{Email, UserAccessLimitReachedResponse, UserAccessSuccessResponse}
 import org.mockito.Matchers
 import org.mockito.Matchers.{any, anyString}
 import org.scalatest.mock.MockitoSugar
@@ -145,7 +145,6 @@ class UserAccessServiceSpec
       when(mockCTService.retrieveCorporationTaxRegistrationRecord(Matchers.eq(regId)))
         .thenReturn(Some(draftCorporationTaxRegistration(regId)))
 
-      // TODO extra data to be returned - email
       await(service.checkUserAccess("123")) shouldBe Right(UserAccessSuccessResponse("12345", false, false))
     }
 
@@ -156,13 +155,12 @@ class UserAccessServiceSpec
       when(mockCTService.retrieveCorporationTaxRegistrationRecord(Matchers.eq(regId)))
         .thenReturn(None)
 
-      // TODO extra data to be returned
       intercept[MissingRegistration] {
         await(service.checkUserAccess("123"))
       }
     }
 
-    "return a 200 with a regId and created set to true" in new Setup {
+    "be successful with no conf refs but with email info" in new Setup {
       val regId = "12345"
       when(mockBRConnector.retrieveMetadata(any(), any())).thenReturn(BusinessRegistrationNotFoundResponse)
       when(mockThrottleService.checkUserAccess).thenReturn(Future(true))
@@ -171,12 +169,13 @@ class UserAccessServiceSpec
         .createCorporationTaxRegistrationRecord(anyString(), anyString(), anyString()))
         .thenReturn(validDraftCorporationTaxRegistration)
 
+      val expectedEmail = Email("a@a.a", "GG",true, false)
+      val draft = draftCorporationTaxRegistration(regId).copy(verifiedEmail = Some(expectedEmail))
       when(mockCTService.retrieveCorporationTaxRegistrationRecord(Matchers.eq(regId)))
-        .thenReturn(Some(draftCorporationTaxRegistration(regId)))
+        .thenReturn(Some(draft))
 
-      // TODO extra data to be returned
-
-      await(service.checkUserAccess("321")) shouldBe Right(UserAccessSuccessResponse("12345", true, false))
+      await(service.checkUserAccess("321")) shouldBe
+        Right(UserAccessSuccessResponse("12345", true, false, Some(expectedEmail)))
     }
 
     "be successful with some conf references" in new Setup {
@@ -186,8 +185,6 @@ class UserAccessServiceSpec
         .thenReturn(BusinessRegistrationSuccessResponse(businessRegistrationResponse(regId)))
       when(mockCTService.retrieveCorporationTaxRegistrationRecord(Matchers.eq(regId)))
         .thenReturn(Some(validHeldCTRegWithData(regId)))
-
-      // TODO extra data to be returned
 
       await(service.checkUserAccess("321")) shouldBe Right(UserAccessSuccessResponse("12345", false, true))
     }

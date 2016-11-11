@@ -23,14 +23,16 @@ case class UserAccessSuccessResponse
 (
   registrationId: String,
   created: Boolean,
-  confRefs: Boolean
+  confRefs: Boolean,
+  verifiedEmail: Option[Email] = None
 )
 
 object UserAccessSuccessResponse {
   implicit val writes: Writes[UserAccessSuccessResponse] = (
     (JsPath \ "registration-id").write[String] and
     (JsPath \ "created").write[Boolean] and
-    (JsPath \ "confirmation-reference").write[Boolean]
+    (JsPath \ "confirmation-reference").write[Boolean] and
+    (JsPath \ "email").writeNullable[Email]
   )(unlift(UserAccessSuccessResponse.unapply))
 }
 

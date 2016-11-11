@@ -53,13 +53,13 @@ trait UserAccessService {
         createResponse(metadata.registrationID, false) map { Right(_) }
       case BusinessRegistrationNotFoundResponse =>
         throttleService.checkUserAccess flatMap {
-            case false => Future.successful(Left(Json.toJson(UserAccessLimitReachedResponse(limitReached=true))))
-            case true => for{
-                                                                       metaData <- brConnector.createMetadataEntry
-                                                                       crData <- ctService.createCorporationTaxRegistrationRecord(oid, metaData.registrationID, "en")
-                                                                       result <- createResponse(metaData.registrationID, true)
-            } yield Right(result)
-          }
+          case false => Future.successful(Left(Json.toJson(UserAccessLimitReachedResponse(limitReached=true))))
+          case true => for{
+            metaData <- brConnector.createMetadataEntry
+            crData <- ctService.createCorporationTaxRegistrationRecord(oid, metaData.registrationID, "en")
+            result <- createResponse(metaData.registrationID, true)
+          } yield Right(result)
+        }
       case _ => throw new Exception("Something went wrong")
     }
   }
@@ -68,7 +68,7 @@ trait UserAccessService {
   private[services] def createResponse(regId: String, created: Boolean): Future[UserAccessSuccessResponse] = {
     ctService.retrieveCorporationTaxRegistrationRecord(regId) flatMap {
       case Some(doc) => {
-        Future.successful(UserAccessSuccessResponse(regId, created, hasConfRefs(doc)))
+        Future.successful(UserAccessSuccessResponse(regId, created, hasConfRefs(doc), doc.verifiedEmail))
       }
       case None => Future.failed(new MissingRegistration(regId))
     }
