@@ -26,6 +26,3 @@ PUT        /corporation-tax-registration/:registrationID/confirmation-references
 PUT        /corporation-tax-registration/:registrationID/accounts-preparation-date          controllers.PrepareAccountController.updateCompanyEndDate(registrationID)
 
 POST       /corporation-tax-registration/acknowledgement-confirmation                       controllers.CorporationTaxRegistrationController.acknowledgementConfirmation(ackref : String)
-
-GET        /corporation-tax-registration/retrieve-email/:registrationId                     controllers.EmailController.retrieveEmail(registrationId: String)
-POST       /corporation-tax-registration/update-email/:registrationId                       controllers.EmailController.updateEmail(registrationId: String)
