@@ -23,26 +23,52 @@ import uk.gov.hmrc.play.test.UnitSpec
 class UserAccessSpec extends UnitSpec {
 
   "UserAccessModel" should {
-    "Be able to be parsed into JSON" in {
+    "With no email, be able to be parsed into JSON" in {
 
-      val json1 : String =
+      val json : String =
         s"""
            |{
            |  "registration-id" : "regID",
-           |  "created" : true
+           |  "created" : true,
+           |  "confirmation-reference": false
            |}
        """.stripMargin
 
-      val testModel1 =
+      val testModel =
         UserAccessSuccessResponse(
           "regID",
-          created= true
+          created= true,
+          confRefs = false
         )
 
-      val result = Json.toJson[UserAccessSuccessResponse](testModel1)
+      val result = Json.toJson[UserAccessSuccessResponse](testModel)
       result.getClass shouldBe classOf[JsObject]
-      result shouldBe Json.parse(json1)
+      result shouldBe Json.parse(json)
     }
 
+    "With email, be able to be parsed into JSON" in {
+
+      val json : String =
+        s"""
+           |{
+           |  "registration-id" : "regID",
+           |  "created" : true,
+           |  "confirmation-reference": false,
+           |  "email": { "address": "a@a.a", "type": "GG", "link-sent": true, "verified": false }
+           |}
+       """.stripMargin
+
+      val testModel =
+        UserAccessSuccessResponse(
+          "regID",
+          created= true,
+          confRefs = false,
+          verifiedEmail = Some(Email("a@a.a", "GG", true, false))
+        )
+
+      val result = Json.toJson[UserAccessSuccessResponse](testModel)
+      result.getClass shouldBe classOf[JsObject]
+      result shouldBe Json.parse(json)
+    }
   }
 }

@@ -20,8 +20,10 @@ import models.{BusinessRegistration, Links}
 
 trait BusinessRegistrationFixture {
 
-  lazy val validBusinessRegistrationResponse = BusinessRegistration(
-    "12345",
+  lazy val validBusinessRegistrationResponse = businessRegistrationResponse("12345")
+
+  def businessRegistrationResponse(regId: String) = BusinessRegistration(
+    regId,
     "2016-08-03T10:49:11Z",
     "en",
     "CompCap",

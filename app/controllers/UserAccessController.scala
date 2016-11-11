@@ -18,12 +18,15 @@ package controllers
 
 import auth.{Authenticated, LoggedIn, NotLoggedIn}
 import connectors.AuthConnector
+import models.CorporationTaxRegistration
+import play.api.libs.json.Json
 import play.api.mvc.Action
-import services.UserAccessService
+import services.{CorporationTaxRegistrationService, UserAccessService}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.control.NoStackTrace
 
 object UserAccessController extends UserAccessController {
   override val auth = AuthConnector
@@ -38,9 +41,11 @@ trait UserAccessController extends BaseController with Authenticated{
     implicit request =>
       authenticated{
         case NotLoggedIn => Future.successful(Forbidden)
-        case LoggedIn(context) => userAccessService.checkUserAccess(context.oid) map {
-          case Right(res) => Ok(res)
-          case Left(_) => TooManyRequest
+        case LoggedIn(context) => userAccessService.checkUserAccess(context.oid) flatMap {
+          case Right(res) => {
+            Future.successful(Ok(Json.toJson(res)))
+          }
+          case Left(_) => Future.successful(TooManyRequest)
       }
     }
   }

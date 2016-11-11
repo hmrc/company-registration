@@ -20,13 +20,12 @@ import connectors.AuthConnector
 import fixtures.AuthFixture
 import helpers.SCRSSpec
 import models.{UserAccessLimitReachedResponse, UserAccessSuccessResponse}
-import org.mockito.Matchers
-import org.scalatest.mock.MockitoSugar
+import org.mockito.Matchers.{any,anyString}
 import org.mockito.Mockito._
-import play.api.libs.iteratee.Iteratee
+import org.scalatest.mock.MockitoSugar
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
-import services.UserAccessService
+import services.{CorporationTaxRegistrationService, UserAccessService}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 import play.api.test.Helpers._
 import uk.gov.hmrc.play.http.HeaderCarrier
@@ -41,8 +40,8 @@ class UserAccessControllerSpec extends UnitSpec with MockitoSugar with WithFakeA
 
   trait Setup {
     val controller = new UserAccessController {
-      override val userAccessService: UserAccessService = mockUserAccessService
-      override val auth: AuthConnector = mockAuthConnector
+      override val userAccessService = mockUserAccessService
+      override val auth = mockAuthConnector
     }
   }
 
@@ -64,17 +63,17 @@ class UserAccessControllerSpec extends UnitSpec with MockitoSugar with WithFakeA
 
     "return a 200" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockUserAccessService.checkUserAccess(Matchers.anyString())(Matchers.any()))
-        .thenReturn(Future.successful(Right(Json.toJson(UserAccessSuccessResponse("123",created = false)))))
+      when(mockUserAccessService.checkUserAccess(anyString())(any()))
+        .thenReturn(Future.successful(Right(UserAccessSuccessResponse("123", false, false))))
 
       val result = controller.checkUserAccess(FakeRequest())
       status(result) shouldBe OK
-      await(jsonBodyOf(result)) shouldBe Json.toJson(UserAccessSuccessResponse("123",created = false))
+      await(jsonBodyOf(result)) shouldBe Json.toJson(UserAccessSuccessResponse("123", false, false))
     }
 
     "return a 429" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockUserAccessService.checkUserAccess(Matchers.anyString())(Matchers.any()))
+      when(mockUserAccessService.checkUserAccess(anyString())(any()))
         .thenReturn(Future.successful(Left(Json.toJson(UserAccessLimitReachedResponse(limitReached = true)))))
 
       val result = controller.checkUserAccess(FakeRequest())
