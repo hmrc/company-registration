@@ -50,7 +50,7 @@ class EmailControllerSpec extends SCRSSpec with MockitoSugar with AuthFixture{
 
     "return a 200 and an Email json object" in new Setup {
       when(mockEmailService.retrieveEmail(Matchers.eq(registrationId)))
-        .thenReturn(Future.successful(email))
+        .thenReturn(Future.successful(Some(email)))
 
       AuthorisationMocks.mockSuccessfulAuthorisation(registrationId, validAuthority)
 
@@ -89,7 +89,7 @@ class EmailControllerSpec extends SCRSSpec with MockitoSugar with AuthFixture{
 
     "return a 200 and an email json object" in new Setup {
       when(mockEmailService.updateEmail(Matchers.eq(registrationId), Matchers.eq(email)))
-        .thenReturn(Future.successful(email))
+        .thenReturn(Future.successful(Some(email)))
 
       AuthorisationMocks.mockSuccessfulAuthorisation(registrationId, validAuthority)
 

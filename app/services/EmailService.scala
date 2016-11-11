@@ -29,11 +29,11 @@ trait EmailService {
 
   val ctRepository: CorporationTaxRegistrationMongoRepository
 
-  def updateEmail(registrationId: String, email: Email): Future[Email] = {
+  def updateEmail(registrationId: String, email: Email): Future[Option[Email]] = {
     ctRepository.updateEmail(registrationId, email)
   }
 
-  def retrieveEmail(registrationId: String): Future[Email] = {
+  def retrieveEmail(registrationId: String): Future[Option[Email]] = {
     ctRepository.retrieveEmail(registrationId)
   }
 }

@@ -27,7 +27,7 @@ case class Email(address: String,
 object Email {
 
   implicit val formats = (
-    (__ \ "address").format[String] and
+      (__ \ "address").format[String] and
       (__ \ "type").format[String] and
       (__ \ "link-sent").format[Boolean] and
       (__ \ "verified").format[Boolean]

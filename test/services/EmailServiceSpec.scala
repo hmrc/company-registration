@@ -42,9 +42,9 @@ class EmailServiceSpec extends UnitSpec with MockitoSugar {
 
     "update and return the supplied email case class" in new Setup {
       when(mockCTRepository.updateEmail(Matchers.eq(registrationId), Matchers.eq(email)))
-        .thenReturn(Future.successful(email))
+        .thenReturn(Future.successful(Some(email)))
 
-      await(emailService.updateEmail(registrationId, email)) shouldBe email
+      await(emailService.updateEmail(registrationId, email)) shouldBe Some(email)
     }
   }
 
@@ -52,9 +52,9 @@ class EmailServiceSpec extends UnitSpec with MockitoSugar {
 
     "return an email case class" in new Setup {
       when(mockCTRepository.retrieveEmail(Matchers.eq(registrationId)))
-        .thenReturn(Future.successful(email))
+        .thenReturn(Future.successful(Some(email)))
 
-      await(emailService.retrieveEmail(registrationId)) shouldBe email
+      await(emailService.retrieveEmail(registrationId)) shouldBe Some(email)
     }
   }
 }

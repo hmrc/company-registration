@@ -349,23 +349,32 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
 
     "insert a new email block into an existing CT registration" in new {
       val selector = BSONDocument("registrationID" -> BSONString(registrationID))
+      setupFindFor(repository.collection, selector, Some(validDraftCorporationTaxRegistration))
       setupAnyUpdateOn(repository.collection)
 
       val result = repository.updateEmail(registrationID, email)
-      await(result) shouldBe email
+      await(result) shouldBe Some(email)
     }
   }
 
   "retrieveEmail" should {
 
-    val email = Email("testAddress", "GG", linkSent = true, verified = true)
-
-    "return an email case class" in {
+    "return None if no email information is on the registration" in {
       val selector = BSONDocument("registrationID" -> BSONString(registrationID))
-      setupFindFor(repository.collection, selector, Some(email))
+      setupFindFor(repository.collection, selector, Some(validDraftCorporationTaxRegistration))
 
       val result = repository.retrieveEmail(registrationID)
-      await(result) shouldBe email
+      await(result) shouldBe None
+    }
+
+    "return email information if it exists" in {
+      val expectedEmail = Email("testAddress", "GG", linkSent = true, verified = true)
+      val expectedDoc = validDraftCorporationTaxRegistration.copy(verifiedEmail = Some(expectedEmail))
+      val selector = BSONDocument("registrationID" -> BSONString(registrationID))
+      setupFindFor(repository.collection, selector, Some(expectedDoc))
+
+      val result = repository.retrieveEmail(registrationID)
+      await(result) shouldBe Some(expectedEmail)
     }
   }
 }

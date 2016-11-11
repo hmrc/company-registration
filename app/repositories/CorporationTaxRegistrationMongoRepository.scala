@@ -52,8 +52,8 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def getHeldCTRecord(ackRef : String) : Future[Option[CorporationTaxRegistration]]
   def updateHeldToSubmitted(registrationId: String, crn: String, submissionTS: String): Future[Boolean]
   def removeTaxRegistrationById(registrationId: String): Future[Boolean]
-  def updateEmail(registrationId: String, email: Email): Future[Email]
-  def retrieveEmail(registrationId: String): Future[Email]
+  def updateEmail(registrationId: String, email: Email): Future[Option[Email]]
+  def retrieveEmail(registrationId: String): Future[Option[Email]]
 }
 
 private[repositories] class MissingCTDocument(regId: String) extends NoStackTrace
@@ -258,18 +258,26 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
     }
   }
 
+  override def updateEmail(registrationId: String, email: Email): Future[Option[Email]] = {
+    retrieveCorporationTaxRegistration(registrationId) flatMap {
+      case Some(registration) =>
+        collection.update(
+        registrationIDSelector(registrationId),
+        registration.copy(verifiedEmail = Some(email)),
+        upsert = false
+      ).map(_ => Some(email))
+      case None => Future.successful(None)
+    }
+  }
+
+  override def retrieveEmail(registrationId: String): Future[Option[Email]] = {
+    retrieveCorporationTaxRegistration(registrationId) map {
+      case Some(registration) => registration.verifiedEmail
+      case None => None
+    }
+  }
+
   def dropCollection = {
     collection.drop()
-  }
-
-  override def updateEmail(registrationId: String, email: Email): Future[Email] = {
-    collection.update(
-      registrationIDSelector(registrationId),
-      email
-    ) map ( _ => email)
-  }
-
-  override def retrieveEmail(registrationId: String): Future[Email] = {
-    collection.find(registrationIDSelector(registrationId)).one[Email].map(_.get)
   }
 }
