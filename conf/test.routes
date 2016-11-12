@@ -8,5 +8,5 @@ GET        /fetch-held-submission/:registrationId              controllers.test.
 
 GET        /feature-flag/:featureName/:featureStatus           controllers.test.FeatureSwitchController.switch(featureName: String, featureStatus: String)
 
-GET        /retrieve-email/:registrationId                     controllers.test.EmailController.retrieveEmail(registrationId: String)
-POST       /update-email/:registrationId                       controllers.test.EmailController.updateEmail(registrationId: String)
+GET        /verified-email/:registrationId                     controllers.test.EmailController.retrieveEmail(registrationId: String)
+POST       /verified-email/:registrationId                     controllers.test.EmailController.updateEmail(registrationId: String)
