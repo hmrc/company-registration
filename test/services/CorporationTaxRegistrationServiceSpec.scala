@@ -352,8 +352,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
         InterimCorporationTax(
           corporationTaxRegistration.companyDetails.get.companyName,
           returnsOnCT61 = false,
-//          BusinessAddress("10", "test street",  Some("test town"), Some("test area"), Some("XX1 1ZZ"), Some("test country")),  // TODO
-          BusinessAddress("10", "test street",  Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country")),
+          BusinessAddress("10", "test street",  Some("test town"), Some("test area"), Some("XX1 1ZZ"), Some("test country")),
           BusinessContactName(
             corporationTaxRegistration.contactDetails.get.contactFirstName.get,
             corporationTaxRegistration.contactDetails.get.contactMiddleName,
@@ -416,8 +415,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
         InterimCorporationTax(
           corporationTaxRegistration.companyDetails.get.companyName,
           returnsOnCT61 = false,
-//          BusinessAddress("10", "test street",  Some("test town"), Some("test area"), Some("XX1 1ZZ"), Some("test country")),  // TODO - check the address
-          BusinessAddress("10", "test street",  Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country")),
+          BusinessAddress("10", "test street",  Some("test town"), Some("test area"), Some("XX1 1ZZ"), Some("test country")),
           BusinessContactName(
             corporationTaxRegistration.contactDetails.get.contactFirstName.get,
             corporationTaxRegistration.contactDetails.get.contactMiddleName,
