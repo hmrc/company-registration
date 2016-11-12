@@ -121,11 +121,25 @@ case class ROAddress(houseNameNumber: String,
 
 case class PPOBAddress(houseNameNumber: String,
                        addressLine1: String,
-                       addressLine2: String,
+                       addressLine2: Option[String],
                        addressLine3: Option[String],
                        addressLine4: Option[String],
                        postCode: Option[String],
-                       country: Option[String])
+                       country: Option[String]) {
+  require( postCode.isDefined || country.isDefined, "Must have at least one of postcode and country")
+}
+
+object PPOBAddress extends HMRCAddressValidator {
+  implicit val format = (
+    ( __ \ "houseNameNumber").format[String](lineValidator) and
+      ( __ \ "addressLine1").format[String](lineValidator) and
+      ( __ \ "addressLine2").formatNullable[String](lineValidator) and
+      ( __ \ "addressLine3").formatNullable[String](lineValidator) and
+      ( __ \ "addressLine4").formatNullable[String](lineValidator) and
+      ( __ \ "postCode").formatNullable[String](postcodeValidator) and
+      ( __ \ "country").formatNullable[String](countryValidator)
+    )(PPOBAddress.apply, unlift(PPOBAddress.unapply))
+}
 
 object CompanyDetails {
   implicit val formatCH = CHROAddress.format
@@ -133,42 +147,31 @@ object CompanyDetails {
   implicit val formatPPOB = PPOBAddress.format
   implicit val formatTD = TradingDetails.format
   implicit val format = (
-      ( __ \ "companyName" ).format[String](maxLength[String](160)) and
-      ( __ \ "cHROAddress" ).format[CHROAddress] and
-      ( __ \ "rOAddress" ).format[ROAddress] and
-      ( __ \ "pPOBAddress" ).format[PPOBAddress] and
-      ( __ \ "jurisdiction" ).format[String]
-    )(CompanyDetails.apply, unlift(CompanyDetails.unapply))
+  ( __ \ "companyName" ).format[String](maxLength[String](160)) and
+  ( __ \ "cHROAddress" ).format[CHROAddress] and
+  ( __ \ "rOAddress" ).format[ROAddress] and
+  ( __ \ "pPOBAddress" ).format[PPOBAddress] and
+  ( __ \ "jurisdiction" ).format[String]
+  )(CompanyDetails.apply, unlift(CompanyDetails.unapply))
 }
 
 object CHROAddress extends CHAddressValidator {
   implicit val format = (
-      (__ \ "premises").format[String](premisesValidator) and
-      (__ \ "address_line_1").format[String](lineValidator) and
-      (__ \ "address_line_2").formatNullable[String](lineValidator) and
-      (__ \ "country").format[String](lineValidator) and
-      (__ \ "locality").format[String](lineValidator) and
-      (__ \ "po_box").formatNullable[String](lineValidator) and
-      (__ \ "postal_code").formatNullable[String](postcodeValidator) and
-      (__ \ "region").formatNullable[String] // ??? todo - what validation for CH RO region
-    )(CHROAddress.apply, unlift(CHROAddress.unapply))
+  (__ \ "premises").format[String](premisesValidator) and
+  (__ \ "address_line_1").format[String](lineValidator) and
+  (__ \ "address_line_2").formatNullable[String](lineValidator) and
+  (__ \ "country").format[String](lineValidator) and
+  (__ \ "locality").format[String](lineValidator) and
+  (__ \ "po_box").formatNullable[String](lineValidator) and
+  (__ \ "postal_code").formatNullable[String](postcodeValidator) and
+  (__ \ "region").formatNullable[String]
+  )(CHROAddress.apply, unlift(CHROAddress.unapply))
 }
 
 object ROAddress {
   implicit val format = Json.format[ROAddress]
 }
 
-object PPOBAddress extends HMRCAddressValidator {
-  implicit val format = (
-    ( __ \ "houseNameNumber").format[String](lineValidator) and   // ??? WTF
-    ( __ \ "addressLine1").format[String](lineValidator) and
-    ( __ \ "addressLine2").format[String](lineValidator) and
-    ( __ \ "addressLine3").formatNullable[String](lineValidator) and
-    ( __ \ "addressLine4").formatNullable[String](lineValidator) and
-    ( __ \ "postCode").formatNullable[String](postcodeValidator) and
-    ( __ \ "country").formatNullable[String](countryValidator)
-    )(PPOBAddress.apply, unlift(PPOBAddress.unapply))
-}
 
 case class CorporationTaxRegistrationRequest(language: String)
 

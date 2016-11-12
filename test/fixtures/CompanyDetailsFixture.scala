@@ -64,7 +64,7 @@ trait CompanyDetailsFixture {
     PPOBAddress(
       "10",
       "test street",
-      "test town",
+      Some("test town"),
       Some("test area"),
       Some("test county"),
       Some("XX1 1ZZ"),

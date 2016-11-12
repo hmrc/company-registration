@@ -24,21 +24,27 @@ import scala.collection.mutable.WrappedArray
 
 class PPOBAddressSpec extends UnitSpec with JsonFormatValidation {
 
-  def lineEnd(comma: Boolean) = if( comma ) "," else ""
-  def jsonLine(key: String, value: String): String = jsonLine(key, value, true)
-  def jsonLine(key: String, value: String, comma: Boolean): String = s""""${key}" : "${value}"${lineEnd(comma)}"""
-  def jsonLine(key: String, value: Option[String], comma: Boolean = true): String = value.fold("")(v=>s""""${key}" : "${v}"${lineEnd(comma)}""")
+  type OS = Option[String]
+  type S = String
 
-  def j(line1: String = "1", line3: Option[String] = None) = {
+  def lineEnd(comma: Boolean) = if( comma ) "," else ""
+  def jsonLine(key: S, value: S): OS = jsonLine(key, value, true)
+  def jsonLine(key: S, value: S, comma: Boolean): OS = Some(s""""${key}" : "${value}"${lineEnd(comma)}""")
+  def jsonLine(key: S, value: OS, comma: Boolean = true): OS = value.map(v=>s""""${key}" : "${v}"${lineEnd(comma)}""")
+
+  def j(line1: S = "1", line3: OS = None, pc: OS = None, country: OS = None): S = {
+    val extra: S = Seq(
+      jsonLine("addressLine1", line1, false),
+      jsonLine("addressLine3", line3, false),
+      jsonLine("postCode", pc, false),
+      jsonLine("country", country, false)
+    ).flatten.mkString(", ")
     s"""
        |{
        |  "houseNameNumber" : "hnn",
-       |  ${jsonLine("addressLine1", line1)}
        |  "addressLine2" : "2",
-       |  ${jsonLine("addressLine3", line3)}
        |  "addressLine4" : "4",
-       |  "postCode" : "ZZ1 1ZZ",
-       |  "country" : "c"
+       |  ${extra}
        |}
      """.stripMargin
   }
@@ -46,8 +52,8 @@ class PPOBAddressSpec extends UnitSpec with JsonFormatValidation {
   "PPOBAddress Model - line 1" should {
     "Be able to be parsed from JSON" in {
       val line1 = "123456789012345678901234567"
-      val json = j(line1=line1)
-      val expected = PPOBAddress("hnn", line1, "2", None, Some("4"), Some("ZZ1 1ZZ"), Some("c") )
+      val json = j(line1=line1, pc=Some("ZZ1 1ZZ"))
+      val expected = PPOBAddress("hnn", line1, Some("2"), None, Some("4"), Some("ZZ1 1ZZ"), None )
 
       val result = Json.parse(json).validate[PPOBAddress]
 
@@ -75,8 +81,8 @@ class PPOBAddressSpec extends UnitSpec with JsonFormatValidation {
   "PPOBAddress Model - line 2" should {
     "Be able to be parsed from JSON" in {
       val line3 = Some("123456789012345678901234567")
-      val json = j(line3=line3)
-      val expected = PPOBAddress("hnn", "1", "2", line3, Some("4"), Some("ZZ1 1ZZ"), Some("c") )
+      val json = j(line3=line3, country=Some("c"))
+      val expected = PPOBAddress("hnn", "1", Some("2"), line3, Some("4"), None, Some("c") )
 
       val result = Json.parse(json).validate[PPOBAddress]
 
@@ -84,8 +90,8 @@ class PPOBAddressSpec extends UnitSpec with JsonFormatValidation {
     }
 
     "Be able to be parsed from JSON with no line3" in {
-      val json = j(line3=None)
-      val expected = PPOBAddress("hnn", "1", "2", None, Some("4"), Some("ZZ1 1ZZ"), Some("c") )
+      val json = j(line3=None, country=Some("c"))
+      val expected = PPOBAddress("hnn", "1", Some("2"), None, Some("4"), None, Some("c") )
 
       val result = Json.parse(json).validate[PPOBAddress]
 
@@ -93,7 +99,7 @@ class PPOBAddressSpec extends UnitSpec with JsonFormatValidation {
     }
 
     "fail to be read from JSON if line2 is empty string" in {
-      val json = j(line3=Some(""))
+      val json = j(line3=Some(""), country=Some("c"))
 
       val result = Json.parse(json).validate[PPOBAddress]
 
@@ -101,12 +107,22 @@ class PPOBAddressSpec extends UnitSpec with JsonFormatValidation {
     }
 
     "fail to be read from JSON if line2 is longer than 27 characters" in {
-      val json = j(line3=Some("1234567890123456789012345678"))
+      val json = j(line3=Some("1234567890123456789012345678"), country=Some("c"))
 
       val result = Json.parse(json).validate[PPOBAddress]
 
       shouldHaveErrors(result, JsPath() \ "addressLine3", Seq(ValidationError("error.maxLength", 27),ValidationError("error.pattern")))
     }
-
   }
+
+  "PPOBAddress Model - postcode & country" should {
+    "Have at least one specified" in {
+      val json = j(line3=None)
+
+      intercept[IllegalArgumentException] {
+        Json.parse(json).validate[PPOBAddress]
+      }
+    }
+  }
+
 }
