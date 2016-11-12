@@ -69,6 +69,32 @@ trait SCRSMocks
     def getOID(oid: String, thenReturn: Option[(String, String)]): OngoingStubbing[Future[Option[(String, String)]]] = {
       when(mockCTDataRepository.getOid(Matchers.anyString())).thenReturn(Future.successful(thenReturn))
     }
+
+		def mockSuccessfulAuthorisation(registrationId: String, authority: Authority) = {
+			when(mockCTDataRepository.getOid(Matchers.eq(registrationId))).
+				thenReturn(Future.successful(Some((registrationId, authority.oid))))
+			when(mockAuthConnector.getCurrentAuthority()(Matchers.any()))
+				.thenReturn(Future.successful(Some(authority)))
+		}
+
+    def mockNotLoggedInOrAuthorised = {
+      when(mockAuthConnector.getCurrentAuthority()(Matchers.any[HeaderCarrier]()))
+        .thenReturn(Future.successful(None))
+      when(mockCTDataRepository.getOid(Matchers.any())).
+        thenReturn(Future.successful(None))
+    }
+
+    def mockNotAuthorised(registrationId: String, authority: Authority) = {
+      when(mockAuthConnector.getCurrentAuthority()(Matchers.any()))
+        .thenReturn(Future.successful(Some(authority)))
+      when(mockCTDataRepository.getOid(Matchers.contains(registrationId))).
+        thenReturn(Future.successful(Some((registrationId, authority.oid + "xxx"))))
+    }
+
+    def mockAuthResourceNotFound(authority: Authority) = {
+      AuthenticationMocks.getCurrentAuthority(Some(authority))
+      AuthorisationMocks.getOID(authority.oid, None)
+    }
   }
 
 	object CTDataRepositoryMocks {

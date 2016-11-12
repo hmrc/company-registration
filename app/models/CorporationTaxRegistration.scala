@@ -43,7 +43,8 @@ case class CorporationTaxRegistration(OID: String,
                                       contactDetails: Option[ContactDetails] = None,
                                       accountsPreparation: Option[PrepareAccountMongoModel] = None,
                                       crn: Option[String] = None,
-                                      submissionTimestamp: Option[String] = None
+                                      submissionTimestamp: Option[String] = None,
+                                      verifiedEmail: Option[Email] = None
                                      )
 
 object CorporationTaxRegistration {
@@ -57,6 +58,7 @@ object CorporationTaxRegistration {
   implicit val formatAck = Json.format[AcknowledgementReferences]
   implicit val formatConfirmationReferences = Json.format[ConfirmationReferences]
   implicit val formatAccountsPrepDate = Json.format[PrepareAccountMongoModel]
+  implicit val formatEmail = Email.formats
   implicit val formats = Json.format[CorporationTaxRegistration]
 }
 

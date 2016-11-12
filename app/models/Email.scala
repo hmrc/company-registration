@@ -14,19 +14,22 @@
  * limitations under the License.
  */
 
-package fixtures
+package models
 
-import models.{BusinessRegistration, Links}
+import play.api.libs.functional.syntax._
+import play.api.libs.json._
 
-trait BusinessRegistrationFixture {
+case class Email(address: String,
+                 emailType: String,
+                 linkSent: Boolean,
+                 verified: Boolean)
 
-  lazy val validBusinessRegistrationResponse = businessRegistrationResponse("12345")
+object Email {
 
-  def businessRegistrationResponse(regId: String) = BusinessRegistration(
-    regId,
-    "2016-08-03T10:49:11Z",
-    "en",
-    "CompCap",
-    Links(Some("/business-registration/business-tax-registartion/12345"))
-  )
+  implicit val formats = (
+      (__ \ "address").format[String] and
+      (__ \ "type").format[String] and
+      (__ \ "link-sent").format[Boolean] and
+      (__ \ "verified").format[Boolean]
+    )(Email.apply, unlift(Email.unapply))
 }

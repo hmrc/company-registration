@@ -14,19 +14,26 @@
  * limitations under the License.
  */
 
-package fixtures
+package services
 
-import models.{BusinessRegistration, Links}
+import models.Email
+import repositories.{Repositories, CorporationTaxRegistrationMongoRepository}
 
-trait BusinessRegistrationFixture {
+import scala.concurrent.Future
 
-  lazy val validBusinessRegistrationResponse = businessRegistrationResponse("12345")
+object EmailService extends EmailService {
+  val ctRepository = Repositories.cTRepository
+}
 
-  def businessRegistrationResponse(regId: String) = BusinessRegistration(
-    regId,
-    "2016-08-03T10:49:11Z",
-    "en",
-    "CompCap",
-    Links(Some("/business-registration/business-tax-registartion/12345"))
-  )
+trait EmailService {
+
+  val ctRepository: CorporationTaxRegistrationMongoRepository
+
+  def updateEmail(registrationId: String, email: Email): Future[Option[Email]] = {
+    ctRepository.updateEmail(registrationId, email)
+  }
+
+  def retrieveEmail(registrationId: String): Future[Option[Email]] = {
+    ctRepository.retrieveEmail(registrationId)
+  }
 }
