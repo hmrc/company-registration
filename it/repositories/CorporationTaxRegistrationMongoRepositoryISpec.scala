@@ -168,7 +168,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       language = "en",
       confirmationReferences = Some(ConfirmationReferences(ackRef, "TX1", "PY1", "12.00")),
       accountingDetails = Some(AccountingDetails(AccountingDetails.WHEN_REGISTERED, None)),
-      accountsPreparation = Some(PrepareAccountMongoModel(PrepareAccountModel.HMRC_DEFINED, None))
+      accountsPreparation = Some(AccountPrepDetails(AccountPrepDetails.HMRC_DEFINED, None))
     )
 
     "update the CRN and timestamp" in new Setup {

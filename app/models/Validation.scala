@@ -16,8 +16,10 @@
 
 package models
 
-import play.api.libs.json.{Format, Reads, Writes}
+import play.api.libs.json._
 import Reads.{maxLength, minLength, pattern}
+import org.joda.time.DateTime
+import org.joda.time.format.DateTimeFormat
 import play.api.libs.functional.syntax._
 
 
@@ -26,7 +28,8 @@ object Validation {
   def length(maxLen:Int, minLen: Int = 1): Reads[String] = maxLength[String](maxLen) keepAnd minLength[String](minLen)
   def readToFmt(rds:Reads[String])(implicit wts:Writes[String]): Format[String] = Format(rds,wts)
   def lengthFmt(maxLen:Int, minLen: Int = 1): Format[String] = readToFmt(length(maxLen, minLen))
-  def yyyymmddValidator = readToFmt(pattern("^[0-9]{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$".r))
+  def yyyymmddValidator = pattern("^[0-9]{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$".r)
+  def yyyymmddValidatorFmt = readToFmt(yyyymmddValidator)
 }
 
 trait CHAddressValidator {
@@ -50,5 +53,30 @@ trait AccountingDetailsValidator {
   import AccountingDetails.{WHEN_REGISTERED=>WR,FUTURE_DATE=>FD,NOT_PLANNING_TO_YET=>NP2Y}
 
   val statusValidator = readToFmt( pattern(s"^${WR}|${FD}|${NP2Y}$$".r))
-  val startDateValidator = yyyymmddValidator
+  val startDateValidator = yyyymmddValidatorFmt
+}
+
+trait AccountPrepDetailsValidator {
+  import Validation._
+  import AccountPrepDetails.{COMPANY_DEFINED, HMRC_DEFINED}
+
+  val statusValidator = readToFmt( pattern(s"^${COMPANY_DEFINED}|${HMRC_DEFINED}$$".r))
+
+//  private val dateReads = (
+//    Reads[DateTime](js => js.validate[String](yyyymmddValidator).map(DateTime.parse(_, DateTimeFormat.forPattern("yyyy-MM-dd"))))
+//  )
+
+//  private val dateWrites = new Writes[DateTime] {
+//    def writes(d: DateTime): JsValue = JsString(d.toString("yyyy-MM-dd"))
+//  }
+  val dateFormat = Format[DateTime](
+    Reads[DateTime](js =>
+      js.validate[String](yyyymmddValidator).map(
+        DateTime.parse(_, DateTimeFormat.forPattern("yyyy-MM-dd"))
+      )
+    ),
+    new Writes[DateTime] {
+      def writes(d: DateTime) = JsString(d.toString("yyyy-MM-dd"))
+    }
+  )
 }

@@ -42,7 +42,7 @@ case class CorporationTaxRegistration(OID: String,
                                       accountingDetails: Option[AccountingDetails] = None,
                                       tradingDetails: Option[TradingDetails] = None,
                                       contactDetails: Option[ContactDetails] = None,
-                                      accountsPreparation: Option[PrepareAccountMongoModel] = None,
+                                      accountsPreparation: Option[AccountPrepDetails] = None,
                                       crn: Option[String] = None,
                                       submissionTimestamp: Option[String] = None,
                                       verifiedEmail: Option[Email] = None
@@ -58,7 +58,7 @@ object CorporationTaxRegistration {
   implicit val formatContactDetails = ContactDetails.format
   implicit val formatAck = AcknowledgementReferences.format
   implicit val formatConfirmationReferences = ConfirmationReferences.format
-  implicit val formatAccountsPrepDate = PrepareAccountMongoModel.format
+  implicit val formatAccountsPrepDate = AccountPrepDetails.format
   implicit val formatEmail = Email.formats
   implicit val format = Json.format[CorporationTaxRegistration]
 }
@@ -195,9 +195,7 @@ object TradingDetails {
 
 
 case class AccountingDetails(status : String, startDateOfBusiness : Option[String]) {
-
   import AccountingDetails.FUTURE_DATE
-
   def crossCheck(): Boolean = if (startDateOfBusiness.isDefined) status == FUTURE_DATE else status != FUTURE_DATE
 
   require(crossCheck, "If a date is specified, the status must be FUTURE_DATE")
@@ -214,44 +212,20 @@ object AccountingDetails extends AccountingDetailsValidator {
     )(AccountingDetails.apply, unlift(AccountingDetails.unapply))
 }
 
+case class AccountPrepDetails(businessEndDateChoice : String,
+                              businessEndDate : Option[DateTime]){
+  import AccountPrepDetails.COMPANY_DEFINED
+  def crossCheck(): Boolean = if (businessEndDate.isDefined) businessEndDateChoice == COMPANY_DEFINED else businessEndDateChoice != COMPANY_DEFINED
 
-case class PrepareAccountMongoModel(businessEndDateChoice : String,
-                                    businessEndDate : Option[String])
-
-object PrepareAccountMongoModel {
-  implicit val format = Json.format[PrepareAccountMongoModel]
+  require(crossCheck, "If a date is specified, the status must be COMPANY_DEFINED")
 }
 
-case class PrepareAccountModel(businessEndDateChoice : String,
-                               businessEndDate : Option[DateTime]){
-
-  def toMongoModel : PrepareAccountMongoModel = {
-    PrepareAccountMongoModel(
-      businessEndDateChoice,
-      businessEndDate.fold[Option[String]](None)(date => Some(date.toString("yyyy-MM-dd")))
-    )
-  }
-}
-
-object PrepareAccountModel {
+object AccountPrepDetails extends AccountPrepDetailsValidator {
   val HMRC_DEFINED = "HMRC_DEFINED"
   val COMPANY_DEFINED = "COMPANY_DEFINED"
 
-  val dateReads: Reads[DateTime] = {
-    Reads[DateTime](js => js.validate[String].map(DateTime.parse(_, DateTimeFormat.forPattern("yyyy-MM-dd"))))
-  }
-
-  val dateWrites: Writes[DateTime] = new Writes[DateTime] {
-    def writes(d: DateTime): JsValue = JsString(d.toString("yyyy-MM-dd"))
-  }
-
-  implicit val writes: Writes[PrepareAccountModel] = (
-    (__ \ "businessEndDateChoice").write[String] and
-    (__ \ "businessEndDate").writeNullable[DateTime](dateWrites)
-    )(unlift(PrepareAccountModel.unapply))
-
-  implicit val reads: Reads[PrepareAccountModel] = (
-    (__ \ "businessEndDateChoice").read[String] and
-    (__ \ "businessEndDate").readNullable[DateTime](dateReads)
-    )(PrepareAccountModel.apply _)
+  implicit val format = (
+    (__ \ "businessEndDateChoice").format[String](statusValidator) and
+    (__ \ "businessEndDate").formatNullable[DateTime](dateFormat)
+    )(AccountPrepDetails.apply, unlift(AccountPrepDetails.unapply))
 }

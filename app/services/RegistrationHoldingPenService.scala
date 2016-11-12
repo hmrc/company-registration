@@ -204,10 +204,10 @@ trait RegistrationHoldingPenService extends DateHelper {
 
   private[services] def calculateDates(item: IncorpUpdate,
   accountingDetails: Option[AccountingDetails],
-  accountsPreparation: Option[PrepareAccountMongoModel]): Future[SubmissionDates] = {
+  accountsPreparation: Option[AccountPrepDetails]): Future[SubmissionDates] = {
 
     accountingDetails map { details =>
-      val prepDate = accountsPreparation flatMap (_.businessEndDate map asDate)
+      val prepDate = accountsPreparation flatMap (_.businessEndDate)
       accountingService.calculateSubmissionDates(item.incorpDate, activeDate(details), prepDate)
     } match {
       case Some(dates) => Future.successful(dates)

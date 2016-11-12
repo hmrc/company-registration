@@ -32,13 +32,13 @@ class AccountingDetailsSpec extends UnitSpec with JsonFormatValidation {
       shouldBeSuccess(expected, result)
     }
 
-    "fail to be read from JSON if is empty string" in {
+    "fail if status is not valid" in {
       val json = """{"accountingDateStatus":"XXX"}"""
       val result = Json.parse(json).validate[AccountingDetails]
       shouldHaveErrors(result, JsPath() \ "accountingDateStatus", Seq(ValidationError("error.pattern")))
     }
 
-    "fail to be read from JSON if line1 is longer than 27 characters" in {
+    "fail if the date format isn't valid" in {
       val json = """{"accountingDateStatus":"FUTURE_DATE","startDateOfBusiness":"2017/02/01"}"""
       val result = Json.parse(json).validate[AccountingDetails]
       shouldHaveErrors(result, JsPath() \ "startDateOfBusiness", Seq(ValidationError("error.pattern")))
