@@ -26,7 +26,7 @@ object Validation {
   def length(maxLen:Int, minLen: Int = 1): Reads[String] = maxLength[String](maxLen) keepAnd minLength[String](minLen)
   def readToFmt(rds:Reads[String])(implicit wts:Writes[String]): Format[String] = Format(rds,wts)
   def lengthFmt(maxLen:Int, minLen: Int = 1): Format[String] = readToFmt(length(maxLen, minLen))
-
+  def yyyymmddValidator = readToFmt(pattern("^[0-9]{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$".r))
 }
 
 trait CHAddressValidator {
@@ -43,4 +43,12 @@ trait HMRCAddressValidator {
   val lineValidator = readToFmt( length(27) keepAnd pattern("^[a-zA-Z0-9,.\\(\\)/&amp;'&quot;\\-]{1}[a-zA-Z0-9, .\\(\\)/&amp;'&quot;\\-]{0,26}$".r))
   val postcodeValidator = readToFmt( length(20) keepAnd pattern("^[A-Z]{1,2}[0-9][0-9A-Z]? [0-9][A-Z]{2}$".r) )
   val countryValidator = readToFmt( length(20) keepAnd pattern("^[A-Za-z0-9]{1}[A-Za-z 0-9]{0,19}$".r) )
+}
+
+trait AccountingDetailsValidator {
+  import Validation._
+  import AccountingDetails.{WHEN_REGISTERED=>WR,FUTURE_DATE=>FD,NOT_PLANNING_TO_YET=>NP2Y}
+
+  val statusValidator = readToFmt( pattern(s"^${WR}|${FD}|${NP2Y}$$".r))
+  val startDateValidator = yyyymmddValidator
 }

@@ -86,21 +86,25 @@ object ConfirmationReferences {
     )(ConfirmationReferences.apply, unlift(ConfirmationReferences.unapply))
 }
 
-case class AccountingDetails(accountingDateStatus : String, startDateOfBusiness : Option[String])
-
-object AccountingDetails {
-  val WHEN_REGISTERED = "WHEN_REGISTERED"
-  val FUTURE_DATE = "FUTURE_DATE"
-  val NOT_PLANNING_TO_YET = "NOT_PLANNING_TO_YET"
-
-  implicit val formats = Json.format[AccountingDetails]
-}
-
 case class CompanyDetails(companyName: String,
                           cHROAddress: CHROAddress,
                           rOAddress: ROAddress,
                           pPOBAddress: PPOBAddress,
                           jurisdiction: String)
+
+object CompanyDetails {
+  implicit val formatCH = CHROAddress.format
+  implicit val formatRO = ROAddress.format
+  implicit val formatPPOB = PPOBAddress.format
+  implicit val formatTD = TradingDetails.format
+  implicit val format = (
+    ( __ \ "companyName" ).format[String](maxLength[String](160)) and
+      ( __ \ "cHROAddress" ).format[CHROAddress] and
+      ( __ \ "rOAddress" ).format[ROAddress] and
+      ( __ \ "pPOBAddress" ).format[PPOBAddress] and
+      ( __ \ "jurisdiction" ).format[String]
+    )(CompanyDetails.apply, unlift(CompanyDetails.unapply))
+}
 
 case class CHROAddress(premises : String,
                        address_line_1 : String,
@@ -111,6 +115,19 @@ case class CHROAddress(premises : String,
                        postal_code : Option[String],
                        region : Option[String])
 
+object CHROAddress extends CHAddressValidator {
+  implicit val format = (
+    (__ \ "premises").format[String](premisesValidator) and
+      (__ \ "address_line_1").format[String](lineValidator) and
+      (__ \ "address_line_2").formatNullable[String](lineValidator) and
+      (__ \ "country").format[String](lineValidator) and
+      (__ \ "locality").format[String](lineValidator) and
+      (__ \ "po_box").formatNullable[String](lineValidator) and
+      (__ \ "postal_code").formatNullable[String](postcodeValidator) and
+      (__ \ "region").formatNullable[String]
+    )(CHROAddress.apply, unlift(CHROAddress.unapply))
+}
+
 case class ROAddress(houseNameNumber: String,
                      addressLine1: String,
                      addressLine2: String,
@@ -118,6 +135,10 @@ case class ROAddress(houseNameNumber: String,
                      addressLine4: String,
                      postCode: String,
                      country: String)
+
+object ROAddress {
+  implicit val format = Json.format[ROAddress]
+}
 
 case class PPOBAddress(houseNameNumber: String,
                        addressLine1: String,
@@ -140,38 +161,6 @@ object PPOBAddress extends HMRCAddressValidator {
       ( __ \ "country").formatNullable[String](countryValidator)
     )(PPOBAddress.apply, unlift(PPOBAddress.unapply))
 }
-
-object CompanyDetails {
-  implicit val formatCH = CHROAddress.format
-  implicit val formatRO = ROAddress.format
-  implicit val formatPPOB = PPOBAddress.format
-  implicit val formatTD = TradingDetails.format
-  implicit val format = (
-  ( __ \ "companyName" ).format[String](maxLength[String](160)) and
-  ( __ \ "cHROAddress" ).format[CHROAddress] and
-  ( __ \ "rOAddress" ).format[ROAddress] and
-  ( __ \ "pPOBAddress" ).format[PPOBAddress] and
-  ( __ \ "jurisdiction" ).format[String]
-  )(CompanyDetails.apply, unlift(CompanyDetails.unapply))
-}
-
-object CHROAddress extends CHAddressValidator {
-  implicit val format = (
-  (__ \ "premises").format[String](premisesValidator) and
-  (__ \ "address_line_1").format[String](lineValidator) and
-  (__ \ "address_line_2").formatNullable[String](lineValidator) and
-  (__ \ "country").format[String](lineValidator) and
-  (__ \ "locality").format[String](lineValidator) and
-  (__ \ "po_box").formatNullable[String](lineValidator) and
-  (__ \ "postal_code").formatNullable[String](postcodeValidator) and
-  (__ \ "region").formatNullable[String]
-  )(CHROAddress.apply, unlift(CHROAddress.unapply))
-}
-
-object ROAddress {
-  implicit val format = Json.format[ROAddress]
-}
-
 
 case class CorporationTaxRegistrationRequest(language: String)
 
@@ -203,6 +192,28 @@ case class TradingDetails(regularPayments : Boolean = false)
 object TradingDetails {
   implicit val format = Json.format[TradingDetails]
 }
+
+
+case class AccountingDetails(status : String, startDateOfBusiness : Option[String]) {
+
+  import AccountingDetails.FUTURE_DATE
+
+  def crossCheck(): Boolean = if (startDateOfBusiness.isDefined) status == FUTURE_DATE else status != FUTURE_DATE
+
+  require(crossCheck, "If a date is specified, the status must be FUTURE_DATE")
+}
+
+object AccountingDetails extends AccountingDetailsValidator {
+  val WHEN_REGISTERED = "WHEN_REGISTERED"
+  val FUTURE_DATE = "FUTURE_DATE"
+  val NOT_PLANNING_TO_YET = "NOT_PLANNING_TO_YET"
+
+  implicit val formats = (
+      ( __ \ "accountingDateStatus" ).format[String](statusValidator) and
+      ( __ \ "startDateOfBusiness").formatNullable[String](startDateValidator)
+    )(AccountingDetails.apply, unlift(AccountingDetails.unapply))
+}
+
 
 case class PrepareAccountMongoModel(businessEndDateChoice : String,
                                     businessEndDate : Option[String])

@@ -131,19 +131,10 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
   }
 
   override def updateAccountingDetails(registrationID: String, accountingDetails: AccountingDetails): Future[Option[AccountingDetails]] = {
-    val doc = accountingDetails.startDateOfBusiness.isDefined match {
-      case true => BSONDocument(
-        "$set" -> BSONDocument(
-          "accountingDetails.accountingDateStatus" -> accountingDetails.accountingDateStatus,
-          "accountingDetails.startDateOfBusiness" -> accountingDetails.startDateOfBusiness.get))
-      case false =>
-        BSONDocument(
-        "$set" -> BSONDocument("accountingDetails.accountingDateStatus" -> accountingDetails.accountingDateStatus),
-        "$unset" -> BSONDocument("accountingDetails.startDateOfBusiness" -> 1))
-    }
-
     retrieveCorporationTaxRegistration(registrationID).flatMap {
-      case Some(data) => collection.update(registrationIDSelector(registrationID), doc, upsert = false).map(_ => Some(accountingDetails))
+      case Some(data) => collection.update(registrationIDSelector(registrationID), data.copy(accountingDetails = Some(accountingDetails))).map(
+        _ => Some(accountingDetails)
+      )
       case None => Future.successful(None)
     }
   }

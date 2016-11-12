@@ -37,13 +37,13 @@ object AccountingDetailsResponse {
 
 trait AccountingDetailsFixture {
 
-  val validAccountingDetails = AccountingDetails( "futureDate", Some("22-08-2016") )
+  val validAccountingDetails = AccountingDetails( AccountingDetails.FUTURE_DATE, Some("2016-08-16") )
 
-  val accountingDetailsNoStartDateOfBusiness = AccountingDetails( "whenRegistered", None )
+  val accountingDetailsNoStartDateOfBusiness = AccountingDetails( AccountingDetails.WHEN_REGISTERED, None )
 
   import AccountingDetailsResponse.buildLinks
   val validAccountingDetailsResponse = AccountingDetailsResponse(
-    accountingDateStatus = validAccountingDetails.accountingDateStatus,
+    accountingDateStatus = validAccountingDetails.status,
     startDateOfBusiness = validAccountingDetails.startDateOfBusiness,
     buildLinks("12345")
     )

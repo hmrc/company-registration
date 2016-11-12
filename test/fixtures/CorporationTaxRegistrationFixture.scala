@@ -66,7 +66,7 @@ trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with Accou
 		language = "en",
 		confirmationReferences = Some(validConfRefsWithData(ackRef)),
 		companyDetails = None,
-		accountingDetails = Some(AccountingDetails("COMPANY_DEFINED", Some("2019-12-31"))),
+		accountingDetails = Some(AccountingDetails(AccountingDetails.FUTURE_DATE, Some("2019-12-31"))),
 		tradingDetails = None,
 		contactDetails = None
 	)

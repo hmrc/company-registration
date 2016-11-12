@@ -188,7 +188,7 @@ trait RegistrationHoldingPenService extends DateHelper {
 
   private[services] def activeDate(date: AccountingDetails) = {
     import AccountingDetails.WHEN_REGISTERED
-    (date.accountingDateStatus, date.startDateOfBusiness) match {
+    (date.status, date.startDateOfBusiness) match {
       case (_, Some(givenDate))  => ActiveInFuture(asDate(givenDate))
       case (status, _) if status == WHEN_REGISTERED => ActiveOnIncorporation
       case _ => DoNotIntendToTrade
