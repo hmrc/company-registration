@@ -55,6 +55,13 @@ trait HMRCAddressValidator {
   val countryValidator = readToFmt(length(20) keepAnd pattern("^[A-Za-z0-9]{1}[A-Za-z 0-9]{0,19}$".r))
 }
 
+trait CompanyDetailsValidator {
+
+  import Validation._
+
+  val companyNameValidator = readToFmt(pattern("^[A-Za-z 0-9\\-,.()/'&amp;&quot;!%*_+:@&lt;&gt;?=;]{1,160}$".r))
+}
+
 trait ContactDetailsValidator {
 
   import Validation._

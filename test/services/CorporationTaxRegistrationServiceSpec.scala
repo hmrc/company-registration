@@ -96,8 +96,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
       registrationId,
       timestamp,
       "en",
-      "Director",
-      Links(Some("testSelfLink"))
+      "Director"
     )
 
     val corporationTaxRegistration = CorporationTaxRegistration(
@@ -119,7 +118,8 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
         Some("0123456789"),
         Some("0123456789"),
         Some("test@email.co.uk")
-      ))
+      )),
+      tradingDetails = Some(TradingDetails(false))
     )
 
     val partialDesSubmission = Json.parse(
@@ -256,8 +256,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
       registrationId,
       "testTimeStamp",
       "en",
-      "Director",
-      Links(Some("testSelfLink"))
+      "Director"
     )
 
     "return a business registration" in new Setup {
@@ -318,8 +317,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
       registrationId,
       dateTime.toString,
       "en",
-      "Director",
-      Links(Some("testSelfLink"))
+      "Director"
     )
 
     // TODO - refactor and tweak tests - couple more scenarios for optionality
@@ -347,7 +345,8 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
         formCreationTimestamp = dateTime.toString,
         language = "en",
         companyDetails = company,
-        contactDetails = contact
+        contactDetails = contact,
+        tradingDetails = Some(TradingDetails(false))
       )
     }
 
@@ -400,8 +399,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
       registrationId,
       "testTimeStamp",
       "en",
-      "Director",
-      Links(Some("testSelfLink"))
+      "Director"
     )
 
     val corporationTaxRegistration = CorporationTaxRegistration(
@@ -423,7 +421,8 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
         Some("0123456789"),
         Some("0123456789"),
         Some("test@email.co.uk")
-      ))
+      )),
+      tradingDetails = Some(TradingDetails(false))
     )
 
     // TODO - refactor and tweak tests (focus this on the complete partial)

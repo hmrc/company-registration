@@ -41,7 +41,9 @@ object CorporationTaxRegistrationService extends CorporationTaxRegistrationServi
   override val microserviceAuthConnector = AuthConnector
   override val brConnector = BusinessRegistrationConnector
   val heldSubmissionRepository = Repositories.heldSubmissionRepository
+
   def currentDateTime = DateTime.now(DateTimeZone.UTC)
+
   override val submissionCheckAPIConnector = IncorporationCheckAPIConnector
 }
 
@@ -50,14 +52,16 @@ trait CorporationTaxRegistrationService extends DateHelper {
   val corporationTaxRegistrationRepository: CorporationTaxRegistrationRepository
   val sequenceRepository: SequenceRepository
   val stateDataRepository: StateDataRepository
-  val microserviceAuthConnector : AuthConnector
-  val brConnector : BusinessRegistrationConnector
+  val microserviceAuthConnector: AuthConnector
+  val brConnector: BusinessRegistrationConnector
   val heldSubmissionRepository: HeldSubmissionRepository
+
   def currentDateTime: DateTime
+
   val submissionCheckAPIConnector: IncorporationCheckAPIConnector
 
 
-  def updateCTRecordWithAckRefs(ackRef : String, refPayload : AcknowledgementReferences) : Future[Option[CorporationTaxRegistration]] = {
+  def updateCTRecordWithAckRefs(ackRef: String, refPayload: AcknowledgementReferences): Future[Option[CorporationTaxRegistration]] = {
     corporationTaxRegistrationRepository.getHeldCTRecord(ackRef) flatMap {
       case Some(record) =>
         record.acknowledgementReferences match {
@@ -89,8 +93,8 @@ trait CorporationTaxRegistrationService extends DateHelper {
     corporationTaxRegistrationRepository.retrieveCorporationTaxRegistration(rID)
   }
 
-  def updateConfirmationReferences(rID: String, refs : ConfirmationReferences)(implicit hc: HeaderCarrier) : Future[Option[ConfirmationReferences]] = {
-    for{
+  def updateConfirmationReferences(rID: String, refs: ConfirmationReferences)(implicit hc: HeaderCarrier): Future[Option[ConfirmationReferences]] = {
+    for {
       ackRef <- generateAcknowledgementReference
       updatedRef <- corporationTaxRegistrationRepository.updateConfirmationReferences(rID, refs.copy(acknowledgementReference = ackRef))
       heldSubmission <- buildPartialDesSubmission(rID, ackRef)
@@ -125,10 +129,10 @@ trait CorporationTaxRegistrationService extends DateHelper {
       .map(ref => f"BRCT$ref%011d")
   }
 
-  private[services] def buildPartialDesSubmission(regId: String, ackRef : String)(implicit hc: HeaderCarrier) : Future[InterimDesRegistration] = {
+  private[services] def buildPartialDesSubmission(regId: String, ackRef: String)(implicit hc: HeaderCarrier): Future[InterimDesRegistration] = {
 
     // TODO - check behaviour if session header is missing
-    val sessionId = hc.headers.collect{ case ("X-Session-ID", x) => x }.head
+    val sessionId = hc.headers.collect { case ("X-Session-ID", x) => x }.head
 
     for {
       credId <- retrieveCredId
@@ -141,7 +145,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
 
   private[services] class FailedToGetCredId extends NoStackTrace
 
-  private[services] def retrieveCredId(implicit hc: HeaderCarrier) : Future[String] = {
+  private[services] def retrieveCredId(implicit hc: HeaderCarrier): Future[String] = {
     microserviceAuthConnector.getCurrentAuthority flatMap {
       case Some(a) => Future.successful(a.gatewayId)
       case _ => Future.failed(new FailedToGetCredId)
@@ -150,7 +154,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
 
   private[services] class FailedToGetBRMetadata extends NoStackTrace
 
-  private[services] def retrieveBRMetadata(regId: String)(implicit hc: HeaderCarrier) : Future[BusinessRegistration] = {
+  private[services] def retrieveBRMetadata(regId: String)(implicit hc: HeaderCarrier): Future[BusinessRegistration] = {
     brConnector.retrieveMetadata flatMap {
       case BusinessRegistrationSuccessResponse(metadata) if metadata.registrationID == regId => Future.successful(metadata)
       case _ => Future.failed(new FailedToGetBRMetadata)
@@ -159,7 +163,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
 
   private[services] class FailedToGetCTData extends NoStackTrace
 
-  private[services] def retrieveCTData(regId: String) : Future[CorporationTaxRegistration] = {
+  private[services] def retrieveCTData(regId: String): Future[CorporationTaxRegistration] = {
     corporationTaxRegistrationRepository.retrieveCorporationTaxRegistration(regId) flatMap {
       case Some(ct) => Future.successful(ct)
       case _ => Future.failed(new FailedToGetCTData)
@@ -168,6 +172,35 @@ trait CorporationTaxRegistrationService extends DateHelper {
 
   private[services] def buildInterimSubmission(ackRef: String, sessionId: String, credId: String,
                                                brMetadata: BusinessRegistration, ctData: CorporationTaxRegistration, currentDateTime: DateTime): InterimDesRegistration = {
+
+    // It's an error if these aren't available at this point!
+    val companyDetails = ctData.companyDetails.get
+    val contactDetails = ctData.contactDetails.get
+    val tradingDetails = ctData.tradingDetails.get
+    val ppob = companyDetails.ppob
+
+    // SCRS-3708 - should be an Option[BusinessAddress] and mapped from the optional ppob
+    val businessAddress: BusinessAddress = BusinessAddress(
+      line1 = ppob.houseNameNumber,
+      line2 = ppob.line1,
+      line3 = ppob.line2,
+      line4 = ppob.line3,
+      postcode = ppob.postcode,
+      country = ppob.country
+    )
+
+    val businessContactName = BusinessContactName(
+      firstName = contactDetails.firstName,
+      middleNames = contactDetails.middleName,
+      lastName = contactDetails.surname
+    )
+
+    val businessContactDetails = BusinessContactDetails(
+      phoneNumber = contactDetails.phone,
+      mobileNumber = contactDetails.mobile,
+      email = contactDetails.email
+    )
+
     InterimDesRegistration(
       ackRef = ackRef,
       metadata = Metadata(
@@ -178,26 +211,11 @@ trait CorporationTaxRegistrationService extends DateHelper {
         completionCapacity = CompletionCapacity(brMetadata.completionCapacity)
       ),
       interimCorporationTax = InterimCorporationTax(
-        companyName = ctData.companyDetails.get.companyName,
-        returnsOnCT61 = false,
-        businessAddress = BusinessAddress(
-          line1 = ctData.companyDetails.get.ppob.houseNameNumber,
-          line2 = ctData.companyDetails.get.ppob.line1,
-          line3 = ctData.companyDetails.get.ppob.line2,
-          line4 = ctData.companyDetails.get.ppob.line3,
-          postcode = ctData.companyDetails.get.ppob.postcode,
-          country =  ctData.companyDetails.get.ppob.country
-        ),
-        businessContactName = BusinessContactName(
-          firstName = ctData.contactDetails.get.firstName,
-          middleNames = ctData.contactDetails.get.middleName,
-          lastName = ctData.contactDetails.get.surname
-        ),
-        businessContactDetails = BusinessContactDetails(
-          phoneNumber =  ctData.contactDetails.get.phone,
-          mobileNumber = ctData.contactDetails.get.mobile,
-          email = ctData.contactDetails.get.email
-        )
+        companyName = companyDetails.companyName,
+        returnsOnCT61 = tradingDetails.regularPayments,
+        businessAddress = businessAddress,
+        businessContactName = businessContactName,
+        businessContactDetails = businessContactDetails
       )
     )
   }

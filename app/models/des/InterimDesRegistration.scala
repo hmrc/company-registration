@@ -69,17 +69,44 @@ case class BusinessAddress(
                             country: Option[String]
                           )
 
+object BusinessAddress {
+  implicit val writes: Writes[BusinessAddress] = (
+    (__ \ "line1").write[String] and
+      (__ \ "line2").write[String] and
+      (__ \ "line3").writeNullable[String] and
+      (__ \ "line4").writeNullable[String] and
+      (__ \ "postcode").writeNullable[String] and
+      (__ \ "country").writeNullable[String]
+    ) (unlift(BusinessAddress.unapply))
+}
+
 case class BusinessContactDetails(
                                    phoneNumber: Option[String],
                                    mobileNumber: Option[String],
                                    email: Option[String]
                                  )
 
+object BusinessContactDetails {
+  implicit val writes: Writes[BusinessContactDetails] = (
+    (__ \ "phoneNumber").writeNullable[String] and
+      (__ \ "mobileNumber").writeNullable[String] and
+      (__ \ "email").writeNullable[String]
+    ) (unlift(BusinessContactDetails.unapply))
+}
+
 case class BusinessContactName(
                                 firstName: String,
                                 middleNames: Option[String],
                                 lastName: String
                               )
+
+object BusinessContactName {
+  implicit val writes: Writes[BusinessContactName] = (
+    (__ \ "firstName").write[String] and
+      (__ \ "middleNames").writeNullable[String] and
+      (__ \ "lastName").write[String]
+    ) (unlift(BusinessContactName.unapply))
+}
 
 case class Metadata(
                      sessionId: String,
@@ -127,36 +154,22 @@ case class InterimCorporationTax(
                                 )
 
 object InterimCorporationTax {
-
   implicit val writes = new Writes[InterimCorporationTax] {
     def writes(m: InterimCorporationTax) = {
+      val address: JsObject = Json.toJson(m.businessAddress).as[JsObject]
+      val name: JsObject = Json.toJson(m.businessContactName).as[JsObject]
+      val contactDetails: JsObject = Json.toJson(m.businessContactDetails).as[JsObject]
       Json.obj(
         "companyOfficeNumber" -> "001", // TODO SCRS-2283 check default value
         "hasCompanyTakenOverBusiness" -> false,
         "companyMemberOfGroup" -> false,
         "companiesHouseCompanyName" -> m.companyName,
         "returnsOnCT61" -> m.returnsOnCT61,
-        "companyACharity" -> false,
-        "businessAddress" -> Json.obj(
-          "line1" -> m.businessAddress.line1,
-          "line2" -> m.businessAddress.line2,
-          "line3" -> m.businessAddress.line3,
-          "line4" -> m.businessAddress.line4,
-          "postcode" -> m.businessAddress.postcode,
-          "country" -> m.businessAddress.country
-        ),
-        "businessContactName" -> Json.obj(
-          "firstName" -> m.businessContactName.firstName,
-          "middleNames" -> m.businessContactName.middleNames,
-          "lastName" -> m.businessContactName.lastName
-        ),
-        "businessContactDetails" -> Json.obj(
-          "phoneNumber" -> m.businessContactDetails.phoneNumber,
-          "mobileNumber" -> m.businessContactDetails.mobileNumber,
-          "email" -> m.businessContactDetails.email
-        )
-      )
-
+        "companyACharity" -> false
+      ) ++
+        Json.obj("businessAddress" -> address) ++ // todo - SCRS-3708 optional
+        Json.obj("businessContactName" -> name) ++
+        Json.obj("businessContactDetails" -> contactDetails)
     }
   }
 }

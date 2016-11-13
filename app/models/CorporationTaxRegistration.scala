@@ -92,13 +92,13 @@ case class CompanyDetails(companyName: String,
                           ppob: PPOBAddress,
                           jurisdiction: String)
 
-object CompanyDetails {
+object CompanyDetails extends CompanyDetailsValidator {
   implicit val formatCH = CHROAddress.format
   implicit val formatRO = ROAddress.format
   implicit val formatPPOB = PPOBAddress.format
   implicit val formatTD = TradingDetails.format
   implicit val format = (
-    (__ \ "companyName").format[String](maxLength[String](160)) and
+    (__ \ "companyName").format[String](companyNameValidator) and
       (__ \ "cHROAddress").format[CHROAddress] and
       (__ \ "rOAddress").format[ROAddress] and
       (__ \ "pPOBAddress").format[PPOBAddress] and
@@ -192,13 +192,6 @@ object ContactDetails extends ContactDetailsValidator {
       (__ \ "contactMobileNumber").formatNullable[String](phoneValidator) and
       (__ \ "contactEmail").formatNullable[String](emailValidator)
     ) (ContactDetails.apply, unlift(ContactDetails.unapply))
-}
-
-case class Links(self: Option[String],
-                 registration: Option[String] = None)
-
-object Links {
-  implicit val format = Json.format[Links]
 }
 
 case class TradingDetails(regularPayments: Boolean = false)
