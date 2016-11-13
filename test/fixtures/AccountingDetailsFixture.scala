@@ -44,7 +44,7 @@ trait AccountingDetailsFixture {
   import AccountingDetailsResponse.buildLinks
   val validAccountingDetailsResponse = AccountingDetailsResponse(
     accountingDateStatus = validAccountingDetails.status,
-    startDateOfBusiness = validAccountingDetails.startDateOfBusiness,
+    startDateOfBusiness = validAccountingDetails.activeDate,
     buildLinks("12345")
     )
 }

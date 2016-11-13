@@ -44,12 +44,12 @@ trait ContactDetailsFixture {
   )
 
   lazy val contactDetailsResponse = ContactDetailsResponse(
-    contactDetails.contactFirstName,
-    contactDetails.contactMiddleName,
-    contactDetails.contactSurname,
-    contactDetails.contactDaytimeTelephoneNumber,
-    contactDetails.contactMobileNumber,
-    contactDetails.contactEmail,
+    contactDetails.firstName,
+    contactDetails.middleName,
+    contactDetails.surname,
+    contactDetails.phone,
+    contactDetails.mobile,
+    contactDetails.email,
     Links(Some(s"/company-registration/corporation-tax-registration/12345/contact-details"),
       Some(s"/company-registration/corporation-tax-registration/12345"))
   )

@@ -181,22 +181,22 @@ trait CorporationTaxRegistrationService extends DateHelper {
         companyName = ctData.companyDetails.get.companyName,
         returnsOnCT61 = false,
         businessAddress = BusinessAddress(
-          line1 = ctData.companyDetails.get.pPOBAddress.houseNameNumber,
-          line2 = ctData.companyDetails.get.pPOBAddress.addressLine1,
-          line3 = ctData.companyDetails.get.pPOBAddress.addressLine2,
-          line4 = ctData.companyDetails.get.pPOBAddress.addressLine3,
-          postcode = ctData.companyDetails.get.pPOBAddress.postCode,
-          country =  ctData.companyDetails.get.pPOBAddress.country
+          line1 = ctData.companyDetails.get.ppob.houseNameNumber,
+          line2 = ctData.companyDetails.get.ppob.line1,
+          line3 = ctData.companyDetails.get.ppob.line2,
+          line4 = ctData.companyDetails.get.ppob.line3,
+          postcode = ctData.companyDetails.get.ppob.postcode,
+          country =  ctData.companyDetails.get.ppob.country
         ),
         businessContactName = BusinessContactName(
-          firstName = ctData.contactDetails.get.contactFirstName,
-          middleNames = ctData.contactDetails.get.contactMiddleName,
-          lastName = ctData.contactDetails.get.contactSurname
+          firstName = ctData.contactDetails.get.firstName,
+          middleNames = ctData.contactDetails.get.middleName,
+          lastName = ctData.contactDetails.get.surname
         ),
         businessContactDetails = BusinessContactDetails(
-          phoneNumber =  ctData.contactDetails.get.contactDaytimeTelephoneNumber,
-          mobileNumber = ctData.contactDetails.get.contactMobileNumber,
-          email = ctData.contactDetails.get.contactEmail
+          phoneNumber =  ctData.contactDetails.get.phone,
+          mobileNumber = ctData.contactDetails.get.mobile,
+          email = ctData.contactDetails.get.email
         )
       )
     )

@@ -438,9 +438,9 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
           returnsOnCT61 = false,
           BusinessAddress("10", "test street", Some("test town"), Some("test area"), Some("XX1 1ZZ"), Some("test country")),
           BusinessContactName(
-            corporationTaxRegistration.contactDetails.get.contactFirstName,
-            corporationTaxRegistration.contactDetails.get.contactMiddleName,
-            corporationTaxRegistration.contactDetails.get.contactSurname
+            corporationTaxRegistration.contactDetails.get.firstName,
+            corporationTaxRegistration.contactDetails.get.middleName,
+            corporationTaxRegistration.contactDetails.get.surname
           ),
           BusinessContactDetails(Some("0123456789"), Some("0123456789"), Some("test@email.co.uk"))
         )

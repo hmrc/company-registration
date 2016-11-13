@@ -76,9 +76,9 @@ trait CompanyDetailsFixture {
   import CompanyDetailsResponse.buildLinks
   lazy val validCompanyDetailsResponse = CompanyDetailsResponse(
     companyName = validCompanyDetails.companyName,
-    cHROAddress = validCompanyDetails.cHROAddress,
-    rOAddress = validCompanyDetails.rOAddress,
-    pPOBAddress = validCompanyDetails.pPOBAddress,
+    cHROAddress = validCompanyDetails.registeredOffice,
+    rOAddress = validCompanyDetails.doNotUseRoAddress,
+    pPOBAddress = validCompanyDetails.ppob,
     jurisdiction = validCompanyDetails.jurisdiction,
     TradingDetails(),
     buildLinks("12345")

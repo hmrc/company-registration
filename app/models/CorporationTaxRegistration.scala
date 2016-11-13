@@ -87,9 +87,9 @@ object ConfirmationReferences {
 }
 
 case class CompanyDetails(companyName: String,
-                          cHROAddress: CHROAddress,
-                          rOAddress: ROAddress,
-                          pPOBAddress: PPOBAddress,
+                          registeredOffice: CHROAddress,
+                          doNotUseRoAddress: ROAddress,
+                          ppob: PPOBAddress,
                           jurisdiction: String)
 
 object CompanyDetails {
@@ -141,14 +141,14 @@ object ROAddress {
 }
 
 case class PPOBAddress(houseNameNumber: String,
-                       addressLine1: String,
-                       addressLine2: Option[String],
-                       addressLine3: Option[String],
-                       addressLine4: Option[String],
-                       postCode: Option[String],
+                       line1: String,
+                       line2: Option[String],
+                       line3: Option[String],
+                       line4: Option[String],
+                       postcode: Option[String],
                        country: Option[String]) {
 
-  def crossCheck(): Boolean = postCode.isDefined || country.isDefined
+  def crossCheck(): Boolean = postcode.isDefined || country.isDefined
 
   require(crossCheck, "Must have at least one of postcode and country")
 }
@@ -171,14 +171,14 @@ object CorporationTaxRegistrationRequest {
   implicit val format = Json.format[CorporationTaxRegistrationRequest]
 }
 
-case class ContactDetails(contactFirstName: String,
-                          contactMiddleName: Option[String],
-                          contactSurname: String,
-                          contactDaytimeTelephoneNumber: Option[String],
-                          contactMobileNumber: Option[String],
-                          contactEmail: Option[String]) {
+case class ContactDetails(firstName: String,
+                          middleName: Option[String],
+                          surname: String,
+                          phone: Option[String],
+                          mobile: Option[String],
+                          email: Option[String]) {
 
-  def crossCheck(): Boolean = contactDaytimeTelephoneNumber.isDefined || contactMobileNumber.isDefined || contactEmail.isDefined
+  def crossCheck(): Boolean = phone.isDefined || mobile.isDefined || email.isDefined
 
   require(crossCheck, "Must have at least one email, phone or mobile specified")
 }
@@ -208,11 +208,11 @@ object TradingDetails {
 }
 
 
-case class AccountingDetails(status: String, startDateOfBusiness: Option[String]) {
+case class AccountingDetails(status: String, activeDate: Option[String]) {
 
   import AccountingDetails.FUTURE_DATE
 
-  def crossCheck(): Boolean = if (startDateOfBusiness.isDefined) status == FUTURE_DATE else status != FUTURE_DATE
+  def crossCheck(): Boolean = if (activeDate.isDefined) status == FUTURE_DATE else status != FUTURE_DATE
 
   require(crossCheck, "If a date is specified, the status must be FUTURE_DATE")
 }
@@ -228,12 +228,12 @@ object AccountingDetails extends AccountingDetailsValidator {
     ) (AccountingDetails.apply, unlift(AccountingDetails.unapply))
 }
 
-case class AccountPrepDetails(businessEndDateChoice: String,
-                              businessEndDate: Option[DateTime]) {
+case class AccountPrepDetails(status: String,
+                              endDate: Option[DateTime]) {
 
   import AccountPrepDetails.COMPANY_DEFINED
 
-  def crossCheck(): Boolean = if (businessEndDate.isDefined) businessEndDateChoice == COMPANY_DEFINED else businessEndDateChoice != COMPANY_DEFINED
+  def crossCheck(): Boolean = if (endDate.isDefined) status == COMPANY_DEFINED else status != COMPANY_DEFINED
 
   require(crossCheck, "If a date is specified, the status must be COMPANY_DEFINED")
 }
