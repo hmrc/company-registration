@@ -35,57 +35,57 @@ import scala.concurrent.Future
 
 class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTaxRegistrationFixture with MongoFixture with AuthFixture with MongoMocks {
 
-	implicit val mongo = mongoDB
-	implicit val hc = HeaderCarrier(sessionId = Some(SessionId("testSessionId")))
+  implicit val mongo = mongoDB
+  implicit val hc = HeaderCarrier(sessionId = Some(SessionId("testSessionId")))
 
   val mockBusinessRegistrationConnector = mock[BusinessRegistrationConnector]
   val mockHeldSubmissionRepository = mock[HeldSubmissionMongoRepository]
 
   val dateTime = DateTime.parse("2016-10-27T16:28:59.000")
 
-	class Setup {
-		val service = new CorporationTaxRegistrationService {
-			override val corporationTaxRegistrationRepository = mockCTDataRepository
-			override val sequenceRepository = mockSequenceRepository
-			override val stateDataRepository = mockStateDataRepository
-			override val microserviceAuthConnector = mockAuthConnector
-			override val brConnector = mockBusinessRegistrationConnector
+  class Setup {
+    val service = new CorporationTaxRegistrationService {
+      override val corporationTaxRegistrationRepository = mockCTDataRepository
+      override val sequenceRepository = mockSequenceRepository
+      override val stateDataRepository = mockStateDataRepository
+      override val microserviceAuthConnector = mockAuthConnector
+      override val brConnector = mockBusinessRegistrationConnector
       override val heldSubmissionRepository = mockHeldSubmissionRepository
       val currentDateTime = dateTime
-			override val submissionCheckAPIConnector = mockIncorporationCheckAPIConnector
-		}
-	}
+      override val submissionCheckAPIConnector = mockIncorporationCheckAPIConnector
+    }
+  }
 
-	"CorporationTaxRegistrationService" should {
-		"use the correct CorporationTaxRegistrationRepository" in {
-			CorporationTaxRegistrationService.corporationTaxRegistrationRepository shouldBe Repositories.cTRepository
-		}
-	}
+  "CorporationTaxRegistrationService" should {
+    "use the correct CorporationTaxRegistrationRepository" in {
+      CorporationTaxRegistrationService.corporationTaxRegistrationRepository shouldBe Repositories.cTRepository
+    }
+  }
 
-	"createCorporationTaxRegistrationRecord" should {
-		"create a new ctData record and return a 201 - Created response" in new Setup {
-			CTDataRepositoryMocks.createCorporationTaxRegistration(validDraftCorporationTaxRegistration)
+  "createCorporationTaxRegistrationRecord" should {
+    "create a new ctData record and return a 201 - Created response" in new Setup {
+      CTDataRepositoryMocks.createCorporationTaxRegistration(validDraftCorporationTaxRegistration)
 
-			val result = service.createCorporationTaxRegistrationRecord("54321", "12345", "en")
-			await(result) shouldBe validDraftCorporationTaxRegistration
-		}
-	}
+      val result = service.createCorporationTaxRegistrationRecord("54321", "12345", "en")
+      await(result) shouldBe validDraftCorporationTaxRegistration
+    }
+  }
 
-	"retrieveCorporationTaxRegistrationRecord" should {
-		"return Corporation Tax registration response Json and a 200 - Ok when a record is retrieved" in new Setup {
-			CTDataRepositoryMocks.retrieveCorporationTaxRegistration(Some(validDraftCorporationTaxRegistration))
+  "retrieveCorporationTaxRegistrationRecord" should {
+    "return Corporation Tax registration response Json and a 200 - Ok when a record is retrieved" in new Setup {
+      CTDataRepositoryMocks.retrieveCorporationTaxRegistration(Some(validDraftCorporationTaxRegistration))
 
-			val result = service.retrieveCorporationTaxRegistrationRecord("testRegID")
-			await(result) shouldBe Some(validDraftCorporationTaxRegistration)
-		}
+      val result = service.retrieveCorporationTaxRegistrationRecord("testRegID")
+      await(result) shouldBe Some(validDraftCorporationTaxRegistration)
+    }
 
-		"return a 404 - Not found when no record is retrieved" in new Setup {
-			CTDataRepositoryMocks.retrieveCorporationTaxRegistration(None)
+    "return a 404 - Not found when no record is retrieved" in new Setup {
+      CTDataRepositoryMocks.retrieveCorporationTaxRegistration(None)
 
-			val result = service.retrieveCorporationTaxRegistrationRecord("testRegID")
-			await(result) shouldBe None
-		}
-	}
+      val result = service.retrieveCorporationTaxRegistrationRecord("testRegID")
+      await(result) shouldBe None
+    }
+  }
 
   "updateConfirmationReferences" should {
     val registrationId = "testRegId"
@@ -113,9 +113,9 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
         "testJurisdiction"
       )),
       contactDetails = Some(ContactDetails(
-        Some("testFirstName"),
+        "testFirstName",
         Some("testMiddleName"),
-        Some("testSurname"),
+        "testSurname",
         Some("0123456789"),
         Some("0123456789"),
         Some("test@email.co.uk")
@@ -124,48 +124,48 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
 
     val partialDesSubmission = Json.parse(
       s"""
-        |{
-        | "acknowledgementReference":"$ackRef",
-        | "registration":{
-        |   "metadata":{
-        |     "businessType":"Limited company",
-        |     "submissionFromAgent":false,
-        |     "declareAccurateAndComplete":true,
-        |     "sessionId":"session-40fdf8c0-e2b1-437c-83b5-8689c2e1bc43",
-        |     "credentialId":"cred-id-543212311772",
-        |     "language":"en",
-        |     "formCreationTimestamp":"$timestamp",
-        |     "completionCapacity":"Other",
-        |     "completionCapacityOther":"director"
-        |   },
-        |   "corporationTax":{
-        |     "companyOfficeNumber":"001",
-        |     "hasCompanyTakenOverBusiness":false,
-        |     "companyMemberOfGroup":false,
-        |     "companiesHouseCompanyName":"testCompanyName",
-        |     "returnsOnCT61":false,
-        |     "companyACharity":false,
-        |     "businessAddress":{
-        |       "line1":"",
-        |       "line2":"",
-        |       "line3":null,
-        |       "line4":null,
-        |       "postcode":null,
-        |       "country":null
-        |     },
-        |     "businessContactName":{
-        |       "firstName":"Jenifer",
-        |       "middleNames":null,
-        |       "lastName":null
-        |     },
-        |     "businessContactDetails":{
-        |       "phoneNumber":"123",
-        |       "mobileNumber":"123",
-        |       "email":"6email@whatever.com"
-        |     }
-        |   }
-        | }
-        |}
+         |{
+         | "acknowledgementReference":"$ackRef",
+         | "registration":{
+         |   "metadata":{
+         |     "businessType":"Limited company",
+         |     "submissionFromAgent":false,
+         |     "declareAccurateAndComplete":true,
+         |     "sessionId":"session-40fdf8c0-e2b1-437c-83b5-8689c2e1bc43",
+         |     "credentialId":"cred-id-543212311772",
+         |     "language":"en",
+         |     "formCreationTimestamp":"$timestamp",
+         |     "completionCapacity":"Other",
+         |     "completionCapacityOther":"director"
+         |   },
+         |   "corporationTax":{
+         |     "companyOfficeNumber":"001",
+         |     "hasCompanyTakenOverBusiness":false,
+         |     "companyMemberOfGroup":false,
+         |     "companiesHouseCompanyName":"testCompanyName",
+         |     "returnsOnCT61":false,
+         |     "companyACharity":false,
+         |     "businessAddress":{
+         |       "line1":"",
+         |       "line2":"",
+         |       "line3":null,
+         |       "line4":null,
+         |       "postcode":null,
+         |       "country":null
+         |     },
+         |     "businessContactName":{
+         |       "firstName":"Jenifer",
+         |       "middleNames":null,
+         |       "lastName":null
+         |     },
+         |     "businessContactDetails":{
+         |       "phoneNumber":"123",
+         |       "mobileNumber":"123",
+         |       "email":"6email@whatever.com"
+         |     }
+         |   }
+         | }
+         |}
       """.stripMargin).as[JsObject]
 
     val heldSubmission = HeldSubmissionData(
@@ -177,7 +177,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
     "return the updated reference acknowledgement number" in new Setup {
 
       val heldStatus = "held"
-			val expected = ConfirmationReferences("testTransaction","testPayRef","testPayAmount","")
+      val expected = ConfirmationReferences("testTransaction", "testPayRef", "testPayAmount", "")
 
       when(mockBusinessRegistrationConnector.retrieveMetadata(Matchers.any(), Matchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
@@ -197,54 +197,54 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
 
       SequenceRepositoryMocks.getNext("testSeqID", 3)
 
-      val result = service.updateConfirmationReferences(registrationId, ConfirmationReferences("testTransaction","testPayRef","testPayAmount",""))
+      val result = service.updateConfirmationReferences(registrationId, ConfirmationReferences("testTransaction", "testPayRef", "testPayAmount", ""))
       await(result) shouldBe Some(expected)
     }
   }
 
   "retrieveConfirmationReference" should {
-		val regID: String = "testRegID"
+    val regID: String = "testRegID"
     "return an refs if found" in new Setup {
-			val expected = ConfirmationReferences("testTransaction","testPayRef","testPayAmount","")
+      val expected = ConfirmationReferences("testTransaction", "testPayRef", "testPayAmount", "")
 
-			when(mockCTDataRepository.retrieveConfirmationReference(Matchers.contains(regID)))
-				.thenReturn(Future.successful(Some(expected)))
+      when(mockCTDataRepository.retrieveConfirmationReference(Matchers.contains(regID)))
+        .thenReturn(Future.successful(Some(expected)))
 
-			val result = service.retrieveConfirmationReference(regID)
+      val result = service.retrieveConfirmationReference(regID)
       await(result) shouldBe Some(expected)
     }
     "return an empty option if an Ack ref is not found" in new Setup {
-			when(mockCTDataRepository.retrieveConfirmationReference(Matchers.contains(regID)))
-				.thenReturn(Future.successful(None))
+      when(mockCTDataRepository.retrieveConfirmationReference(Matchers.contains(regID)))
+        .thenReturn(Future.successful(None))
 
       val result = service.retrieveConfirmationReference(regID)
       await(result) shouldBe None
     }
   }
 
-	"retrieveCredId" should {
+  "retrieveCredId" should {
 
-		implicit val hc = HeaderCarrier(sessionId = Some(SessionId("testSessionId")))
+    implicit val hc = HeaderCarrier(sessionId = Some(SessionId("testSessionId")))
 
     val authority = Authority("testURI", "testOID", "testGatewayID", "testUserDetailsLink")
 
-		"return the credential id" in new Setup{
+    "return the credential id" in new Setup {
       when(mockAuthConnector.getCurrentAuthority()(Matchers.any()))
         .thenReturn(Future.successful(Some(authority)))
 
-			val result = service.retrieveCredId
-			await(result) shouldBe "testGatewayID"
-		}
+      val result = service.retrieveCredId
+      await(result) shouldBe "testGatewayID"
+    }
 
-		"return a FailedToGetCredId if an authority cannot be found for the logged in user" in new Setup{
+    "return a FailedToGetCredId if an authority cannot be found for the logged in user" in new Setup {
       when(mockAuthConnector.getCurrentAuthority()(Matchers.any()))
         .thenReturn(Future.successful(None))
 
-			val result = service.retrieveCredId
+      val result = service.retrieveCredId
 
       intercept[FailedToGetCredId](await(result))
-		}
-	}
+    }
+  }
 
   "retrieveBRMetadata" should {
 
@@ -322,53 +322,73 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
       Links(Some("testSelfLink"))
     )
 
-    val corporationTaxRegistration = CorporationTaxRegistration(
-      OID = "testOID",
-      registrationID = registrationId,
-      formCreationTimestamp = dateTime.toString,
-      language = "en",
-      companyDetails = Some(CompanyDetails(
-        "testCompanyName",
-        CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
-        ROAddress("10", "test street", "test town", "test area", "test county", "XX1 1ZZ", "test country"),
-        PPOBAddress("10", "test street", Some("test town"), Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country")),
-        "testJurisdiction"
-      )),
-      contactDetails = Some(ContactDetails(
-        Some("testFirstName"),
-        Some("testMiddleName"),
-        Some("testSurname"),
-        Some("0123456789"),
-        Some("0123456789"),
-        Some("test@email.co.uk")
-      ))
+    // TODO - refactor and tweak tests - couple more scenarios for optionality
+    val companyDetails1 = CompanyDetails(
+      "name",
+      CHROAddress("P", "1", Some("2"), "C", "L", Some("PO"), Some("PC"), Some("R")),
+      ROAddress("H", "1", "2", "3", "4", "ZZ1 1ZZ", "C"),
+      PPOBAddress("H", "1", Some("2"), Some("3"), Some("4"), Some("ZZ1 1ZZ"), Some("C")),
+      "J"
     )
+    val companyDetails2 = CompanyDetails(
+      "name",
+      CHROAddress("P", "1", Some("2"), "C", "L", Some("PO"), Some("PC"), Some("R")),
+      ROAddress("H", "1", "2", "3", "4", "ZZ1 1ZZ", "C"),
+      PPOBAddress("H", "1", None, None, None, Some("ZZ1 1ZZ"), None),
+      "J"
+    )
+    val contactDetails1 = ContactDetails("F", Some("M"), "S", Some("1"), Some("2"), Some("a@b.c"))
+    val contactDetails2 = ContactDetails("F", None, "S", None, None, Some("a@b.c"))
 
-    "return a valid InterimDesRegistration" in new Setup {
+    def getCTReg(regId: String, company: Option[CompanyDetails], contact: Option[ContactDetails]) = {
+      CorporationTaxRegistration(
+        OID = "testOID",
+        registrationID = regId,
+        formCreationTimestamp = dateTime.toString,
+        language = "en",
+        companyDetails = company,
+        contactDetails = contact
+      )
+    }
 
-      val interimDesRegistration = InterimDesRegistration(
+    "return a valid InterimDesRegistration with full contact details" in new Setup {
+
+      val ctReg = getCTReg(registrationId, Some(companyDetails1), Some(contactDetails1))
+      val result = service.buildInterimSubmission(ackRef, sessionId, credId, businessRegistration, ctReg, dateTime)
+
+      await(result) shouldBe InterimDesRegistration(
         ackRef,
         Metadata(sessionId, credId, "en", DateTime.parse(service.formatTimestamp(dateTime)), Director),
         InterimCorporationTax(
-          corporationTaxRegistration.companyDetails.get.companyName,
+          "name",
           returnsOnCT61 = false,
-          BusinessAddress("10", "test street",  Some("test town"), Some("test area"), Some("XX1 1ZZ"), Some("test country")),
-          BusinessContactName(
-            corporationTaxRegistration.contactDetails.get.contactFirstName.get,
-            corporationTaxRegistration.contactDetails.get.contactMiddleName,
-            corporationTaxRegistration.contactDetails.get.contactSurname
-          ),
-          BusinessContactDetails(Some("0123456789"), Some("0123456789"), Some("test@email.co.uk"))
+          BusinessAddress("H", "1", Some("2"), Some("3"), Some("ZZ1 1ZZ"), Some("C")),
+          BusinessContactName("F", Some("M"), "S"),
+          BusinessContactDetails(Some("1"), Some("2"), Some("a@b.c"))
         )
       )
+    }
 
-      val result = service.buildInterimSubmission(ackRef, sessionId, credId, businessRegistration, corporationTaxRegistration, dateTime)
+    "return a valid InterimDesRegistration with minimal deatils" in new Setup {
 
-      await(result) shouldBe interimDesRegistration
+      val ctReg = getCTReg(registrationId, Some(companyDetails2), Some(contactDetails2))
+      val result = service.buildInterimSubmission(ackRef, sessionId, credId, businessRegistration, ctReg, dateTime)
+
+      await(result) shouldBe InterimDesRegistration(
+        ackRef,
+        Metadata(sessionId, credId, "en", DateTime.parse(service.formatTimestamp(dateTime)), Director),
+        InterimCorporationTax(
+          "name",
+          returnsOnCT61 = false,
+          BusinessAddress("H", "1", None, None, Some("ZZ1 1ZZ"), None),
+          BusinessContactName("F", None, "S"),
+          BusinessContactDetails(None, None, Some("a@b.c"))
+        )
+      )
     }
   }
 
-	"Build partial DES submission" should {
+  "Build partial DES submission" should {
 
     val registrationId = "testRegId"
     val ackRef = "testAckRef"
@@ -377,11 +397,11 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
     val authority = Authority("testURI", "testOID", credId, "testUserDetailsLink")
 
     val businessRegistration = BusinessRegistration(
-    registrationId,
-    "testTimeStamp",
-    "en",
-    "Director",
-    Links(Some("testSelfLink"))
+      registrationId,
+      "testTimeStamp",
+      "en",
+      "Director",
+      Links(Some("testSelfLink"))
     )
 
     val corporationTaxRegistration = CorporationTaxRegistration(
@@ -397,15 +417,16 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
         "testJurisdiction"
       )),
       contactDetails = Some(ContactDetails(
-        Some("testFirstName"),
+        "testFirstName",
         Some("testMiddleName"),
-        Some("testSurname"),
+        "testSurname",
         Some("0123456789"),
         Some("0123456789"),
         Some("test@email.co.uk")
       ))
     )
 
+    // TODO - refactor and tweak tests (focus this on the complete partial)
     "return a valid partial DES submission" in new Setup {
       implicit val hc = HeaderCarrier(sessionId = Some(SessionId("testSessionId")))
 
@@ -415,9 +436,9 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
         InterimCorporationTax(
           corporationTaxRegistration.companyDetails.get.companyName,
           returnsOnCT61 = false,
-          BusinessAddress("10", "test street",  Some("test town"), Some("test area"), Some("XX1 1ZZ"), Some("test country")),
+          BusinessAddress("10", "test street", Some("test town"), Some("test area"), Some("XX1 1ZZ"), Some("test country")),
           BusinessContactName(
-            corporationTaxRegistration.contactDetails.get.contactFirstName.get,
+            corporationTaxRegistration.contactDetails.get.contactFirstName,
             corporationTaxRegistration.contactDetails.get.contactMiddleName,
             corporationTaxRegistration.contactDetails.get.contactSurname
           ),
@@ -434,15 +455,15 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
 
       val result = service.buildPartialDesSubmission(registrationId, ackRef)
       await(result).toString shouldBe interimDesRegistration.toString
-		}
-	}
+    }
+  }
 
 
   "updateCTRecordWithAckRefs" should {
 
     val ackRef = "testAckRef"
 
-    val refs = AcknowledgementReferences("aaa","bbb","ccc")
+    val refs = AcknowledgementReferences("aaa", "bbb", "ccc")
 
     val updated = validHeldCorporationTaxRegistration.copy(acknowledgementReferences = Some(refs), status = "acknowledged")
 

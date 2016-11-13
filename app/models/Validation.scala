@@ -25,50 +25,60 @@ import play.api.libs.functional.syntax._
 
 object Validation {
 
-  def length(maxLen:Int, minLen: Int = 1): Reads[String] = maxLength[String](maxLen) keepAnd minLength[String](minLen)
-  def readToFmt(rds:Reads[String])(implicit wts:Writes[String]): Format[String] = Format(rds,wts)
-  def lengthFmt(maxLen:Int, minLen: Int = 1): Format[String] = readToFmt(length(maxLen, minLen))
+  def length(maxLen: Int, minLen: Int = 1): Reads[String] = maxLength[String](maxLen) keepAnd minLength[String](minLen)
+
+  def readToFmt(rds: Reads[String])(implicit wts: Writes[String]): Format[String] = Format(rds, wts)
+
+  def lengthFmt(maxLen: Int, minLen: Int = 1): Format[String] = readToFmt(length(maxLen, minLen))
+
   def yyyymmddValidator = pattern("^[0-9]{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$".r)
+
   def yyyymmddValidatorFmt = readToFmt(yyyymmddValidator)
 }
 
 trait CHAddressValidator {
+
   import Validation.lengthFmt
 
   val premisesValidator = lengthFmt(120)
   val lineValidator = lengthFmt(50)
   val postcodeValidator = lengthFmt(20)
+  val regionValidator = lineValidator
 }
 
 trait HMRCAddressValidator {
+
   import Validation._
 
-  val lineValidator = readToFmt( length(27) keepAnd pattern("^[a-zA-Z0-9,.\\(\\)/&amp;'&quot;\\-]{1}[a-zA-Z0-9, .\\(\\)/&amp;'&quot;\\-]{0,26}$".r))
-  val postcodeValidator = readToFmt( length(20) keepAnd pattern("^[A-Z]{1,2}[0-9][0-9A-Z]? [0-9][A-Z]{2}$".r) )
-  val countryValidator = readToFmt( length(20) keepAnd pattern("^[A-Za-z0-9]{1}[A-Za-z 0-9]{0,19}$".r) )
+  val lineValidator = readToFmt(length(27) keepAnd pattern("^[a-zA-Z0-9,.\\(\\)/&amp;'&quot;\\-]{1}[a-zA-Z0-9, .\\(\\)/&amp;'&quot;\\-]{0,26}$".r))
+  val postcodeValidator = readToFmt(length(20) keepAnd pattern("^[A-Z]{1,2}[0-9][0-9A-Z]? [0-9][A-Z]{2}$".r))
+  val countryValidator = readToFmt(length(20) keepAnd pattern("^[A-Za-z0-9]{1}[A-Za-z 0-9]{0,19}$".r))
+}
+
+trait ContactDetailsValidator {
+
+  import Validation._
+
+  val nameValidator = readToFmt(length(100) keepAnd pattern("^[A-Za-z 0-9'\\\\-]{1,100}$".r))
+  val phoneValidator = readToFmt(length(20) keepAnd pattern("^[0-9 ]{1,20}$".r))
+  val emailValidator = readToFmt(length(70) keepAnd pattern("^[A-Za-z0-9\\\\-_.@]{1,70}$".r))
 }
 
 trait AccountingDetailsValidator {
-  import Validation._
-  import AccountingDetails.{WHEN_REGISTERED=>WR,FUTURE_DATE=>FD,NOT_PLANNING_TO_YET=>NP2Y}
 
-  val statusValidator = readToFmt( pattern(s"^${WR}|${FD}|${NP2Y}$$".r))
+  import Validation._
+  import AccountingDetails.{WHEN_REGISTERED => WR, FUTURE_DATE => FD, NOT_PLANNING_TO_YET => NP2Y}
+
+  val statusValidator = readToFmt(pattern(s"^${WR}|${FD}|${NP2Y}$$".r))
   val startDateValidator = yyyymmddValidatorFmt
 }
 
 trait AccountPrepDetailsValidator {
+
   import Validation._
   import AccountPrepDetails.{COMPANY_DEFINED, HMRC_DEFINED}
 
-  val statusValidator = readToFmt( pattern(s"^${COMPANY_DEFINED}|${HMRC_DEFINED}$$".r))
-
-//  private val dateReads = (
-//    Reads[DateTime](js => js.validate[String](yyyymmddValidator).map(DateTime.parse(_, DateTimeFormat.forPattern("yyyy-MM-dd"))))
-//  )
-
-//  private val dateWrites = new Writes[DateTime] {
-//    def writes(d: DateTime): JsValue = JsString(d.toString("yyyy-MM-dd"))
-//  }
+  val statusValidator = readToFmt(pattern(s"^${COMPANY_DEFINED}|${HMRC_DEFINED}$$".r))
   val dateFormat = Format[DateTime](
     Reads[DateTime](js =>
       js.validate[String](yyyymmddValidator).map(

@@ -189,7 +189,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
           country =  ctData.companyDetails.get.pPOBAddress.country
         ),
         businessContactName = BusinessContactName(
-          firstName = ctData.contactDetails.get.contactFirstName.get,
+          firstName = ctData.contactDetails.get.contactFirstName,
           middleNames = ctData.contactDetails.get.contactMiddleName,
           lastName = ctData.contactDetails.get.contactSurname
         ),

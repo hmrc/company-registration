@@ -81,7 +81,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         "testJurisdiction"
       )),
       contactDetails = Some(ContactDetails(
-        Some("testFirstName"), Some("testMiddleName"), Some("testSurname"), Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+        "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
       )),
       tradingDetails = Some(TradingDetails(true))
     )
@@ -220,7 +220,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         "testJurisdiction"
       )),
       contactDetails = Some(ContactDetails(
-        Some("testFirstName"), Some("testMiddleName"), Some("testSurname"), Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+        "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
       )),
       tradingDetails = Some(TradingDetails(true))
     )
