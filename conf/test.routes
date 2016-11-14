@@ -7,6 +7,3 @@ GET        /update-timepoint/:timepoint                        controllers.test.
 GET        /fetch-held-submission/:registrationId              controllers.test.HeldSubmissionController.fetchHeldSubmission(registrationId: String)
 
 GET        /feature-flag/:featureName/:featureStatus           controllers.test.FeatureSwitchController.switch(featureName: String, featureStatus: String)
-
-GET        /verified-email/:registrationId                     controllers.test.EmailController.retrieveEmail(registrationId: String)
-POST       /verified-email/:registrationId                     controllers.test.EmailController.updateEmail(registrationId: String)
