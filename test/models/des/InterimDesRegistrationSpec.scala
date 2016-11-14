@@ -92,7 +92,7 @@ class InterimDesRegistrationSpec extends UnitSpec {
   }
 
   "The Interim Registration corporationTax model" should {
-    "Produce valid JSON for a simple model" in {
+    "Produce valid JSON for a fuller model" in {
       val expectedJson : String = s"""{
                                       |  "companyOfficeNumber" : "001",
                                       |  "hasCompanyTakenOverBusiness" : false,
@@ -131,7 +131,7 @@ class InterimDesRegistrationSpec extends UnitSpec {
       val desBusinessContactName = BusinessContactName(
         "Adam",
         Some("the"),
-        Some("ant")
+        "ant"
       )
       val desBusinessContactContactDetails = BusinessContactDetails(
         Some("0121 000 000"),
@@ -210,7 +210,7 @@ class InterimDesRegistrationSpec extends UnitSpec {
       val desBusinessContactName = BusinessContactName(
         "Adam",
         Some("the"),
-        Some("ant")
+        "ant"
       )
       val desBusinessContactContactDetails = BusinessContactDetails(
         Some("0121 000 000"),

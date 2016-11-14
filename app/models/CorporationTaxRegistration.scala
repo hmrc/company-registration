@@ -19,10 +19,11 @@ package models
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import play.api.libs.functional.syntax._
+import play.api.libs.json.Reads.{maxLength, minLength}
 import play.api.libs.json._
-import uk.gov.hmrc.domain.CtUtr
 
 import scala.language.implicitConversions
+
 
 object RegistrationStatus {
   val DRAFT = "draft"
@@ -41,31 +42,31 @@ case class CorporationTaxRegistration(OID: String,
                                       accountingDetails: Option[AccountingDetails] = None,
                                       tradingDetails: Option[TradingDetails] = None,
                                       contactDetails: Option[ContactDetails] = None,
-                                      accountsPreparation: Option[PrepareAccountMongoModel] = None,
+                                      accountsPreparation: Option[AccountPrepDetails] = None,
                                       crn: Option[String] = None,
                                       submissionTimestamp: Option[String] = None,
                                       verifiedEmail: Option[Email] = None
                                      )
 
 object CorporationTaxRegistration {
-  implicit val formatCH = Json.format[CHROAddress]
-  implicit val formatRO = Json.format[ROAddress]
-  implicit val formatPPOB = Json.format[PPOBAddress]
-  implicit val formatTD = Json.format[TradingDetails]
-  implicit val formatCompanyDetails = Json.format[CompanyDetails]
-  implicit val formatAccountingDetails = Json.format[AccountingDetails]
-  implicit val formatContactDetails = Json.format[ContactDetails]
-  implicit val formatAck = Json.format[AcknowledgementReferences]
-  implicit val formatConfirmationReferences = Json.format[ConfirmationReferences]
-  implicit val formatAccountsPrepDate = Json.format[PrepareAccountMongoModel]
+  implicit val formatCH = CHROAddress.format
+  implicit val formatRO = ROAddress.format
+  implicit val formatPPOB = PPOBAddress.format
+  implicit val formatTD = TradingDetails.format
+  implicit val formatCompanyDetails = CompanyDetails.format
+  implicit val formatAccountingDetails = AccountingDetails.formats
+  implicit val formatContactDetails = ContactDetails.format
+  implicit val formatAck = AcknowledgementReferences.format
+  implicit val formatConfirmationReferences = ConfirmationReferences.format
+  implicit val formatAccountsPrepDate = AccountPrepDetails.format
   implicit val formatEmail = Email.formats
-  implicit val formats = Json.format[CorporationTaxRegistration]
+  implicit val format = Json.format[CorporationTaxRegistration]
 }
 
 
-case class AcknowledgementReferences(ctUtr : String,
-                                     timestamp : String,
-                                     status : String)
+case class AcknowledgementReferences(ctUtr: String,
+                                     timestamp: String,
+                                     status: String)
 
 object AcknowledgementReferences {
   implicit val format = Json.format[AcknowledgementReferences]
@@ -78,37 +79,54 @@ case class ConfirmationReferences(acknowledgementReference: String = "",
 
 object ConfirmationReferences {
   implicit val format = (
-      ( __ \ "acknowledgement-reference" ).format[String] and
-      ( __ \ "transaction-id" ).format[String] and
-      ( __ \ "payment-reference" ).format[String] and
-      ( __ \ "payment-amount" ).format[String]
-    )(ConfirmationReferences.apply, unlift(ConfirmationReferences.unapply))
-}
-
-case class AccountingDetails(accountingDateStatus : String, startDateOfBusiness : Option[String])
-
-object AccountingDetails {
-  val WHEN_REGISTERED = "WHEN_REGISTERED"
-  val FUTURE_DATE = "FUTURE_DATE"
-  val NOT_PLANNING_TO_YET = "NOT_PLANNING_TO_YET"
-
-  implicit val formats = Json.format[AccountingDetails]
+    (__ \ "acknowledgement-reference").format[String](maxLength[String](31)) and
+      (__ \ "transaction-id").format[String] and
+      (__ \ "payment-reference").format[String] and
+      (__ \ "payment-amount").format[String]
+    ) (ConfirmationReferences.apply, unlift(ConfirmationReferences.unapply))
 }
 
 case class CompanyDetails(companyName: String,
-                          cHROAddress: CHROAddress,
-                          rOAddress: ROAddress,
-                          pPOBAddress: PPOBAddress,
+                          registeredOffice: CHROAddress,
+                          doNotUseRoAddress: ROAddress,
+                          ppob: PPOBAddress,
                           jurisdiction: String)
 
-case class CHROAddress(premises : String,
-                       address_line_1 : String,
-                       address_line_2 : Option[String],
-                       country : String,
-                       locality : String,
-                       po_box : Option[String],
-                       postal_code : Option[String],
-                       region : Option[String])
+object CompanyDetails extends CompanyDetailsValidator {
+  implicit val formatCH = CHROAddress.format
+  implicit val formatRO = ROAddress.format
+  implicit val formatPPOB = PPOBAddress.format
+  implicit val formatTD = TradingDetails.format
+  implicit val format = (
+    (__ \ "companyName").format[String](companyNameValidator) and
+      (__ \ "cHROAddress").format[CHROAddress] and
+      (__ \ "rOAddress").format[ROAddress] and
+      (__ \ "pPOBAddress").format[PPOBAddress] and
+      (__ \ "jurisdiction").format[String]
+    ) (CompanyDetails.apply, unlift(CompanyDetails.unapply))
+}
+
+case class CHROAddress(premises: String,
+                       address_line_1: String,
+                       address_line_2: Option[String],
+                       country: String,
+                       locality: String,
+                       po_box: Option[String],
+                       postal_code: Option[String],
+                       region: Option[String])
+
+object CHROAddress extends CHAddressValidator {
+  implicit val format = (
+    (__ \ "premises").format[String](premisesValidator) and
+      (__ \ "address_line_1").format[String](lineValidator) and
+      (__ \ "address_line_2").formatNullable[String](lineValidator) and
+      (__ \ "country").format[String](lineValidator) and
+      (__ \ "locality").format[String](lineValidator) and
+      (__ \ "po_box").formatNullable[String](lineValidator) and
+      (__ \ "postal_code").formatNullable[String](postcodeValidator) and
+      (__ \ "region").formatNullable[String](regionValidator)
+    ) (CHROAddress.apply, unlift(CHROAddress.unapply))
+}
 
 case class ROAddress(houseNameNumber: String,
                      addressLine1: String,
@@ -118,102 +136,107 @@ case class ROAddress(houseNameNumber: String,
                      postCode: String,
                      country: String)
 
-case class PPOBAddress(houseNameNumber: String,
-                       addressLine1: String,
-                       addressLine2: Option[String],
-                       addressLine3: Option[String],
-                       addressLine4: Option[String],
-                       postCode: String,
-                       country: String)
-
-object CompanyDetails {
-  implicit val formatCH = Json.format[CHROAddress]
-  implicit val formatRO = Json.format[ROAddress]
-  implicit val formatPPOB = Json.format[PPOBAddress]
-  implicit val formatTD = Json.format[TradingDetails]
-  implicit val formats = Json.format[CompanyDetails]
-}
-
-object CHROAddress {
-  implicit val format = Json.format[CHROAddress]
-}
-
 object ROAddress {
   implicit val format = Json.format[ROAddress]
 }
 
-object PPOBAddress {
-  implicit val format = Json.format[PPOBAddress]
+case class PPOBAddress(houseNameNumber: String,
+                       line1: String,
+                       line2: Option[String],
+                       line3: Option[String],
+                       line4: Option[String],
+                       postcode: Option[String],
+                       country: Option[String]) {
+
+  def crossCheck(): Boolean = postcode.isDefined || country.isDefined
+
+  require(crossCheck, "Must have at least one of postcode and country")
+}
+
+object PPOBAddress extends HMRCAddressValidator {
+  implicit val format = (
+    (__ \ "houseNameNumber").format[String](lineValidator) and
+      (__ \ "addressLine1").format[String](lineValidator) and
+      (__ \ "addressLine2").formatNullable[String](lineValidator) and
+      (__ \ "addressLine3").formatNullable[String](lineValidator) and
+      (__ \ "addressLine4").formatNullable[String](lineValidator) and
+      (__ \ "postCode").formatNullable[String](postcodeValidator) and
+      (__ \ "country").formatNullable[String](countryValidator)
+    ) (PPOBAddress.apply, unlift(PPOBAddress.unapply))
 }
 
 case class CorporationTaxRegistrationRequest(language: String)
 
-object CorporationTaxRegistrationRequest{
+object CorporationTaxRegistrationRequest {
   implicit val format = Json.format[CorporationTaxRegistrationRequest]
 }
 
-case class ContactDetails(contactFirstName: Option[String],
-                          contactMiddleName: Option[String],
-                          contactSurname: Option[String],
-                          contactDaytimeTelephoneNumber: Option[String],
-                          contactMobileNumber: Option[String],
-                          contactEmail: Option[String])
+case class ContactDetails(firstName: String,
+                          middleName: Option[String],
+                          surname: String,
+                          phone: Option[String],
+                          mobile: Option[String],
+                          email: Option[String]) {
 
-object ContactDetails {
-  implicit val formatsLinks = Json.format[Links]
-  implicit val formats = Json.format[ContactDetails]
+  def crossCheck(): Boolean = phone.isDefined || mobile.isDefined || email.isDefined
+
+  require(crossCheck, "Must have at least one email, phone or mobile specified")
 }
 
-case class Links(self: Option[String],
-                 registration: Option[String] = None)
-
-object Links {
-  implicit val format = Json.format[Links]
+object ContactDetails extends ContactDetailsValidator {
+  implicit val format = (
+    (__ \ "contactFirstName").format[String](nameValidator) and
+      (__ \ "contactMiddleName").formatNullable[String](nameValidator) and
+      (__ \ "contactSurname").format[String](nameValidator) and
+      (__ \ "contactDaytimeTelephoneNumber").formatNullable[String](phoneValidator) and
+      (__ \ "contactMobileNumber").formatNullable[String](phoneValidator) and
+      (__ \ "contactEmail").formatNullable[String](emailValidator)
+    ) (ContactDetails.apply, unlift(ContactDetails.unapply))
 }
 
-case class TradingDetails(regularPayments : Boolean = false)
+case class TradingDetails(regularPayments: Boolean = false)
 
 object TradingDetails {
   implicit val format = Json.format[TradingDetails]
 }
 
-case class PrepareAccountMongoModel(businessEndDateChoice : String,
-                                    businessEndDate : Option[String])
 
-object PrepareAccountMongoModel {
-  implicit val formats = Json.format[PrepareAccountMongoModel]
+case class AccountingDetails(status: String, activeDate: Option[String]) {
+
+  import AccountingDetails.FUTURE_DATE
+
+  def crossCheck(): Boolean = if (activeDate.isDefined) status == FUTURE_DATE else status != FUTURE_DATE
+
+  require(crossCheck, "If a date is specified, the status must be FUTURE_DATE")
 }
 
-case class PrepareAccountModel(businessEndDateChoice : String,
-                               businessEndDate : Option[DateTime]){
+object AccountingDetails extends AccountingDetailsValidator {
+  val WHEN_REGISTERED = "WHEN_REGISTERED"
+  val FUTURE_DATE = "FUTURE_DATE"
+  val NOT_PLANNING_TO_YET = "NOT_PLANNING_TO_YET"
 
-  def toMongoModel : PrepareAccountMongoModel = {
-    PrepareAccountMongoModel(
-      businessEndDateChoice,
-      businessEndDate.fold[Option[String]](None)(date => Some(date.toString("yyyy-MM-dd")))
-    )
-  }
+  implicit val formats = (
+    (__ \ "accountingDateStatus").format[String](statusValidator) and
+      (__ \ "startDateOfBusiness").formatNullable[String](startDateValidator)
+    ) (AccountingDetails.apply, unlift(AccountingDetails.unapply))
 }
 
-object PrepareAccountModel {
+case class AccountPrepDetails(status: String,
+                              endDate: Option[DateTime]) {
+
+  import AccountPrepDetails.COMPANY_DEFINED
+
+  def crossCheck(): Boolean = if (endDate.isDefined) status == COMPANY_DEFINED else status != COMPANY_DEFINED
+
+  require(crossCheck, "If a date is specified, the status must be COMPANY_DEFINED")
+}
+
+object AccountPrepDetails extends AccountPrepDetailsValidator {
   val HMRC_DEFINED = "HMRC_DEFINED"
   val COMPANY_DEFINED = "COMPANY_DEFINED"
 
-  val dateReads: Reads[DateTime] = {
-    Reads[DateTime](js => js.validate[String].map(DateTime.parse(_, DateTimeFormat.forPattern("yyyy-MM-dd"))))
-  }
-
-  val dateWrites: Writes[DateTime] = new Writes[DateTime] {
-    def writes(d: DateTime): JsValue = JsString(d.toString("yyyy-MM-dd"))
-  }
-
-  implicit val writes: Writes[PrepareAccountModel] = (
-    (__ \ "businessEndDateChoice").write[String] and
-    (__ \ "businessEndDate").writeNullable[DateTime](dateWrites)
-    )(unlift(PrepareAccountModel.unapply))
-
-  implicit val reads: Reads[PrepareAccountModel] = (
-    (__ \ "businessEndDateChoice").read[String] and
-    (__ \ "businessEndDate").readNullable[DateTime](dateReads)
-    )(PrepareAccountModel.apply _)
+  implicit val format = (
+    (__ \ "businessEndDateChoice").format[String](statusValidator) and
+      (__ \ "businessEndDate").formatNullable[DateTime](dateFormat)
+    ) (AccountPrepDetails.apply, unlift(AccountPrepDetails.unapply))
 }

@@ -188,7 +188,7 @@ trait RegistrationHoldingPenService extends DateHelper {
 
   private[services] def activeDate(date: AccountingDetails) = {
     import AccountingDetails.WHEN_REGISTERED
-    (date.accountingDateStatus, date.startDateOfBusiness) match {
+    (date.status, date.activeDate) match {
       case (_, Some(givenDate))  => ActiveInFuture(asDate(givenDate))
       case (status, _) if status == WHEN_REGISTERED => ActiveOnIncorporation
       case _ => DoNotIntendToTrade
@@ -204,10 +204,10 @@ trait RegistrationHoldingPenService extends DateHelper {
 
   private[services] def calculateDates(item: IncorpUpdate,
   accountingDetails: Option[AccountingDetails],
-  accountsPreparation: Option[PrepareAccountMongoModel]): Future[SubmissionDates] = {
+  accountsPreparation: Option[AccountPrepDetails]): Future[SubmissionDates] = {
 
     accountingDetails map { details =>
-      val prepDate = accountsPreparation flatMap (_.businessEndDate map asDate)
+      val prepDate = accountsPreparation flatMap (_.endDate)
       accountingService.calculateSubmissionDates(item.incorpDate, activeDate(details), prepDate)
     } match {
       case Some(dates) => Future.successful(dates)

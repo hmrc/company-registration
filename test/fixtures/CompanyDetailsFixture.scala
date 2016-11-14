@@ -67,8 +67,8 @@ trait CompanyDetailsFixture {
       Some("test town"),
       Some("test area"),
       Some("test county"),
-      "XX1 1ZZ",
-      "test country"
+      Some("XX1 1ZZ"),
+      Some("test country")
     ),
     "testJurisdiction"
   )
@@ -76,9 +76,9 @@ trait CompanyDetailsFixture {
   import CompanyDetailsResponse.buildLinks
   lazy val validCompanyDetailsResponse = CompanyDetailsResponse(
     companyName = validCompanyDetails.companyName,
-    cHROAddress = validCompanyDetails.cHROAddress,
-    rOAddress = validCompanyDetails.rOAddress,
-    pPOBAddress = validCompanyDetails.pPOBAddress,
+    cHROAddress = validCompanyDetails.registeredOffice,
+    rOAddress = validCompanyDetails.doNotUseRoAddress,
+    pPOBAddress = validCompanyDetails.ppob,
     jurisdiction = validCompanyDetails.jurisdiction,
     TradingDetails(),
     buildLinks("12345")

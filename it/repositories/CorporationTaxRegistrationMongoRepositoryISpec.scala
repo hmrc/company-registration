@@ -77,11 +77,11 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         "testCompanyName",
         CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
         ROAddress("10", "test street", "test town", "test area", "test county", "XX1 1ZZ", "test country"),
-        PPOBAddress("10", "test street", Some("test town"), Some("test area"), Some("test county"), "XX1 1ZZ", "test country"),
+        PPOBAddress("10", "test street", Some("test town"), Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country")),
         "testJurisdiction"
       )),
       contactDetails = Some(ContactDetails(
-        Some("testFirstName"), Some("testMiddleName"), Some("testSurname"), Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+        "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
       )),
       tradingDetails = Some(TradingDetails(true))
     )
@@ -168,7 +168,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       language = "en",
       confirmationReferences = Some(ConfirmationReferences(ackRef, "TX1", "PY1", "12.00")),
       accountingDetails = Some(AccountingDetails(AccountingDetails.WHEN_REGISTERED, None)),
-      accountsPreparation = Some(PrepareAccountMongoModel(PrepareAccountModel.HMRC_DEFINED, None))
+      accountsPreparation = Some(AccountPrepDetails(AccountPrepDetails.HMRC_DEFINED, None))
     )
 
     "update the CRN and timestamp" in new Setup {
@@ -216,11 +216,11 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         "testCompanyName",
         CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
         ROAddress("10", "test street", "test town", "test area", "test county", "XX1 1ZZ", "test country"),
-        PPOBAddress("10", "test street", Some("test town"), Some("test area"), Some("test county"), "XX1 1ZZ", "test country"),
+        PPOBAddress("10", "test street", Some("test town"), Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country")),
         "testJurisdiction"
       )),
       contactDetails = Some(ContactDetails(
-        Some("testFirstName"), Some("testMiddleName"), Some("testSurname"), Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+        "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
       )),
       tradingDetails = Some(TradingDetails(true))
     )

@@ -18,7 +18,7 @@ package controllers
 
 import auth._
 import connectors.AuthConnector
-import models.{HttpResponse, PrepareAccountModel}
+import models.{AccountPrepDetails, HttpResponse}
 import play.api.Logger
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Action
@@ -38,27 +38,27 @@ trait PrepareAccountController extends BaseController with Authenticated with Au
 
   val service: PrepareAccountService
 
- def updateCompanyEndDate(registrationID: String) = Action.async[JsValue](parse.json) {
-   implicit request =>
-     authorised(registrationID){
-       case Authorised(_) =>
-         withJsonBody[PrepareAccountModel]{ model =>
-          service.updateEndDate(registrationID, model).map{
-            case Some(res) =>
-              Ok(Json.toJson(res))
-            case None =>
-              Logger.error(s"[PrepareAccountController] [updateCompanyEndDate] Company preparation date for user: $registrationID not found")
-              NotFound(Json.toJson(HttpResponse(NOT_FOUND, "An existing Corporation Tax Registration record was not found")))
+  def updateCompanyEndDate(registrationID: String) = Action.async[JsValue](parse.json) {
+    implicit request =>
+      authorised(registrationID) {
+        case Authorised(_) =>
+          withJsonBody[AccountPrepDetails] { model =>
+            service.updateEndDate(registrationID, model).map {
+              case Some(res) =>
+                Ok(Json.toJson(res))
+              case None =>
+                Logger.error(s"[PrepareAccountController] [updateCompanyEndDate] Company preparation date for user: $registrationID not found")
+                NotFound(Json.toJson(HttpResponse(NOT_FOUND, "An existing Corporation Tax Registration record was not found")))
+            }
           }
-         }
-       case NotLoggedInOrAuthorised =>
-         Logger.info(s"[PrepareAccountController] [updateCompanyEndDate] User not logged in")
-         Future.successful(Forbidden)
-       case NotAuthorised(_) =>
-         Logger.info(s"[PrepareAccountController] [updateCompanyEndDate] User logged in but not authorised for resource $registrationID")
-         Future.successful(Forbidden)
-       case AuthResourceNotFound(_) => Logger.info(s"[PrepareAccountController] [updateCompanyEndDate] Auth resource not found $registrationID")
-         Future.successful(NotFound)
-     }
- }
+        case NotLoggedInOrAuthorised =>
+          Logger.info(s"[PrepareAccountController] [updateCompanyEndDate] User not logged in")
+          Future.successful(Forbidden)
+        case NotAuthorised(_) =>
+          Logger.info(s"[PrepareAccountController] [updateCompanyEndDate] User logged in but not authorised for resource $registrationID")
+          Future.successful(Forbidden)
+        case AuthResourceNotFound(_) => Logger.info(s"[PrepareAccountController] [updateCompanyEndDate] Auth resource not found $registrationID")
+          Future.successful(NotFound)
+      }
+  }
 }
