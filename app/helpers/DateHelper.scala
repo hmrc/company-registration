@@ -19,6 +19,7 @@ package helpers
 import java.text.SimpleDateFormat
 import java.util.Date
 
+import org.joda.time.format.DateTimeFormat
 import org.joda.time.{DateTime, DateTimeZone}
 
 trait DateHelper {
@@ -29,6 +30,10 @@ trait DateHelper {
 
   def getCurrentDay: String = {
     now.toString("yyyy-MM-dd")
+  }
+
+  def yyyymmdd(s: String): DateTime = {
+    DateTime.parse(s, DateTimeFormat.forPattern("yyyy-MM-dd"))
   }
 
   def asDate(s: String): DateTime = {

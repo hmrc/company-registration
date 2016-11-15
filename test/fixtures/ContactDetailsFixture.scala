@@ -19,9 +19,9 @@ package fixtures
 import models.{ContactDetails, Links}
 import play.api.libs.json.Json
 
-case class ContactDetailsResponse(contactFirstName: Option[String],
+case class ContactDetailsResponse(contactFirstName: String,
                                   contactMiddleName: Option[String],
-                                  contactSurname: Option[String],
+                                  contactSurname: String,
                                   contactDaytimeTelephoneNumber: Option[String],
                                   contactMobileNumber: Option[String],
                                   contactEmail: Option[String],
@@ -35,21 +35,21 @@ object ContactDetailsResponse {
 trait ContactDetailsFixture {
 
   lazy val contactDetails = ContactDetails(
-    Some("testContactFirstName"),
+    "testContactFirstName",
     Some("testContactMiddleName"),
-    Some("testContactLastName"),
+    "testContactLastName",
     Some("02072899066"),
     Some("07567293726"),
     Some("test@email.co.uk")
   )
 
   lazy val contactDetailsResponse = ContactDetailsResponse(
-    contactDetails.contactFirstName,
-    contactDetails.contactMiddleName,
-    contactDetails.contactSurname,
-    contactDetails.contactDaytimeTelephoneNumber,
-    contactDetails.contactMobileNumber,
-    contactDetails.contactEmail,
+    contactDetails.firstName,
+    contactDetails.middleName,
+    contactDetails.surname,
+    contactDetails.phone,
+    contactDetails.mobile,
+    contactDetails.email,
     Links(Some(s"/company-registration/corporation-tax-registration/12345/contact-details"),
       Some(s"/company-registration/corporation-tax-registration/12345"))
   )

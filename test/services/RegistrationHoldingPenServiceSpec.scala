@@ -61,7 +61,9 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
   val testAckRef = UUID.randomUUID.toString
   val testRegId = UUID.randomUUID.toString
   val transId = UUID.randomUUID().toString
-  val validCR = validHeldCTRegWithData(ackRef=Some(testAckRef)).copy(accountsPreparation = Some(PrepareAccountMongoModel("",Some("2017-01-01"))))
+  val validCR = validHeldCTRegWithData(ackRef=Some(testAckRef)).copy(
+    accountsPreparation = Some(AccountPrepDetails(AccountPrepDetails.COMPANY_DEFINED,Some(date("2017-01-01"))))
+  )
   import RegistrationStatus._
   val submittedCR = validCR.copy(status = SUBMITTED)
   val failCaseCR = validCR.copy(status = DRAFT)

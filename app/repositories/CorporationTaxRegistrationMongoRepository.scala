@@ -45,7 +45,7 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def retrieveConfirmationReference(registrationID: String) : Future[Option[ConfirmationReferences]]
   def updateConfirmationReferences(registrationID: String, confirmationReferences: ConfirmationReferences) : Future[Option[ConfirmationReferences]]
   def retrieveContactDetails(registrationID: String): Future[Option[ContactDetails]]
-  def updateCompanyEndDate(registrationID: String, model: PrepareAccountModel): Future[Option[PrepareAccountModel]]
+  def updateCompanyEndDate(registrationID: String, model: AccountPrepDetails): Future[Option[AccountPrepDetails]]
   def updateSubmissionStatus(registrationID: String, status: String): Future[String]
   def removeTaxRegistrationInformation(registrationId: String): Future[Boolean]
   def updateCTRecordWithAcknowledgments(ackRef : String, ctRecord : CorporationTaxRegistration) : Future[WriteResult]
@@ -59,19 +59,19 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
 private[repositories] class MissingCTDocument(regId: String) extends NoStackTrace
 
 class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
-  extends ReactiveRepository[CorporationTaxRegistration, BSONObjectID]("corporation-tax-registration-information", mongo, CorporationTaxRegistration.formats, ReactiveMongoFormats.objectIdFormats)
+  extends ReactiveRepository[CorporationTaxRegistration, BSONObjectID]("corporation-tax-registration-information", mongo, CorporationTaxRegistration.format, ReactiveMongoFormats.objectIdFormats)
   with CorporationTaxRegistrationRepository
   with AuthorisationResource[String] {
 
   override def indexes: Seq[Index] = Seq(
     Index(
-      key = Seq("confirmationReferences.acknowledgementReference" -> IndexType.Ascending),
+      key = Seq("confirmationReferences.acknowledgement-reference" -> IndexType.Ascending),
       name = Some("AckRefIndex"),
       unique = false,
       sparse = false
     ),
     Index(
-      key = Seq("confirmationReferences.transactionId" -> IndexType.Ascending),
+      key = Seq("confirmationReferences.transaction-id" -> IndexType.Ascending),
       name = Some("TransIdIndex"),
       unique = false,
       sparse = false
@@ -79,20 +79,18 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
   )
 
   override def updateCTRecordWithAcknowledgments(ackRef : String, ctRecord: CorporationTaxRegistration): Future[WriteResult] = {
-    val updateSelector = BSONDocument(
-      "confirmationReferences.acknowledgementReference" -> BSONString(ackRef)
-    )
+    val updateSelector = BSONDocument("confirmationReferences.acknowledgement-reference" -> BSONString(ackRef))
     collection.update(updateSelector, ctRecord, upsert = false)
   }
 
   override def getHeldCTRecord(ackRef: String) : Future[Option[CorporationTaxRegistration]] = {
-    val query = BSONDocument("confirmationReferences.acknowledgementReference" -> BSONString(ackRef))
+    val query = BSONDocument("confirmationReferences.acknowledgement-reference" -> BSONString(ackRef))
     collection.find(query).one[CorporationTaxRegistration]
   }
 
 
   override def retrieveRegistrationByTransactionID(transactionID: String): Future[Option[CorporationTaxRegistration]] = {
-    val selector = BSONDocument("confirmationReferences.transactionId" -> BSONString(transactionID))
+    val selector = BSONDocument("confirmationReferences.transaction-id" -> BSONString(transactionID))
     collection.find(selector).one[CorporationTaxRegistration]
   }
 
@@ -133,19 +131,10 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
   }
 
   override def updateAccountingDetails(registrationID: String, accountingDetails: AccountingDetails): Future[Option[AccountingDetails]] = {
-    val doc = accountingDetails.startDateOfBusiness.isDefined match {
-      case true => BSONDocument(
-        "$set" -> BSONDocument(
-          "accountingDetails.accountingDateStatus" -> accountingDetails.accountingDateStatus,
-          "accountingDetails.startDateOfBusiness" -> accountingDetails.startDateOfBusiness.get))
-      case false =>
-        BSONDocument(
-        "$set" -> BSONDocument("accountingDetails.accountingDateStatus" -> accountingDetails.accountingDateStatus),
-        "$unset" -> BSONDocument("accountingDetails.startDateOfBusiness" -> 1))
-    }
-
     retrieveCorporationTaxRegistration(registrationID).flatMap {
-      case Some(data) => collection.update(registrationIDSelector(registrationID), doc, upsert = false).map(_ => Some(accountingDetails))
+      case Some(data) => collection.update(registrationIDSelector(registrationID), data.copy(accountingDetails = Some(accountingDetails))).map(
+        _ => Some(accountingDetails)
+      )
       case None => Future.successful(None)
     }
   }
@@ -194,10 +183,10 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
     }
   }
 
-  override def updateCompanyEndDate(registrationID: String, model: PrepareAccountModel): Future[Option[PrepareAccountModel]] = {
+  override def updateCompanyEndDate(registrationID: String, model: AccountPrepDetails): Future[Option[AccountPrepDetails]] = {
     retrieveCorporationTaxRegistration(registrationID) flatMap {
       case Some(ct) =>
-        collection.update(registrationIDSelector(registrationID), ct.copy(accountsPreparation = Some(model.toMongoModel)), upsert = false)
+        collection.update(registrationIDSelector(registrationID), ct.copy(accountsPreparation = Some(model)), upsert = false)
           .map(_=>Some(model))
         case None => Future.successful(None)
     }

@@ -19,7 +19,6 @@ package repositories
 import java.util.UUID
 
 import helpers.MongoMocks
-import models.HandoffCHData
 import org.joda.time.{DateTime, DateTimeZone}
 import org.mockito.{Mockito, ArgumentCaptor}
 import org.mockito.Matchers._
