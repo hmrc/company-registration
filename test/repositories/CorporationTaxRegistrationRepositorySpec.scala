@@ -323,7 +323,7 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
 
   "updateCompanyEndDate" should {
 
-    val accountsPreparationDateModel = PrepareAccountModel("HMRCEndDate", Some(DateTime.parse("1980-12-12")))
+    val accountsPreparationDateModel = AccountPrepDetails(AccountPrepDetails.COMPANY_DEFINED, Some(DateTime.parse("1980-12-12")))
 
     "return an AccountsPreparationModel on a successful update" in {
       val selector = BSONDocument("registrationID" -> BSONString(registrationID))

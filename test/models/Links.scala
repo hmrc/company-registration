@@ -16,16 +16,11 @@
 
 package models
 
-import org.joda.time.{DateTimeZone, DateTime}
+import play.api.libs.json.Json
 
-import play.api.libs.json.{JsValue, Json}
+case class Links(self: Option[String],
+                 registration: Option[String] = None)
 
-case class HandoffCHData(_id: String, updated: DateTime = HandoffCHData.now, ch: JsValue = Json.parse("{}")){
-  def registrationID = _id
-}
-object HandoffCHData {
-  import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
-  import ReactiveMongoFormats.{dateTimeRead, dateTimeWrite}
-  implicit val formats = Json.format[HandoffCHData]
-  def now = DateTime.now.withZone(DateTimeZone.UTC)
+object Links {
+  implicit val format = Json.format[Links]
 }
