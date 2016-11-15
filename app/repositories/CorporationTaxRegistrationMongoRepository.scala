@@ -90,7 +90,7 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
 
 
   override def retrieveRegistrationByTransactionID(transactionID: String): Future[Option[CorporationTaxRegistration]] = {
-    val selector = BSONDocument("confirmationReferences.transactionId" -> BSONString(transactionID))
+    val selector = BSONDocument("confirmationReferences.transaction-id" -> BSONString(transactionID))
     collection.find(selector).one[CorporationTaxRegistration]
   }
 
