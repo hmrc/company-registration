@@ -208,7 +208,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
         credId = credId,
         language = brMetadata.language,
         submissionTs = DateTime.parse(formatTimestamp(currentDateTime)),
-        completionCapacity = CompletionCapacity(brMetadata.completionCapacity)
+        completionCapacity = CompletionCapacity(brMetadata.completionCapacity.get)
       ),
       interimCorporationTax = InterimCorporationTax(
         companyName = companyDetails.companyName,

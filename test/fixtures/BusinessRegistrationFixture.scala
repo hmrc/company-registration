@@ -26,6 +26,6 @@ trait BusinessRegistrationFixture {
     regId,
     "2016-08-03T10:49:11Z",
     "en",
-    "CompCap"
+    Some("CompCap")
   )
 }
