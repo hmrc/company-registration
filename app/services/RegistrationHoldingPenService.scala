@@ -38,6 +38,7 @@ object RegistrationHoldingPenService extends RegistrationHoldingPenService {
   override val ctRepository = Repositories.cTRepository
   override val heldRepo = Repositories.heldSubmissionRepository
   override val accountingService = AccountingDetailsService
+  val brConnector = BusinessRegistrationConnector
 
 }
 
@@ -53,12 +54,13 @@ trait RegistrationHoldingPenService extends DateHelper {
   val ctRepository : CorporationTaxRegistrationRepository
   val heldRepo : HeldSubmissionRepository
   val accountingService : AccountingDetailsService
+  val brConnector: BusinessRegistrationConnector
 
   private[services] class FailedToRetrieveByTxId(transId: String)  extends NoStackTrace
   private[services] class FailedToRetrieveByAckRef extends NoStackTrace
   private[services] class MissingAccountingDates extends NoStackTrace
 
-  def updateNextSubmissionByTimepoint(): Future[String] = {
+  def updateNextSubmissionByTimepoint(implicit hc: HeaderCarrier): Future[String] = {
     fetchIncorpUpdate flatMap { items =>
       val results = items map { item =>
         //TODO see SCRS-3766
@@ -74,7 +76,7 @@ trait RegistrationHoldingPenService extends DateHelper {
     }
   }
 
-  private[services] def processIncorporationUpdate(item : IncorpUpdate): Future[Boolean] = {
+  private[services] def processIncorporationUpdate(item : IncorpUpdate)(implicit hc: HeaderCarrier): Future[Boolean] = {
     item.status match {
       case "accepted" => updateSubmission(item)
       case "rejected" =>
@@ -84,8 +86,9 @@ trait RegistrationHoldingPenService extends DateHelper {
           ctReg <- fetchRegistrationByTxId(item.transactionId)
           heldDeleted <- heldRepo.removeHeldDocument(ctReg.registrationID)
           ctDeleted <- ctRepository.removeTaxRegistrationById(ctReg.registrationID)
+          metadataDeleted <- brConnector.removeMetadata(ctReg.registrationID)
         } yield {
-          heldDeleted && ctDeleted
+          heldDeleted && ctDeleted && metadataDeleted
         }
     }
   }

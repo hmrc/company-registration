@@ -64,6 +64,18 @@ trait BusinessRegistrationConnector {
     }
   }
 
+  def removeMetadata(registrationId: String)(implicit hc: HeaderCarrier): Future[Boolean] = {
+    http.GET[HttpResponse](s"$businessRegUrl/business-registration/business-tax-registration/remove/$registrationId").map {
+      _.status match {
+        case 200 => true
+      }
+    } recover {
+      case ex: NotFoundException =>
+        Logger.error(s"[BusinessRegistrationConnector] [removeMetadata] - Received a NotFound status code when attempting to remove a metadata document for regId - $registrationId")
+        false
+    }
+  }
+
   def dropMetadataCollection(implicit hc: HeaderCarrier) = {
     http.GET[JsValue](s"$businessRegUrl/business-registration/test-only/drop-collection") map { res =>
       (res \ "message").as[String]
