@@ -26,6 +26,7 @@ import org.mockito.Matchers
 import org.scalatest.mock.MockitoSugar
 import play.api.libs.json.{JsObject, Json}
 import repositories.{CorporationTaxRegistrationRepository, HeldSubmission, HeldSubmissionRepository, StateDataRepository}
+import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
 import org.mockito.Mockito._
 import services.RegistrationHoldingPenService.MissingAccountingDates
@@ -40,6 +41,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
   val mockheldRepo = mock[HeldSubmissionRepository]
   val mockAccountService = mock[AccountingDetailsService]
   val mockDesConnector = mock[DesConnector]
+  val mockBRConnector = mock[BusinessRegistrationConnector]
 
   trait mockService extends RegistrationHoldingPenService {
     val stateDataRepository = mockStateDataRepository
@@ -48,6 +50,8 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
     val heldRepo = mockheldRepo
     val accountingService = mockAccountService
     val desConnector = mockDesConnector
+    val brConnector = mockBRConnector
+
   }
 
   trait Setup {
@@ -56,6 +60,8 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
   def date(year: Int, month: Int, day: Int) = new DateTime(year,month,day,0,0)
   def date(yyyyMMdd:String) = DateTime.parse(yyyyMMdd)
+
+  implicit val hc = HeaderCarrier()
 
   val timepoint = "123456789"
   val testAckRef = UUID.randomUUID.toString
@@ -321,7 +327,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
     val expected = Json.obj("key" -> timepoint)
     trait SetupNoProcess {
       val service = new mockService {
-        override def processIncorporationUpdate(item: IncorpUpdate) = Future.successful(true)
+        override def processIncorporationUpdate(item: IncorpUpdate)(implicit hc: HeaderCarrier) = Future.successful(true)
       }
     }
 
@@ -335,7 +341,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockStateDataRepository.updateTimepoint(Matchers.eq(timepoint)))
           .thenReturn(Future.successful(timepoint))
 
-      val result = await(service.updateNextSubmissionByTimepoint())
+      val result = await(service.updateNextSubmissionByTimepoint)
 
       result.length shouldBe 9
       result shouldBe timepoint
@@ -351,7 +357,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockStateDataRepository.updateTimepoint(Matchers.eq(timepoint)))
         .thenReturn(Future.successful(timepoint))
 
-      val result = await(service.updateNextSubmissionByTimepoint())
+      val result = await(service.updateNextSubmissionByTimepoint)
 
       result.length shouldBe 9
       result shouldBe timepoint
@@ -364,7 +370,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockIncorporationCheckAPIConnector.checkSubmission(Matchers.eq(Some(timepoint)))(Matchers.any()))
         .thenReturn(Future.successful(submissionCheckResponseNone))
 
-      val result = await(service.updateNextSubmissionByTimepoint())
+      val result = await(service.updateNextSubmissionByTimepoint)
 
       result shouldBe ""
     }
@@ -394,6 +400,9 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
         .thenReturn(Future.successful(true))
 
       when(mockctRepository.removeTaxRegistrationById(Matchers.eq(validCR.registrationID)))
+        .thenReturn(Future.successful(true))
+
+      when(mockBRConnector.removeMetadata(Matchers.eq(validCR.registrationID))(Matchers.any()))
         .thenReturn(Future.successful(true))
 
       await(service.processIncorporationUpdate(incorpRejected)) shouldBe true
