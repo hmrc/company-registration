@@ -34,7 +34,7 @@ trait SubmissionCheckController extends BaseController {
 
   def triggerSubmissionCheck = Action.async {
     implicit request =>
-      service.updateNextSubmissionByTimepoint() map {
+      service.updateNextSubmissionByTimepoint map {
         res => Ok(res)
       }
   }

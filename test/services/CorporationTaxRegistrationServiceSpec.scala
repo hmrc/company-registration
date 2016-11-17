@@ -96,7 +96,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
       registrationId,
       timestamp,
       "en",
-      "Director"
+      Some("Director")
     )
 
     val corporationTaxRegistration = CorporationTaxRegistration(
@@ -256,7 +256,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
       registrationId,
       "testTimeStamp",
       "en",
-      "Director"
+      Some("Director")
     )
 
     "return a business registration" in new Setup {
@@ -317,7 +317,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
       registrationId,
       dateTime.toString,
       "en",
-      "Director"
+      Some("Director")
     )
 
     // TODO - refactor and tweak tests - couple more scenarios for optionality
@@ -399,7 +399,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
       registrationId,
       "testTimeStamp",
       "en",
-      "Director"
+      Some("Director")
     )
 
     val corporationTaxRegistration = CorporationTaxRegistration(

@@ -178,6 +178,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
     val contactDetails = ctData.contactDetails.get
     val tradingDetails = ctData.tradingDetails.get
     val ppob = companyDetails.ppob
+    val completionCapacity = CompletionCapacity(brMetadata.completionCapacity.get)
 
     // SCRS-3708 - should be an Option[BusinessAddress] and mapped from the optional ppob
     val businessAddress: BusinessAddress = BusinessAddress(
@@ -208,7 +209,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
         credId = credId,
         language = brMetadata.language,
         submissionTs = DateTime.parse(formatTimestamp(currentDateTime)),
-        completionCapacity = CompletionCapacity(brMetadata.completionCapacity)
+        completionCapacity = completionCapacity
       ),
       interimCorporationTax = InterimCorporationTax(
         companyName = companyDetails.companyName,

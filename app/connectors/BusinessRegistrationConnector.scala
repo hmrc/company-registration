@@ -43,7 +43,7 @@ trait BusinessRegistrationConnector {
   val http: HttpGet with HttpPost
 
   def createMetadataEntry(implicit hc: HeaderCarrier): Future[BusinessRegistration] = {
-    val json = Json.toJson[BusinessRegistrationRequest](BusinessRegistrationRequest("en"))
+    val json = Json.toJson[BusinessRegistrationRequest](BusinessRegistrationRequest("ENG"))
     http.POST[JsValue, BusinessRegistration](s"$businessRegUrl/business-registration/business-tax-registration", json)
   }
 
@@ -61,6 +61,18 @@ trait BusinessRegistrationConnector {
       case e: Exception =>
         Logger.error(s"[BusinessRegistrationConnector] [retrieveMetadata] - Received error when expecting metadata from Business-Registration - Error ${e.getMessage}")
         BusinessRegistrationErrorResponse(e)
+    }
+  }
+
+  def removeMetadata(registrationId: String)(implicit hc: HeaderCarrier): Future[Boolean] = {
+    http.GET[HttpResponse](s"$businessRegUrl/business-registration/business-tax-registration/remove/$registrationId").map {
+      _.status match {
+        case 200 => true
+      }
+    } recover {
+      case ex: NotFoundException =>
+        Logger.error(s"[BusinessRegistrationConnector] [removeMetadata] - Received a NotFound status code when attempting to remove a metadata document for regId - $registrationId")
+        false
     }
   }
 

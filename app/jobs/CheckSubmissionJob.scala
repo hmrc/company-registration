@@ -21,6 +21,7 @@ import play.api.Logger
 import repositories.Repositories
 import services.RegistrationHoldingPenService
 import uk.gov.hmrc.lock.LockKeeper
+import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.scheduling.ExclusiveScheduledJob
 import utils.SCRSFeatureSwitches
 
@@ -36,7 +37,7 @@ trait CheckSubmissionJob extends ExclusiveScheduledJob with JobConfig {
     SCRSFeatureSwitches.scheduler.enabled match {
       case true => lock.tryLock {
         Logger.info(s"Triggered $name")
-        regHoldingPenService.updateNextSubmissionByTimepoint()
+        regHoldingPenService.updateNextSubmissionByTimepoint(HeaderCarrier())
       } map {
         case Some(x) =>
           Logger.info(s"successfully acquired lock for $name")

@@ -70,7 +70,7 @@ trait UserAccessService {
       case Some(doc) => {
         Future.successful(UserAccessSuccessResponse(regId, created, hasConfRefs(doc), doc.verifiedEmail))
       }
-      case None => Future.failed(new MissingRegistration(regId))
+      case None => Future.failed(new MissingRegistration(regId))//todo - after a rejected submission this will always return a failed future - need to delete BR
     }
   }
 

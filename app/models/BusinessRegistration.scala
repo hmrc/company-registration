@@ -25,12 +25,10 @@ object BusinessRegistrationRequest {
 }
 
 
-case class BusinessRegistration(
-                                 registrationID: String,
-                                 formCreationTimestamp: String,
-                                 language: String,
-                                 completionCapacity: String
-                               )
+case class BusinessRegistration(registrationID: String,
+                                formCreationTimestamp: String,
+                                language: String,
+                                completionCapacity: Option[String])
 
 object BusinessRegistration {
   implicit val formats = Json.format[BusinessRegistration]
