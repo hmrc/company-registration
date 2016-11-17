@@ -47,16 +47,23 @@ trait DesConnector extends ServicesConfig with RawResponseReads {
   val http: HttpGet with HttpPost with HttpPut = WSHttp
 
   def ctSubmission(ackRef:String, submission: JsObject)(implicit headerCarrier: HeaderCarrier): Future[DesResponse] = {
-    val response = cPOST(s"""${serviceURL}${baseURI}${ctRegistrationURI}""", submission)
+    val url: String = s"""${serviceURL}${baseURI}${ctRegistrationURI}"""
+    val response = cPOST(url, submission)
     response map { r =>
       r.status match {
-        case OK => SuccessDesResponse(r.json.as[JsObject])
-        case ACCEPTED => SuccessDesResponse(r.json.as[JsObject])
+        case OK =>
+          Logger.info(s"Successful Des submission for ackRef ${ackRef} to ${url}")
+          SuccessDesResponse(r.json.as[JsObject])
+        case ACCEPTED =>
+          Logger.info(s"Accepted Des submission for ackRef ${ackRef} to ${url}")
+          SuccessDesResponse(r.json.as[JsObject])
         case CONFLICT => {
           Logger.warn(s"ETMP reported a duplicate submission for ack ref ${ackRef}")
           SuccessDesResponse(r.json.as[JsObject])
         }
-        case NOT_FOUND => NotFoundDesResponse
+        case NOT_FOUND =>
+          Logger.warn(s"ETMP reported a not found for ack ref ${ackRef}")
+          NotFoundDesResponse
         case BAD_REQUEST => {
           val message = (r.json \ "reason").as[String]
           Logger.warn(s"ETMP reported an error with the request ${message}")
