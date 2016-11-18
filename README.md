@@ -12,7 +12,7 @@ This code is open source software licensed under the [Apache 2.0 License]("http:
 
 | Path                                                                               | Supported Methods | Description  |
 | ---------------------------------------------------------------------------------- | ------------------| ------------ |
-|```/corporation-tax-registration/:registrationID/accounts-preparation-date```       |        PUT        | Update the accounting end dates for the user associated with the supplied registrationID|
+|```/corporation-tax-registration/:registrationId/accounts-preparation-date```       |        PUT        | Update the accounting end dates for the user associated with the supplied registrationId|
 
 ###PUT /corporation-tax-registration/:registrationID/accounts-preparation-date
 
