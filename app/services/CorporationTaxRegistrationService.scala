@@ -79,9 +79,9 @@ trait CorporationTaxRegistrationService extends DateHelper {
     }
   }
 
-  def createCorporationTaxRegistrationRecord(OID: String, registrationId: String, language: String): Future[CorporationTaxRegistration] = {
+  def createCorporationTaxRegistrationRecord(internalID: String, registrationId: String, language: String): Future[CorporationTaxRegistration] = {
     val record = CorporationTaxRegistration(
-      OID = OID,
+      internalId = internalID,
       registrationID = registrationId,
       formCreationTimestamp = formatTimestamp(currentDateTime),
       language = language)

@@ -233,10 +233,10 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
     }
   }
 
-  override def getOid(id: String): Future[Option[(String, String)]] = {
+  override def getInternalId(id: String): Future[Option[(String, String)]] = {
     retrieveCorporationTaxRegistration(id) map {
       case None => None
-      case Some(m) => Some(m.registrationID -> m.OID)
+      case Some(m) => Some(m.registrationID -> m.internalId)
     }
   }
 

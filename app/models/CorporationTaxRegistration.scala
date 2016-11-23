@@ -33,7 +33,7 @@ object RegistrationStatus {
   val SUBMITTED = "submitted"
 }
 
-case class CorporationTaxRegistration(OID: String,
+case class CorporationTaxRegistration(internalId: String,
                                       registrationID: String,
                                       status: String = RegistrationStatus.DRAFT,
                                       formCreationTimestamp: String,

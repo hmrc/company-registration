@@ -50,7 +50,7 @@ class AuthorisationSpec extends FakeApplication with WordSpecLike with ShouldMat
         "indicate there's no logged in user where there isn't a valid bearer token" in {
 
             when(mockAuth.getCurrentAuthority()(Matchers.any())).thenReturn(Future.successful(None))
-            when(mockResource.getOid(Matchers.any())).thenReturn(Future.successful(None))
+            when(mockResource.getInternalId(Matchers.any())).thenReturn(Future.successful(None))
 
             val result = Authorisation.authorised("xxx") { authResult => {
                 authResult shouldBe NotLoggedInOrAuthorised
@@ -68,7 +68,7 @@ class AuthorisationSpec extends FakeApplication with WordSpecLike with ShouldMat
             val a = Authority("x", oid, "", "z")
 
             when(mockAuth.getCurrentAuthority()(Matchers.any())).thenReturn(Future.successful(Some(a)))
-            when(mockResource.getOid(Matchers.eq(regId))).thenReturn(Future.successful(Some((regId, oid))))
+            when(mockResource.getInternalId(Matchers.eq(regId))).thenReturn(Future.successful(Some((regId, oid))))
 
             val result = Authorisation.authorised(regId){ authResult => {
                 authResult shouldBe Authorised(a)
@@ -85,7 +85,7 @@ class AuthorisationSpec extends FakeApplication with WordSpecLike with ShouldMat
             val a = Authority("x", oid, "","z")
 
             when(mockAuth.getCurrentAuthority()(Matchers.any())).thenReturn(Future.successful(Some(a)))
-            when(mockResource.getOid(Matchers.eq(regId))).thenReturn(Future.successful(Some((regId, oid+"xxx"))))
+            when(mockResource.getInternalId(Matchers.eq(regId))).thenReturn(Future.successful(Some((regId, oid+"xxx"))))
 
             val result = Authorisation.authorised(regId){ authResult => {
                 authResult shouldBe NotAuthorised(a)
@@ -101,7 +101,7 @@ class AuthorisationSpec extends FakeApplication with WordSpecLike with ShouldMat
             val a = Authority("x", "y", "", "z")
 
             when(mockAuth.getCurrentAuthority()(Matchers.any())).thenReturn(Future.successful(Some(a)))
-            when(mockResource.getOid(Matchers.any())).thenReturn(Future.successful(None))
+            when(mockResource.getInternalId(Matchers.any())).thenReturn(Future.successful(None))
 
             val result = Authorisation.authorised("xxx"){ authResult => {
                 authResult shouldBe AuthResourceNotFound(a)

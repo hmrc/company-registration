@@ -44,7 +44,7 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
         case NotLoggedIn => Future.successful(Forbidden)
         case LoggedIn(context) =>
           withJsonBody[CorporationTaxRegistrationRequest] {
-            request => ctService.createCorporationTaxRegistrationRecord(context.oid, registrationId, request.language) map {
+            request => ctService.createCorporationTaxRegistrationRecord(context.ids.internalId, registrationId, request.language) map {
               res =>
                 Created(
                   Json.obj(
