@@ -20,12 +20,13 @@ import java.util.UUID
 
 import models.RegistrationStatus._
 import models._
+import org.joda.time.DateTime
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import reactivemongo.api.commands.WriteResult
 import uk.gov.hmrc.domain.CtUtr
 import uk.gov.hmrc.mongo.MongoSpecSupport
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
+import uk.gov.hmrc.play.test.{WithFakeApplication, UnitSpec}
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -33,11 +34,11 @@ import scala.concurrent.ExecutionContext.Implicits.global
 class CorporationTaxRegistrationMongoRepositoryISpec
   extends UnitSpec with MongoSpecSupport with BeforeAndAfterEach with ScalaFutures with Eventually with WithFakeApplication {
 
-	class Setup {
-		val repository = new CorporationTaxRegistrationMongoRepository()
-		await(repository.drop)
-		await(repository.ensureIndexes)
-	}
+  class Setup {
+    val repository = new CorporationTaxRegistrationMongoRepository()
+    await(repository.drop)
+    await(repository.ensureIndexes)
+  }
 
   def setupCollection(repo: CorporationTaxRegistrationMongoRepository, ctRegistration: CorporationTaxRegistration): Future[WriteResult] = {
     repo.insert(ctRegistration)
@@ -48,7 +49,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     val registrationId = "testRegId"
 
     val corporationTaxRegistration = CorporationTaxRegistration(
-      OID = "testOID",
+      internalId = "testID",
       registrationID = registrationId,
       formCreationTimestamp = "testDateTime",
       language = "en"
@@ -69,7 +70,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     val registrationId = "testRegId"
 
     val corporationTaxRegistration = CorporationTaxRegistration(
-      OID = "testOID",
+      internalId = "testID",
       registrationID = registrationId,
       formCreationTimestamp = "testDateTime",
       language = "en",
@@ -112,7 +113,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     )
 
     val validHeldCorporationTaxRegistration = CorporationTaxRegistration(
-      OID = "9876543210",
+      internalId = "9876543210",
       registrationID = "0123456789",
       status = HELD,
       formCreationTimestamp = "2001-12-31T12:00:00Z",
@@ -138,12 +139,13 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     val validConfirmationReferences = ConfirmationReferences(ackRef, "TX1", "PY1", "12.00")
 
     val validHeldCorporationTaxRegistration = CorporationTaxRegistration(
-      OID = "9876543210",
+      internalId = "9876543210",
       registrationID = "0123456789",
       status = HELD,
       formCreationTimestamp = "2001-12-31T12:00:00Z",
       language = "en",
-      confirmationReferences = Some(validConfirmationReferences)
+      confirmationReferences = Some(validConfirmationReferences),
+      createdTime = DateTime.now
     )
 
     "return an optional ct record" when {
@@ -151,6 +153,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         await(setupCollection(repository, validHeldCorporationTaxRegistration))
 
         val result = await(repository.getHeldCTRecord(ackRef)).get
+
         result shouldBe validHeldCorporationTaxRegistration
       }
     }
@@ -161,7 +164,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     val ackRef = "BRCT12345678910"
 
     val heldReg = CorporationTaxRegistration(
-      OID = "9876543210",
+      internalId = "9876543210",
       registrationID = "0123456789",
       status = HELD,
       formCreationTimestamp = "2001-12-31T12:00:00Z",
@@ -208,7 +211,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     val registrationId = UUID.randomUUID.toString
 
     val corporationTaxRegistration = CorporationTaxRegistration(
-      OID = "testOID",
+      internalId = "intId",
       registrationID = registrationId,
       formCreationTimestamp = "testDateTime",
       language = "en",
@@ -222,7 +225,8 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       contactDetails = Some(ContactDetails(
         "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
       )),
-      tradingDetails = Some(TradingDetails(true))
+      tradingDetails = Some(TradingDetails(true)),
+      createdTime = DateTime.now
     )
 
     "remove all details under that RegId from the collection" in new Setup {

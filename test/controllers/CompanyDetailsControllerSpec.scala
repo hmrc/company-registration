@@ -53,7 +53,8 @@ class CompanyDetailsControllerSpec extends SCRSSpec with AuthFixture with Compan
     "return a 200 - Ok and a Company details record if one is found in the database" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
 
-      when(mockCTDataRepository.getOid(Matchers.any())).thenReturn(Future.successful(Some("testRegID" -> "testOID")))
+      when(mockCTDataRepository.getInternalId(Matchers.any()))
+        .thenReturn(Future.successful(Some(registrationID -> validAuthority.ids.internalId)))
       CompanyDetailsServiceMocks.retrieveCompanyDetails(registrationID, Some(validCompanyDetails))
 
       val result = controller.retrieveCompanyDetails(registrationID)(FakeRequest())
@@ -63,7 +64,8 @@ class CompanyDetailsControllerSpec extends SCRSSpec with AuthFixture with Compan
 
     "return a 404 - Not Found if the record does not exist" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockCTDataRepository.getOid(Matchers.any())).thenReturn(Future.successful(Some("testRegID" -> "testOID")))
+      when(mockCTDataRepository.getInternalId(Matchers.any()))
+        .thenReturn(Future.successful(Some(registrationID -> validAuthority.ids.internalId)))
       CompanyDetailsServiceMocks.retrieveCompanyDetails(registrationID, None)
 
       val result = controller.retrieveCompanyDetails(registrationID)(FakeRequest())
@@ -72,8 +74,9 @@ class CompanyDetailsControllerSpec extends SCRSSpec with AuthFixture with Compan
     }
 
     "return a 403 - Forbidden if the user cannot be authenticated" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority.copy(oid = "notAuthorisedOID")))
-      AuthorisationMocks.getOID("testOID", Some("testRegID" -> "testOID"))
+      val authority = validAuthority.copy(ids = validAuthority.ids.copy(internalId = "notAuthorisedID"))
+      AuthenticationMocks.getCurrentAuthority(Some(authority))
+      AuthorisationMocks.getInternalId("testID", Some("testRegID" -> "testID"))
 
       val result = controller.retrieveCompanyDetails(registrationID)(FakeRequest())
       status(result) shouldBe FORBIDDEN
@@ -81,7 +84,7 @@ class CompanyDetailsControllerSpec extends SCRSSpec with AuthFixture with Compan
 
     "return a 403 - Forbidden if the user is not logged in" in new Setup {
       AuthenticationMocks.getCurrentAuthority(None)
-      AuthorisationMocks.getOID("testOID", Some("testRegID" -> "testOID"))
+      AuthorisationMocks.getInternalId("testID", Some("testRegID" -> "testID"))
 
       val result = controller.retrieveCompanyDetails(registrationID)(FakeRequest())
       status(result) shouldBe FORBIDDEN
@@ -89,7 +92,7 @@ class CompanyDetailsControllerSpec extends SCRSSpec with AuthFixture with Compan
 
     "return a 404 - Not found when an authority is found but nothing is returned from" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockCTDataRepository.getOid(Matchers.any())).thenReturn(Future.successful(None))
+      when(mockCTDataRepository.getInternalId(Matchers.any())).thenReturn(Future.successful(None))
 
       val result = controller.retrieveCompanyDetails(registrationID)(FakeRequest())
       status(result) shouldBe NOT_FOUND
@@ -100,7 +103,8 @@ class CompanyDetailsControllerSpec extends SCRSSpec with AuthFixture with Compan
     "return a 200 - Ok and a company details response if a record is updated" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
 
-      when(mockCTDataRepository.getOid(Matchers.any())).thenReturn(Future.successful(Some("testRegID" -> "testOID")))
+      when(mockCTDataRepository.getInternalId(Matchers.any()))
+        .thenReturn(Future.successful(Some(registrationID -> validAuthority.ids.internalId)))
       CompanyDetailsServiceMocks.retrieveCompanyDetails(registrationID, Some(validCompanyDetails))
 
       CompanyDetailsServiceMocks.updateCompanyDetails(registrationID, Some(validCompanyDetails))
@@ -114,7 +118,8 @@ class CompanyDetailsControllerSpec extends SCRSSpec with AuthFixture with Compan
     "return a 404 - Not Found if the recorde to update does not exist" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
 
-      when(mockCTDataRepository.getOid(Matchers.any())).thenReturn(Future.successful(Some("testRegID" -> "testOID")))
+      when(mockCTDataRepository.getInternalId(Matchers.any()))
+        .thenReturn(Future.successful(Some(registrationID -> validAuthority.ids.internalId)))
       CompanyDetailsServiceMocks.retrieveCompanyDetails(registrationID, Some(validCompanyDetails))
 
       CompanyDetailsServiceMocks.updateCompanyDetails(registrationID, None)
@@ -128,7 +133,7 @@ class CompanyDetailsControllerSpec extends SCRSSpec with AuthFixture with Compan
     "return a 403 - Forbidden if the user cannot be authenticated" in new Setup {
       AuthenticationMocks.getCurrentAuthority(None)
 
-      when(mockCTDataRepository.getOid(Matchers.any())).thenReturn(Future.successful(Some("testRegID" -> "testOID")))
+      when(mockCTDataRepository.getInternalId(Matchers.any())).thenReturn(Future.successful(Some("testRegID" -> "testID")))
       CompanyDetailsServiceMocks.retrieveCompanyDetails(registrationID, Some(validCompanyDetails))
 
       val request = FakeRequest().withBody(Json.toJson(validCompanyDetailsResponse))
@@ -138,8 +143,8 @@ class CompanyDetailsControllerSpec extends SCRSSpec with AuthFixture with Compan
 
     "return a 403 when the user is unauthorised to access the record" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockCTDataRepository.getOid(Matchers.anyString()))
-        .thenReturn(Future.successful(Some("testRegID" -> (validAuthority.oid + "123"))))
+      when(mockCTDataRepository.getInternalId(Matchers.anyString()))
+        .thenReturn(Future.successful(Some("testRegID" -> (validAuthority.ids.internalId + "123"))))
 
       val request = FakeRequest().withBody(Json.toJson(validCompanyDetailsResponse))
       val result = call(controller.updateCompanyDetails(registrationID), request)

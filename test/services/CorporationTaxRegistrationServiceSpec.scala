@@ -16,16 +16,16 @@
 
 package services
 
-import connectors.{Authority, BusinessRegistrationConnector, BusinessRegistrationNotFoundResponse, BusinessRegistrationSuccessResponse}
-import fixtures.{AuthFixture, CorporationTaxRegistrationFixture, MongoFixture}
+import connectors.{UserIds, BusinessRegistrationNotFoundResponse, BusinessRegistrationSuccessResponse, Authority, BusinessRegistrationConnector}
+import fixtures.{AuthFixture, MongoFixture, CorporationTaxRegistrationFixture}
 import helpers.{MongoMocks, SCRSSpec}
 import models._
 import models.des._
 import org.joda.time.DateTime
 import org.mockito.Matchers
 import org.mockito.Mockito._
-import play.api.libs.json.{JsObject, Json}
-import repositories.{HeldSubmissionData, HeldSubmissionMongoRepository}
+import play.api.libs.json.{Json, JsObject}
+import repositories.{HeldSubmissionMongoRepository, HeldSubmissionData}
 import services.CorporationTaxRegistrationService.{FailedToGetBRMetadata, FailedToGetCTData, FailedToGetCredId}
 import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.http.logging.SessionId
@@ -100,7 +100,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
     )
 
     val corporationTaxRegistration = CorporationTaxRegistration(
-      OID = "testOID",
+      internalId = "testID",
       registrationID = registrationId,
       formCreationTimestamp = dateTime.toString,
       language = "en",
@@ -226,7 +226,8 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
 
     implicit val hc = HeaderCarrier(sessionId = Some(SessionId("testSessionId")))
 
-    val authority = Authority("testURI", "testOID", "testGatewayID", "testUserDetailsLink")
+    val userIDs = UserIds("foo", "bar")
+    val authority = Authority("testURI", "testGatewayID", "testUserDetailsLink", userIDs)
 
     "return the credential id" in new Setup {
       when(mockAuthConnector.getCurrentAuthority()(Matchers.any()))
@@ -283,7 +284,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
     val registrationId = "testRegId"
 
     val corporationTaxRegistration = CorporationTaxRegistration(
-      OID = "testOID",
+      internalId = "testID",
       registrationID = registrationId,
       formCreationTimestamp = "testTimeStamp",
       language = "en"
@@ -340,7 +341,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
 
     def getCTReg(regId: String, company: Option[CompanyDetails], contact: Option[ContactDetails]) = {
       CorporationTaxRegistration(
-        OID = "testOID",
+        internalId = "testID",
         registrationID = regId,
         formCreationTimestamp = dateTime.toString,
         language = "en",
@@ -393,7 +394,8 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
     val ackRef = "testAckRef"
     val sessionId = "testSessionId"
     val credId = "testCredId"
-    val authority = Authority("testURI", "testOID", credId, "testUserDetailsLink")
+    val userIDs = UserIds("foo", "bar")
+    val authority = Authority("testURI", credId, "testUserDetailsLink",  userIDs)
 
     val businessRegistration = BusinessRegistration(
       registrationId,
@@ -403,7 +405,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
     )
 
     val corporationTaxRegistration = CorporationTaxRegistration(
-      OID = "testOID",
+      internalId = "testID",
       registrationID = registrationId,
       formCreationTimestamp = dateTime.toString,
       language = "en",
