@@ -19,5 +19,5 @@ package auth
 import scala.concurrent.Future
 
 trait AuthorisationResource[I] {
-  def getOid(id:I) : Future[Option[(I,String)]]
+  def getInternalId(id:I) : Future[Option[(I,String)]]
 }

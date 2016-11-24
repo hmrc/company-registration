@@ -22,20 +22,24 @@ import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http._
 import play.api.Logger
+import play.api.libs.json.Json
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-object OidExtractor {
-  def userIdToOid(userId: String): String = userId.substring(userId.lastIndexOf("/") + 1)
-}
-
 case class Authority(
                       uri: String,
-                      oid: String,
                       gatewayId: String,
-                      userDetailsLink: String
+                      userDetailsLink: String,
+                      ids: UserIds
                     )
+
+case class UserIds(internalId : String,
+                   externalId : String)
+
+object UserIds {
+  implicit val format = Json.format[UserIds]
+}
 
 trait AuthConnector extends ServicesConfig with RawResponseReads {
 
@@ -48,18 +52,25 @@ trait AuthConnector extends ServicesConfig with RawResponseReads {
   def getCurrentAuthority()(implicit headerCarrier: HeaderCarrier): Future[Option[Authority]] = {
     val getUrl = s"""$serviceUrl/$authorityUri"""
     Logger.debug(s"[AuthConnector][getCurrentAuthority] - GET $getUrl")
-    http.GET[HttpResponse](getUrl).map {
+    http.GET[HttpResponse](getUrl) flatMap {
       response =>
         Logger.debug(s"[AuthConnector][getCurrentAuthority] - RESPONSE status: ${response.status}, body: ${response.body}")
         response.status match {
           case OK => {
             val uri = (response.json \ "uri").as[String]
-            val oid = OidExtractor.userIdToOid(uri)
             val gatewayId = (response.json \ "credentials" \ "gatewayId").as[String]
             val userDetails = (response.json \ "userDetailsLink").as[String]
-            Some(Authority(uri, oid, gatewayId, userDetails))
+            val idsLink = (response.json \ "ids").as[String]
+
+            http.GET[HttpResponse](s"$serviceUrl$idsLink") map {
+              response =>
+                Logger.info(s"[AuthConnector] - [getCurrentAuthority] API call : $serviceUrl/$idsLink")
+                Logger.info(s"[AuthConnector] - [getCurrentAuthority] response from ids call : ${response.json}")
+                val ids = response.json.as[UserIds]
+                Some(Authority(uri, gatewayId, userDetails, ids))
+            }
           }
-          case status => None
+          case status => Future.successful(None)
         }
     }
   }

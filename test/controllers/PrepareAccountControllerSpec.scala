@@ -16,7 +16,7 @@
 
 package controllers
 
-import connectors.{AuthConnector, Authority}
+import connectors.{AuthConnector, Authority, UserIds}
 import helpers.SCRSSpec
 import models.AccountPrepDetails
 import org.joda.time.DateTime
@@ -60,15 +60,15 @@ class PrepareAccountControllerSpec extends SCRSSpec {
   "updateCompanyEndDate" should {
 
     val rID = "testRegID"
-    val oID = "testOID"
 
-    lazy val validAuthority = Authority("test.url", oID, "testGatewayId", "test.userDetailsLink")
+    lazy val userIDs = UserIds("foo", "bar")
+    lazy val validAuthority = Authority("test.url", "testGatewayId", "test.userDetailsLink", userIDs)
 
     val prepareAccountModel = AccountPrepDetails(AccountPrepDetails.COMPANY_DEFINED, Some(DateTime.parse("1980-12-12")))
 
     "return a 200 http response and a PrepareAccountModel as json" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockCTDataRepository.getOid(Matchers.eq(rID))).thenReturn(Future.successful(Some(rID -> oID)))
+      when(mockCTDataRepository.getInternalId(Matchers.eq(rID))).thenReturn(Future.successful(Some(rID -> userIDs.internalId)))
 
       when(mockPrepareAccountService.updateEndDate(Matchers.eq(rID), Matchers.eq(prepareAccountModel)))
         .thenReturn(Future.successful(Some(prepareAccountModel)))
@@ -80,7 +80,7 @@ class PrepareAccountControllerSpec extends SCRSSpec {
 
     "return a 404 http response if the users' corporation tax record does not exist" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockCTDataRepository.getOid(Matchers.eq(rID))).thenReturn(Future.successful(Some(rID -> oID)))
+      when(mockCTDataRepository.getInternalId(Matchers.eq(rID))).thenReturn(Future.successful(Some(rID -> userIDs.internalId)))
 
       when(mockPrepareAccountService.updateEndDate(Matchers.eq(rID), Matchers.eq(prepareAccountModel)))
         .thenReturn(Future.successful(None))
@@ -91,7 +91,7 @@ class PrepareAccountControllerSpec extends SCRSSpec {
 
     "return a 404 http response if the user does not have an identifiable record" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockCTDataRepository.getOid(Matchers.eq(rID))).thenReturn(Future.successful(None))
+      when(mockCTDataRepository.getInternalId(Matchers.eq(rID))).thenReturn(Future.successful(None))
 
       when(mockPrepareAccountService.updateEndDate(Matchers.eq(rID), Matchers.eq(prepareAccountModel)))
         .thenReturn(Future.successful(None))
@@ -102,7 +102,7 @@ class PrepareAccountControllerSpec extends SCRSSpec {
 
     "return a 403 http response if the user is trying to access another users' record" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockCTDataRepository.getOid(Matchers.eq(rID))).thenReturn(Future.successful(Some("differentRID" -> "differentOID")))
+      when(mockCTDataRepository.getInternalId(Matchers.eq(rID))).thenReturn(Future.successful(Some("differentRID" -> "differentID")))
 
       when(mockPrepareAccountService.updateEndDate(Matchers.eq(rID), Matchers.eq(prepareAccountModel)))
         .thenReturn(Future.successful(None))
@@ -113,7 +113,7 @@ class PrepareAccountControllerSpec extends SCRSSpec {
 
     "return a 403 http response if the user does not have an authority" in new Setup {
       AuthenticationMocks.getCurrentAuthority(None)
-      when(mockCTDataRepository.getOid(Matchers.eq(rID))).thenReturn(Future.successful(Some(rID -> oID)))
+      when(mockCTDataRepository.getInternalId(Matchers.eq(rID))).thenReturn(Future.successful(Some(rID -> validAuthority.ids.internalId)))
 
       when(mockPrepareAccountService.updateEndDate(Matchers.eq(rID), Matchers.eq(prepareAccountModel)))
         .thenReturn(Future.successful(None))

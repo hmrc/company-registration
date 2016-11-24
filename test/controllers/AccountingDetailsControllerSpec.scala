@@ -17,8 +17,8 @@
 package controllers
 
 
-import connectors.AuthConnector
-import fixtures.{AccountingDetailsFixture, AuthFixture, AccountingDetailsResponse}
+import connectors.{AuthConnector, Authority}
+import fixtures.{AccountingDetailsFixture, AccountingDetailsResponse, AuthFixture}
 import helpers.SCRSSpec
 import org.mockito.Mockito._
 import models.ErrorResponse
@@ -26,7 +26,7 @@ import org.mockito.Matchers
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import services.{AccountingDetailsService, CorporationTaxRegistrationService}
+import services.{CorporationTaxRegistrationService, AccountingDetailsService}
 
 import scala.concurrent.Future
 
@@ -57,8 +57,8 @@ class AccountingDetailsControllerSpec extends SCRSSpec with AuthFixture with Acc
   "retrieveAccountingDetails" should {
     "return a 200 with accounting details in the json body when authorised" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockCTDataRepository.getOid(Matchers.anyString()))
-        .thenReturn(Future.successful(Some("testRegID" -> "testOID")))
+      when(mockCTDataRepository.getInternalId(Matchers.anyString()))
+        .thenReturn(Future.successful(Some(registrationID -> validAuthority.ids.internalId)))
       AccountingDetailsServiceMocks.retrieveAccountingDetails(registrationID, Some(validAccountingDetails))
 
       val result = controller.retrieveAccountingDetails(registrationID)(FakeRequest())
@@ -69,8 +69,8 @@ class AccountingDetailsControllerSpec extends SCRSSpec with AuthFixture with Acc
 
     "return a 404 when the user is authorised but accounting details cannot be found" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockCTDataRepository.getOid(Matchers.anyString()))
-        .thenReturn(Future.successful(Some("testRegID" -> "testOID")))
+      when(mockCTDataRepository.getInternalId(Matchers.anyString()))
+        .thenReturn(Future.successful(Some(registrationID -> validAuthority.ids.internalId)))
       AccountingDetailsServiceMocks.retrieveAccountingDetails(registrationID, None)
 
       val result = controller.retrieveAccountingDetails(registrationID)(FakeRequest())
@@ -80,7 +80,7 @@ class AccountingDetailsControllerSpec extends SCRSSpec with AuthFixture with Acc
 
     "return a 404 when the auth resource cannot be found" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockCTDataRepository.getOid(Matchers.anyString()))
+      when(mockCTDataRepository.getInternalId(Matchers.anyString()))
         .thenReturn(Future.successful(None))
       AccountingDetailsServiceMocks.retrieveAccountingDetails(registrationID, None)
 
@@ -90,9 +90,10 @@ class AccountingDetailsControllerSpec extends SCRSSpec with AuthFixture with Acc
 
 
     "return a 403 when the user is unauthorised to access the record" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority.copy(oid = "notAuthorisedOID")))
-      when(mockCTDataRepository.getOid(Matchers.anyString()))
-        .thenReturn(Future.successful(Some("testRegID" -> "testOID")))
+      val authority = validAuthority.copy(ids = validAuthority.ids.copy(internalId = "notAuthorisedID"))
+      AuthenticationMocks.getCurrentAuthority(Some(authority))
+      when(mockCTDataRepository.getInternalId(Matchers.anyString()))
+        .thenReturn(Future.successful(Some("testRegID" -> "testID")))
 
       val result = controller.retrieveAccountingDetails(registrationID)(FakeRequest())
       status(result) shouldBe FORBIDDEN
@@ -100,8 +101,8 @@ class AccountingDetailsControllerSpec extends SCRSSpec with AuthFixture with Acc
 
     "return a 403 when the user is not logged in" in new Setup {
       AuthenticationMocks.getCurrentAuthority(None)
-      when(mockCTDataRepository.getOid(Matchers.anyString()))
-        .thenReturn(Future.successful(Some("testRegID" -> "testOID")))
+      when(mockCTDataRepository.getInternalId(Matchers.anyString()))
+        .thenReturn(Future.successful(Some("testRegID" -> "testID")))
 
       val result = controller.retrieveAccountingDetails(registrationID)(FakeRequest())
       status(result) shouldBe FORBIDDEN
@@ -111,8 +112,8 @@ class AccountingDetailsControllerSpec extends SCRSSpec with AuthFixture with Acc
   "updateAccountingDetails" should {
     "return a 200 with accounting details in the json body when authorised" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockCTDataRepository.getOid(Matchers.anyString()))
-        .thenReturn(Future.successful(Some("testRegID" -> "testOID")))
+      when(mockCTDataRepository.getInternalId(Matchers.anyString()))
+        .thenReturn(Future.successful(Some(registrationID -> validAuthority.ids.internalId)))
       AccountingDetailsServiceMocks.updateAccountingDetails(registrationID, Some(validAccountingDetails))
 
       val response = FakeRequest().withBody(Json.toJson(validAccountingDetails))
@@ -125,7 +126,7 @@ class AccountingDetailsControllerSpec extends SCRSSpec with AuthFixture with Acc
 
     "return a 404 when the user is authorised but accounting details cannot be found" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      AuthorisationMocks.getOID("testOID", Some("testRegID" -> "testOID"))
+      AuthorisationMocks.getInternalId("testID", Some(registrationID -> validAuthority.ids.internalId))
       AccountingDetailsServiceMocks.updateAccountingDetails(registrationID, None)
 
       val response = FakeRequest().withBody(Json.toJson(validAccountingDetails))
@@ -136,7 +137,7 @@ class AccountingDetailsControllerSpec extends SCRSSpec with AuthFixture with Acc
 
     "return a 400 when the auth resource cannot be found" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      AuthorisationMocks.getOID("testOID", None)
+      AuthorisationMocks.getInternalId("testID", None)
 
       val response = FakeRequest().withBody(Json.toJson(validAccountingDetails))
 
@@ -146,8 +147,8 @@ class AccountingDetailsControllerSpec extends SCRSSpec with AuthFixture with Acc
 
     "return a 403 when the user is unauthorised to access the record" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockCTDataRepository.getOid(Matchers.anyString()))
-        .thenReturn(Future.successful(Some("testRegID" -> (validAuthority.oid + "123"))))
+      when(mockCTDataRepository.getInternalId(Matchers.anyString()))
+        .thenReturn(Future.successful(Some("testRegID" -> (validAuthority.ids.internalId + "123"))))
 
       val response = FakeRequest().withBody(Json.toJson(validAccountingDetails))
 
@@ -157,7 +158,7 @@ class AccountingDetailsControllerSpec extends SCRSSpec with AuthFixture with Acc
 
     "return a 403 when the user is not logged in" in new Setup {
       AuthenticationMocks.getCurrentAuthority(None)
-      AuthorisationMocks.getOID("testOID", Some("testRegID" -> "testOID"))
+      AuthorisationMocks.getInternalId("testID", Some("testRegID" -> "testID"))
 
       val response = FakeRequest().withBody(Json.toJson(validAccountingDetails))
 

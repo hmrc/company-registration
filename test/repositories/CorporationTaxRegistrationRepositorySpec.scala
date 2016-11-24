@@ -35,43 +35,44 @@ import scala.concurrent.ExecutionContext.Implicits.global
 class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSupport with MongoMocks with MockitoSugar with BeforeAndAfter
   with CorporationTaxRegistrationFixture with ContactDetailsFixture {
 
-	class MockedCorporationTaxRegistrationRepository extends CorporationTaxRegistrationMongoRepository {
-		override lazy val collection = mockCollection()
+  class MockedCorporationTaxRegistrationRepository extends CorporationTaxRegistrationMongoRepository {
+    override lazy val collection = mockCollection()
+
     override def indexes = Seq()
-	}
+  }
 
-	val repository = new MockedCorporationTaxRegistrationRepository()
+  val repository = new MockedCorporationTaxRegistrationRepository()
 
-	before {
-		reset(repository.collection)
-	}
+  before {
+    reset(repository.collection)
+  }
 
   val registrationID = "12345"
   val txID = s"tx${registrationID}"
 
-	"createCorporationTaxRegistration" should {
-		val randomRegid = UUID.randomUUID().toString
+  "createCorporationTaxRegistration" should {
+    val randomRegid = UUID.randomUUID().toString
     val emptyReg: CorporationTaxRegistration = CorporationTaxRegistration(
-      OID = "",
+      internalId = "",
       registrationID = "",
       formCreationTimestamp = "",
       language = "")
 
     "Store a document " in {
 
-			val captor = ArgumentCaptor.forClass(classOf[CorporationTaxRegistration])
+      val captor = ArgumentCaptor.forClass(classOf[CorporationTaxRegistration])
 
-			val ctData = emptyReg.copy(registrationID = randomRegid)
+      val ctData = emptyReg.copy(registrationID = randomRegid)
 
-			setupAnyInsertOn(repository.collection, fails = false)
+      setupAnyInsertOn(repository.collection, fails = false)
 
-			val ctDataResult = await(repository.createCorporationTaxRegistration(ctData))
+      val ctDataResult = await(repository.createCorporationTaxRegistration(ctData))
 
-			verifyInsertOn(repository.collection, captor)
+      verifyInsertOn(repository.collection, captor)
 
-			captor.getValue.registrationID shouldBe randomRegid
-			ctDataResult.registrationID shouldBe randomRegid
-		}
+      captor.getValue.registrationID shouldBe randomRegid
+      ctDataResult.registrationID shouldBe randomRegid
+    }
 
     "fail on insert" in {
       setupAnyInsertOn(repository.collection, fails = true)
@@ -82,20 +83,20 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
     }
 
 
-		"return None when no document exists" in {
+    "return None when no document exists" in {
 
-			val ctDataModel = mock[CorporationTaxRegistration]
+      val ctDataModel = mock[CorporationTaxRegistration]
 
-			when(ctDataModel.registrationID) thenReturn randomRegid
+      when(ctDataModel.registrationID) thenReturn randomRegid
 
-			val selector = BSONDocument("registrationID" -> BSONString(randomRegid))
-			setupFindFor(repository.collection, selector, None)
+      val selector = BSONDocument("registrationID" -> BSONString(randomRegid))
+      setupFindFor(repository.collection, selector, None)
 
-			val result = await(repository.getOid(randomRegid))
+      val result = await(repository.getInternalId(randomRegid))
 
-			result should be(None)
-		}
-	}
+      result should be(None)
+    }
+  }
 
   "retrieveCompanyDetails" should {
 
@@ -184,19 +185,19 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
     }
   }
 
-  "getOID" should {
+  "getInternalID" should {
 
-    "return the reg ID and OID from a fetched document" in {
+    "return the reg ID and IntID from a fetched document" in {
       val selector = BSONDocument("registrationID" -> BSONString(registrationID))
       setupFindFor(repository.collection, selector, Some(validDraftCorporationTaxRegistration))
 
-      val result = await(repository.getOid(registrationID))
-      result shouldBe Some(("0123456789", "9876543210"))
+      val result = await(repository.getInternalId(registrationID))
+      result shouldBe Some(("0123456789", "tiid"))
     }
   }
 
   "retrieveTradingDetails" should {
-    "return a TradingDetails" in  {
+    "return a TradingDetails" in {
       val selector = BSONDocument("registrationID" -> BSONString(registrationID))
       setupFindFor(repository.collection, selector, Some(validDraftCorporationTaxRegistration))
       setupAnyUpdateOn(repository.collection)
@@ -236,7 +237,7 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
   }
 
   "retrieveAccountingDetails" should {
-    "return an AccountingDetails model" in  {
+    "return an AccountingDetails model" in {
       val selector = BSONDocument("registrationID" -> BSONString(registrationID))
       setupFindFor(repository.collection, selector, Some(validDraftCorporationTaxRegistration))
       setupAnyUpdateOn(repository.collection)
@@ -244,7 +245,7 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
       val result = await(repository.retrieveAccountingDetails(registrationID))
       result shouldBe validDraftCorporationTaxRegistration.accountingDetails
     }
-    "return none" in  {
+    "return none" in {
       val selector = BSONDocument("registrationID" -> BSONString(registrationID))
       setupFindFor(repository.collection, selector, None)
       setupAnyUpdateOn(repository.collection)

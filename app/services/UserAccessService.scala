@@ -47,7 +47,7 @@ trait UserAccessService {
   val ctService : CorporationTaxRegistrationService
   val throttleService : ThrottleService
 
-  def checkUserAccess(oid: String)(implicit hc : HeaderCarrier): Future[Either[JsValue,UserAccessSuccessResponse]] = {
+  def checkUserAccess(internalId: String)(implicit hc : HeaderCarrier): Future[Either[JsValue,UserAccessSuccessResponse]] = {
     brConnector.retrieveMetadata flatMap {
       case BusinessRegistrationSuccessResponse(metadata) =>
         createResponse(metadata.registrationID, false) map { Right(_) }
@@ -56,7 +56,7 @@ trait UserAccessService {
           case false => Future.successful(Left(Json.toJson(UserAccessLimitReachedResponse(limitReached=true))))
           case true => for{
             metaData <- brConnector.createMetadataEntry
-            crData <- ctService.createCorporationTaxRegistrationRecord(oid, metaData.registrationID, "en")
+            crData <- ctService.createCorporationTaxRegistrationRecord(internalId, metaData.registrationID, "en")
             result <- createResponse(metaData.registrationID, true)
           } yield Right(result)
         }

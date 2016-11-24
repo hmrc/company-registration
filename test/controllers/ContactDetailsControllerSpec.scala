@@ -52,7 +52,7 @@ class ContactDetailsControllerSpec extends SCRSSpec with ContactDetailsFixture w
   "retrieveContactDetails" should {
     "return a 200 with contact details in the json body when authorised" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      AuthorisationMocks.getOID("testOID", Some("testRegID" -> "testOID"))
+      AuthorisationMocks.getInternalId("testID", Some(registrationID -> validAuthority.ids.internalId))
       ContactDetailsServiceMocks.retrieveContactDetails(registrationID, Some(contactDetails))
 
       val result = controller.retrieveContactDetails(registrationID)(FakeRequest())
@@ -62,7 +62,7 @@ class ContactDetailsControllerSpec extends SCRSSpec with ContactDetailsFixture w
 
     "return a 404 when the user is authorised but contact details cannot be found" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      AuthorisationMocks.getOID("testOID", Some("testRegID" -> "testOID"))
+      AuthorisationMocks.getInternalId("testID", Some(registrationID -> validAuthority.ids.internalId))
       ContactDetailsServiceMocks.retrieveContactDetails(registrationID, None)
 
       val result = controller.retrieveContactDetails(registrationID)(FakeRequest())
@@ -72,7 +72,7 @@ class ContactDetailsControllerSpec extends SCRSSpec with ContactDetailsFixture w
 
     "return a 404 when the auth resource cannot be found" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      AuthorisationMocks.getOID("testOID", None)
+      AuthorisationMocks.getInternalId("testID", None)
       ContactDetailsServiceMocks.retrieveContactDetails(registrationID, None)
 
       val result = controller.retrieveContactDetails(registrationID)(FakeRequest())
@@ -80,8 +80,9 @@ class ContactDetailsControllerSpec extends SCRSSpec with ContactDetailsFixture w
     }
 
     "return a 403 when the user is unauthorised to access the record" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority.copy(oid = "notAuthorisedOID")))
-      AuthorisationMocks.getOID("testOID", Some("testRegID" -> "testOID"))
+      val authority = validAuthority.copy(ids = validAuthority.ids.copy(internalId = "notAuthorisedID"))
+      AuthenticationMocks.getCurrentAuthority(Some(authority))
+      AuthorisationMocks.getInternalId("testID", Some("testRegID" -> "testID"))
 
       val result = controller.retrieveContactDetails(registrationID)(FakeRequest())
       status(result) shouldBe FORBIDDEN
@@ -89,7 +90,7 @@ class ContactDetailsControllerSpec extends SCRSSpec with ContactDetailsFixture w
 
     "return a 403 when the user is not logged in" in new Setup {
       AuthenticationMocks.getCurrentAuthority(None)
-      AuthorisationMocks.getOID("testOID", Some("testRegID" -> "testOID"))
+      AuthorisationMocks.getInternalId("testID", Some("testRegID" -> "testID"))
 
       val result = controller.retrieveContactDetails(registrationID)(FakeRequest())
       status(result) shouldBe FORBIDDEN
@@ -99,7 +100,7 @@ class ContactDetailsControllerSpec extends SCRSSpec with ContactDetailsFixture w
   "updateContactDetails" should {
     "return a 200 with contact details in the json body when authorised" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      AuthorisationMocks.getOID("testOID", Some("testRegID" -> "testOID"))
+      AuthorisationMocks.getInternalId("testID", Some(registrationID -> validAuthority.ids.internalId))
       ContactDetailsServiceMocks.updateContactDetails(registrationID, Some(contactDetails))
 
       val response = FakeRequest().withBody(Json.toJson(contactDetails))
@@ -111,7 +112,7 @@ class ContactDetailsControllerSpec extends SCRSSpec with ContactDetailsFixture w
 
     "return a 404 when the user is authorised but contact details cannot be found" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      AuthorisationMocks.getOID("testOID", Some("testRegID" -> "testOID"))
+      AuthorisationMocks.getInternalId("testID", Some(registrationID -> validAuthority.ids.internalId))
       ContactDetailsServiceMocks.updateContactDetails(registrationID, None)
 
       val response = FakeRequest().withBody(Json.toJson(contactDetails))
@@ -122,7 +123,7 @@ class ContactDetailsControllerSpec extends SCRSSpec with ContactDetailsFixture w
 
     "return a 400 when the auth resource cannot be found" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      AuthorisationMocks.getOID("testOID", None)
+      AuthorisationMocks.getInternalId("testID", None)
 
       val response = FakeRequest().withBody(Json.toJson(contactDetails))
 
@@ -131,8 +132,9 @@ class ContactDetailsControllerSpec extends SCRSSpec with ContactDetailsFixture w
     }
 
     "return a 403 when the user is unauthorised to access the record" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority.copy(oid = "notAuthorisedOID")))
-      AuthorisationMocks.getOID("testOID", Some("testRegID" -> "testOID"))
+      val authority = validAuthority.copy(ids = validAuthority.ids.copy(internalId = "notAuthorisedID"))
+      AuthenticationMocks.getCurrentAuthority(Some(authority))
+      AuthorisationMocks.getInternalId("testID", Some("testRegID" -> "testID"))
 
       val response = FakeRequest().withBody(Json.toJson(contactDetails))
 
@@ -142,7 +144,7 @@ class ContactDetailsControllerSpec extends SCRSSpec with ContactDetailsFixture w
 
     "return a 403 when the user is not logged in" in new Setup {
       AuthenticationMocks.getCurrentAuthority(None)
-      AuthorisationMocks.getOID("testOID", Some("testRegID" -> "testOID"))
+      AuthorisationMocks.getInternalId("testID", Some("testRegID" -> "testID"))
 
       val response = FakeRequest().withBody(Json.toJson(contactDetails))
 

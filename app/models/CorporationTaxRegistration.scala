@@ -16,7 +16,7 @@
 
 package models
 
-import org.joda.time.DateTime
+import org.joda.time.{DateTime, DateTimeZone}
 import org.joda.time.format.DateTimeFormat
 import play.api.data.validation.ValidationError
 import play.api.libs.functional.syntax._
@@ -33,7 +33,7 @@ object RegistrationStatus {
   val SUBMITTED = "submitted"
 }
 
-case class CorporationTaxRegistration(OID: String,
+case class CorporationTaxRegistration(internalId: String,
                                       registrationID: String,
                                       status: String = RegistrationStatus.DRAFT,
                                       formCreationTimestamp: String,
@@ -47,7 +47,8 @@ case class CorporationTaxRegistration(OID: String,
                                       accountsPreparation: Option[AccountPrepDetails] = None,
                                       crn: Option[String] = None,
                                       submissionTimestamp: Option[String] = None,
-                                      verifiedEmail: Option[Email] = None
+                                      verifiedEmail: Option[Email] = None,
+                                      createdTime: DateTime = CorporationTaxRegistration.now
                                      )
 
 object CorporationTaxRegistration {
@@ -63,6 +64,7 @@ object CorporationTaxRegistration {
   implicit val formatAccountsPrepDate = AccountPrepDetails.format
   implicit val formatEmail = Email.formats
   implicit val format = Json.format[CorporationTaxRegistration]
+  def now = DateTime.now(DateTimeZone.UTC)
 }
 
 

@@ -40,7 +40,7 @@ trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with Accou
   val validDraftCorporationTaxRegistration = draftCorporationTaxRegistration("0123456789")
 
   def draftCorporationTaxRegistration(regId: String) = CorporationTaxRegistration(
-    OID = "9876543210",
+    internalId = "tiid",
     registrationID = "0123456789",
     status = DRAFT,
     formCreationTimestamp = "2001-12-31T12:00:00Z",
@@ -62,7 +62,7 @@ trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with Accou
   val validConfirmationReferences = validConfRefsWithData()
 
   def validHeldCTRegWithData(regId: String = "0123456789", ackRef: Option[String] = None) = CorporationTaxRegistration(
-    OID = "9876543210",
+    internalId = "tiid",
     registrationID = regId,
     status = HELD,
     formCreationTimestamp = "2001-12-31T12:00:00Z",

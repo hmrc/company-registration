@@ -16,11 +16,11 @@
 
 package auth
 
-import connectors.{AuthConnector, Authority}
+import connectors.{AuthConnector, Authority, UserIds}
 import org.mockito.Matchers
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
-import org.scalatest.{BeforeAndAfter, ShouldMatchers, WordSpecLike}
+import org.scalatest.{WordSpecLike, BeforeAndAfter, ShouldMatchers}
 import play.api.mvc.Results
 import play.api.test.FakeApplication
 import play.api.test.Helpers._
@@ -30,86 +30,87 @@ import scala.concurrent.Future
 
 class AuthorisationSpec extends FakeApplication with WordSpecLike with ShouldMatchers with MockitoSugar with BeforeAndAfter {
 
-    implicit val hc = HeaderCarrier()
+  implicit val hc = HeaderCarrier()
 
-    val mockAuth = mock[AuthConnector]
-    val mockResource = mock[AuthorisationResource[String]]
+  val mockAuth = mock[AuthConnector]
+  val mockResource = mock[AuthorisationResource[String]]
 
-    object Authorisation extends Authorisation[String] {
-        val auth = mockAuth
-        val resourceConn = mockResource
+  object Authorisation extends Authorisation[String] {
+    val auth = mockAuth
+    val resourceConn = mockResource
+  }
+
+  before {
+    reset(mockAuth)
+    reset(mockResource)
+  }
+
+  "The authorisation helper" should {
+
+    "indicate there's no logged in user where there isn't a valid bearer token" in {
+
+      when(mockAuth.getCurrentAuthority()(Matchers.any())).thenReturn(Future.successful(None))
+      when(mockResource.getInternalId(Matchers.any())).thenReturn(Future.successful(None))
+
+      val result = Authorisation.authorised("xxx") { authResult => {
+        authResult shouldBe NotLoggedInOrAuthorised
+        Future.successful(Results.Forbidden)
+      }
+      }
+      val response = await(result)
+      response.header.status shouldBe FORBIDDEN
     }
 
-    before {
-        reset(mockAuth)
-        reset(mockResource)
+    "provided an authorised result when logged in and a consistent resource" in {
+
+      val regId = "xxx"
+      val userIDs = UserIds("foo", "bar")
+      val a = Authority("x", "", "z", userIDs)
+
+      when(mockAuth.getCurrentAuthority()(Matchers.any())).thenReturn(Future.successful(Some(a)))
+      when(mockResource.getInternalId(Matchers.eq(regId))).thenReturn(Future.successful(Some((regId, userIDs.internalId))))
+
+      val result = Authorisation.authorised(regId) { authResult => {
+        authResult shouldBe Authorised(a)
+        Future.successful(Results.Ok)
+      }
+      }
+      val response = await(result)
     }
 
-    "The authorisation helper" should {
+    "provided a not-authorised result when logged in and an inconsistent resource" in {
 
-        "indicate there's no logged in user where there isn't a valid bearer token" in {
+      val regId = "xxx"
+      val userIDs = UserIds("foo", "bar")
+      val a = Authority("x", "", "z", userIDs)
 
-            when(mockAuth.getCurrentAuthority()(Matchers.any())).thenReturn(Future.successful(None))
-            when(mockResource.getOid(Matchers.any())).thenReturn(Future.successful(None))
+      when(mockAuth.getCurrentAuthority()(Matchers.any())).thenReturn(Future.successful(Some(a)))
+      when(mockResource.getInternalId(Matchers.eq(regId))).thenReturn(Future.successful(Some((regId, userIDs.internalId + "xxx"))))
 
-            val result = Authorisation.authorised("xxx") { authResult => {
-                authResult shouldBe NotLoggedInOrAuthorised
-                Future.successful(Results.Forbidden)
-            }
-            }
-            val response = await(result)
-            response.header.status shouldBe FORBIDDEN
-        }
-
-        "provided an authorised result when logged in and a consistent resource" in {
-
-            val regId = "xxx"
-            val oid = "yyy"
-            val a = Authority("x", oid, "", "z")
-
-            when(mockAuth.getCurrentAuthority()(Matchers.any())).thenReturn(Future.successful(Some(a)))
-            when(mockResource.getOid(Matchers.eq(regId))).thenReturn(Future.successful(Some((regId, oid))))
-
-            val result = Authorisation.authorised(regId){ authResult => {
-                authResult shouldBe Authorised(a)
-                Future.successful(Results.Ok)
-            }
-            }
-            val response = await(result)
-        }
-
-        "provided a not-authorised result when logged in and an inconsistent resource" in {
-
-            val regId = "xxx"
-            val oid = "yyy"
-            val a = Authority("x", oid, "","z")
-
-            when(mockAuth.getCurrentAuthority()(Matchers.any())).thenReturn(Future.successful(Some(a)))
-            when(mockResource.getOid(Matchers.eq(regId))).thenReturn(Future.successful(Some((regId, oid+"xxx"))))
-
-            val result = Authorisation.authorised(regId){ authResult => {
-                authResult shouldBe NotAuthorised(a)
-                Future.successful(Results.Ok)
-            }
-            }
-            val response = await(result)
-            response.header.status shouldBe OK
-        }
-
-        "provided a not-found result when logged in and no resource for the identifier" in {
-
-            val a = Authority("x", "y", "", "z")
-
-            when(mockAuth.getCurrentAuthority()(Matchers.any())).thenReturn(Future.successful(Some(a)))
-            when(mockResource.getOid(Matchers.any())).thenReturn(Future.successful(None))
-
-            val result = Authorisation.authorised("xxx"){ authResult => {
-                authResult shouldBe AuthResourceNotFound(a)
-                Future.successful(Results.Ok)
-            }
-            }
-            val response = await(result)
-            response.header.status shouldBe OK
-        }
+      val result = Authorisation.authorised(regId) { authResult => {
+        authResult shouldBe NotAuthorised(a)
+        Future.successful(Results.Ok)
+      }
+      }
+      val response = await(result)
+      response.header.status shouldBe OK
     }
+
+    "provided a not-found result when logged in and no resource for the identifier" in {
+
+      val userIDs = UserIds("foo", "bar")
+      val a = Authority("x", "", "z", userIDs)
+
+      when(mockAuth.getCurrentAuthority()(Matchers.any())).thenReturn(Future.successful(Some(a)))
+      when(mockResource.getInternalId(Matchers.any())).thenReturn(Future.successful(None))
+
+      val result = Authorisation.authorised("xxx") { authResult => {
+        authResult shouldBe AuthResourceNotFound(a)
+        Future.successful(Results.Ok)
+      }
+      }
+      val response = await(result)
+      response.header.status shouldBe OK
+    }
+  }
 }

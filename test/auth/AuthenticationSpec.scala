@@ -16,11 +16,11 @@
 
 package auth
 
-import connectors.{AuthConnector, Authority}
+import connectors.{AuthConnector, Authority, UserIds}
 import org.mockito.Matchers
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
-import org.scalatest.{BeforeAndAfter, ShouldMatchers, WordSpecLike}
+import org.scalatest.{WordSpecLike, BeforeAndAfter, ShouldMatchers}
 import play.api.mvc.Results
 import play.api.test.FakeApplication
 import play.api.test.Helpers._
@@ -46,7 +46,8 @@ class AuthenticationSpec extends FakeApplication with WordSpecLike with ShouldMa
 
         "provided a logged in auth result when there is a valid bearer token" in {
 
-            val a = Authority("x", "y", "", "z")
+            val userIDs = UserIds("foo", "bar")
+            val a = Authority("x", "", "z", userIDs)
 
             when(mockAuth.getCurrentAuthority()(Matchers.any())).
                 thenReturn(Future.successful(Some(a)))

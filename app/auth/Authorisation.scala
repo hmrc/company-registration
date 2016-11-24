@@ -39,7 +39,7 @@ trait Authorisation[I] {
   def authorised(id:I)(f: => AuthorisationResult => Future[Result])(implicit hc: HeaderCarrier) = {
     for {
       authority <- auth.getCurrentAuthority()
-      resource <- resourceConn.getOid(id)
+      resource <- resourceConn.getInternalId(id)
       result <- f(mapToAuthResult(authority, resource))
     } yield {
       Logger.debug(s"Got authority = $authority")
@@ -50,7 +50,7 @@ trait Authorisation[I] {
   def authorisedFor(registrationId: I)(f: Authority => Future[Result])(implicit hc: HeaderCarrier): Future[Result] = {
     val res = for {
       authority <- auth.getCurrentAuthority()
-      resource <- resourceConn.getOid(registrationId)
+      resource <- resourceConn.getInternalId(registrationId)
     } yield {
       Logger.debug(s"Got authority = $authority")
       mapToAuthResult(authority, resource)
@@ -76,7 +76,7 @@ trait Authorisation[I] {
       case Some(context) => {
         resource match {
           case None => AuthResourceNotFound(context)
-          case Some((_, context.oid)) => Authorised (context)
+          case Some((_, context.ids.internalId)) => Authorised (context)
           case Some((_, _)) => NotAuthorised (context)
         }
       }
