@@ -472,7 +472,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
 
     "return None" when {
       "the given ack ref cant be matched against a CT record" in new Setup {
-        when(mockCTDataRepository.getHeldCTRecord(Matchers.eq(ackRef)))
+        when(mockCTDataRepository.retrieveByAckRef(Matchers.eq(ackRef)))
           .thenReturn(Future.successful(None))
 
         val result = await(service.updateCTRecordWithAckRefs(ackRef, refs))
@@ -482,7 +482,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
 
     "return an optional ack ref payload" when {
       "the ct record has been found and subsequently updated" in new Setup {
-        when(mockCTDataRepository.getHeldCTRecord(Matchers.eq(ackRef)))
+        when(mockCTDataRepository.retrieveByAckRef(Matchers.eq(ackRef)))
           .thenReturn(Future.successful(Some(validHeldCorporationTaxRegistration)))
 
         when(mockCTDataRepository.updateCTRecordWithAcknowledgments(Matchers.eq(ackRef), Matchers.eq(updated)))
@@ -493,7 +493,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
       }
 
       "the ct record has been found but has been already updated" in new Setup {
-        when(mockCTDataRepository.getHeldCTRecord(Matchers.eq(ackRef)))
+        when(mockCTDataRepository.retrieveByAckRef(Matchers.eq(ackRef)))
           .thenReturn(Future.successful(Some(updated)))
 
         val result = await(service.updateCTRecordWithAckRefs(ackRef, refs))

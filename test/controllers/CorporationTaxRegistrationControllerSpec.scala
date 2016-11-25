@@ -309,6 +309,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
 
       val refs = AcknowledgementReferences("aaa", "bbb", "ccc")
 
+      implicit val format = AcknowledgementReferences.apiFormat
       val jsonBody = Json.toJson(refs)
 
       val request = FakeRequest().withBody(jsonBody)
@@ -328,6 +329,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
 
       val refs = AcknowledgementReferences("aaa", "bbb", "ccc")
 
+      implicit val format = AcknowledgementReferences.apiFormat
       val jsonBody = Json.toJson(refs)
 
       val request = FakeRequest().withBody(jsonBody)

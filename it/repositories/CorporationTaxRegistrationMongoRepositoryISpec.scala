@@ -132,7 +132,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     }
   }
 
-  "getHeldCTRecord" should {
+  "retrieveByAckRef" should {
 
     val ackRef = "BRCT12345678910"
 
@@ -152,7 +152,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       "given an ack ref" in new Setup {
         await(setupCollection(repository, validHeldCorporationTaxRegistration))
 
-        val result = await(repository.getHeldCTRecord(ackRef)).get
+        val result = await(repository.retrieveByAckRef(ackRef)).get
 
         result shouldBe validHeldCorporationTaxRegistration
       }

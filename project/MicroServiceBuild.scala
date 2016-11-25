@@ -34,6 +34,7 @@ private object AppDependencies {
   private val playReactivemongoVersion = "4.8.0"
   private val playSchedulingVersion = "3.0.0"
   private val mongoLockVersion = "3.4.0"
+  private val cryptoVersion = "3.1.0"
 
   val compile = Seq(
     ws,
@@ -46,7 +47,8 @@ private object AppDependencies {
     "uk.gov.hmrc" %% "play-json-logger" % playJsonLoggerVersion,
     "uk.gov.hmrc" %% "domain" % domainVersion,
     "uk.gov.hmrc" %% "play-scheduling" % playSchedulingVersion,
-    "uk.gov.hmrc" %% "mongo-lock" % mongoLockVersion
+    "uk.gov.hmrc" %% "mongo-lock" % mongoLockVersion,
+    "uk.gov.hmrc" %% "crypto" % cryptoVersion
   )
 
   trait TestDependencies {

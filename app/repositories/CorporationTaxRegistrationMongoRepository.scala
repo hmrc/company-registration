@@ -16,13 +16,15 @@
 
 package repositories
 
-import auth.AuthorisationResource
+import auth.{AuthorisationResource, Crypto}
 import models._
-import play.api.libs.json.{JsObject, JsValue}
+import play.api.libs.functional.syntax.unlift
+import play.api.libs.json.Reads.maxLength
+import play.api.libs.json.{__, Json, JsObject, JsValue}
 import reactivemongo.api.DB
 import reactivemongo.bson.BSONDocument
 import reactivemongo.api.commands.WriteResult
-import reactivemongo.api.indexes.{Index, IndexType}
+import reactivemongo.api.indexes.{IndexType, Index}
 import reactivemongo.bson._
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
@@ -30,6 +32,21 @@ import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.control.NoStackTrace
+
+object CorporationTaxRegistrationMongo {
+  implicit val formatCH = CHROAddress.format
+  implicit val formatRO = ROAddress.format
+  implicit val formatPPOB = PPOBAddress.format
+  implicit val formatTD = TradingDetails.format
+  implicit val formatCompanyDetails = CompanyDetails.format
+  implicit val formatAccountingDetails = AccountingDetails.formats
+  implicit val formatContactDetails = ContactDetails.format
+  implicit val formatAck = AcknowledgementReferences.mongoFormat(Crypto.rds,Crypto.wts)
+  implicit val formatConfirmationReferences = ConfirmationReferences.format
+  implicit val formatAccountsPrepDate = AccountPrepDetails.format
+  implicit val formatEmail = Email.formats
+  implicit val format = Json.format[CorporationTaxRegistration]
+}
 
 trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegistration, BSONObjectID]{
   def createCorporationTaxRegistration(metadata: CorporationTaxRegistration): Future[CorporationTaxRegistration]
@@ -49,7 +66,7 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def updateSubmissionStatus(registrationID: String, status: String): Future[String]
   def removeTaxRegistrationInformation(registrationId: String): Future[Boolean]
   def updateCTRecordWithAcknowledgments(ackRef : String, ctRecord : CorporationTaxRegistration) : Future[WriteResult]
-  def getHeldCTRecord(ackRef : String) : Future[Option[CorporationTaxRegistration]]
+  def retrieveByAckRef(ackRef : String) : Future[Option[CorporationTaxRegistration]]
   def updateHeldToSubmitted(registrationId: String, crn: String, submissionTS: String): Future[Boolean]
   def removeTaxRegistrationById(registrationId: String): Future[Boolean]
   def updateEmail(registrationId: String, email: Email): Future[Option[Email]]
@@ -59,9 +76,11 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
 private[repositories] class MissingCTDocument(regId: String) extends NoStackTrace
 
 class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
-  extends ReactiveRepository[CorporationTaxRegistration, BSONObjectID]("corporation-tax-registration-information", mongo, CorporationTaxRegistration.format, ReactiveMongoFormats.objectIdFormats)
+  extends ReactiveRepository[CorporationTaxRegistration, BSONObjectID]("corporation-tax-registration-information", mongo, CorporationTaxRegistrationMongo.format, ReactiveMongoFormats.objectIdFormats)
   with CorporationTaxRegistrationRepository
   with AuthorisationResource[String] {
+
+  private val crypto = Crypto
 
   override def indexes: Seq[Index] = Seq(
     Index(
@@ -79,11 +98,12 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
   )
 
   override def updateCTRecordWithAcknowledgments(ackRef : String, ctRecord: CorporationTaxRegistration): Future[WriteResult] = {
+    implicit val format = CorporationTaxRegistrationMongo.format
     val updateSelector = BSONDocument("confirmationReferences.acknowledgement-reference" -> BSONString(ackRef))
     collection.update(updateSelector, ctRecord, upsert = false)
   }
 
-  override def getHeldCTRecord(ackRef: String) : Future[Option[CorporationTaxRegistration]] = {
+  override def retrieveByAckRef(ackRef: String) : Future[Option[CorporationTaxRegistration]] = {
     val query = BSONDocument("confirmationReferences.acknowledgement-reference" -> BSONString(ackRef))
     collection.find(query).one[CorporationTaxRegistration]
   }
