@@ -142,7 +142,7 @@ class InterimDesRegistrationSpec extends UnitSpec {
       val desModel = InterimCorporationTax(
                                   "DG Limited",
                                   false,
-                                  desBusinessAddress,
+                                  Some(desBusinessAddress),
                                   desBusinessContactName,
                                   desBusinessContactContactDetails
                                 )
@@ -221,7 +221,7 @@ class InterimDesRegistrationSpec extends UnitSpec {
       val testInterimCorporationTax = InterimCorporationTax(
         "DG Limited",
         false,
-        desBusinessAddress,
+        Some(desBusinessAddress),
         desBusinessContactName,
         desBusinessContactContactDetails
       )

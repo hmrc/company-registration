@@ -40,7 +40,7 @@ trait CompanyDetailsController extends BaseController with Authenticated with Au
 
   private def mapToResponse(registrationID: String, res: CompanyDetails)= {
     Json.toJson(res).as[JsObject] ++
-      Json.obj( "tradingDetails" -> TradingDetails() ) ++
+      Json.obj("tradingDetails" -> TradingDetails()) ++
       Json.obj(
         "links" -> Json.obj(
           "self" -> routes.CompanyDetailsController.retrieveCompanyDetails(registrationID).url,
@@ -73,11 +73,10 @@ trait CompanyDetailsController extends BaseController with Authenticated with Au
       authorised(registrationID) {
         case Authorised(_) =>
           withJsonBody[CompanyDetails] {
-            companyDetails => companyDetailsService.updateCompanyDetails(registrationID, companyDetails)
-              .map{
-                case Some(details) => Ok(mapToResponse(registrationID, details))
-                case None => NotFound(ErrorResponse.companyDetailsNotFound)
-              }
+            companyDetails => companyDetailsService.updateCompanyDetails(registrationID, companyDetails).map{
+              case Some(details) => Ok(mapToResponse(registrationID, details))
+              case None => NotFound(ErrorResponse.companyDetailsNotFound)
+            }
           }
         case NotLoggedInOrAuthorised =>
           Logger.info(s"[CompanyDetailsController] [updateCompanyDetails] User not logged in")

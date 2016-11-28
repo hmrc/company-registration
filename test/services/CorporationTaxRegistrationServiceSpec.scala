@@ -107,8 +107,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
       companyDetails = Some(CompanyDetails(
         "testCompanyName",
         CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
-        ROAddress("10", "test street", "test town", "test area", "test county", "XX1 1ZZ", "test country"),
-        PPOBAddress("10", "test street", Some("test town"), Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country")),
+        PPOB("MANUAL", Some(PPOBAddress("10", "test street", Some("test town"), Some("test area"), Some("test county"), Some("XX1 1ZZ"), None))),
         "testJurisdiction"
       )),
       contactDetails = Some(ContactDetails(
@@ -325,15 +324,13 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
     val companyDetails1 = CompanyDetails(
       "name",
       CHROAddress("P", "1", Some("2"), "C", "L", Some("PO"), Some("PC"), Some("R")),
-      ROAddress("H", "1", "2", "3", "4", "ZZ1 1ZZ", "C"),
-      PPOBAddress("H", "1", Some("2"), Some("3"), Some("4"), Some("ZZ1 1ZZ"), Some("C")),
+      PPOB("MANUAL", Some(PPOBAddress("H", "1", Some("2"), Some("3"), Some("4"), Some("ZZ1 1ZZ"), Some("C")))),
       "J"
     )
     val companyDetails2 = CompanyDetails(
       "name",
       CHROAddress("P", "1", Some("2"), "C", "L", Some("PO"), Some("PC"), Some("R")),
-      ROAddress("H", "1", "2", "3", "4", "ZZ1 1ZZ", "C"),
-      PPOBAddress("H", "1", None, None, None, Some("ZZ1 1ZZ"), None),
+      PPOB("MANUAL", Some(PPOBAddress("H", "1", None, None, None, Some("ZZ1 1ZZ"), None))),
       "J"
     )
     val contactDetails1 = ContactDetails("F", Some("M"), "S", Some("1"), Some("2"), Some("a@b.c"))
@@ -362,7 +359,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
         InterimCorporationTax(
           "name",
           returnsOnCT61 = false,
-          BusinessAddress("H", "1", Some("2"), Some("3"), Some("ZZ1 1ZZ"), Some("C")),
+          Some(BusinessAddress("H", "1", Some("2"), Some("3"), Some("ZZ1 1ZZ"), Some("C"))),
           BusinessContactName("F", Some("M"), "S"),
           BusinessContactDetails(Some("1"), Some("2"), Some("a@b.c"))
         )
@@ -380,7 +377,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
         InterimCorporationTax(
           "name",
           returnsOnCT61 = false,
-          BusinessAddress("H", "1", None, None, Some("ZZ1 1ZZ"), None),
+          Some(BusinessAddress("H", "1", None, None, Some("ZZ1 1ZZ"), None)),
           BusinessContactName("F", None, "S"),
           BusinessContactDetails(None, None, Some("a@b.c"))
         )
@@ -412,8 +409,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
       companyDetails = Some(CompanyDetails(
         "testCompanyName",
         CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
-        ROAddress("10", "test street", "test town", "test area", "test county", "XX1 1ZZ", "test country"),
-        PPOBAddress("10", "test street", Some("test town"), Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country")),
+        PPOB("MANUAL", Some(PPOBAddress("10", "test street", Some("test town"), Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country")))),
         "testJurisdiction"
       )),
       contactDetails = Some(ContactDetails(
@@ -437,7 +433,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
         InterimCorporationTax(
           corporationTaxRegistration.companyDetails.get.companyName,
           returnsOnCT61 = false,
-          BusinessAddress("10", "test street", Some("test town"), Some("test area"), Some("XX1 1ZZ"), Some("test country")),
+          Some(BusinessAddress("10", "test street", Some("test town"), Some("test area"), Some("XX1 1ZZ"), Some("test country"))),
           BusinessContactName(
             corporationTaxRegistration.contactDetails.get.firstName,
             corporationTaxRegistration.contactDetails.get.middleName,

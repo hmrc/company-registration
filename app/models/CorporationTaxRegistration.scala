@@ -18,9 +18,10 @@ package models
 
 import org.joda.time.{DateTimeZone, DateTime}
 import org.joda.time.format.DateTimeFormat
+import org.joda.time.DateTime
 import play.api.data.validation.ValidationError
 import play.api.libs.functional.syntax._
-import play.api.libs.json.Reads.{maxLength, minLength}
+import play.api.libs.json.Reads.maxLength
 import play.api.libs.json._
 import Validation.withFilter
 import auth.Crypto
@@ -58,8 +59,8 @@ case class CorporationTaxRegistration(internalId: String,
 
 object CorporationTaxRegistration {
   implicit val formatCH = CHROAddress.format
-  implicit val formatRO = ROAddress.format
-  implicit val formatPPOB = PPOBAddress.format
+  implicit val formatPPOBAddress = PPOBAddress.format
+  implicit val formatPPOB = PPOB.format
   implicit val formatTD = TradingDetails.format
   implicit val formatCompanyDetails = CompanyDetails.format
   implicit val formatAccountingDetails = AccountingDetails.formats
@@ -108,20 +109,18 @@ object ConfirmationReferences {
 
 case class CompanyDetails(companyName: String,
                           registeredOffice: CHROAddress,
-                          doNotUseRoAddress: ROAddress,
-                          ppob: PPOBAddress,
+                          ppob: PPOB,
                           jurisdiction: String)
 
 object CompanyDetails extends CompanyDetailsValidator {
   implicit val formatCH = CHROAddress.format
-  implicit val formatRO = ROAddress.format
-  implicit val formatPPOB = PPOBAddress.format
+  implicit val formatPPOBAddress = PPOBAddress.format
+  implicit val formatPPOB = PPOB.format
   implicit val formatTD = TradingDetails.format
   implicit val format = (
     (__ \ "companyName").format[String](companyNameValidator) and
       (__ \ "cHROAddress").format[CHROAddress] and
-      (__ \ "rOAddress").format[ROAddress] and
-      (__ \ "pPOBAddress").format[PPOBAddress] and
+      (__ \ "pPOBAddress").format[PPOB] and
       (__ \ "jurisdiction").format[String]
     ) (CompanyDetails.apply, unlift(CompanyDetails.unapply))
 }
@@ -148,18 +147,6 @@ object CHROAddress extends CHAddressValidator {
     ) (CHROAddress.apply, unlift(CHROAddress.unapply))
 }
 
-case class ROAddress(houseNameNumber: String,
-                     addressLine1: String,
-                     addressLine2: String,
-                     addressLine3: String,
-                     addressLine4: String,
-                     postCode: String,
-                     country: String)
-
-object ROAddress {
-  implicit val format = Json.format[ROAddress]
-}
-
 case class PPOBAddress(houseNameNumber: String,
                        line1: String,
                        line2: Option[String],
@@ -182,6 +169,13 @@ object PPOBAddress extends HMRCAddressValidator {
     )(
       ppob => ppob.postcode.isDefined || ppob.country.isDefined
     )
+}
+
+case class PPOB(addressType: String,
+                address: Option[PPOBAddress])
+
+object PPOB {
+  implicit val format = Json.format[PPOB]
 }
 
 case class CorporationTaxRegistrationRequest(language: String)

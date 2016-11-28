@@ -35,7 +35,6 @@ import scala.util.control.NoStackTrace
 
 object CorporationTaxRegistrationMongo {
   implicit val formatCH = CHROAddress.format
-  implicit val formatRO = ROAddress.format
   implicit val formatPPOB = PPOBAddress.format
   implicit val formatTD = TradingDetails.format
   implicit val formatCompanyDetails = CompanyDetails.format
