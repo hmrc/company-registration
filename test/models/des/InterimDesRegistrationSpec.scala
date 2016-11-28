@@ -94,7 +94,7 @@ class InterimDesRegistrationSpec extends UnitSpec {
   "The Interim Registration corporationTax model" should {
     "Produce valid JSON for a fuller model" in {
       val expectedJson : String = s"""{
-                                      |  "companyOfficeNumber" : "001",
+                                      |  "companyOfficeNumber" : "623",
                                       |  "hasCompanyTakenOverBusiness" : false,
                                       |  "companyMemberOfGroup" : false,
                                       |  "companiesHouseCompanyName" : "DG Limited",
@@ -154,6 +154,7 @@ class InterimDesRegistrationSpec extends UnitSpec {
   }
 
   "The Interim Des Registration model" should {
+
     "Be able to be parsed into JSON" in {
 
       val expectedJson : String = s"""{  "acknowledgementReference" : "ackRef1",
@@ -169,7 +170,7 @@ class InterimDesRegistrationSpec extends UnitSpec {
                                       |  "declareAccurateAndComplete": true
                                       |  },
                                       |  "corporationTax" : {
-                                      |  "companyOfficeNumber" : "001",
+                                      |  "companyOfficeNumber" : "623",
                                       |  "hasCompanyTakenOverBusiness" : false,
                                       |  "companyMemberOfGroup" : false,
                                       |  "companiesHouseCompanyName" : "DG Limited",
@@ -233,6 +234,65 @@ class InterimDesRegistrationSpec extends UnitSpec {
       result shouldBe Json.parse(expectedJson)
     }
 
+    "should not parse empty strings" in {
+      val expectedJson : String = s"""{  "acknowledgementReference" : "ackRef1",
+                                      |  "registration" : {
+                                      |  "metadata" : {
+                                      |  "businessType" : "Limited company",
+                                      |  "sessionId" : "session-123",
+                                      |  "credentialId" : "cred-123",
+                                      |  "formCreationTimestamp": "1970-01-01T00:00:00.000Z",
+                                      |  "submissionFromAgent": false,
+                                      |  "language" : "ENG",
+                                      |  "completionCapacity" : "Director",
+                                      |  "declareAccurateAndComplete": true
+                                      |  },
+                                      |  "corporationTax" : {
+                                      |  "companyOfficeNumber" : "623",
+                                      |  "hasCompanyTakenOverBusiness" : false,
+                                      |  "companyMemberOfGroup" : false,
+                                      |  "companiesHouseCompanyName" : "DG Limited",
+                                      |  "returnsOnCT61" : false,
+                                      |  "companyACharity" : false,
+                                      |  "businessContactName" : {
+                                      |                           "firstName" : "Adam",
+                                      |                           "middleNames" : "the",
+                                      |                           "lastName" : "ant"
+                                      |                           },
+                                      |  "businessContactDetails" : {
+                                      |                             "email" : "d@ddd.com"
+                                      |                             }
+                                      |                           }
+                                      |  }
+                                      |}""".stripMargin
+
+      val testMetadata = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), Director )
+
+      val desBusinessContactName = BusinessContactName(
+        "Adam",
+        Some("the"),
+        "ant"
+      )
+      val desBusinessContactContactDetails = BusinessContactDetails(
+        None,
+        None,
+        Some("d@ddd.com")
+      )
+
+      val testInterimCorporationTax = InterimCorporationTax(
+        "DG Limited",
+        false,
+        None,
+        desBusinessContactName,
+        desBusinessContactContactDetails
+      )
+
+      val testModel1 = InterimDesRegistration( "ackRef1", testMetadata, testInterimCorporationTax)
+
+      val result = Json.toJson[InterimDesRegistration](testModel1)
+      result.getClass shouldBe classOf[JsObject]
+      result shouldBe Json.parse(expectedJson)
+    }
   }
 }
 
