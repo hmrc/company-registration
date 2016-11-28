@@ -16,13 +16,14 @@
 
 package models
 
-import org.joda.time.{DateTime, DateTimeZone}
+import org.joda.time.{DateTimeZone, DateTime}
 import org.joda.time.format.DateTimeFormat
 import play.api.data.validation.ValidationError
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads.{maxLength, minLength}
 import play.api.libs.json._
 import Validation.withFilter
+import auth.Crypto
 
 import scala.language.implicitConversions
 
@@ -51,6 +52,10 @@ case class CorporationTaxRegistration(internalId: String,
                                       createdTime: DateTime = CorporationTaxRegistration.now
                                      )
 
+//object CorporationTaxRegistration {
+//  def now = DateTime.now(DateTimeZone.UTC)
+//}
+
 object CorporationTaxRegistration {
   implicit val formatCH = CHROAddress.format
   implicit val formatRO = ROAddress.format
@@ -59,7 +64,7 @@ object CorporationTaxRegistration {
   implicit val formatCompanyDetails = CompanyDetails.format
   implicit val formatAccountingDetails = AccountingDetails.formats
   implicit val formatContactDetails = ContactDetails.format
-  implicit val formatAck = AcknowledgementReferences.format
+  implicit val formatAck = AcknowledgementReferences.apiFormat
   implicit val formatConfirmationReferences = ConfirmationReferences.format
   implicit val formatAccountsPrepDate = AccountPrepDetails.format
   implicit val formatEmail = Email.formats
@@ -67,13 +72,24 @@ object CorporationTaxRegistration {
   def now = DateTime.now(DateTimeZone.UTC)
 }
 
-
 case class AcknowledgementReferences(ctUtr: String,
                                      timestamp: String,
                                      status: String)
 
 object AcknowledgementReferences {
-  implicit val format = Json.format[AcknowledgementReferences]
+//  implicit val format = Json.format[AcknowledgementReferences]
+  val apiFormat = (
+    (__ \ "ctUtr").format[String] and
+      (__ \ "timestamp").format[String] and
+      (__ \ "status").format[String]
+    ) (AcknowledgementReferences.apply _, unlift(AcknowledgementReferences.unapply _))
+
+  def mongoFormat(cryptoRds: Reads[String], cryptoWts: Writes[String]) = (
+    (__ \ "ct-utr").format[String](cryptoRds)(cryptoWts) and
+      (__ \ "timestamp").format[String] and
+      (__ \ "status").format[String]
+    ) (AcknowledgementReferences.apply _, unlift(AcknowledgementReferences.unapply _))
+
 }
 
 case class ConfirmationReferences(acknowledgementReference: String = "",

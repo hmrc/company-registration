@@ -62,7 +62,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
 
 
   def updateCTRecordWithAckRefs(ackRef: String, refPayload: AcknowledgementReferences): Future[Option[CorporationTaxRegistration]] = {
-    corporationTaxRegistrationRepository.getHeldCTRecord(ackRef) flatMap {
+    corporationTaxRegistrationRepository.retrieveByAckRef(ackRef) flatMap {
       case Some(record) =>
         record.acknowledgementReferences match {
           case Some(refs) =>
