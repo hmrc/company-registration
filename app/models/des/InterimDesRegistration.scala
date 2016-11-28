@@ -148,7 +148,7 @@ object Metadata {
 case class InterimCorporationTax(
                                   companyName: String,
                                   returnsOnCT61: Boolean,
-                                  businessAddress: BusinessAddress,
+                                  businessAddress: Option[BusinessAddress],
                                   businessContactName: BusinessContactName,
                                   businessContactDetails: BusinessContactDetails
                                 )
@@ -156,7 +156,7 @@ case class InterimCorporationTax(
 object InterimCorporationTax {
   implicit val writes = new Writes[InterimCorporationTax] {
     def writes(m: InterimCorporationTax) = {
-      val address: JsObject = Json.toJson(m.businessAddress).as[JsObject]
+      val address = Json.toJson(m.businessAddress).as[Option[JsObject]]
       val name: JsObject = Json.toJson(m.businessContactName).as[JsObject]
       val contactDetails: JsObject = Json.toJson(m.businessContactDetails).as[JsObject]
       Json.obj(

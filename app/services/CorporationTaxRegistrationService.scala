@@ -181,14 +181,18 @@ trait CorporationTaxRegistrationService extends DateHelper {
     val completionCapacity = CompletionCapacity(brMetadata.completionCapacity.get)
 
     // SCRS-3708 - should be an Option[BusinessAddress] and mapped from the optional ppob
-    val businessAddress: BusinessAddress = BusinessAddress(
-      line1 = ppob.houseNameNumber,
-      line2 = ppob.line1,
-      line3 = ppob.line2,
-      line4 = ppob.line3,
-      postcode = ppob.postcode,
-      country = ppob.country
-    )
+    val businessAddress: Option[BusinessAddress] = ppob.address match {
+      case Some(address) => Some(
+        BusinessAddress(
+          line1 = address.houseNameNumber,
+          line2 = address.line1,
+          line3 = address.line2,
+          line4 = address.line3,
+          postcode = address.postcode,
+          country = address.country
+        ))
+      case None => None
+    }
 
     val businessContactName = BusinessContactName(
       firstName = contactDetails.firstName,
@@ -214,7 +218,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
       interimCorporationTax = InterimCorporationTax(
         companyName = companyDetails.companyName,
         returnsOnCT61 = tradingDetails.regularPayments,
-        businessAddress = businessAddress,
+        businessAddress = businessAddress, //todo - SCRS-3708: make business address optional
         businessContactName = businessContactName,
         businessContactDetails = businessContactDetails
       )

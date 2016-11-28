@@ -21,8 +21,7 @@ import play.api.libs.json.Json
 
 case class CompanyDetailsResponse(companyName: String,
                                   cHROAddress: CHROAddress,
-                                  rOAddress: ROAddress,
-                                  pPOBAddress: PPOBAddress,
+                                  pPOBAddress: PPOB,
                                   jurisdiction: String,
                                   tradingDetails: TradingDetails,
                                   links: Links)
@@ -52,16 +51,9 @@ trait CompanyDetailsFixture {
       Some("Post code"),
       Some("Region")
     ),
-    ROAddress(
-      "10",
-      "test street",
-      "test town",
-      "test area",
-      "test county",
-      "XX1 1ZZ",
-      "test country"
-    ),
-    PPOBAddress(
+    PPOB(
+      "MANUAL",
+      Some(PPOBAddress(
       "10",
       "test street",
       Some("test town"),
@@ -69,7 +61,7 @@ trait CompanyDetailsFixture {
       Some("test county"),
       Some("XX1 1ZZ"),
       Some("test country")
-    ),
+    ))),
     "testJurisdiction"
   )
 
@@ -77,7 +69,6 @@ trait CompanyDetailsFixture {
   lazy val validCompanyDetailsResponse = CompanyDetailsResponse(
     companyName = validCompanyDetails.companyName,
     cHROAddress = validCompanyDetails.registeredOffice,
-    rOAddress = validCompanyDetails.doNotUseRoAddress,
     pPOBAddress = validCompanyDetails.ppob,
     jurisdiction = validCompanyDetails.jurisdiction,
     TradingDetails(),
