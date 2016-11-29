@@ -16,7 +16,6 @@
 
 package controllers
 
-import connectors.Authority
 import controllers.test.EmailController
 import fixtures.AuthFixture
 import helpers.SCRSSpec
