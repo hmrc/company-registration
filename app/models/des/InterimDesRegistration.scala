@@ -160,14 +160,14 @@ object InterimCorporationTax {
       val name: JsObject = Json.toJson(m.businessContactName).as[JsObject]
       val contactDetails: JsObject = Json.toJson(m.businessContactDetails).as[JsObject]
       Json.obj(
-        "companyOfficeNumber" -> "001", // TODO SCRS-2283 check default value
+        "companyOfficeNumber" -> "623",
         "hasCompanyTakenOverBusiness" -> false,
         "companyMemberOfGroup" -> false,
         "companiesHouseCompanyName" -> m.companyName,
         "returnsOnCT61" -> m.returnsOnCT61,
         "companyACharity" -> false
       ) ++
-        Json.obj("businessAddress" -> address) ++ // todo - SCRS-3708 optional
+        address.fold(Json.obj())(add => Json.obj("businessAddress" -> add)) ++
         Json.obj("businessContactName" -> name) ++
         Json.obj("businessContactDetails" -> contactDetails)
     }
