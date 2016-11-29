@@ -18,17 +18,15 @@ package connectors
 
 import java.util.UUID
 
-import mocks.WSHttpMock
+import config.WSHttp
 import models.{IncorpUpdate, SubmissionCheckResponse}
 import org.joda.time.DateTime
 import org.mockito.{ArgumentCaptor, Matchers}
 import org.scalatest.mock.MockitoSugar
-import org.scalatest.{ShouldMatchers, WordSpecLike}
 import uk.gov.hmrc.play.http.ws.WSHttp
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 import org.mockito.Mockito._
-import services.CorporationTaxRegistrationService
-import uk.gov.hmrc.play.http.HeaderCarrier
+import uk.gov.hmrc.play.http._
 
 import scala.concurrent.Future
 
@@ -57,6 +55,15 @@ class SubmissionCheckAPIConnectorSpec extends UnitSpec with MockitoSugar with Wi
                                       "100000011")
                                   ),
                                   "testNextLink")
+
+  "IncorporationCheckAPIConnector" should {
+    "use the correct http" in {
+      IncorporationCheckAPIConnector.http shouldBe WSHttp
+    }
+    "use the correct proxyUrl" in {
+      IncorporationCheckAPIConnector.proxyUrl shouldBe "http://localhost:9970"
+    }
+  }
 
   "checkSubmission" should {
 
@@ -102,6 +109,71 @@ class SubmissionCheckAPIConnectorSpec extends UnitSpec with MockitoSugar with Wi
         .thenReturn(Future.successful(validSubmissionResponse))
 
       await(connector.checkSubmission(None))
+
+      urlCaptor.getValue shouldBe url
+    }
+
+    "report an error when receiving a 400" in new Setup {
+      val url = s"$testProxyUrl/internal/check-submission?items_per_page=1"
+
+      val urlCaptor = ArgumentCaptor.forClass(classOf[String])
+
+      when(mockWSHttp.GET[SubmissionCheckResponse](urlCaptor.capture())(Matchers.any(), Matchers.any()))
+        .thenReturn(Future.failed(new BadRequestException("400")))
+
+      intercept[SubmissionAPIFailure](await(connector.checkSubmission(None)))
+
+      urlCaptor.getValue shouldBe url
+    }
+
+    "report an error when receiving a 404" in new Setup {
+      val url = s"$testProxyUrl/internal/check-submission?items_per_page=1"
+
+      val urlCaptor = ArgumentCaptor.forClass(classOf[String])
+
+      when(mockWSHttp.GET[SubmissionCheckResponse](urlCaptor.capture())(Matchers.any(), Matchers.any()))
+        .thenReturn(Future.failed(new NotFoundException("404")))
+
+      intercept[SubmissionAPIFailure](await(connector.checkSubmission(None)))
+
+      urlCaptor.getValue shouldBe url
+    }
+
+    "report an error when receiving an Upstream4xx" in new Setup {
+      val url = s"$testProxyUrl/internal/check-submission?items_per_page=1"
+
+      val urlCaptor = ArgumentCaptor.forClass(classOf[String])
+
+      when(mockWSHttp.GET[SubmissionCheckResponse](urlCaptor.capture())(Matchers.any(), Matchers.any()))
+        .thenReturn(Future.failed(Upstream4xxResponse("429", 429, 429)))
+
+      intercept[SubmissionAPIFailure](await(connector.checkSubmission(None)))
+
+      urlCaptor.getValue shouldBe url
+    }
+
+    "report an error when receiving an Upstream5xx" in new Setup {
+      val url = s"$testProxyUrl/internal/check-submission?items_per_page=1"
+
+      val urlCaptor = ArgumentCaptor.forClass(classOf[String])
+
+      when(mockWSHttp.GET[SubmissionCheckResponse](urlCaptor.capture())(Matchers.any(), Matchers.any()))
+        .thenReturn(Future.failed(Upstream5xxResponse("502", 502, 502)))
+
+      intercept[SubmissionAPIFailure](await(connector.checkSubmission(None)))
+
+      urlCaptor.getValue shouldBe url
+    }
+
+    "report an error when receiving an unexpected error" in new Setup {
+      val url = s"$testProxyUrl/internal/check-submission?items_per_page=1"
+
+      val urlCaptor = ArgumentCaptor.forClass(classOf[String])
+
+      when(mockWSHttp.GET[SubmissionCheckResponse](urlCaptor.capture())(Matchers.any(), Matchers.any()))
+        .thenReturn(Future.failed(new NoSuchElementException))
+
+      intercept[SubmissionAPIFailure](await(connector.checkSubmission(None)))
 
       urlCaptor.getValue shouldBe url
     }

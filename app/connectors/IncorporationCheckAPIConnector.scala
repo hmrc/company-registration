@@ -18,23 +18,52 @@ package connectors
 
 import config.WSHttp
 import models.SubmissionCheckResponse
+import play.api.Logger
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http._
 
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.control.NoStackTrace
 
 object IncorporationCheckAPIConnector extends IncorporationCheckAPIConnector with ServicesConfig {
   override val proxyUrl = baseUrl("company-registration-frontend")
   override val http = WSHttp
 }
 
+class SubmissionAPIFailure extends NoStackTrace
+
 trait IncorporationCheckAPIConnector {
 
   val proxyUrl: String
   val http: HttpGet with HttpPost
 
+  def logError(ex: HttpException, timepoint: Option[String]) = {
+    Logger.error(s"[IncorporationCheckAPIConnector] [checkSubmission]" +
+      s" request to SubmissionCheckAPI returned a ${ex.responseCode}. " +
+      s"No incorporations were processed for timepoint ${timepoint} - Reason = ${ex.getMessage}")
+  }
+
   def checkSubmission(timepoint: Option[String] = None)(implicit hc: HeaderCarrier): Future[SubmissionCheckResponse] = {
     val tp = timepoint.fold("")(t => s"timepoint=$t&")
-    http.GET[SubmissionCheckResponse](s"$proxyUrl/internal/check-submission?${tp}items_per_page=1")
+    http.GET[SubmissionCheckResponse](s"$proxyUrl/internal/check-submission?${tp}items_per_page=1") map {
+      res => res
+    } recover {
+      case ex: BadRequestException =>
+        logError(ex, timepoint)
+        throw new SubmissionAPIFailure
+      case ex: NotFoundException =>
+        logError(ex, timepoint)
+        throw new SubmissionAPIFailure
+      case ex: Upstream4xxResponse =>
+        Logger.error("[IncorporationCheckAPIConnector] [checkSubmission]" + ex.upstreamResponseCode + " " + ex.message)
+        throw new SubmissionAPIFailure
+      case ex: Upstream5xxResponse =>
+        Logger.error("[IncorporationCheckAPIConnector] [checkSubmission]" + ex.upstreamResponseCode + " " + ex.message)
+        throw new SubmissionAPIFailure
+      case ex: Exception =>
+        Logger.error("[IncorporationCheckAPIConnector] [checkSubmission]" + ex)
+        throw new SubmissionAPIFailure
+    }
   }
 }
