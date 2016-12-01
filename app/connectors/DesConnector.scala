@@ -33,11 +33,9 @@ case object NotFoundDesResponse extends DesResponse
 case class InvalidDesRequest(message: String) extends DesResponse
 
 
-trait DesConnector extends ServicesConfig with RawResponseReads {
+trait DesConnector extends ServicesConfig with RawResponseReads with HttpErrorFunctions {
 
-  // $COVERAGE-OFF$
   lazy val serviceURL = baseUrl("des-service")
-  // $COVERAGE-OFF$
   val baseURI = "/business-registration"
   val ctRegistrationURI = "/corporation-tax"
 
@@ -46,7 +44,24 @@ trait DesConnector extends ServicesConfig with RawResponseReads {
 
   val http: HttpGet with HttpPost with HttpPut = WSHttp
 
+
+  private[connectors] def customDESRead(http: String, url: String, response: HttpResponse) = {
+    response.status match {
+      case 400 => response
+      case 404 => throw new NotFoundException("ETMP return a Not Found status")
+      case 409 => response
+      case 500 => throw new InternalServerException("ETMP returned an internal server error")
+      case 502 => throw new BadGatewayException("ETMP returned an upstream error")
+      case _ => handleResponse(http, url)(response)
+    }
+  }
+
+  implicit val httpRds = new HttpReads[HttpResponse] {
+    def read(http: String, url: String, res: HttpResponse) = customDESRead(http, url, res)
+  }
+
   def ctSubmission(ackRef:String, submission: JsObject)(implicit headerCarrier: HeaderCarrier): Future[DesResponse] = {
+
     val url: String = s"""${serviceURL}${baseURI}${ctRegistrationURI}"""
     val response = cPOST(url, submission)
     response map { r =>
@@ -61,16 +76,16 @@ trait DesConnector extends ServicesConfig with RawResponseReads {
           Logger.warn(s"ETMP reported a duplicate submission for ack ref ${ackRef}")
           SuccessDesResponse(r.json.as[JsObject])
         }
-        case NOT_FOUND =>
-          Logger.warn(s"ETMP reported a not found for ack ref ${ackRef}")
-          NotFoundDesResponse
         case BAD_REQUEST => {
           val message = (r.json \ "reason").as[String]
           Logger.warn(s"ETMP reported an error with the request ${message}")
           InvalidDesRequest(message)
         }
-        case _ => InvalidDesRequest(s"Unexpected Des response with HTTP code: ${r.status}")
       }
+    } recover {
+      case ex: NotFoundException =>
+        Logger.warn(s"ETMP reported a not found for ack ref ${ackRef}")
+        NotFoundDesResponse
     }
   }
 
@@ -92,5 +107,5 @@ object DesConnector extends DesConnector {
   val urlHeaderEnvironment: String = getConfString("des-service.environment", throw new Exception("could not find config value for des-service.environment"))
   val urlHeaderAuthorization: String = s"Bearer ${getConfString("des-service.authorization-token",
     throw new Exception("could not find config value for des-service.authorization-token"))}"
-  // $COVERAGE-OFF$
+  // $COVERAGE-ON$
 }

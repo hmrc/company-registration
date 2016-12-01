@@ -31,7 +31,7 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.config.{AppName, RunMode}
 import uk.gov.hmrc.play.http.logging.SessionId
 import uk.gov.hmrc.play.http.ws.{WSGet, WSPost, WSPut}
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
@@ -61,6 +61,27 @@ class DesConnectorSpec extends UnitSpec with OneServerPerSuite with MockitoSugar
 
   before {
     reset(mockWSHttp)
+  }
+
+  "DesConnector" should {
+
+    "use the correct serviceURL" in {
+      DesConnector.serviceURL shouldBe "http://localhost:9642"
+    }
+  }
+
+  "httpRds" should {
+
+    "return the http response when a 200 status code is read from the http response" in {
+      val response = HttpResponse(200)
+      DesConnector.httpRds.read("http://", "testUrl", response) shouldBe response
+    }
+
+    "return a not found exception when it reads a 404 status code from the http response" in {
+      intercept[NotFoundException]{
+        DesConnector.httpRds.read("http://", "testUrl", HttpResponse(404))
+      }
+    }
   }
 
   "DesConnector" should {
@@ -103,6 +124,66 @@ class DesConnectorSpec extends UnitSpec with OneServerPerSuite with MockitoSugar
       result shouldBe InvalidDesRequest("wibble")
     }
 
+    "return a NotFoundDesResponse" in new Setup {
+      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
+        thenReturn(Future.failed(new NotFoundException("")))
 
+      val result = await(connector.ctSubmission("",submission))
+
+      result shouldBe NotFoundDesResponse
+    }
+  }
+
+  "customDESRead" should {
+
+    "return the HttpResponse on a bad request" in new Setup {
+      val response = HttpResponse(400)
+      await(connector.customDESRead("", "", response)) shouldBe response
+    }
+
+    "throw a NotFoundException" in new Setup {
+      val response = HttpResponse(404)
+      val ex = intercept[NotFoundException]{
+        await(connector.customDESRead("", "", response))
+      }
+      ex.getMessage shouldBe "ETMP return a Not Found status"
+    }
+
+    "return the HttpResponse on a conflict" in new Setup {
+      val response = HttpResponse(409)
+      await(connector.customDESRead("", "", response)) shouldBe response
+    }
+
+    "throw an InternalServerException" in new Setup {
+      val response = HttpResponse(500)
+      val ex = intercept[InternalServerException]{
+        await(connector.customDESRead("", "", response))
+      }
+      ex.getMessage shouldBe "ETMP returned an internal server error"
+    }
+
+    "throw an BadGatewayException" in new Setup {
+      val response = HttpResponse(502)
+      val ex = intercept[BadGatewayException]{
+        await(connector.customDESRead("", "", response))
+      }
+      ex.getMessage shouldBe "ETMP returned an upstream error"
+    }
+
+    "return an Upstream4xxResponse when an uncaught 4xx Http response status is found" in new Setup {
+      val response = HttpResponse(405)
+      val ex = intercept[Upstream4xxResponse]{
+        await(connector.customDESRead("http://", "testUrl", response))
+      }
+      ex.getMessage shouldBe "http:// of 'testUrl' returned 405. Response body: 'null'"
+    }
+
+    "return an Upstream5xxResponse when an uncaught 5xx Http response status is found" in new Setup {
+      val response = HttpResponse(505)
+      val ex = intercept[Upstream5xxResponse]{
+        await(connector.customDESRead("http://", "testUrl", response))
+      }
+      ex.getMessage shouldBe "http:// of 'testUrl' returned 505. Response body: 'null'"
+    }
   }
 }
