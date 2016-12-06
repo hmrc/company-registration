@@ -53,7 +53,7 @@ class PPOBAddressSpec extends UnitSpec with JsonFormatValidation {
     "Be able to be parsed from JSON" in {
       val line1 = "123456789012345678901234567"
       val json = j(line1=line1, pc=Some("ZZ1 1ZZ"))
-      val expected = PPOBAddress("hnn", line1, Some("2"), None, Some("4"), Some("ZZ1 1ZZ"), None )
+      val expected = PPOBAddress(line1, "2", None, Some("4"), Some("ZZ1 1ZZ"), None )
 
       val result = Json.parse(json).validate[PPOBAddress]
 
@@ -82,7 +82,7 @@ class PPOBAddressSpec extends UnitSpec with JsonFormatValidation {
     "Be able to be parsed from JSON" in {
       val line3 = Some("123456789012345678901234567")
       val json = j(line3=line3, country=Some("c"))
-      val expected = PPOBAddress("hnn", "1", Some("2"), line3, Some("4"), None, Some("c") )
+      val expected = PPOBAddress("1", "2", line3, Some("4"), None, Some("c") )
 
       val result = Json.parse(json).validate[PPOBAddress]
 
@@ -91,7 +91,7 @@ class PPOBAddressSpec extends UnitSpec with JsonFormatValidation {
 
     "Be able to be parsed from JSON with no line3" in {
       val json = j(line3=None, country=Some("c"))
-      val expected = PPOBAddress("hnn", "1", Some("2"), None, Some("4"), None, Some("c") )
+      val expected = PPOBAddress("1", "2", None, Some("4"), None, Some("c") )
 
       val result = Json.parse(json).validate[PPOBAddress]
 
@@ -118,7 +118,7 @@ class PPOBAddressSpec extends UnitSpec with JsonFormatValidation {
   "reading from json into a PPOBAddress case class" should {
 
     "return a PPOBAddress case class" in {
-      val ppobAddress = PPOBAddress("hnn", "1", Some("2"), None, Some("4"), Some("ZZ1 1ZZ"), None )
+      val ppobAddress = PPOBAddress("1", "2", None, Some("4"), Some("ZZ1 1ZZ"), None )
       val json = Json.parse("""{"houseNameNumber":"hnn","addressLine1":"1","addressLine2":"2","addressLine4":"4","postCode":"ZZ1 1ZZ"}""")
 
       val result = Json.fromJson[PPOBAddress](json)

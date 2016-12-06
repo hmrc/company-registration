@@ -147,9 +147,8 @@ object CHROAddress extends CHAddressValidator {
     ) (CHROAddress.apply, unlift(CHROAddress.unapply))
 }
 
-case class PPOBAddress(houseNameNumber: String,
-                       line1: String,
-                       line2: Option[String],
+case class PPOBAddress(line1: String,
+                       line2: String,
                        line3: Option[String],
                        line4: Option[String],
                        postcode: Option[String],
@@ -157,9 +156,8 @@ case class PPOBAddress(houseNameNumber: String,
 
 object PPOBAddress extends HMRCAddressValidator {
   implicit val format = withFilter(
-    ((__ \ "houseNameNumber").format[String](lineValidator) and
-      (__ \ "addressLine1").format[String](lineValidator) and
-      (__ \ "addressLine2").formatNullable[String](lineValidator) and
+    ((__ \ "addressLine1").format[String](lineValidator) and
+      (__ \ "addressLine2").format[String](lineValidator) and
       (__ \ "addressLine3").formatNullable[String](lineValidator) and
       (__ \ "addressLine4").formatNullable[String](lineValidator) and
       (__ \ "postCode").formatNullable[String](postcodeValidator) and

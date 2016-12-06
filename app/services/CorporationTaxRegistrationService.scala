@@ -184,10 +184,10 @@ trait CorporationTaxRegistrationService extends DateHelper {
     val businessAddress: Option[BusinessAddress] = ppob.address match {
       case Some(address) => Some(
         BusinessAddress(
-          line1 = address.houseNameNumber,
-          line2 = address.line1,
-          line3 = address.line2,
-          line4 = address.line3,
+          line1 = address.line1,
+          line2 = address.line2,
+          line3 = address.line3,
+          line4 = address.line4,
           postcode = address.postcode,
           country = address.country
         ))
