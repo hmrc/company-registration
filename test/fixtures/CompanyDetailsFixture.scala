@@ -59,7 +59,9 @@ trait CompanyDetailsFixture {
       Some("test area"),
       Some("test county"),
       Some("XX1 1ZZ"),
-      Some("test country")
+      Some("test country"),
+      None,
+      "txid"
     ))),
     "testJurisdiction"
   )

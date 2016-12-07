@@ -32,18 +32,20 @@ class PPOBAddressSpec extends UnitSpec with JsonFormatValidation {
   def jsonLine(key: S, value: S, comma: Boolean): OS = Some(s""""${key}" : "${value}"${lineEnd(comma)}""")
   def jsonLine(key: S, value: OS, comma: Boolean = true): OS = value.map(v=>s""""${key}" : "${v}"${lineEnd(comma)}""")
 
-  def j(line1: S = "1", line3: OS = None, pc: OS = None, country: OS = None): S = {
+  def j(line1: S = "1", line3: OS = None, pc: OS = None, country: OS = None, uprn: OS = None): S = {
     val extra: S = Seq(
       jsonLine("addressLine1", line1, false),
       jsonLine("addressLine3", line3, false),
       jsonLine("postCode", pc, false),
-      jsonLine("country", country, false)
+      jsonLine("country", country, false),
+      jsonLine("uprn", uprn, false)
     ).flatten.mkString(", ")
     s"""
        |{
        |  "houseNameNumber" : "hnn",
        |  "addressLine2" : "2",
        |  "addressLine4" : "4",
+       |  "txid" : "txid",
        |  ${extra}
        |}
      """.stripMargin
@@ -53,7 +55,7 @@ class PPOBAddressSpec extends UnitSpec with JsonFormatValidation {
     "Be able to be parsed from JSON" in {
       val line1 = "123456789012345678901234567"
       val json = j(line1=line1, pc=Some("ZZ1 1ZZ"))
-      val expected = PPOBAddress(line1, "2", None, Some("4"), Some("ZZ1 1ZZ"), None )
+      val expected = PPOBAddress(line1, "2", None, Some("4"), Some("ZZ1 1ZZ"), None, None, "txid")
 
       val result = Json.parse(json).validate[PPOBAddress]
 
@@ -81,8 +83,8 @@ class PPOBAddressSpec extends UnitSpec with JsonFormatValidation {
   "PPOBAddress Model - line 2" should {
     "Be able to be parsed from JSON" in {
       val line3 = Some("123456789012345678901234567")
-      val json = j(line3=line3, country=Some("c"))
-      val expected = PPOBAddress("1", "2", line3, Some("4"), None, Some("c") )
+      val json = j(line3=line3, country=Some("c"), uprn=Some("xxx"))
+      val expected = PPOBAddress("1", "2", line3, Some("4"), None, Some("c"), Some("xxx"), "txid")
 
       val result = Json.parse(json).validate[PPOBAddress]
 
@@ -91,7 +93,7 @@ class PPOBAddressSpec extends UnitSpec with JsonFormatValidation {
 
     "Be able to be parsed from JSON with no line3" in {
       val json = j(line3=None, country=Some("c"))
-      val expected = PPOBAddress("1", "2", None, Some("4"), None, Some("c") )
+      val expected = PPOBAddress("1", "2", None, Some("4"), None, Some("c"), None, "txid")
 
       val result = Json.parse(json).validate[PPOBAddress]
 
@@ -118,15 +120,15 @@ class PPOBAddressSpec extends UnitSpec with JsonFormatValidation {
   "reading from json into a PPOBAddress case class" should {
 
     "return a PPOBAddress case class" in {
-      val ppobAddress = PPOBAddress("1", "2", None, Some("4"), Some("ZZ1 1ZZ"), None )
-      val json = Json.parse("""{"houseNameNumber":"hnn","addressLine1":"1","addressLine2":"2","addressLine4":"4","postCode":"ZZ1 1ZZ"}""")
+      val ppobAddress = PPOBAddress("1", "2", None, Some("4"), Some("ZZ1 1ZZ"), None, Some("xxx"), "txid")
+      val json = Json.parse("""{"houseNameNumber":"hnn","addressLine1":"1","addressLine2":"2","addressLine4":"4","postCode":"ZZ1 1ZZ", "uprn": "xxx", "txid": "txid"}""")
 
       val result = Json.fromJson[PPOBAddress](json)
       result shouldBe JsSuccess(ppobAddress)
     }
 
     "throw a json validation error when a postcode and country do not exist" in {
-      val json = Json.parse("""{"houseNameNumber":"hnn","addressLine1":"1","addressLine2":"2","addressLine4":"4"}""")
+      val json = Json.parse("""{"houseNameNumber":"hnn","addressLine1":"1","addressLine2":"2","addressLine4":"4", "txid": "txid"}""")
 
       val result = Json.fromJson[PPOBAddress](json)
       shouldHaveErrors(result, JsPath(), Seq(ValidationError("Must have at least one of postcode and country")))

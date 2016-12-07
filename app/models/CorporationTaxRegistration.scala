@@ -152,7 +152,9 @@ case class PPOBAddress(line1: String,
                        line3: Option[String],
                        line4: Option[String],
                        postcode: Option[String],
-                       country: Option[String])
+                       country: Option[String],
+                       uprn: Option[String] = None,
+                       txid: String)
 
 object PPOBAddress extends HMRCAddressValidator {
   implicit val format = withFilter(
@@ -161,7 +163,9 @@ object PPOBAddress extends HMRCAddressValidator {
       (__ \ "addressLine3").formatNullable[String](lineValidator) and
       (__ \ "addressLine4").formatNullable[String](lineValidator) and
       (__ \ "postCode").formatNullable[String](postcodeValidator) and
-      (__ \ "country").formatNullable[String](countryValidator)
+      (__ \ "country").formatNullable[String](countryValidator) and
+      (__ \ "uprn").formatNullable[String] and
+      (__ \ "txid").format[String]
     ) (PPOBAddress.apply, unlift(PPOBAddress.unapply)),
       ValidationError("Must have at least one of postcode and country")
     )(
