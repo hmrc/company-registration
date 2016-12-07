@@ -42,6 +42,7 @@ trait SCRSMocks
   lazy val mockSequenceRepository = mock[SequenceRepository]
   lazy val mockStateDataRepository = mock[StateDataRepository]
   lazy val mockIncorporationCheckAPIConnector = mock[IncorporationCheckAPIConnector]
+  lazy val mockMetrics = mock[MetricsService]
 
   object CTServiceMocks {
     def createCTDataRecord(result: CorporationTaxRegistration): OngoingStubbing[Future[CorporationTaxRegistration]] = {

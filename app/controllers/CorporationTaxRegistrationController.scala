@@ -22,7 +22,7 @@ import models.{AcknowledgementReferences, ConfirmationReferences, CorporationTax
 import play.api.Logger
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Action
-import services.CorporationTaxRegistrationService
+import services.{CorporationTaxRegistrationService, MetricsService}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.Future
@@ -32,11 +32,13 @@ object CorporationTaxRegistrationController extends CorporationTaxRegistrationCo
   val ctService = CorporationTaxRegistrationService
   val resourceConn = CorporationTaxRegistrationService.corporationTaxRegistrationRepository
   val auth = AuthConnector
+  val metrics = MetricsService
 }
 
 trait CorporationTaxRegistrationController extends BaseController with Authenticated with Authorisation[String] {
 
   val ctService : CorporationTaxRegistrationService
+  val metrics : MetricsService
 
   def createCorporationTaxRegistration(registrationId: String): Action[JsValue] = Action.async(parse.json) {
     implicit request =>
@@ -149,7 +151,10 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
       withJsonBody[AcknowledgementReferences] {
         ackRefsPayload =>
           ctService.updateCTRecordWithAckRefs(ackRef, ackRefsPayload) map {
-            case Some(record) => Ok
+            case Some(record) =>
+              Logger.debug(s"[CorporationTaxRegistrationController] - [acknowledgementConfirmation] : Updated Record")
+              metrics.ctutrConfirmationCounter.inc(1)
+              Ok
             case None => NotFound("Ack ref not found")
           }
       }

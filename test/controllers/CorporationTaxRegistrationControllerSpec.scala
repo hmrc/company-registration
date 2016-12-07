@@ -19,13 +19,13 @@ package controllers
 import connectors.AuthConnector
 import fixtures.{AuthFixture, CorporationTaxRegistrationFixture}
 import helpers.SCRSSpec
+import mocks.MockMetricsService
 import models.{AcknowledgementReferences, ConfirmationReferences, CorporationTaxRegistration}
 import org.mockito.Matchers
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import services.CorporationTaxRegistrationService
 import play.api.test.Helpers._
-
 import play.api.mvc.Results.Status
 
 import scala.concurrent.Future
@@ -39,6 +39,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
       override val ctService = mockCTDataService
       override val resourceConn = mockCTDataRepository
       override val auth = mockAuthConnector
+      override val metrics = MockMetricsService
     }
   }
 
