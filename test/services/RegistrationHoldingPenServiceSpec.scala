@@ -271,7 +271,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
       intercept[InvalidSubmission] {
         await(service.updateHeldSubmission(incorpSuccess, validCR))
-      }.message should endWith ("""- reason "wibble".""")
+      }.message should endWith ("""- Reason: "wibble".""")
     }
 
     "fail if DES states not found" in new Setup {
