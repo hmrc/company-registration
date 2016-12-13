@@ -27,8 +27,8 @@ import org.mockito.Mockito._
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import services.{CorporationTaxRegistrationService, TradingDetailsService}
-
+import services.{CorporationTaxRegistrationService, TradingDetailsService, MetricsService}
+import mocks.MockMetricsService
 import scala.concurrent.Future
 
 class TradingDetailsControllerSpec extends SCRSSpec with AuthFixture {
@@ -40,6 +40,7 @@ class TradingDetailsControllerSpec extends SCRSSpec with AuthFixture {
       val tradingDetailsService = mockTradingDetailsService
       val auth = mockAuthConnector
       val resourceConn = mockCTDataRepository
+      override val metricsService = MockMetricsService
     }
   }
 

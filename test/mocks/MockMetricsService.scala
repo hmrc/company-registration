@@ -16,12 +16,39 @@
 
 package mocks
 
-import com.codahale.metrics.Counter
+import com.codahale.metrics.{Counter, Timer}
 import org.scalatest.mock.MockitoSugar
-import services.MetricsService
+import services._
 
 object MockMetricsService extends MetricsService with MockitoSugar {
   val fakeCounter = mock[Counter]
+  lazy val mockContext = mock[Timer.Context]
+  val mockTimer = new Timer()
+
 
   override val ctutrConfirmationCounter: Counter = fakeCounter
+
+  val retrieveAccountingDetailsCRTimer : Timer = mockTimer
+  val updateAccountingDetailsCRTimer : Timer = mockTimer
+
+  val retrieveCompanyDetailsCRTimer : Timer = mockTimer
+  val updateCompanyDetailsCRTimer : Timer = mockTimer
+
+  val retrieveContactDetailsCRTimer : Timer = mockTimer
+  val updateContactDetailsCRTimer : Timer = mockTimer
+
+  val createCorporationTaxRegistrationCRTimer : Timer = mockTimer
+  val retrieveCorporationTaxRegistrationCRTimer : Timer = mockTimer
+  val retrieveFullCorporationTaxRegistrationCRTimer : Timer = mockTimer
+  val updateReferencesCRTimer : Timer = mockTimer
+  val retrieveConfirmationReferenceCRTimer : Timer = mockTimer
+  val acknowledgementConfirmationCRTimer : Timer = mockTimer
+
+  val updateCompanyEndDateCRTimer : Timer = mockTimer
+
+  val retrieveTradingDetailsCRTimer : Timer = mockTimer
+  val updateTradingDetailsCRTimer : Timer = mockTimer
+
+  val userAccessCRTimer : Timer = mockTimer
+
 }

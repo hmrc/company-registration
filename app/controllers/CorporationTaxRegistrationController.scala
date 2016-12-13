@@ -45,9 +45,11 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
       authenticated {
         case NotLoggedIn => Future.successful(Forbidden)
         case LoggedIn(context) =>
+          val timer = metrics.createCorporationTaxRegistrationCRTimer.time()
           withJsonBody[CorporationTaxRegistrationRequest] {
             request => ctService.createCorporationTaxRegistrationRecord(context.ids.internalId, registrationId, request.language) map {
               res =>
+                timer.stop()
                 Created(
                   Json.obj(
                     "registrationID" -> res.registrationID,
@@ -66,8 +68,11 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
   def retrieveCorporationTaxRegistration(registrationID: String) = Action.async {
     implicit request =>
       authorised(registrationID) {
-        case Authorised(_) => ctService.retrieveCorporationTaxRegistrationRecord(registrationID).map{
-          case Some(data) => Ok(
+        case Authorised(_) => val timer = metrics.retrieveCorporationTaxRegistrationCRTimer.time()
+                              ctService.retrieveCorporationTaxRegistrationRecord(registrationID).map{
+          case Some(data) =>
+            timer.stop()
+            Ok(
             Json.obj(
               "registrationID" -> data.registrationID,
               "status" -> data.status,
@@ -92,8 +97,10 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
   def retrieveFullCorporationTaxRegistration(registrationID: String) = Action.async {
     implicit request =>
       authorised(registrationID) {
-        case Authorised(_) => ctService.retrieveCorporationTaxRegistrationRecord(registrationID).map{
-          case Some(data) => Ok(Json.toJson(data))
+        case Authorised(_) => val timer = metrics.retrieveFullCorporationTaxRegistrationCRTimer.time()
+                              ctService.retrieveCorporationTaxRegistrationRecord(registrationID).map{
+          case Some(data) => timer.stop()
+                             Ok(Json.toJson(data))
           case _ => NotFound
         }
         case NotLoggedInOrAuthorised =>
@@ -112,8 +119,10 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
         case Authorised(_) =>
           withJsonBody[ConfirmationReferences] {
             refs =>
+              val timer = metrics.updateReferencesCRTimer.time()
               ctService.updateConfirmationReferences(registrationID, refs) map {
-                case Some(references) => Ok(Json.toJson(references))
+                case Some(references) => timer.stop()
+                                         Ok(Json.toJson(references))
                 case None => NotFound
               }
           }
@@ -130,8 +139,10 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
   def retrieveConfirmationReference(registrationID: String) = Action.async {
     implicit request =>
       authorised(registrationID) {
-        case Authorised(_) => ctService.retrieveConfirmationReference(registrationID) map {
-          case Some(ref) => Ok(Json.toJson(ref))
+        case Authorised(_) => val timer = metrics.retrieveConfirmationReferenceCRTimer.time()
+                              ctService.retrieveConfirmationReference(registrationID) map {
+          case Some(ref) => timer.stop()
+                            Ok(Json.toJson(ref))
           case None => NotFound
         }
         case NotLoggedInOrAuthorised =>
@@ -150,8 +161,10 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
       implicit val format = AcknowledgementReferences.apiFormat
       withJsonBody[AcknowledgementReferences] {
         ackRefsPayload =>
+          val timer = metrics.acknowledgementConfirmationCRTimer.time()
           ctService.updateCTRecordWithAckRefs(ackRef, ackRefsPayload) map {
             case Some(record) =>
+              timer.stop()
               Logger.debug(s"[CorporationTaxRegistrationController] - [acknowledgementConfirmation] : Updated Record")
               metrics.ctutrConfirmationCounter.inc(1)
               Ok

@@ -22,7 +22,7 @@ import models.{ContactDetails, ErrorResponse}
 import play.api.Logger
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.Action
-import services.{ContactDetailsService, CorporationTaxRegistrationService}
+import services.{ContactDetailsService, CorporationTaxRegistrationService, MetricsService}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -32,11 +32,13 @@ object ContactDetailsController extends ContactDetailsController{
   override val auth = AuthConnector
   override val resourceConn = CorporationTaxRegistrationService.corporationTaxRegistrationRepository
   override val contactDetailsService = ContactDetailsService
+  override val metricsService: MetricsService = MetricsService
 }
 
 trait ContactDetailsController extends BaseController with Authenticated with Authorisation[String] {
 
   val contactDetailsService: ContactDetailsService
+  val metricsService: MetricsService
 
   private def mapToResponse(registrationID: String, res: ContactDetails)= {
     Json.toJson(res).as[JsObject] ++
@@ -51,8 +53,10 @@ trait ContactDetailsController extends BaseController with Authenticated with Au
   def retrieveContactDetails(registrationID: String) = Action.async {
     implicit request =>
       authorised(registrationID){
-        case Authorised(_) => contactDetailsService.retrieveContactDetails(registrationID) map {
-          case Some(details) => Ok(mapToResponse(registrationID, details))
+        case Authorised(_) => val timer = metricsService.retrieveContactDetailsCRTimer.time()
+                              contactDetailsService.retrieveContactDetails(registrationID) map {
+          case Some(details) => timer.stop()
+                                Ok(mapToResponse(registrationID, details))
           case None => NotFound(ErrorResponse.contactDetailsNotFound)
         }
         case NotLoggedInOrAuthorised =>
@@ -68,10 +72,11 @@ trait ContactDetailsController extends BaseController with Authenticated with Au
   def updateContactDetails(registrationID: String) = Action.async[JsValue](parse.json) {
     implicit request =>
       authorised(registrationID){
-        case Authorised(_) =>
+        case Authorised(_) => val timer = metricsService.updateContactDetailsCRTimer.time()
           withJsonBody[ContactDetails]{ contactDetails =>
             contactDetailsService.updateContactDetails(registrationID, contactDetails) map {
-              case Some(details) => Ok(mapToResponse(registrationID, details))
+              case Some(details) => timer.stop()
+                                    Ok(mapToResponse(registrationID, details))
               case None => NotFound(ErrorResponse.contactDetailsNotFound)
             }
           }

@@ -25,10 +25,11 @@ import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
-import services.{CorporationTaxRegistrationService, UserAccessService}
+import services.{CorporationTaxRegistrationService, UserAccessService, MetricsService}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 import play.api.test.Helpers._
 import uk.gov.hmrc.play.http.HeaderCarrier
+import mocks.MockMetricsService
 
 import scala.concurrent.Future
 
@@ -42,6 +43,7 @@ class UserAccessControllerSpec extends UnitSpec with MockitoSugar with WithFakeA
     val controller = new UserAccessController {
       override val userAccessService = mockUserAccessService
       override val auth = mockAuthConnector
+      override val metricsService = MockMetricsService
     }
   }
 
