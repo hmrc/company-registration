@@ -138,7 +138,7 @@ trait RegistrationHoldingPenService extends DateHelper {
   }
 
   private def processInvalidDesRequest(ackRef: String, message: String) = {
-    val errMsg = s"""Invalid request sent to DES for ack ref ${ackRef} - reason "${message}"."""
+    val errMsg = s"""Submission to DES failed for ack ref ${ackRef} - Reason: "${message}"."""
     Logger.error(errMsg)
     Future.failed(new InvalidSubmission(errMsg))
   }
