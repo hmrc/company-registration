@@ -22,7 +22,7 @@ import models.{AccountPrepDetails, HttpResponse}
 import play.api.Logger
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Action
-import services.{CorporationTaxRegistrationService, PrepareAccountService}
+import services.{CorporationTaxRegistrationService, PrepareAccountService, MetricsService}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -32,19 +32,23 @@ object PrepareAccountController extends PrepareAccountController {
   override val auth = AuthConnector
   override val resourceConn = CorporationTaxRegistrationService.corporationTaxRegistrationRepository
   override val service = PrepareAccountService
+  override val metricsService: MetricsService = MetricsService
 }
 
 trait PrepareAccountController extends BaseController with Authenticated with Authorisation[String] {
 
   val service: PrepareAccountService
+  val metricsService: MetricsService
 
   def updateCompanyEndDate(registrationID: String) = Action.async[JsValue](parse.json) {
     implicit request =>
       authorised(registrationID) {
         case Authorised(_) =>
+          val timer = metricsService.updateCompanyEndDateCRTimer.time()
           withJsonBody[AccountPrepDetails] { model =>
             service.updateEndDate(registrationID, model).map {
               case Some(res) =>
+                timer.stop()
                 Ok(Json.toJson(res))
               case None =>
                 Logger.error(s"[PrepareAccountController] [updateCompanyEndDate] Company preparation date for user: $registrationID not found")

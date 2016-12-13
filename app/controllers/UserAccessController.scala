@@ -21,7 +21,7 @@ import connectors.AuthConnector
 import models.CorporationTaxRegistration
 import play.api.libs.json.Json
 import play.api.mvc.Action
-import services.{CorporationTaxRegistrationService, UserAccessService}
+import services.{CorporationTaxRegistrationService, UserAccessService, MetricsService}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.Future
@@ -31,21 +31,26 @@ import scala.util.control.NoStackTrace
 object UserAccessController extends UserAccessController {
   override val auth = AuthConnector
   val userAccessService = UserAccessService
+  override val metricsService: MetricsService = MetricsService
 }
 
 trait UserAccessController extends BaseController with Authenticated{
 
   val userAccessService : UserAccessService
+  val metricsService: MetricsService
 
   def checkUserAccess = Action.async {
     implicit request =>
+      val timer = metricsService.userAccessCRTimer.time()
       authenticated{
         case NotLoggedIn => Future.successful(Forbidden)
         case LoggedIn(context) => userAccessService.checkUserAccess(context.ids.internalId) flatMap {
           case Right(res) => {
+            timer.stop()
             Future.successful(Ok(Json.toJson(res)))
           }
-          case Left(_) => Future.successful(TooManyRequest)
+          case Left(_) => timer.stop()
+                          Future.successful(TooManyRequest)
       }
     }
   }

@@ -23,7 +23,8 @@ import models.ErrorResponse
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import services.{CorporationTaxRegistrationService, ContactDetailsService}
+import services.{CorporationTaxRegistrationService, ContactDetailsService, MetricsService}
+import mocks.MockMetricsService
 
 class ContactDetailsControllerSpec extends SCRSSpec with ContactDetailsFixture with AuthFixture {
 
@@ -32,6 +33,7 @@ class ContactDetailsControllerSpec extends SCRSSpec with ContactDetailsFixture w
       override val contactDetailsService = mockContactDetailsService
       override val resourceConn = mockCTDataRepository
       override val auth = mockAuthConnector
+      override val metricsService = MockMetricsService
     }
   }
 

@@ -22,7 +22,7 @@ import models.{ErrorResponse, TradingDetails}
 import play.api.libs.json.{JsValue, Json}
 import play.api.Logger
 import uk.gov.hmrc.play.microservice.controller.BaseController
-import services.{CorporationTaxRegistrationService, TradingDetailsService}
+import services.{CorporationTaxRegistrationService, TradingDetailsService, MetricsService}
 import play.api.mvc.Action
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -32,17 +32,22 @@ object TradingDetailsController extends TradingDetailsController {
   val tradingDetailsService = TradingDetailsService
   val resourceConn = CorporationTaxRegistrationService.corporationTaxRegistrationRepository
   val auth = AuthConnector
+  override val metricsService: MetricsService = MetricsService
 }
 
 trait TradingDetailsController extends BaseController with Authenticated with Authorisation[String] {
 
   val tradingDetailsService : TradingDetailsService
+  val metricsService: MetricsService
 
   def retrieveTradingDetails(registrationID : String) = Action.async {
     implicit request =>
       authorised(registrationID) {
-        case Authorised(_) => tradingDetailsService.retrieveTradingDetails(registrationID).map {
-          case Some(res) => Ok(Json.toJson(res))
+        case Authorised(_) => val timer = metricsService.retrieveTradingDetailsCRTimer.time()
+                              tradingDetailsService.retrieveTradingDetails(registrationID).map {
+          case Some(res) =>
+            timer.stop()
+            Ok(Json.toJson(res))
           case _ =>
             Logger.info(s"[TradingDetailsController] [retrieveTradingDetails] Authorised but no data for $registrationID")
             NotFound(ErrorResponse.tradingDetailsNotFound)
@@ -61,10 +66,12 @@ trait TradingDetailsController extends BaseController with Authenticated with Au
     implicit request =>
       authorised(registrationID) {
         case Authorised(_) =>
+          val timer = metricsService.updateTradingDetailsCRTimer.time()
           withJsonBody[TradingDetails] {
             tradingDetails => tradingDetailsService.updateTradingDetails(registrationID, tradingDetails)
               .map{
-                case Some(details) => Ok(Json.toJson(details))
+                case Some(details) => timer.stop()
+                                      Ok(Json.toJson(details))
                 case None => NotFound(ErrorResponse.tradingDetailsNotFound)
               }
           }

@@ -22,7 +22,7 @@ import models.{CompanyDetails, ErrorResponse, TradingDetails}
 import play.api.Logger
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.Action
-import services.{CompanyDetailsService, CorporationTaxRegistrationService}
+import services.{CompanyDetailsService, CorporationTaxRegistrationService, MetricsService}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.Future
@@ -32,11 +32,13 @@ object CompanyDetailsController extends CompanyDetailsController {
   override val auth: AuthConnector = AuthConnector
   val resourceConn = CorporationTaxRegistrationService.corporationTaxRegistrationRepository
   override val companyDetailsService = CompanyDetailsService
+  override val metricsService: MetricsService = MetricsService
 }
 
 trait CompanyDetailsController extends BaseController with Authenticated with Authorisation[String]{
 
   val companyDetailsService: CompanyDetailsService
+  val metricsService: MetricsService
 
   private def mapToResponse(registrationID: String, res: CompanyDetails)= {
     Json.toJson(res).as[JsObject] ++
@@ -52,8 +54,11 @@ trait CompanyDetailsController extends BaseController with Authenticated with Au
   def retrieveCompanyDetails(registrationID: String) = Action.async {
     implicit request =>
       authorised(registrationID){
-        case Authorised(_) => companyDetailsService.retrieveCompanyDetails(registrationID).map {
+        case Authorised(_) =>
+                     val timer = metricsService.retrieveCompanyDetailsCRTimer.time()
+                     companyDetailsService.retrieveCompanyDetails(registrationID).map {
           case Some(details) => {
+            timer.stop()
             Ok(mapToResponse(registrationID, details))
           }
           case _ => NotFound(ErrorResponse.companyDetailsNotFound)
@@ -72,9 +77,11 @@ trait CompanyDetailsController extends BaseController with Authenticated with Au
     implicit request =>
       authorised(registrationID) {
         case Authorised(_) =>
+          val timer = metricsService.updateCompanyDetailsCRTimer.time()
           withJsonBody[CompanyDetails] {
             companyDetails => companyDetailsService.updateCompanyDetails(registrationID, companyDetails).map{
-              case Some(details) => Ok(mapToResponse(registrationID, details))
+              case Some(details) => timer.stop
+                                    Ok(mapToResponse(registrationID, details))
               case None => NotFound(ErrorResponse.companyDetailsNotFound)
             }
           }

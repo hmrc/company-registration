@@ -26,7 +26,8 @@ import play.api.libs.json.{Json, JsValue}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import repositories.Repositories
-import services.PrepareAccountService
+import services.{PrepareAccountService, MetricsService}
+import mocks.MockMetricsService
 
 import scala.concurrent.Future
 
@@ -39,6 +40,7 @@ class PrepareAccountControllerSpec extends SCRSSpec {
       override val service = mockPrepareAccountService
       override val resourceConn = mockCTDataRepository
       override val auth = mockAuthConnector
+      override val metricsService = MockMetricsService
     }
   }
 

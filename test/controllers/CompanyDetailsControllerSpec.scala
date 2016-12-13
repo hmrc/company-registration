@@ -24,7 +24,8 @@ import org.mockito.Mockito._
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers.{call, OK, FORBIDDEN, NOT_FOUND}
-import services.CompanyDetailsService
+import services.{CompanyDetailsService, MetricsService}
+import mocks.MockMetricsService
 
 import scala.concurrent.Future
 
@@ -35,6 +36,7 @@ class CompanyDetailsControllerSpec extends SCRSSpec with AuthFixture with Compan
       override val auth = mockAuthConnector
       override val resourceConn = mockCTDataRepository
       override val companyDetailsService = mockCompanyDetailsService
+      override val metricsService = MockMetricsService
     }
   }
 

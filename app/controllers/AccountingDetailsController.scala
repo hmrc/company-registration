@@ -22,7 +22,7 @@ import models.{AccountingDetails, CompanyDetails, ErrorResponse}
 import play.api.Logger
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.Action
-import services.{AccountingDetailsService, CorporationTaxRegistrationService}
+import services.{AccountingDetailsService, CorporationTaxRegistrationService, MetricsService}
 import services.CorporationTaxRegistrationService
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
@@ -34,12 +34,13 @@ object AccountingDetailsController extends AccountingDetailsController{
   override val auth = AuthConnector
   override val resourceConn = CorporationTaxRegistrationService.corporationTaxRegistrationRepository
   override val accountingDetailsService = AccountingDetailsService
+  override val metricsService: MetricsService = MetricsService
 }
 
 trait AccountingDetailsController extends BaseController with Authenticated with Authorisation[String] {
 
   val accountingDetailsService: AccountingDetailsService
-
+  val metricsService: MetricsService
   private def mapToResponse(registrationID: String, res: AccountingDetails)= {
     Json.toJson(res).as[JsObject] ++
       Json.obj(
@@ -53,8 +54,10 @@ trait AccountingDetailsController extends BaseController with Authenticated with
   def retrieveAccountingDetails(registrationID: String) = Action.async {
     implicit request =>
       authorised(registrationID) {
-        case Authorised(_) => accountingDetailsService.retrieveAccountingDetails(registrationID) map {
-          case Some(details) => Ok(mapToResponse(registrationID, details))
+        case Authorised(_) => val timer = metricsService.retrieveAccountingDetailsCRTimer.time()
+                              accountingDetailsService.retrieveAccountingDetails(registrationID) map {
+          case Some(details) => timer.stop()
+                                Ok(mapToResponse(registrationID, details))
           case None => NotFound(ErrorResponse.accountingDetailsNotFound)
         }
         case NotLoggedInOrAuthorised =>
@@ -71,10 +74,12 @@ trait AccountingDetailsController extends BaseController with Authenticated with
     implicit request =>
       authorised(registrationID){
         case Authorised(_) =>
+          val timer = metricsService.updateAccountingDetailsCRTimer.time()
           withJsonBody[AccountingDetails] {
             companyDetails => accountingDetailsService.updateAccountingDetails(registrationID, companyDetails)
               .map{
-                case Some(details) => Ok(mapToResponse(registrationID, details))
+                case Some(details) => timer.stop()
+                                      Ok(mapToResponse(registrationID, details))
                 case None => NotFound(ErrorResponse.companyDetailsNotFound)
               }
           }
