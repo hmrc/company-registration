@@ -27,6 +27,7 @@ import org.mockito.Mockito._
 import play.api.libs.json.{Json, JsObject}
 import repositories.{HeldSubmissionMongoRepository, HeldSubmissionData}
 import services.CorporationTaxRegistrationService.{FailedToGetBRMetadata, FailedToGetCTData, FailedToGetCredId}
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.http.logging.SessionId
 import repositories.Repositories
@@ -40,6 +41,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
 
   val mockBusinessRegistrationConnector = mock[BusinessRegistrationConnector]
   val mockHeldSubmissionRepository = mock[HeldSubmissionMongoRepository]
+  val mockAuditConnector = mock[AuditConnector]
 
   val dateTime = DateTime.parse("2016-10-27T16:28:59.000")
 
@@ -53,6 +55,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
       override val heldSubmissionRepository = mockHeldSubmissionRepository
       val currentDateTime = dateTime
       override val submissionCheckAPIConnector = mockIncorporationCheckAPIConnector
+      val auditConnector = mockAuditConnector
     }
   }
 

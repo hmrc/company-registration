@@ -16,6 +16,8 @@
 
 package services
 
+import audit.{UserRegistrationSubmissionEvent, UserRegistrationSubmissionEventDetail}
+import config.MicroserviceAuditConnector
 import connectors.{AuthConnector, BusinessRegistrationConnector, BusinessRegistrationSuccessResponse}
 import models.des._
 import models.{BusinessRegistration, RegistrationStatus}
@@ -28,6 +30,7 @@ import models._
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -41,6 +44,7 @@ object CorporationTaxRegistrationService extends CorporationTaxRegistrationServi
   override val microserviceAuthConnector = AuthConnector
   override val brConnector = BusinessRegistrationConnector
   val heldSubmissionRepository = Repositories.heldSubmissionRepository
+  val auditConnector = MicroserviceAuditConnector
 
   def currentDateTime = DateTime.now(DateTimeZone.UTC)
 
@@ -55,6 +59,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
   val microserviceAuthConnector: AuthConnector
   val brConnector: BusinessRegistrationConnector
   val heldSubmissionRepository: HeldSubmissionRepository
+  val auditConnector: AuditConnector
 
   def currentDateTime: DateTime
 
@@ -98,12 +103,35 @@ trait CorporationTaxRegistrationService extends DateHelper {
       ackRef <- generateAcknowledgementReference
       updatedRef <- corporationTaxRegistrationRepository.updateConfirmationReferences(rID, refs.copy(acknowledgementReference = ackRef))
       heldSubmission <- buildPartialDesSubmission(rID, ackRef)
-      heldSubmissionData <- heldSubmissionRepository.storePartialSubmission(rID, ackRef, Json.toJson(heldSubmission).as[JsObject])
-      submissionStatus <- updateSubmissionStatus(rID, RegistrationStatus.HELD)
+      submissionStatus <- storeAndUpdateSubmission(rID, ackRef, heldSubmission)
       _ <- removeTaxRegistrationInformation(rID)
     } yield {
       updatedRef
     }
+  }
+
+  private[services] def storeAndUpdateSubmission(rID: String, ackRef: String, heldSubmission: InterimDesRegistration)(implicit hc: HeaderCarrier): Future[String] = {
+    val submissionAsJson = Json.toJson(heldSubmission).as[JsObject]
+    for {
+      heldSubmissionData <- heldSubmissionRepository.storePartialSubmission(rID, ackRef, submissionAsJson)
+      submissionStatus <- updateSubmissionStatus(rID, RegistrationStatus.HELD)
+      ctRegistration <- corporationTaxRegistrationRepository.retrieveCompanyDetails(rID)
+      userDetails <- microserviceAuthConnector.getUserDetails
+      authProviderId = userDetails.get.authProviderId
+      ppob = ctRegistration.get.ppob
+      _ <- auditUserSubmission(rID, ppob, authProviderId, submissionAsJson)
+    } yield submissionStatus
+  }
+
+  private[services] def auditUserSubmission(rID: String, ppob: PPOB, authProviderId: String, jsSubmission: JsObject)(implicit hc: HeaderCarrier) = {
+    import PPOB.MANUAL
+
+    val (txID, uprn) = (ppob.addressType, ppob.address) match {
+      case (MANUAL, _) => (None, None)
+      case (_, Some(address)) => (Some(address.txid), address.uprn)
+    }
+    val event = new UserRegistrationSubmissionEvent(UserRegistrationSubmissionEventDetail(rID, authProviderId, txID, uprn, ppob.addressType, jsSubmission))
+    auditConnector.sendEvent(event)
   }
 
   private[services] class FailedToRemoveTaxRegistrationInformation extends NoStackTrace

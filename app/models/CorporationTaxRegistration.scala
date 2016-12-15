@@ -178,6 +178,10 @@ case class PPOB(addressType: String,
 
 object PPOB {
   implicit val format = Json.format[PPOB]
+
+  lazy val RO = "RO"
+  lazy val LOOKUP = "LOOKUP"
+  lazy val MANUAL = "MANUAL"
 }
 
 case class CorporationTaxRegistrationRequest(language: String)

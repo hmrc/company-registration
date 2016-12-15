@@ -78,6 +78,40 @@ object BusinessAddress {
       (__ \ "postcode").writeNullable[String] and
       (__ \ "country").writeNullable[String]
     ) (unlift(BusinessAddress.unapply))
+
+  implicit val reads: Reads[BusinessAddress] = (
+    (__ \ "line1").read[String] and
+      (__ \ "line2").read[String] and
+      (__ \ "line3").readNullable[String] and
+      (__ \ "line4").readNullable[String] and
+      (__ \ "postcode").readNullable[String] and
+      (__ \ "country").readNullable[String]
+    ) (BusinessAddress.apply _)
+
+  def auditWrites(addressTransId: Option[String], entryMethod: String, uprn: Option[String], address: BusinessAddress): Writes[BusinessAddress] = {
+    val aWrites: OWrites[BusinessAddress] = (
+      (__ \ "addressLine1").write[String] and
+        (__ \ "addressLine2").write[String] and
+        (__ \ "addressLine3").writeNullable[String] and
+        (__ \ "addressLine4").writeNullable[String] and
+        (__ \ "postCode").writeNullable[String] and
+        (__ \ "country").writeNullable[String]
+      ) (unlift(BusinessAddress.unapply))
+
+    new Writes[BusinessAddress] {
+      def writes(m: BusinessAddress) = {
+        Json.obj(
+          "addressEntryMethod" -> entryMethod
+        ).++(
+          addressTransId.fold[JsObject](Json.obj())(id => Json.obj("transactionId" -> id))
+        ).++(
+          Json.toJson(address)(aWrites).as[JsObject]
+        ).++(
+          uprn.fold[JsObject](Json.obj())(_ => Json.obj("uprn" -> uprn))
+        )
+      }
+    }
+  }
 }
 
 case class BusinessContactDetails(
