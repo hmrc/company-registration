@@ -16,7 +16,7 @@
 
 package services
 
-import connectors.{UserIds, BusinessRegistrationNotFoundResponse, BusinessRegistrationSuccessResponse, Authority, BusinessRegistrationConnector}
+import connectors._
 import fixtures.{AuthFixture, MongoFixture, CorporationTaxRegistrationFixture}
 import helpers.{MongoMocks, SCRSSpec}
 import models._
@@ -27,7 +27,8 @@ import org.mockito.Mockito._
 import play.api.libs.json.{Json, JsObject}
 import repositories.{HeldSubmissionMongoRepository, HeldSubmissionData}
 import services.CorporationTaxRegistrationService.{FailedToGetBRMetadata, FailedToGetCTData, FailedToGetCredId}
-import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.audit.http.connector.{AuditResult, AuditConnector}
+import uk.gov.hmrc.play.audit.model.{DataEvent, AuditEvent}
 import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.http.logging.SessionId
 import repositories.Repositories
@@ -181,6 +182,8 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
       val heldStatus = "held"
       val expected = ConfirmationReferences("testTransaction", "testPayRef", "testPayAmount", "")
 
+      val userDetails = UserDetailsModel("testName", "testEmail", "testAffinityGroup", None, None, None, None, "testAuthProviderId", "testAuthProviderType")
+
       when(mockBusinessRegistrationConnector.retrieveMetadata(Matchers.any(), Matchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
       when(mockCTDataRepository.updateConfirmationReferences(Matchers.any(), Matchers.any()))
@@ -195,7 +198,11 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
         .thenReturn(Future.successful(heldStatus))
       when(mockCTDataRepository.removeTaxRegistrationInformation(registrationId))
         .thenReturn(Future.successful(true))
-
+      when(mockCTDataRepository.retrieveCompanyDetails(Matchers.any()))
+        .thenReturn(Future.successful(Some(validCompanyDetails)))
+      when(mockAuthConnector.getUserDetails(Matchers.any())).thenReturn(Future.successful(Some(userDetails)))
+      when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any()))
+        .thenReturn(Future.successful(AuditResult.Success))
 
       SequenceRepositoryMocks.getNext("testSeqID", 3)
 
