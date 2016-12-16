@@ -124,10 +124,10 @@ trait CorporationTaxRegistrationService extends DateHelper {
   }
 
   private[services] def auditUserSubmission(rID: String, ppob: PPOB, authProviderId: String, jsSubmission: JsObject)(implicit hc: HeaderCarrier) = {
-    import PPOB.MANUAL
+    import PPOB.RO
 
     val (txID, uprn) = (ppob.addressType, ppob.address) match {
-      case (MANUAL, _) => (None, None)
+      case (RO, _) => (None, None)
       case (_, Some(address)) => (Some(address.txid), address.uprn)
     }
     val event = new UserRegistrationSubmissionEvent(UserRegistrationSubmissionEventDetail(rID, authProviderId, txID, uprn, ppob.addressType, jsSubmission))
