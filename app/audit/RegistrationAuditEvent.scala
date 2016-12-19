@@ -48,6 +48,9 @@ object RegistrationAuditEvent {
 
   val AUTH_PROVIDER_ID = "authProviderId"
   val JOURNEY_ID = "journeyId"
+  val ACK_REF = "acknowledgementReference"
+  val REG_METADATA = "registrationMetadata"
+  val CORP_TAX = "corporationTax"
 
   def buildTags(auditType: String, tagSet: TagSet)(implicit hc: HeaderCarrier) = {
     Map("transactionName" -> auditType) ++

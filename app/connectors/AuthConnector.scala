@@ -37,6 +37,21 @@ case class Authority(
 case class UserIds(internalId : String,
                    externalId : String)
 
+case class UserDetailsModel(name: String,
+                            email: String,
+                            affinityGroup: String,
+                            description: Option[String] = None,
+                            lastName: Option[String] = None,
+                            dateOfBirth: Option[String] = None,
+                            postcode: Option[String] = None,
+                            authProviderId: String,
+                            authProviderType: String)
+
+object UserDetailsModel{
+  implicit val format = Json.format[UserDetailsModel]
+}
+
+
 object UserIds {
   implicit val format = Json.format[UserIds]
 }
@@ -75,6 +90,12 @@ trait AuthConnector extends ServicesConfig with RawResponseReads {
     }
   }
 
+  def getUserDetails(implicit headerCarrier: HeaderCarrier): Future[Option[UserDetailsModel]] = {
+    getCurrentAuthority.flatMap {
+      case Some(authority) => http.GET[UserDetailsModel](authority.userDetailsLink).map(Some(_))
+      case _ => Future.successful(None)
+    }
+  }
 }
 
 object AuthConnector extends AuthConnector {
