@@ -98,19 +98,19 @@ trait RegistrationHoldingPenService extends DateHelper {
     fetchRegistrationByTxId(item.transactionId) flatMap { ctReg =>
       import RegistrationStatus.{HELD,SUBMITTED}
       ctReg.status match {
-        case HELD => updateHeldSubmission(item, ctReg)
+        case HELD => updateHeldSubmission(item, ctReg, ctReg.registrationID)
         case SUBMITTED => updateSubmittedSubmission(ctReg)
         case unknown => updateOtherSubmission(ctReg.registrationID, item.transactionId, unknown)
       }
     }
   }
 
-  private[services] def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration): Future[Boolean] = {
+  private[services] def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration, journeyId : String): Future[Boolean] = {
     getAckRef(ctReg) match {
       case Some(ackRef) => {
         val fResponse = for {
           submission <- constructFullSubmission(item, ctReg, ackRef)
-          response <- postSubmissionToDes(ackRef, submission)
+          response <- postSubmissionToDes(ackRef, submission, journeyId)
         } yield {
           response
         }
@@ -234,8 +234,8 @@ trait RegistrationHoldingPenService extends DateHelper {
       )
   }
 
-  private[services] def postSubmissionToDes(ackRef: String, submission: JsObject) = {
+  private[services] def postSubmissionToDes(ackRef: String, submission: JsObject, journeyId : String) = {
     val hc = new HeaderCarrier()
-    desConnector.ctSubmission(ackRef, submission)(hc)
+    desConnector.ctSubmission(ackRef, submission, journeyId)(hc)
   }
 }

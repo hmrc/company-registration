@@ -16,15 +16,16 @@
 
 package connectors
 
-import config.WSHttp
+import config.{MicroserviceAuditConnector, WSHttp}
 import play.api.Logger
 import play.api.http.Status._
 import play.api.libs.json.{JsObject, Writes}
+import services.AuditService
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.play.http.logging.Authorization
-import scala.concurrent.ExecutionContext.Implicits.global
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 sealed trait DesResponse
@@ -34,7 +35,7 @@ case object DesErrorResponse extends DesResponse
 case class InvalidDesRequest(message: String) extends DesResponse
 
 
-trait DesConnector extends ServicesConfig with RawResponseReads with HttpErrorFunctions {
+trait DesConnector extends ServicesConfig with AuditService with RawResponseReads with HttpErrorFunctions {
 
   lazy val serviceURL = baseUrl("des-service")
   val baseURI = "/business-registration"
@@ -61,11 +62,11 @@ trait DesConnector extends ServicesConfig with RawResponseReads with HttpErrorFu
     def read(http: String, url: String, res: HttpResponse) = customDESRead(http, url, res)
   }
 
-  def ctSubmission(ackRef:String, submission: JsObject)(implicit headerCarrier: HeaderCarrier): Future[DesResponse] = {
-
+  def ctSubmission(ackRef:String, submission: JsObject, journeyId : String)(implicit headerCarrier: HeaderCarrier): Future[DesResponse] = {
     val url: String = s"""${serviceURL}${baseURI}${ctRegistrationURI}"""
     val response = cPOST(url, submission)
     response map { r =>
+      sendCTRegSubmissionEvent(buildCTRegSubmissionEvent(ctRegSubmissionFromJson(journeyId, r.json.as[JsObject])))
       r.status match {
         case OK =>
           Logger.info(s"Successful Des submission for ackRef ${ackRef} to ${url}")
@@ -114,6 +115,7 @@ trait DesConnector extends ServicesConfig with RawResponseReads with HttpErrorFu
 
 object DesConnector extends DesConnector {
   // $COVERAGE-OFF$
+  val auditConnector = MicroserviceAuditConnector
   val urlHeaderEnvironment: String = getConfString("des-service.environment", throw new Exception("could not find config value for des-service.environment"))
   val urlHeaderAuthorization: String = s"Bearer ${getConfString("des-service.authorization-token",
     throw new Exception("could not find config value for des-service.authorization-token"))}"

@@ -49,6 +49,7 @@ class DesConnectorSpec extends UnitSpec with OneServerPerSuite with MockitoSugar
   }
 
   val mockWSHttp = mock[MockHttp]
+  val mockAuditConnector = mock[AuditConnector]
 
   trait Setup {
     val connector = new DesConnector {
@@ -56,6 +57,7 @@ class DesConnectorSpec extends UnitSpec with OneServerPerSuite with MockitoSugar
       override val http = mockWSHttp
       val urlHeaderEnvironment = "test"
       val urlHeaderAuthorization = "testAuth"
+      val auditConnector = mockAuditConnector
     }
   }
 
@@ -92,7 +94,7 @@ class DesConnectorSpec extends UnitSpec with OneServerPerSuite with MockitoSugar
       when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
         thenReturn(Future.successful(HttpResponse(200, responseJson = Some(Json.obj("x"->"y")))))
 
-      val result = await(connector.ctSubmission("",submission))
+      val result = await(connector.ctSubmission("",submission, "testJID"))
 
       result shouldBe SuccessDesResponse(Json.obj("x"->"y"))
     }
@@ -101,7 +103,7 @@ class DesConnectorSpec extends UnitSpec with OneServerPerSuite with MockitoSugar
       when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
         thenReturn(Future.successful(HttpResponse(202, responseJson = Some(Json.obj("x"->"y")))))
 
-      val result = await(connector.ctSubmission("",submission))
+      val result = await(connector.ctSubmission("",submission, "testJID"))
 
       result shouldBe SuccessDesResponse(Json.obj("x"->"y"))
     }
@@ -110,7 +112,7 @@ class DesConnectorSpec extends UnitSpec with OneServerPerSuite with MockitoSugar
       when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
         thenReturn(Future.successful(HttpResponse(409, responseJson = Some(Json.obj("x"->"y")))))
 
-      val result = await(connector.ctSubmission("",submission))
+      val result = await(connector.ctSubmission("",submission,"testJID"))
 
       result shouldBe SuccessDesResponse(Json.obj("x"->"y"))
     }
@@ -119,7 +121,7 @@ class DesConnectorSpec extends UnitSpec with OneServerPerSuite with MockitoSugar
       when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
         thenReturn(Future.successful(HttpResponse(400, responseJson = Some(Json.obj("reason" -> "wibble")))))
 
-      val result = await(connector.ctSubmission("",submission))
+      val result = await(connector.ctSubmission("",submission,"testJID"))
 
       result shouldBe InvalidDesRequest("wibble")
     }
@@ -128,7 +130,7 @@ class DesConnectorSpec extends UnitSpec with OneServerPerSuite with MockitoSugar
       when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
         thenReturn(Future.failed(new NotFoundException("")))
 
-      val result = await(connector.ctSubmission("",submission))
+      val result = await(connector.ctSubmission("",submission,"testJID"))
 
       result shouldBe NotFoundDesResponse
     }
@@ -137,7 +139,7 @@ class DesConnectorSpec extends UnitSpec with OneServerPerSuite with MockitoSugar
       when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
         thenReturn(Future.failed(new InternalServerException("")))
 
-      val result = await(connector.ctSubmission("",submission))
+      val result = await(connector.ctSubmission("",submission,"testJID"))
 
       result shouldBe DesErrorResponse
     }
@@ -146,7 +148,7 @@ class DesConnectorSpec extends UnitSpec with OneServerPerSuite with MockitoSugar
       when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
         thenReturn(Future.failed(new BadGatewayException("")))
 
-      val result = await(connector.ctSubmission("",submission))
+      val result = await(connector.ctSubmission("",submission,"testJID"))
 
       result shouldBe DesErrorResponse
     }
@@ -155,7 +157,7 @@ class DesConnectorSpec extends UnitSpec with OneServerPerSuite with MockitoSugar
       when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
         thenReturn(Future.failed(new Exception("")))
 
-      val result = await(connector.ctSubmission("",submission))
+      val result = await(connector.ctSubmission("",submission,"testJID"))
 
       result shouldBe DesErrorResponse
     }
