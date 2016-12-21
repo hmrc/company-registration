@@ -36,12 +36,12 @@ object TagSet {
 
 import audit.TagSet.ALL_TAGS
 
-abstract class RegistrationAuditEvent(auditType: String, detail: JsObject, tagSet: TagSet = ALL_TAGS)(implicit hc: HeaderCarrier)
+abstract class RegistrationAuditEvent(auditType: String, transactionName : Option[String], detail: JsObject, tagSet: TagSet = ALL_TAGS)(implicit hc: HeaderCarrier)
   extends ExtendedDataEvent(
     auditSource = "company-registration",
     auditType = auditType,
     detail = detail,
-    tags = buildTags(auditType, tagSet)
+    tags = buildTags(transactionName.getOrElse(auditType), tagSet)
   )
 
 object RegistrationAuditEvent {
@@ -52,8 +52,8 @@ object RegistrationAuditEvent {
   val REG_METADATA = "registrationMetadata"
   val CORP_TAX = "corporationTax"
 
-  def buildTags(auditType: String, tagSet: TagSet)(implicit hc: HeaderCarrier) = {
-    Map("transactionName" -> auditType) ++
+  def buildTags(transactionName: String, tagSet: TagSet)(implicit hc: HeaderCarrier) = {
+    Map("transactionName" -> transactionName) ++
       buildClientIP(tagSet) ++
       buildClientPort(tagSet) ++
       buildRequestId(tagSet) ++

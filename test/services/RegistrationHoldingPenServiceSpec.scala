@@ -253,10 +253,10 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockAccountService.calculateSubmissionDates(Matchers.any(), Matchers.any(), Matchers.any()))
         .thenReturn(dates)
 
-      when(mockDesConnector.ctSubmission(Matchers.any(), Matchers.any())(Matchers.any()))
+      when(mockDesConnector.ctSubmission(Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any()))
         .thenReturn(Future.successful(SuccessDesResponse(Json.obj("x"->"y"))))
 
-      await(service.updateHeldSubmission(incorpSuccess, validCR)) shouldBe true
+      await(service.updateHeldSubmission(incorpSuccess, validCR, validCR.registrationID)) shouldBe true
     }
 
     "fail if DES states invalid" in new Setup {
@@ -266,11 +266,11 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockAccountService.calculateSubmissionDates(Matchers.any(), Matchers.any(), Matchers.any()))
         .thenReturn(dates)
 
-      when(mockDesConnector.ctSubmission(Matchers.any(), Matchers.any())(Matchers.any()))
+      when(mockDesConnector.ctSubmission(Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any()))
         .thenReturn(Future.successful(InvalidDesRequest("wibble")))
 
       intercept[InvalidSubmission] {
-        await(service.updateHeldSubmission(incorpSuccess, validCR))
+        await(service.updateHeldSubmission(incorpSuccess, validCR, validCR.registrationID))
       }.message should endWith ("""- Reason: "wibble".""")
     }
 
@@ -281,17 +281,17 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockAccountService.calculateSubmissionDates(Matchers.any(), Matchers.any(), Matchers.any()))
         .thenReturn(dates)
 
-      when(mockDesConnector.ctSubmission(Matchers.any(), Matchers.any())(Matchers.any()))
+      when(mockDesConnector.ctSubmission(Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any()))
         .thenReturn(Future.successful(NotFoundDesResponse))
 
       intercept[InvalidSubmission] {
-        await(service.updateHeldSubmission(incorpSuccess, validCR))
+        await(service.updateHeldSubmission(incorpSuccess, validCR, validCR.registrationID))
       }
     }
 
     "fail if missing ackref" in new Setup {
       intercept[MissingAckRef] {
-        await(service.updateHeldSubmission(incorpSuccess, validCR.copy(confirmationReferences = None)))
+        await(service.updateHeldSubmission(incorpSuccess, validCR.copy(confirmationReferences = None), validCR.registrationID))
       }.message should endWith (s"""tx_id "${transId}".""")
     }
   }
@@ -299,7 +299,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
   "updateSubmission" should {
     trait SetupNoProcess {
       val service = new mockService {
-        override def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration) = Future.successful(true)
+        override def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration, journeyId : String) = Future.successful(true)
       }
     }
     "return true for a DES ready submission" in new SetupNoProcess {

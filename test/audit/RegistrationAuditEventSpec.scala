@@ -44,7 +44,7 @@ class RegistrationAuditEventSpec extends UnitSpec {
     val emptyCarrier = HeaderCarrier()
 
     "have the correct tags for a full header carrier" in {
-      val event = new RegistrationAuditEvent(auditType, Json.obj())(completeCarrier) {}
+      val event = new RegistrationAuditEvent(auditType, None, Json.obj())(completeCarrier) {}
 
       val result = Json.toJson[ExtendedDataEvent](event)
 
@@ -61,7 +61,7 @@ class RegistrationAuditEventSpec extends UnitSpec {
     }
 
     "have the correct tags for an empty header carrier" in {
-      val event = new RegistrationAuditEvent(auditType, Json.obj())(emptyCarrier) {}
+      val event = new RegistrationAuditEvent(auditType, None, Json.obj())(emptyCarrier) {}
 
       val result = Json.toJson[ExtendedDataEvent](event)
 
@@ -78,7 +78,7 @@ class RegistrationAuditEventSpec extends UnitSpec {
     }
 
     "Output with minimum tags" in {
-      val event = new RegistrationAuditEvent(auditType, Json.obj(), TagSet.NO_TAGS)(completeCarrier) {}
+      val event = new RegistrationAuditEvent(auditType, None, Json.obj(), TagSet.NO_TAGS)(completeCarrier) {}
 
       val result = Json.toJson[ExtendedDataEvent](event)
 
@@ -91,7 +91,7 @@ class RegistrationAuditEventSpec extends UnitSpec {
 
     "Output with name and clientIP/Port tags" in {
       val tagSet = TagSet.NO_TAGS.copy(clientIP = true, clientPort = true)
-      val event = new RegistrationAuditEvent(auditType, Json.obj(), tagSet)(completeCarrier) {}
+      val event = new RegistrationAuditEvent(auditType, None, Json.obj(), tagSet)(completeCarrier) {}
 
       val result = Json.toJson[ExtendedDataEvent](event)
 
@@ -106,7 +106,7 @@ class RegistrationAuditEventSpec extends UnitSpec {
 
     "output with name, request, session & authz tags" in {
       val tagSet = TagSet.ALL_TAGS.copy(clientIP = false, clientPort = false)
-      val event = new RegistrationAuditEvent(auditType, Json.obj(), tagSet)(completeCarrier) {}
+      val event = new RegistrationAuditEvent(auditType, None, Json.obj(), tagSet)(completeCarrier) {}
 
       val result = Json.toJson[ExtendedDataEvent](event)
 
@@ -122,7 +122,7 @@ class RegistrationAuditEventSpec extends UnitSpec {
 
 
     "have the correct result" in {
-      val event = new RegistrationAuditEvent(auditType, Json.obj())(completeCarrier) {}
+      val event = new RegistrationAuditEvent(auditType, None, Json.obj())(completeCarrier) {}
 
       val result = Json.toJson[ExtendedDataEvent](event)
 

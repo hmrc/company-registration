@@ -58,4 +58,4 @@ object UserRegistrationSubmissionEventDetail {
 }
 
 class UserRegistrationSubmissionEvent(details: UserRegistrationSubmissionEventDetail)(implicit hc: HeaderCarrier)
-  extends RegistrationAuditEvent("interimCTRegistrationDetails", Json.toJson(details).as[JsObject])(hc)
+  extends RegistrationAuditEvent("interimCTRegistrationDetails", None, Json.toJson(details).as[JsObject])(hc)
