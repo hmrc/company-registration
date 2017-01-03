@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 HM Revenue & Customs
+ * Copyright 2017 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -72,7 +72,7 @@ class PrepareAccountControllerSpec extends SCRSSpec {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       when(mockCTDataRepository.getInternalId(Matchers.eq(rID))).thenReturn(Future.successful(Some(rID -> userIDs.internalId)))
 
-      when(mockPrepareAccountService.updateEndDate(Matchers.eq(rID), Matchers.eq(prepareAccountModel)))
+      when(mockPrepareAccountService.updateEndDate(Matchers.eq(rID)))
         .thenReturn(Future.successful(Some(prepareAccountModel)))
 
       val result = call(prepareAccountController.updateCompanyEndDate(rID), FakeRequest().withBody[JsValue](Json.toJson(prepareAccountModel)))
@@ -84,7 +84,7 @@ class PrepareAccountControllerSpec extends SCRSSpec {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       when(mockCTDataRepository.getInternalId(Matchers.eq(rID))).thenReturn(Future.successful(Some(rID -> userIDs.internalId)))
 
-      when(mockPrepareAccountService.updateEndDate(Matchers.eq(rID), Matchers.eq(prepareAccountModel)))
+      when(mockPrepareAccountService.updateEndDate(Matchers.eq(rID)))
         .thenReturn(Future.successful(None))
 
       val result = call(prepareAccountController.updateCompanyEndDate(rID), FakeRequest().withBody[JsValue](Json.toJson(prepareAccountModel)))
@@ -95,7 +95,7 @@ class PrepareAccountControllerSpec extends SCRSSpec {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       when(mockCTDataRepository.getInternalId(Matchers.eq(rID))).thenReturn(Future.successful(None))
 
-      when(mockPrepareAccountService.updateEndDate(Matchers.eq(rID), Matchers.eq(prepareAccountModel)))
+      when(mockPrepareAccountService.updateEndDate(Matchers.eq(rID)))
         .thenReturn(Future.successful(None))
 
       val result = call(prepareAccountController.updateCompanyEndDate(rID), FakeRequest().withBody[JsValue](Json.toJson(prepareAccountModel)))
@@ -106,7 +106,7 @@ class PrepareAccountControllerSpec extends SCRSSpec {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       when(mockCTDataRepository.getInternalId(Matchers.eq(rID))).thenReturn(Future.successful(Some("differentRID" -> "differentID")))
 
-      when(mockPrepareAccountService.updateEndDate(Matchers.eq(rID), Matchers.eq(prepareAccountModel)))
+      when(mockPrepareAccountService.updateEndDate(Matchers.eq(rID)))
         .thenReturn(Future.successful(None))
 
       val result = call(prepareAccountController.updateCompanyEndDate(rID), FakeRequest().withBody[JsValue](Json.toJson(prepareAccountModel)))
@@ -117,7 +117,7 @@ class PrepareAccountControllerSpec extends SCRSSpec {
       AuthenticationMocks.getCurrentAuthority(None)
       when(mockCTDataRepository.getInternalId(Matchers.eq(rID))).thenReturn(Future.successful(Some(rID -> validAuthority.ids.internalId)))
 
-      when(mockPrepareAccountService.updateEndDate(Matchers.eq(rID), Matchers.eq(prepareAccountModel)))
+      when(mockPrepareAccountService.updateEndDate(Matchers.eq(rID)))
         .thenReturn(Future.successful(None))
 
       val result = call(prepareAccountController.updateCompanyEndDate(rID), FakeRequest().withBody[JsValue](Json.toJson(prepareAccountModel)))

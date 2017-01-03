@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 HM Revenue & Customs
+ * Copyright 2017 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,21 +17,23 @@
 package controllers
 
 
-import connectors.{AuthConnector, Authority}
-import fixtures.{AccountingDetailsFixture, AccountingDetailsResponse, AuthFixture}
+import connectors.AuthConnector
+import fixtures.{AccountingDetailsFixture, AuthFixture}
 import helpers.SCRSSpec
 import org.mockito.Mockito._
-import models.ErrorResponse
+import models.{AccountPrepDetails, ErrorResponse}
 import org.mockito.Matchers
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import services.{CorporationTaxRegistrationService, AccountingDetailsService, MetricsService}
+import services.{AccountingDetailsService, CorporationTaxRegistrationService, PrepareAccountService}
 import mocks.MockMetricsService
 
 import scala.concurrent.Future
 
 class AccountingDetailsControllerSpec extends SCRSSpec with AuthFixture with AccountingDetailsFixture {
+
+  val mockPrepareAccountService = mock[PrepareAccountService]
 
   trait Setup {
     val controller = new AccountingDetailsController {
@@ -39,6 +41,7 @@ class AccountingDetailsControllerSpec extends SCRSSpec with AuthFixture with Acc
       override val resourceConn = mockCTDataRepository
       override val accountingDetailsService = mockAccountingDetailsService
       override val metricsService = MockMetricsService
+      override val prepareAccountService = mockPrepareAccountService
     }
   }
 
@@ -63,6 +66,9 @@ class AccountingDetailsControllerSpec extends SCRSSpec with AuthFixture with Acc
         .thenReturn(Future.successful(Some(registrationID -> validAuthority.ids.internalId)))
       AccountingDetailsServiceMocks.retrieveAccountingDetails(registrationID, Some(validAccountingDetails))
 
+      when(mockPrepareAccountService.updateEndDate(Matchers.any()))
+        .thenReturn(Future.successful(Some(AccountPrepDetails())))
+
       val result = controller.retrieveAccountingDetails(registrationID)(FakeRequest())
       status(result) shouldBe OK
       await(jsonBodyOf(result)) shouldBe Json.toJson(validAccountingDetailsResponse)
@@ -74,6 +80,9 @@ class AccountingDetailsControllerSpec extends SCRSSpec with AuthFixture with Acc
       when(mockCTDataRepository.getInternalId(Matchers.anyString()))
         .thenReturn(Future.successful(Some(registrationID -> validAuthority.ids.internalId)))
       AccountingDetailsServiceMocks.retrieveAccountingDetails(registrationID, None)
+
+      when(mockPrepareAccountService.updateEndDate(Matchers.any()))
+        .thenReturn(Future.successful(Some(AccountPrepDetails())))
 
       val result = controller.retrieveAccountingDetails(registrationID)(FakeRequest())
       status(result) shouldBe NOT_FOUND

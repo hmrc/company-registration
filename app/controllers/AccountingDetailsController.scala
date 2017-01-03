@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 HM Revenue & Customs
+ * Copyright 2017 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,8 +22,7 @@ import models.{AccountingDetails, CompanyDetails, ErrorResponse}
 import play.api.Logger
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.Action
-import services.{AccountingDetailsService, CorporationTaxRegistrationService, MetricsService}
-import services.CorporationTaxRegistrationService
+import services.{AccountingDetailsService, CorporationTaxRegistrationService, MetricsService, PrepareAccountService}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -35,12 +34,16 @@ object AccountingDetailsController extends AccountingDetailsController{
   override val resourceConn = CorporationTaxRegistrationService.corporationTaxRegistrationRepository
   override val accountingDetailsService = AccountingDetailsService
   override val metricsService: MetricsService = MetricsService
+  override val prepareAccountService = PrepareAccountService
 }
 
 trait AccountingDetailsController extends BaseController with Authenticated with Authorisation[String] {
 
   val accountingDetailsService: AccountingDetailsService
   val metricsService: MetricsService
+  val prepareAccountService: PrepareAccountService
+
+
   private def mapToResponse(registrationID: String, res: AccountingDetails)= {
     Json.toJson(res).as[JsObject] ++
       Json.obj(
@@ -76,11 +79,16 @@ trait AccountingDetailsController extends BaseController with Authenticated with
         case Authorised(_) =>
           val timer = metricsService.updateAccountingDetailsCRTimer.time()
           withJsonBody[AccountingDetails] {
-            companyDetails => accountingDetailsService.updateAccountingDetails(registrationID, companyDetails)
-              .map{
-                case Some(details) => timer.stop()
-                                      Ok(mapToResponse(registrationID, details))
-                case None => NotFound(ErrorResponse.companyDetailsNotFound)
+            companyDetails =>
+              for {
+                accountingDetails <- accountingDetailsService.updateAccountingDetails(registrationID, companyDetails)
+                _ <- prepareAccountService.updateEndDate(registrationID)
+              } yield {
+                accountingDetails match {
+                  case Some(details) => timer.stop()
+                    Ok(mapToResponse(registrationID, details))
+                  case None => NotFound(ErrorResponse.companyDetailsNotFound)
+                }
               }
           }
         case NotLoggedInOrAuthorised =>

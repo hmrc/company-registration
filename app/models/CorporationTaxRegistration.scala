@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 HM Revenue & Customs
+ * Copyright 2017 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -238,8 +238,8 @@ object AccountingDetails extends AccountingDetailsValidator {
     )
 }
 
-case class AccountPrepDetails(status: String,
-                              endDate: Option[DateTime])
+case class AccountPrepDetails(status: String = AccountPrepDetails.HMRC_DEFINED,
+                              endDate: Option[DateTime] = None)
 
 object AccountPrepDetails extends AccountPrepDetailsValidator {
   val HMRC_DEFINED = "HMRC_DEFINED"
