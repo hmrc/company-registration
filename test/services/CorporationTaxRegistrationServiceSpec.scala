@@ -162,9 +162,9 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
          |       "lastName":null
          |     },
          |     "businessContactDetails":{
-         |       "phoneNumber":"123",
+         |       "telephoneNumber":"123",
          |       "mobileNumber":"123",
-         |       "email":"6email@whatever.com"
+         |       "emailAddress":"6email@whatever.com"
          |     }
          |   }
          | }

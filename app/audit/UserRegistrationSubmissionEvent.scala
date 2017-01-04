@@ -17,7 +17,6 @@
 package audit
 
 import models.des.BusinessAddress
-import play.api.libs.json.Writes
 import uk.gov.hmrc.play.http.HeaderCarrier
 import play.api.libs.json._
 
@@ -37,15 +36,18 @@ object UserRegistrationSubmissionEventDetail {
 
       def businessAddressAuditWrites(address: BusinessAddress) = BusinessAddress.auditWrites(detail.transId, "LOOKUP", detail.uprn, address)
 
+      val updatedInfo = Json.parse(detail.jsSubmission.toString
+                                    .replace("\"email\":", "\"emailAddress\":")
+                                    .replace("\"phoneNumber\":", "\"telephoneNumber\":"))
+
+
       Json.obj(
         JOURNEY_ID -> detail.regId,
         ACK_REF -> (detail.jsSubmission \ "acknowledgementReference"),
         REG_METADATA -> (detail.jsSubmission \ "registration" \ "metadata").as[JsObject].++(
           Json.obj("authProviderId" -> detail.authProviderId)
-        ).-("sessionId").-("credentialId"),
-        CORP_TAX -> (detail.jsSubmission \ "registration" \ "corporationTax").as[JsObject].++(
-          Json.obj("companyACharityIncOrg" -> false)
-        ).++(
+        ).-("sessionId").-("credentialId"),                                    //         v---insert here?
+        CORP_TAX -> (updatedInfo \ "registration" \ "corporationTax").as[JsObject].++(
           (detail.jsSubmission \ "registration" \ "corporationTax" \ "businessAddress").asOpt[BusinessAddress].fold{
             Json.obj()
           }{
