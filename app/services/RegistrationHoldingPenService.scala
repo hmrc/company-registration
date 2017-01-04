@@ -16,12 +16,14 @@
 
 package services
 
+import audit.{DesSubmissionEvent, SubmissionEventDetail}
 import connectors._
 import helpers.DateHelper
 import models._
 import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import repositories._
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -39,6 +41,8 @@ object RegistrationHoldingPenService extends RegistrationHoldingPenService {
   override val heldRepo = Repositories.heldSubmissionRepository
   override val accountingService = AccountingDetailsService
   val brConnector = BusinessRegistrationConnector
+  val auditConnector = AuditConnector
+  val microserviceAuthConnector = AuthConnector
 
 }
 
@@ -55,6 +59,8 @@ trait RegistrationHoldingPenService extends DateHelper {
   val heldRepo : HeldSubmissionRepository
   val accountingService : AccountingDetailsService
   val brConnector: BusinessRegistrationConnector
+  val auditConnector: AuditConnector
+  val microserviceAuthConnector: AuthConnector
 
   private[services] class FailedToRetrieveByTxId(transId: String)  extends NoStackTrace
   private[services] class FailedToRetrieveByAckRef extends NoStackTrace
@@ -130,12 +136,27 @@ trait RegistrationHoldingPenService extends DateHelper {
 
   private def processSuccessDesResponse(item: IncorpUpdate, ctReg: CorporationTaxRegistration): Future[Boolean] = {
     for {
+      userDetails <- microserviceAuthConnector.getUserDetails
+      authProviderId = userDetails.get.authProviderId
+      _ <- auditDesSubmission(ctReg.registrationID, ctReg.companyDetails.get.ppob, authProviderId, Json.toJson(ctReg).as[JsObject])
       updated <- ctRepository.updateHeldToSubmitted(ctReg.registrationID, item.crn, formatTimestamp(now))
       deleted <- heldRepo.removeHeldDocument(ctReg.registrationID)
     } yield {
       updated && deleted
     }
   }
+
+  private[services] def auditDesSubmission(rID: String, ppob: PPOB, authProviderId: String, jsSubmission: JsObject)(implicit hc: HeaderCarrier) = {
+    import PPOB.RO
+
+    val (txID, uprn) = (ppob.addressType, ppob.address) match {
+      case (RO, _) => (None, None)
+      case (_, Some(address)) => (Some(address.txid), address.uprn)
+    }
+    val event = new DesSubmissionEvent(SubmissionEventDetail(rID, authProviderId, txID, uprn, ppob.addressType, jsSubmission))
+    auditConnector.sendEvent(event)
+  }
+
 
   private def processInvalidDesRequest(ackRef: String, message: String) = {
     val errMsg = s"""Submission to DES failed for ack ref ${ackRef} - Reason: "${message}"."""

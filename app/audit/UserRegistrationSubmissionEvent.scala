@@ -20,19 +20,19 @@ import models.des.BusinessAddress
 import uk.gov.hmrc.play.http.HeaderCarrier
 import play.api.libs.json._
 
-case class UserRegistrationSubmissionEventDetail(regId: String,
-                                                 authProviderId: String,
-                                                 transId: Option[String],
-                                                 uprn: Option[String],
-                                                 addressEventType: String,
-                                                 jsSubmission: JsObject)
+case class SubmissionEventDetail(regId: String,
+                                 authProviderId: String,
+                                 transId: Option[String],
+                                 uprn: Option[String],
+                                 addressEventType: String,
+                                 jsSubmission: JsObject)
 
-object UserRegistrationSubmissionEventDetail {
+object SubmissionEventDetail {
 
   import RegistrationAuditEvent.{JOURNEY_ID, ACK_REF, REG_METADATA, CORP_TAX}
 
-  implicit val writes = new Writes[UserRegistrationSubmissionEventDetail] {
-    def writes(detail: UserRegistrationSubmissionEventDetail) = {
+  implicit val writes = new Writes[SubmissionEventDetail] {
+    def writes(detail: SubmissionEventDetail) = {
 
       def businessAddressAuditWrites(address: BusinessAddress) = BusinessAddress.auditWrites(detail.transId, "LOOKUP", detail.uprn, address)
 
@@ -59,5 +59,8 @@ object UserRegistrationSubmissionEventDetail {
   }
 }
 
-class UserRegistrationSubmissionEvent(details: UserRegistrationSubmissionEventDetail)(implicit hc: HeaderCarrier)
+class UserRegistrationSubmissionEvent(details: SubmissionEventDetail)(implicit hc: HeaderCarrier)
   extends RegistrationAuditEvent("interimCTRegistrationDetails", None, Json.toJson(details).as[JsObject])(hc)
+
+class DesSubmissionEvent(details: SubmissionEventDetail)(implicit hc: HeaderCarrier)
+  extends RegistrationAuditEvent("ctRegistrationSubmission", None, Json.toJson(details).as[JsObject])(hc)
