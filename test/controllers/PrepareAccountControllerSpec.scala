@@ -72,7 +72,7 @@ class PrepareAccountControllerSpec extends SCRSSpec {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       when(mockCTDataRepository.getInternalId(Matchers.eq(rID))).thenReturn(Future.successful(Some(rID -> userIDs.internalId)))
 
-      when(mockPrepareAccountService.updateEndDate(Matchers.eq(rID), Matchers.eq(prepareAccountModel)))
+      when(mockPrepareAccountService.updateEndDate(Matchers.eq(rID)))
         .thenReturn(Future.successful(Some(prepareAccountModel)))
 
       val result = call(prepareAccountController.updateCompanyEndDate(rID), FakeRequest().withBody[JsValue](Json.toJson(prepareAccountModel)))
@@ -84,7 +84,7 @@ class PrepareAccountControllerSpec extends SCRSSpec {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       when(mockCTDataRepository.getInternalId(Matchers.eq(rID))).thenReturn(Future.successful(Some(rID -> userIDs.internalId)))
 
-      when(mockPrepareAccountService.updateEndDate(Matchers.eq(rID), Matchers.eq(prepareAccountModel)))
+      when(mockPrepareAccountService.updateEndDate(Matchers.eq(rID)))
         .thenReturn(Future.successful(None))
 
       val result = call(prepareAccountController.updateCompanyEndDate(rID), FakeRequest().withBody[JsValue](Json.toJson(prepareAccountModel)))
@@ -95,7 +95,7 @@ class PrepareAccountControllerSpec extends SCRSSpec {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       when(mockCTDataRepository.getInternalId(Matchers.eq(rID))).thenReturn(Future.successful(None))
 
-      when(mockPrepareAccountService.updateEndDate(Matchers.eq(rID), Matchers.eq(prepareAccountModel)))
+      when(mockPrepareAccountService.updateEndDate(Matchers.eq(rID)))
         .thenReturn(Future.successful(None))
 
       val result = call(prepareAccountController.updateCompanyEndDate(rID), FakeRequest().withBody[JsValue](Json.toJson(prepareAccountModel)))
@@ -106,7 +106,7 @@ class PrepareAccountControllerSpec extends SCRSSpec {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       when(mockCTDataRepository.getInternalId(Matchers.eq(rID))).thenReturn(Future.successful(Some("differentRID" -> "differentID")))
 
-      when(mockPrepareAccountService.updateEndDate(Matchers.eq(rID), Matchers.eq(prepareAccountModel)))
+      when(mockPrepareAccountService.updateEndDate(Matchers.eq(rID)))
         .thenReturn(Future.successful(None))
 
       val result = call(prepareAccountController.updateCompanyEndDate(rID), FakeRequest().withBody[JsValue](Json.toJson(prepareAccountModel)))
@@ -117,7 +117,7 @@ class PrepareAccountControllerSpec extends SCRSSpec {
       AuthenticationMocks.getCurrentAuthority(None)
       when(mockCTDataRepository.getInternalId(Matchers.eq(rID))).thenReturn(Future.successful(Some(rID -> validAuthority.ids.internalId)))
 
-      when(mockPrepareAccountService.updateEndDate(Matchers.eq(rID), Matchers.eq(prepareAccountModel)))
+      when(mockPrepareAccountService.updateEndDate(Matchers.eq(rID)))
         .thenReturn(Future.successful(None))
 
       val result = call(prepareAccountController.updateCompanyEndDate(rID), FakeRequest().withBody[JsValue](Json.toJson(prepareAccountModel)))

@@ -46,7 +46,7 @@ trait PrepareAccountController extends BaseController with Authenticated with Au
         case Authorised(_) =>
           val timer = metricsService.updateCompanyEndDateCRTimer.time()
           withJsonBody[AccountPrepDetails] { model =>
-            service.updateEndDate(registrationID, model).map {
+            service.updateEndDate(registrationID).map {
               case Some(res) =>
                 timer.stop()
                 Ok(Json.toJson(res))

@@ -238,8 +238,8 @@ object AccountingDetails extends AccountingDetailsValidator {
     )
 }
 
-case class AccountPrepDetails(status: String,
-                              endDate: Option[DateTime])
+case class AccountPrepDetails(status: String = AccountPrepDetails.HMRC_DEFINED,
+                              endDate: Option[DateTime] = None)
 
 object AccountPrepDetails extends AccountPrepDetailsValidator {
   val HMRC_DEFINED = "HMRC_DEFINED"

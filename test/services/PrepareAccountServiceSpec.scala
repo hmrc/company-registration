@@ -42,7 +42,7 @@ class PrepareAccountServiceSpec extends SCRSSpec {
       when(mockCTDataRepository.updateCompanyEndDate(Matchers.eq(rID), Matchers.any()))
         .thenReturn(Future.successful(Some(prepareAccountModel)))
 
-      val result = prepareAccountService.updateEndDate(rID, prepareAccountModel)
+      val result = prepareAccountService.updateEndDate(rID)
       await(result) shouldBe Some(prepareAccountModel)
     }
 
@@ -50,7 +50,7 @@ class PrepareAccountServiceSpec extends SCRSSpec {
       when(mockCTDataRepository.updateCompanyEndDate(Matchers.eq(rID), Matchers.any()))
         .thenReturn(Future.successful(None))
 
-      val result = prepareAccountService.updateEndDate(rID, prepareAccountModel)
+      val result = prepareAccountService.updateEndDate(rID)
       await(result) shouldBe None
     }
   }

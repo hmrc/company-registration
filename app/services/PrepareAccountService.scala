@@ -30,8 +30,8 @@ trait PrepareAccountService {
 
   val repository : CorporationTaxRegistrationMongoRepository
 
-  def updateEndDate(registrationID: String, prepareAccountModel: AccountPrepDetails): Future[Option[AccountPrepDetails]] = {
-    repository.updateCompanyEndDate(registrationID, prepareAccountModel).map{
+  def updateEndDate(registrationID: String): Future[Option[AccountPrepDetails]] = {
+    repository.updateCompanyEndDate(registrationID, AccountPrepDetails()).map{
       case Some(res) => Some(res)
       case None => None
     }
