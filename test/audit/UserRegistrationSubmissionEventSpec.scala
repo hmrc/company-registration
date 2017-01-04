@@ -55,7 +55,6 @@ class UserRegistrationSubmissionEventSpec extends UnitSpec {
           |      "companiesHouseCompanyName": "Company Co",
           |      "returnsOnCT61": false,
           |      "companyACharity": false,
-          |      "companyACharityIncOrg": false,
           |      "businessAddress": {
           |         "transactionId": "$transactionId",
           |         "addressEntryMethod": "LOOKUP",
@@ -73,9 +72,9 @@ class UserRegistrationSubmissionEventSpec extends UnitSpec {
           |         "lastName": "Jones"
           |      },
           |      "businessContactDetails": {
-          |         "phoneNumber": "0123456789",
+          |         "telephoneNumber": "0123456789",
           |         "mobileNumber": "0123456789",
-          |         "email": "test@email.co.uk"
+          |         "emailAddress": "test@email.co.uk"
           |      }
           |   }
           |}
@@ -107,7 +106,7 @@ class UserRegistrationSubmissionEventSpec extends UnitSpec {
           )
         )).as[JsObject]
       )
-
+      println(Json.toJson(testModel)(UserRegistrationSubmissionEventDetail.writes) + "\n" + expected)
       Json.toJson(testModel)(UserRegistrationSubmissionEventDetail.writes) shouldBe expected
     }
   }
