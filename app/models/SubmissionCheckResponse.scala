@@ -27,14 +27,12 @@ case class SubmissionCheckResponse(
                                   nextLink: String
                                   )
 
-case class IncorpUpdate(
-                        transactionId : String,
+case class IncorpUpdate(transactionId : String,
                         status : String,
                         crn : String,
                         incorpDate:  DateTime,
                         timepoint : String,
-                        statusDescription : Option[String] = None
-)
+                        statusDescription : Option[String] = None)
 
 
 
