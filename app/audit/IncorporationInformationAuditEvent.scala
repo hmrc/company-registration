@@ -17,7 +17,7 @@
 package audit
 
 import org.joda.time.DateTime
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json._
 import uk.gov.hmrc.play.http.HeaderCarrier
 
 case class IncorporationInformationAuditEventDetail(journeyId : String,
