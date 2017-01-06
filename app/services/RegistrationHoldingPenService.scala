@@ -16,12 +16,15 @@
 
 package services
 
+import audit.{IncorporationInformationAuditEvent, IncorporationInformationAuditEventDetail}
+import config.MicroserviceAuditConnector
 import connectors._
 import helpers.DateHelper
 import models._
 import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import repositories._
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -39,7 +42,7 @@ object RegistrationHoldingPenService extends RegistrationHoldingPenService {
   override val heldRepo = Repositories.heldSubmissionRepository
   override val accountingService = AccountingDetailsService
   val brConnector = BusinessRegistrationConnector
-
+  val auditConnector = MicroserviceAuditConnector
 }
 
 private[services] class InvalidSubmission(val message: String) extends NoStackTrace
@@ -55,6 +58,7 @@ trait RegistrationHoldingPenService extends DateHelper {
   val heldRepo : HeldSubmissionRepository
   val accountingService : AccountingDetailsService
   val brConnector: BusinessRegistrationConnector
+  val auditConnector : AuditConnector
 
   private[services] class FailedToRetrieveByTxId(transId: String)  extends NoStackTrace
   private[services] class FailedToRetrieveByAckRef extends NoStackTrace
@@ -78,12 +82,40 @@ trait RegistrationHoldingPenService extends DateHelper {
 
   private[services] def processIncorporationUpdate(item : IncorpUpdate)(implicit hc: HeaderCarrier): Future[Boolean] = {
     item.status match {
-      case "accepted" => updateSubmission(item)
+      case "accepted" =>
+        for {
+          ctReg <- fetchRegistrationByTxId(item.transactionId)
+          _ <- auditConnector.sendEvent(
+            new IncorporationInformationAuditEvent(
+              IncorporationInformationAuditEventDetail(
+                ctReg.registrationID,
+                Some(item.crn),
+                Some(item.incorpDate),
+                None
+              ),
+              "successIncorpInformation",
+              "successIncorpInformation"
+            )
+          )
+        } yield {}
+        updateSubmission(item)
       case "rejected" =>
         val reason = item.statusDescription.fold("")(f => " Reason given:" + f)
         Logger.info("Incorporation rejected for Transaction: " + item.transactionId + reason)
         for{
           ctReg <- fetchRegistrationByTxId(item.transactionId)
+          _ <- auditConnector.sendEvent(
+            new IncorporationInformationAuditEvent(
+              IncorporationInformationAuditEventDetail(
+                ctReg.registrationID,
+                None,
+                None,
+                item.statusDescription
+              ),
+              "failedIncorpInformation",
+              "failedIncorpInformation"
+            )
+          )
           heldDeleted <- heldRepo.removeHeldDocument(ctReg.registrationID)
           ctDeleted <- ctRepository.removeTaxRegistrationById(ctReg.registrationID)
           metadataDeleted <- brConnector.removeMetadata(ctReg.registrationID)
