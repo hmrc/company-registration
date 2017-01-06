@@ -30,4 +30,4 @@ object IncorporationInformationAuditEventDetail {
 }
 
 class IncorporationInformationAuditEvent(details: IncorporationInformationAuditEventDetail, auditType : String, transactionName : String)(implicit hc : HeaderCarrier)
-  extends RegistrationAuditEvent(auditType, Some(transactionName), Json.toJson(details).as[JsObject], TagSet.NO_TAGS)
+  extends RegistrationAuditEvent(auditType, Some(transactionName), Json.toJson(details).as[JsObject], TagSet.REQUEST_ONLY)
