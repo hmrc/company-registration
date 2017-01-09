@@ -16,18 +16,15 @@
 
 package audit
 
-import org.joda.time.DateTime
-import play.api.libs.json._
+import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.play.http.HeaderCarrier
 
-case class IncorporationInformationAuditEventDetail(journeyId : String,
-                                                    companyRegistrationNumber : Option[String],
-                                                    incorporationDate : Option[DateTime],
-                                                    reason : Option[String])
+case class FailedIncorporationAuditEventDetail(journeyId : String,
+                                               reason : String)
 
-object IncorporationInformationAuditEventDetail {
-  implicit val format = Json.format[IncorporationInformationAuditEventDetail]
+object FailedIncorporationAuditEventDetail {
+  implicit val format = Json.format[FailedIncorporationAuditEventDetail]
 }
 
-class IncorporationInformationAuditEvent(details: IncorporationInformationAuditEventDetail, auditType : String, transactionName : String)(implicit hc : HeaderCarrier)
+class FailedIncorporationAuditEvent(details: FailedIncorporationAuditEventDetail, auditType : String, transactionName : String)(implicit hc : HeaderCarrier)
   extends RegistrationAuditEvent(auditType, Some(transactionName), Json.toJson(details).as[JsObject], TagSet.REQUEST_ONLY)

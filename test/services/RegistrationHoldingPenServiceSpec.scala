@@ -18,11 +18,12 @@ package services
 
 import java.util.UUID
 
+import audit.SuccessfulIncorporationAuditEvent
 import connectors._
 import fixtures.CorporationTaxRegistrationFixture
 import models._
 import org.joda.time.DateTime
-import org.mockito.Matchers
+import org.mockito.{ArgumentCaptor, Matchers}
 import org.scalatest.mock.MockitoSugar
 import play.api.libs.json.{JsObject, Json}
 import repositories.{CorporationTaxRegistrationRepository, HeldSubmission, HeldSubmissionRepository, StateDataRepository}
@@ -33,7 +34,7 @@ import services.RegistrationHoldingPenService.MissingAccountingDates
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with CorporationTaxRegistrationFixture {
 
@@ -85,7 +86,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
   val submittedCR = validCR.copy(status = SUBMITTED)
   val failCaseCR = validCR.copy(status = DRAFT)
   val incorpSuccess = IncorpUpdate(transId, "accepted", "012345", new DateTime(2016, 8, 10, 0, 0), timepoint)
-  val incorpRejected = IncorpUpdate(transId, "rejected", "012345", new DateTime(2016, 8, 10, 0, 0), timepoint)
+  val incorpRejected = IncorpUpdate(transId, "rejected", "012345", new DateTime(2016, 8, 10, 0, 0), timepoint, Some("testReason"))
   val submissionCheckResponseSingle = SubmissionCheckResponse(Seq(incorpSuccess), "testNextLink")
   val submissionCheckResponseDouble = SubmissionCheckResponse(Seq(incorpSuccess,incorpSuccess), "testNextLink")
   val submissionCheckResponseNone = SubmissionCheckResponse(Seq(), "testNextLink")
@@ -254,7 +255,14 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
     val testUserDetails = UserDetailsModel("bob", "a@b.c", "organisation", Some("description"), Some("lastName"), Some("1/1/1990"), Some("PO1 1ST"), "123", "456")
 
-    "return a true for a DES ready submission" in new SetupMockedAudit {
+
+    "return a true for a DES ready submission" in new Setup {
+
+      when(mockAuthConnector.getUserDetails(Matchers.any[HeaderCarrier]()))
+        .thenReturn(Future.successful(Some(testUserDetails)))
+
+      when(mockAuditConnector.sendEvent(Matchers.any[SuccessfulIncorporationAuditEvent]())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]()))
+        .thenReturn(Future.successful(Success))
 
       when(mockheldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
         .thenReturn(Future.successful(Some(validHeld)))
@@ -272,6 +280,15 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
         .thenReturn(Future.successful(SuccessDesResponse(Json.obj("x"->"y"))))
 
       await(service.updateHeldSubmission(incorpSuccess, validCR, validCR.registrationID)) shouldBe true
+
+      val captor = ArgumentCaptor.forClass(classOf[SuccessfulIncorporationAuditEvent])
+
+      verify(mockAuditConnector).sendEvent(captor.capture())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]())
+
+      val audit = captor.getValue
+
+      audit.auditType shouldBe "successIncorpInformation"
+      (audit.detail \ "incorporationDate").as[String] shouldBe "2016-08-10"
     }
 
     "fail if DES states invalid" in new Setup {
@@ -315,6 +332,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
     trait SetupNoProcess {
       val service = new mockService {
         implicit val hc = new HeaderCarrier()
+
         override def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration, journeyId : String)(implicit hc : HeaderCarrier) = Future.successful(true)
       }
     }
@@ -322,19 +340,19 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockctRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
         .thenReturn(Future.successful(Some(validCR)))
 
-      await(service.updateSubmission(incorpSuccess)) shouldBe true
+      await(service.updateSubmissionWithIncorporation(incorpSuccess)) shouldBe true
     }
     "return false for a submission that is already 'Submitted" in new SetupNoProcess {
       when(mockctRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
         .thenReturn(Future.successful(Some(submittedCR)))
 
-      await(service.updateSubmission(incorpSuccess)) shouldBe true
+      await(service.updateSubmissionWithIncorporation(incorpSuccess)) shouldBe true
     }
     "return false for a submission that is neither 'Held' nor 'Submitted'" in new SetupNoProcess {
       when(mockctRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
         .thenReturn(Future.successful(Some(failCaseCR)))
 
-      intercept[UnexpectedStatus]{await(service.updateSubmission(incorpSuccess))}
+      intercept[UnexpectedStatus]{await(service.updateSubmissionWithIncorporation(incorpSuccess))}
     }
 
   }
@@ -397,15 +415,19 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
     trait SetupBoolean {
       val serviceTrue = new mockService {
-        override def updateSubmission(item: IncorpUpdate)(implicit hc : HeaderCarrier) = Future.successful(true)
+        override def updateSubmissionWithIncorporation(item: IncorpUpdate)(implicit hc : HeaderCarrier) = Future.successful(true)
       }
+
       val serviceFalse = new mockService {
-        override def updateSubmission(item: IncorpUpdate)(implicit hc : HeaderCarrier) = Future.successful(false)
+        override def updateSubmissionWithIncorporation(item: IncorpUpdate)(implicit hc : HeaderCarrier) = Future.successful(false)
       }
     }
 
-    "return a future true or false when processing an accepted incorporation" in new SetupBoolean {
+    "return a future true when processing an accepted incorporation" in new SetupBoolean {
       await(serviceTrue.processIncorporationUpdate(incorpSuccess)) shouldBe true
+    }
+
+    "return a future false when processing an accepted incorporation" in new SetupBoolean {
       await(serviceFalse.processIncorporationUpdate(incorpSuccess)) shouldBe false
     }
     "return a future true when processing a rejected incorporation" in new Setup{
