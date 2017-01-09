@@ -17,6 +17,7 @@
 package services
 
 import audit.{DesSubmissionEvent, SubmissionEventDetail}
+import audit.{IncorporationInformationAuditEvent, IncorporationInformationAuditEventDetail}
 import config.MicroserviceAuditConnector
 import connectors._
 import helpers.DateHelper
@@ -44,7 +45,6 @@ object RegistrationHoldingPenService extends RegistrationHoldingPenService {
   val brConnector = BusinessRegistrationConnector
   val auditConnector = MicroserviceAuditConnector
   val microserviceAuthConnector = AuthConnector
-
 }
 
 private[services] class InvalidSubmission(val message: String) extends NoStackTrace
@@ -85,12 +85,40 @@ trait RegistrationHoldingPenService extends DateHelper {
 
   private[services] def processIncorporationUpdate(item : IncorpUpdate)(implicit hc: HeaderCarrier): Future[Boolean] = {
     item.status match {
-      case "accepted" => updateSubmission(item)
+      case "accepted" =>
+        for {
+          ctReg <- fetchRegistrationByTxId(item.transactionId)
+          _ <- auditConnector.sendEvent(
+            new IncorporationInformationAuditEvent(
+              IncorporationInformationAuditEventDetail(
+                ctReg.registrationID,
+                Some(item.crn),
+                Some(item.incorpDate),
+                None
+              ),
+              "successIncorpInformation",
+              "successIncorpInformation"
+            )
+          )
+        } yield {}
+        updateSubmission(item)
       case "rejected" =>
         val reason = item.statusDescription.fold("")(f => " Reason given:" + f)
         Logger.info("Incorporation rejected for Transaction: " + item.transactionId + reason)
         for{
           ctReg <- fetchRegistrationByTxId(item.transactionId)
+          _ <- auditConnector.sendEvent(
+            new IncorporationInformationAuditEvent(
+              IncorporationInformationAuditEventDetail(
+                ctReg.registrationID,
+                None,
+                None,
+                item.statusDescription
+              ),
+              "failedIncorpInformation",
+              "failedIncorpInformation"
+            )
+          )
           heldDeleted <- heldRepo.removeHeldDocument(ctReg.registrationID)
           ctDeleted <- ctRepository.removeTaxRegistrationById(ctReg.registrationID)
           metadataDeleted <- brConnector.removeMetadata(ctReg.registrationID)

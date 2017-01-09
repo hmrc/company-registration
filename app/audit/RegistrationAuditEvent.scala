@@ -32,6 +32,7 @@ case class TagSet(
 object TagSet {
   val ALL_TAGS = TagSet(true, true, true, true, true)
   val NO_TAGS = TagSet(false, false, false, false, false)
+  val REQUEST_ONLY = TagSet(false, false, true, false, false)
 }
 
 import audit.TagSet.ALL_TAGS

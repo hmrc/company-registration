@@ -30,7 +30,8 @@ import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
 import org.mockito.Mockito._
 import services.RegistrationHoldingPenService.MissingAccountingDates
-import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
 
 import scala.concurrent.Future
 
@@ -410,6 +411,9 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
     "return a future true when processing a rejected incorporation" in new Setup{
       when(mockctRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
         .thenReturn(Future.successful(Some(validCR)))
+
+      when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any()))
+        .thenReturn(Future.successful(Success))
 
       when(mockheldRepo.removeHeldDocument(Matchers.eq(validCR.registrationID)))
         .thenReturn(Future.successful(true))
