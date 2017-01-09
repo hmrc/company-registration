@@ -17,6 +17,7 @@
 package services
 
 import audit.{DesSubmissionEvent, SubmissionEventDetail}
+import config.MicroserviceAuditConnector
 import connectors._
 import helpers.DateHelper
 import models._
@@ -41,7 +42,7 @@ object RegistrationHoldingPenService extends RegistrationHoldingPenService {
   override val heldRepo = Repositories.heldSubmissionRepository
   override val accountingService = AccountingDetailsService
   val brConnector = BusinessRegistrationConnector
-  val auditConnector = AuditConnector
+  val auditConnector = MicroserviceAuditConnector
   val microserviceAuthConnector = AuthConnector
 
 }
@@ -99,7 +100,7 @@ trait RegistrationHoldingPenService extends DateHelper {
     }
   }
 
-  private[services] def updateSubmission(item: IncorpUpdate): Future[Boolean] = {
+  private[services] def updateSubmission(item: IncorpUpdate)(implicit hc: HeaderCarrier): Future[Boolean] = {
     Logger.debug(s"""Got tx_id "${item.transactionId}" """)
     fetchRegistrationByTxId(item.transactionId) flatMap { ctReg =>
       import RegistrationStatus.{HELD,SUBMITTED}
@@ -111,7 +112,7 @@ trait RegistrationHoldingPenService extends DateHelper {
     }
   }
 
-  private[services] def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration, journeyId : String): Future[Boolean] = {
+  private[services] def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration, journeyId : String)(implicit hc: HeaderCarrier): Future[Boolean] = {
     getAckRef(ctReg) match {
       case Some(ackRef) => {
         val fResponse = for {
@@ -134,7 +135,7 @@ trait RegistrationHoldingPenService extends DateHelper {
     }
   }
 
-  private def processSuccessDesResponse(item: IncorpUpdate, ctReg: CorporationTaxRegistration): Future[Boolean] = {
+  private[services] def processSuccessDesResponse(item: IncorpUpdate, ctReg: CorporationTaxRegistration)(implicit hc: HeaderCarrier): Future[Boolean] = {
     for {
       userDetails <- microserviceAuthConnector.getUserDetails
       authProviderId = userDetails.get.authProviderId

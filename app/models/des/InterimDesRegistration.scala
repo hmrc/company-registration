@@ -126,6 +126,27 @@ object BusinessContactDetails {
       (__ \ "mobileNumber").writeNullable[String] and
       (__ \ "email").writeNullable[String]
     ) (unlift(BusinessContactDetails.unapply))
+
+  implicit val reads: Reads[BusinessContactDetails] = (
+    (__ \ "phoneNumber").readNullable[String] and
+      (__ \ "mobileNumber").readNullable[String] and
+      (__ \ "email").readNullable[String]
+    ) (BusinessContactDetails.apply _)
+
+  def auditWrites(details: BusinessContactDetails): Writes[BusinessContactDetails] = {
+
+    val aWrites: OWrites[BusinessContactDetails] = (
+      (__ \ "telephoneNumber").writeNullable[String] and
+        (__ \ "mobileNumber").writeNullable[String] and
+        (__ \ "emailAddress").writeNullable[String]
+      ) (unlift(BusinessContactDetails.unapply))
+
+    new Writes[BusinessContactDetails] {
+      def writes(m: BusinessContactDetails) = {
+        Json.toJson(m)(aWrites).as[JsObject]
+      }
+    }
+  }
 }
 
 case class BusinessContactName(

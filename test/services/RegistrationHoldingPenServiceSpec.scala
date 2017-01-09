@@ -30,6 +30,7 @@ import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
 import org.mockito.Mockito._
 import services.RegistrationHoldingPenService.MissingAccountingDates
+import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 
 import scala.concurrent.Future
 
@@ -42,6 +43,8 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
   val mockAccountService = mock[AccountingDetailsService]
   val mockDesConnector = mock[DesConnector]
   val mockBRConnector = mock[BusinessRegistrationConnector]
+  val mockAuthConnector = mock[AuthConnector]
+  val mockAuditConnector = mock[AuditConnector]
 
   trait mockService extends RegistrationHoldingPenService {
     val stateDataRepository = mockStateDataRepository
@@ -51,11 +54,18 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
     val accountingService = mockAccountService
     val desConnector = mockDesConnector
     val brConnector = mockBRConnector
-
+    val auditConnector = mockAuditConnector
+    val microserviceAuthConnector = mockAuthConnector
   }
 
   trait Setup {
     val service = new mockService {}
+  }
+
+  trait SetupMockedAudit {
+    val service = new mockService {
+      override def processSuccessDesResponse(item: IncorpUpdate, ctReg: CorporationTaxRegistration)(implicit hc: HeaderCarrier) = Future.successful(true)
+    }
   }
 
   def date(year: Int, month: Int, day: Int) = new DateTime(year,month,day,0,0)
@@ -240,7 +250,11 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
   }
 
   "updateHeldSubmission" should {
-    "return a true for a DES ready submission" in new Setup {
+
+    val testUserDetails = UserDetailsModel("bob", "a@b.c", "organisation", Some("description"), Some("lastName"), Some("1/1/1990"), Some("PO1 1ST"), "123", "456")
+
+    "return a true for a DES ready submission" in new SetupMockedAudit {
+
       when(mockheldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
         .thenReturn(Future.successful(Some(validHeld)))
 
@@ -299,7 +313,8 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
   "updateSubmission" should {
     trait SetupNoProcess {
       val service = new mockService {
-        override def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration, journeyId : String) = Future.successful(true)
+        implicit val hc = new HeaderCarrier()
+        override def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration, journeyId : String)(implicit hc : HeaderCarrier) = Future.successful(true)
       }
     }
     "return true for a DES ready submission" in new SetupNoProcess {
@@ -381,10 +396,10 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
     trait SetupBoolean {
       val serviceTrue = new mockService {
-        override def updateSubmission(item: IncorpUpdate) = Future.successful(true)
+        override def updateSubmission(item: IncorpUpdate)(implicit hc : HeaderCarrier) = Future.successful(true)
       }
       val serviceFalse = new mockService {
-        override def updateSubmission(item: IncorpUpdate) = Future.successful(false)
+        override def updateSubmission(item: IncorpUpdate)(implicit hc : HeaderCarrier) = Future.successful(false)
       }
     }
 
