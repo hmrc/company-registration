@@ -16,48 +16,53 @@
 
 package audit
 
-import models.des.BusinessAddress
+import models.des.{BusinessAddress, BusinessContactDetails}
 import uk.gov.hmrc.play.http.HeaderCarrier
 import play.api.libs.json._
 
-case class UserRegistrationSubmissionEventDetail(regId: String,
-                                                 authProviderId: String,
-                                                 transId: Option[String],
-                                                 uprn: Option[String],
-                                                 addressEventType: String,
-                                                 jsSubmission: JsObject)
+case class SubmissionEventDetail(regId: String,
+                                 authProviderId: String,
+                                 transId: Option[String],
+                                 uprn: Option[String],
+                                 addressEventType: String,
+                                 jsSubmission: JsObject)
 
-object UserRegistrationSubmissionEventDetail {
+object SubmissionEventDetail {
 
   import RegistrationAuditEvent.{JOURNEY_ID, ACK_REF, REG_METADATA, CORP_TAX}
 
-  implicit val writes = new Writes[UserRegistrationSubmissionEventDetail] {
-    def writes(detail: UserRegistrationSubmissionEventDetail) = {
+  implicit val writes = new Writes[SubmissionEventDetail] {
+    def writes(detail: SubmissionEventDetail) = {
 
       def businessAddressAuditWrites(address: BusinessAddress) = BusinessAddress.auditWrites(detail.transId, "LOOKUP", detail.uprn, address)
+      def businessContactAuditWrites(contact: BusinessContactDetails) = BusinessContactDetails.auditWrites(contact)
 
-      val updatedInfo = Json.parse(detail.jsSubmission.toString
-                                    .replace("\"email\":", "\"emailAddress\":")
-                                    .replace("\"phoneNumber\":", "\"telephoneNumber\":"))
+      val address = (detail.jsSubmission \ "registration" \ "corporationTax" \ "businessAddress").
+        asOpt[BusinessAddress].fold { Json.obj() } {
+          address => Json.obj("businessAddress" -> Json.toJson(address)(businessAddressAuditWrites(address)).as[JsObject])
+        }
 
+      val contactDetails = (detail.jsSubmission \ "registration" \ "corporationTax" \ "businessContactDetails").
+        asOpt[BusinessContactDetails].fold { Json.obj() } {
+        contact => Json.obj("businessContactDetails" -> Json.toJson(contact)(businessContactAuditWrites(contact)).as[JsObject])
+      }
 
       Json.obj(
         JOURNEY_ID -> detail.regId,
         ACK_REF -> (detail.jsSubmission \ "acknowledgementReference"),
         REG_METADATA -> (detail.jsSubmission \ "registration" \ "metadata").as[JsObject].++(
           Json.obj("authProviderId" -> detail.authProviderId)
-        ).-("sessionId").-("credentialId"),                                    //         v---insert here?
-        CORP_TAX -> (updatedInfo \ "registration" \ "corporationTax").as[JsObject].++(
-          (detail.jsSubmission \ "registration" \ "corporationTax" \ "businessAddress").asOpt[BusinessAddress].fold{
-            Json.obj()
-          }{
-           address => Json.obj( "businessAddress" -> Json.toJson(address)(businessAddressAuditWrites(address)).as[JsObject])
-          }
-        )
+        ).-("sessionId").-("credentialId"),
+        CORP_TAX -> (detail.jsSubmission \ "registration" \ "corporationTax").as[JsObject].++
+          ( address ).++
+          ( contactDetails )
       )
     }
   }
 }
 
-class UserRegistrationSubmissionEvent(details: UserRegistrationSubmissionEventDetail)(implicit hc: HeaderCarrier)
+class UserRegistrationSubmissionEvent(details: SubmissionEventDetail)(implicit hc: HeaderCarrier)
   extends RegistrationAuditEvent("interimCTRegistrationDetails", None, Json.toJson(details).as[JsObject])(hc)
+
+class DesSubmissionEvent(details: SubmissionEventDetail)(implicit hc: HeaderCarrier)
+  extends RegistrationAuditEvent("ctRegistrationSubmission", None, Json.toJson(details).as[JsObject])(hc)

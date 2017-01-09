@@ -16,6 +16,7 @@
 
 package services
 
+import audit.{DesSubmissionEvent, SubmissionEventDetail}
 import audit.{IncorporationInformationAuditEvent, IncorporationInformationAuditEventDetail}
 import config.MicroserviceAuditConnector
 import connectors._
@@ -43,6 +44,7 @@ object RegistrationHoldingPenService extends RegistrationHoldingPenService {
   override val accountingService = AccountingDetailsService
   val brConnector = BusinessRegistrationConnector
   val auditConnector = MicroserviceAuditConnector
+  val microserviceAuthConnector = AuthConnector
 }
 
 private[services] class InvalidSubmission(val message: String) extends NoStackTrace
@@ -58,7 +60,8 @@ trait RegistrationHoldingPenService extends DateHelper {
   val heldRepo : HeldSubmissionRepository
   val accountingService : AccountingDetailsService
   val brConnector: BusinessRegistrationConnector
-  val auditConnector : AuditConnector
+  val auditConnector: AuditConnector
+  val microserviceAuthConnector: AuthConnector
 
   private[services] class FailedToRetrieveByTxId(transId: String)  extends NoStackTrace
   private[services] class FailedToRetrieveByAckRef extends NoStackTrace
@@ -125,7 +128,7 @@ trait RegistrationHoldingPenService extends DateHelper {
     }
   }
 
-  private[services] def updateSubmission(item: IncorpUpdate): Future[Boolean] = {
+  private[services] def updateSubmission(item: IncorpUpdate)(implicit hc: HeaderCarrier): Future[Boolean] = {
     Logger.debug(s"""Got tx_id "${item.transactionId}" """)
     fetchRegistrationByTxId(item.transactionId) flatMap { ctReg =>
       import RegistrationStatus.{HELD,SUBMITTED}
@@ -137,7 +140,7 @@ trait RegistrationHoldingPenService extends DateHelper {
     }
   }
 
-  private[services] def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration, journeyId : String): Future[Boolean] = {
+  private[services] def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration, journeyId : String)(implicit hc: HeaderCarrier): Future[Boolean] = {
     getAckRef(ctReg) match {
       case Some(ackRef) => {
         val fResponse = for {
@@ -160,14 +163,29 @@ trait RegistrationHoldingPenService extends DateHelper {
     }
   }
 
-  private def processSuccessDesResponse(item: IncorpUpdate, ctReg: CorporationTaxRegistration): Future[Boolean] = {
+  private[services] def processSuccessDesResponse(item: IncorpUpdate, ctReg: CorporationTaxRegistration)(implicit hc: HeaderCarrier): Future[Boolean] = {
     for {
+      userDetails <- microserviceAuthConnector.getUserDetails
+      authProviderId = userDetails.get.authProviderId
+//      _ <- auditDesSubmission(ctReg.registrationID, ctReg.companyDetails.get.ppob, authProviderId, Json.toJson(ctReg).as[JsObject])
       updated <- ctRepository.updateHeldToSubmitted(ctReg.registrationID, item.crn, formatTimestamp(now))
       deleted <- heldRepo.removeHeldDocument(ctReg.registrationID)
     } yield {
       updated && deleted
     }
   }
+
+  private[services] def auditDesSubmission(rID: String, ppob: PPOB, authProviderId: String, jsSubmission: JsObject)(implicit hc: HeaderCarrier) = {
+    import PPOB.RO
+
+    val (txID, uprn) = (ppob.addressType, ppob.address) match {
+      case (RO, _) => (None, None)
+      case (_, Some(address)) => (Some(address.txid), address.uprn)
+    }
+    val event = new DesSubmissionEvent(SubmissionEventDetail(rID, authProviderId, txID, uprn, ppob.addressType, jsSubmission))
+    auditConnector.sendEvent(event)
+  }
+
 
   private def processInvalidDesRequest(ackRef: String, message: String) = {
     val errMsg = s"""Submission to DES failed for ack ref ${ackRef} - Reason: "${message}"."""

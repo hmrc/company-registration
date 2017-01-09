@@ -16,7 +16,7 @@
 
 package services
 
-import audit.{UserRegistrationSubmissionEvent, UserRegistrationSubmissionEventDetail}
+import audit.{DesSubmissionEvent, SubmissionEventDetail, UserRegistrationSubmissionEvent}
 import config.MicroserviceAuditConnector
 import connectors.{AuthConnector, BusinessRegistrationConnector, BusinessRegistrationSuccessResponse}
 import models.des._
@@ -130,7 +130,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
       case (RO, _) => (None, None)
       case (_, Some(address)) => (Some(address.txid), address.uprn)
     }
-    val event = new UserRegistrationSubmissionEvent(UserRegistrationSubmissionEventDetail(rID, authProviderId, txID, uprn, ppob.addressType, jsSubmission))
+    val event = new UserRegistrationSubmissionEvent(SubmissionEventDetail(rID, authProviderId, txID, uprn, ppob.addressType, jsSubmission))
     auditConnector.sendEvent(event)
   }
 

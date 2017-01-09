@@ -80,7 +80,7 @@ class UserRegistrationSubmissionEventSpec extends UnitSpec {
           |}
         """.stripMargin)
 
-      val testModel = UserRegistrationSubmissionEventDetail(
+      val testModel = SubmissionEventDetail(
         regId,
         authProviderId,
         Some(transactionId),
@@ -106,8 +106,8 @@ class UserRegistrationSubmissionEventSpec extends UnitSpec {
           )
         )).as[JsObject]
       )
-      println(Json.toJson(testModel)(UserRegistrationSubmissionEventDetail.writes) + "\n" + expected)
-      Json.toJson(testModel)(UserRegistrationSubmissionEventDetail.writes) shouldBe expected
+      println(Json.toJson(testModel)(SubmissionEventDetail.writes) + "\n" + expected)
+      Json.toJson(testModel)(SubmissionEventDetail.writes) shouldBe expected
     }
   }
 }
