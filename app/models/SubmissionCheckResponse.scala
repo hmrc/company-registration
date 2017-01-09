@@ -34,8 +34,6 @@ case class IncorpUpdate(transactionId : String,
                         timepoint : String,
                         statusDescription : Option[String] = None)
 
-
-
 object SubmissionCheckResponse {
   implicit val dateReads = Reads[DateTime]( js =>
     js.validate[String].map[DateTime](

@@ -17,7 +17,7 @@
 package services
 
 import audit.{DesSubmissionEvent, SubmissionEventDetail}
-import audit.{IncorporationInformationAuditEvent, IncorporationInformationAuditEventDetail}
+import audit.{FailedIncorporationAuditEvent, FailedIncorporationAuditEventDetail, SuccessfulIncorporationAuditEvent, SuccessfulIncorporationAuditEventDetail}
 import config.MicroserviceAuditConnector
 import connectors._
 import helpers.DateHelper
@@ -88,32 +88,18 @@ trait RegistrationHoldingPenService extends DateHelper {
       case "accepted" =>
         for {
           ctReg <- fetchRegistrationByTxId(item.transactionId)
-          _ <- auditConnector.sendEvent(
-            new IncorporationInformationAuditEvent(
-              IncorporationInformationAuditEventDetail(
-                ctReg.registrationID,
-                Some(item.crn),
-                Some(item.incorpDate),
-                None
-              ),
-              "successIncorpInformation",
-              "successIncorpInformation"
-            )
-          )
-        } yield {}
-        updateSubmission(item)
+          result <- updateSubmissionWithIncorporation(item)
+        } yield result
       case "rejected" =>
         val reason = item.statusDescription.fold("")(f => " Reason given:" + f)
         Logger.info("Incorporation rejected for Transaction: " + item.transactionId + reason)
         for{
           ctReg <- fetchRegistrationByTxId(item.transactionId)
           _ <- auditConnector.sendEvent(
-            new IncorporationInformationAuditEvent(
-              IncorporationInformationAuditEventDetail(
+            new FailedIncorporationAuditEvent(
+              FailedIncorporationAuditEventDetail(
                 ctReg.registrationID,
-                None,
-                None,
-                item.statusDescription
+                item.statusDescription.get
               ),
               "failedIncorpInformation",
               "failedIncorpInformation"
@@ -128,7 +114,7 @@ trait RegistrationHoldingPenService extends DateHelper {
     }
   }
 
-  private[services] def updateSubmission(item: IncorpUpdate)(implicit hc: HeaderCarrier): Future[Boolean] = {
+  private[services] def updateSubmissionWithIncorporation(item: IncorpUpdate)(implicit hc : HeaderCarrier): Future[Boolean] = {
     Logger.debug(s"""Got tx_id "${item.transactionId}" """)
     fetchRegistrationByTxId(item.transactionId) flatMap { ctReg =>
       import RegistrationStatus.{HELD,SUBMITTED}
@@ -140,12 +126,23 @@ trait RegistrationHoldingPenService extends DateHelper {
     }
   }
 
-  private[services] def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration, journeyId : String)(implicit hc: HeaderCarrier): Future[Boolean] = {
+  private[services] def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration, journeyId : String)(implicit hc : HeaderCarrier) : Future[Boolean] = {
     getAckRef(ctReg) match {
       case Some(ackRef) => {
         val fResponse = for {
           submission <- constructFullSubmission(item, ctReg, ackRef)
           response <- postSubmissionToDes(ackRef, submission, journeyId)
+          _ <- auditConnector.sendEvent(
+            new SuccessfulIncorporationAuditEvent(
+              SuccessfulIncorporationAuditEventDetail(
+                ctReg.registrationID,
+                item.crn,
+                item.incorpDate
+              ),
+              "successIncorpInformation",
+              "successIncorpInformation"
+            )
+          )
         } yield {
           response
         }
