@@ -167,7 +167,7 @@ trait RegistrationHoldingPenService extends DateHelper {
     for {
       userDetails <- microserviceAuthConnector.getUserDetails
       authProviderId = userDetails.get.authProviderId
-      _ <- auditDesSubmission(ctReg.registrationID, ctReg.companyDetails.get.ppob, authProviderId, Json.toJson(ctReg).as[JsObject])
+//      _ <- auditDesSubmission(ctReg.registrationID, ctReg.companyDetails.get.ppob, authProviderId, Json.toJson(ctReg).as[JsObject])
       updated <- ctRepository.updateHeldToSubmitted(ctReg.registrationID, item.crn, formatTimestamp(now))
       deleted <- heldRepo.removeHeldDocument(ctReg.registrationID)
     } yield {
