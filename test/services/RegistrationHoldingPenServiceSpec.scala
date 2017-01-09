@@ -289,6 +289,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
       audit.auditType shouldBe "successIncorpInformation"
       (audit.detail \ "incorporationDate").as[String] shouldBe "2016-08-10"
+
     }
 
     "fail if DES states invalid" in new Setup {
