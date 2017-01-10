@@ -99,7 +99,7 @@ trait RegistrationHoldingPenService extends DateHelper {
             new FailedIncorporationAuditEvent(
               FailedIncorporationAuditEventDetail(
                 ctReg.registrationID,
-                item.statusDescription.get
+                item.statusDescription.getOrElse("No reason provided")
               ),
               "failedIncorpInformation",
               "failedIncorpInformation"
