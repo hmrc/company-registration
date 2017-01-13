@@ -26,7 +26,9 @@ class InterimDesRegistrationSpec extends UnitSpec {
   "CompletionCapacity" should {
     "Construct a director" in { CompletionCapacity("Director") shouldBe Director }
     "Construct an agent" in { CompletionCapacity("Agent") shouldBe Agent }
-    "Construct an other capacity" in { CompletionCapacity("foo") shouldBe Other("foo") }
+    "Construct a direct from an other" in { CompletionCapacity("director") shouldBe Director }
+    "Construct a agent from an other" in { CompletionCapacity("agent") shouldBe Agent }
+    "Construct an other" in { CompletionCapacity("foo") shouldBe Other("foo") }
   }
 
   "Registration metadata model" should {
@@ -43,7 +45,7 @@ class InterimDesRegistrationSpec extends UnitSpec {
                                |  "declareAccurateAndComplete": true
                                |}""".stripMargin
 
-      val desModel = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), Director )
+      val desModel = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), CompletionCapacity(Director.text) )
 
       val result = Json.toJson[Metadata](desModel)
       result.getClass shouldBe classOf[JsObject]
@@ -62,7 +64,7 @@ class InterimDesRegistrationSpec extends UnitSpec {
                                |  "declareAccurateAndComplete": true
                                |}""".stripMargin
 
-      val desModel = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), Agent )
+      val desModel = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), CompletionCapacity(Agent.text) )
 
       val result = Json.toJson[Metadata](desModel)
       result.getClass shouldBe classOf[JsObject]
@@ -82,7 +84,26 @@ class InterimDesRegistrationSpec extends UnitSpec {
                                       |  "declareAccurateAndComplete": true
                                       |}""".stripMargin
 
-      val desModel = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), Other("wibble") )
+      val desModel = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), CompletionCapacity("wibble") )
+
+      val result = Json.toJson[Metadata](desModel)
+      result.getClass shouldBe classOf[JsObject]
+      result shouldBe Json.parse(expectedJson)
+    }
+
+    "Putting Director in Other should return Director" in {
+      val expectedJson : String = s"""{
+                                      |  "businessType" : "Limited company",
+                                      |  "sessionId" : "session-123",
+                                      |  "credentialId" : "cred-123",
+                                      |  "formCreationTimestamp": "1970-01-01T00:00:00.000Z",
+                                      |  "submissionFromAgent": false,
+                                      |  "language" : "ENG",
+                                      |  "completionCapacity" : "Director",
+                                      |  "declareAccurateAndComplete": true
+                                      |}""".stripMargin
+
+      val desModel = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), CompletionCapacity("Director") )
 
       val result = Json.toJson[Metadata](desModel)
       result.getClass shouldBe classOf[JsObject]
