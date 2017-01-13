@@ -43,9 +43,9 @@ object CompletionCapacity {
     def writes(cc: CompletionCapacity) = JsString(cc.text)
   }
 
-  def apply(text: String): CompletionCapacity = text match {
-    case Director.text => Director
-    case Agent.text => Agent
+  def apply(text: String): CompletionCapacity = text.toLowerCase match {
+    case d if d == Director.text.toLowerCase => Director
+    case a if a == Agent.text.toLowerCase => Agent
     case _ => Other(text)
   }
 }
@@ -58,7 +58,9 @@ case object Agent extends CompletionCapacity {
   val text = "Agent"
 }
 
-case class Other(text: String) extends CompletionCapacity
+case class Other(txt: String) extends CompletionCapacity {
+  val text = txt
+}
 
 case class BusinessAddress(
                             line1: String,
