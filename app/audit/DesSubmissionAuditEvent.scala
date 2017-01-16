@@ -17,34 +17,28 @@
 package audit
 
 import models.des.{BusinessAddress, BusinessContactDetails}
+import play.api.libs.json.{JsObject, Json, Writes}
 import uk.gov.hmrc.play.http.HeaderCarrier
-import play.api.libs.json._
 
-case class SubmissionEventDetail(regId: String,
-                                 authProviderId: String,
-                                 transId: Option[String],
-                                 uprn: Option[String],
-                                 addressEventType: String,
-                                 jsSubmission: JsObject)
+case class DesSubmissionAuditEventDetail(regId: String,
+                                         authProviderId: String,
+                                         jsSubmission: JsObject)
 
-object SubmissionEventDetail {
+object DesSubmissionAuditEventDetail {
 
   import RegistrationAuditEvent.{JOURNEY_ID, ACK_REF, REG_METADATA, CORP_TAX}
 
-  implicit val writes = new Writes[SubmissionEventDetail] {
-    def writes(detail: SubmissionEventDetail) = {
-
-      def businessAddressAuditWrites(address: BusinessAddress) = BusinessAddress.auditWrites(detail.transId, detail.addressEventType, detail.uprn, address)
-      def businessContactAuditWrites(contact: BusinessContactDetails) = BusinessContactDetails.auditWrites(contact)
+  implicit val writes = new Writes[DesSubmissionAuditEventDetail] {
+    def writes(detail: DesSubmissionAuditEventDetail) = {
 
       val address = (detail.jsSubmission \ "registration" \ "corporationTax" \ "businessAddress").
         asOpt[BusinessAddress].fold { Json.obj() } {
-          address => Json.obj("businessAddress" -> Json.toJson(address)(businessAddressAuditWrites(address)).as[JsObject])
-        }
+        address => Json.obj("businessAddress" -> Json.toJson(address).as[JsObject])
+      }
 
       val contactDetails = (detail.jsSubmission \ "registration" \ "corporationTax" \ "businessContactDetails").
         asOpt[BusinessContactDetails].fold { Json.obj() } {
-        contact => Json.obj("businessContactDetails" -> Json.toJson(contact)(businessContactAuditWrites(contact)).as[JsObject])
+        contact => Json.obj("businessContactDetails" -> Json.toJson(contact).as[JsObject])
       }
 
       Json.obj(
@@ -54,12 +48,12 @@ object SubmissionEventDetail {
           Json.obj("authProviderId" -> detail.authProviderId)
         ).-("sessionId").-("credentialId"),
         CORP_TAX -> (detail.jsSubmission \ "registration" \ "corporationTax").as[JsObject].++
-          ( address ).++
-          ( contactDetails )
+        ( address ).++
+        ( contactDetails )
       )
     }
   }
 }
 
-class UserRegistrationSubmissionEvent(details: SubmissionEventDetail)(implicit hc: HeaderCarrier)
-  extends RegistrationAuditEvent("interimCTRegistrationDetails", None, Json.toJson(details).as[JsObject])(hc)
+class DesSubmissionEvent(details: DesSubmissionAuditEventDetail)(implicit hc: HeaderCarrier)
+  extends RegistrationAuditEvent("ctRegistrationSubmission", None, Json.toJson(details).as[JsObject])(hc)
