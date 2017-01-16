@@ -18,7 +18,7 @@ package services
 
 import java.util.UUID
 
-import audit.SuccessfulIncorporationAuditEvent
+import audit.{DesSubmissionEvent, RegistrationAuditEvent, SuccessfulIncorporationAuditEvent}
 import connectors._
 import fixtures.CorporationTaxRegistrationFixture
 import models._
@@ -30,29 +30,45 @@ import repositories.{CorporationTaxRegistrationRepository, HeldSubmission, HeldS
 import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
 import org.mockito.Mockito._
+import org.scalatest.BeforeAndAfterEach
 import services.RegistrationHoldingPenService.MissingAccountingDates
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with CorporationTaxRegistrationFixture {
+class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with CorporationTaxRegistrationFixture with BeforeAndAfterEach {
 
   val mockStateDataRepository = mock[StateDataRepository]
   val mockIncorporationCheckAPIConnector = mock[IncorporationCheckAPIConnector]
-  val mockctRepository = mock[CorporationTaxRegistrationRepository]
-  val mockheldRepo = mock[HeldSubmissionRepository]
+  val mockCTRepository = mock[CorporationTaxRegistrationRepository]
+  val mockHeldRepo = mock[HeldSubmissionRepository]
   val mockAccountService = mock[AccountingDetailsService]
   val mockDesConnector = mock[DesConnector]
   val mockBRConnector = mock[BusinessRegistrationConnector]
   val mockAuthConnector = mock[AuthConnector]
   val mockAuditConnector = mock[AuditConnector]
 
+  override def beforeEach() {
+    resetMocks()
+  }
+
+  def resetMocks() = {
+    reset(mockAuthConnector)
+    reset(mockAuditConnector)
+    reset(mockStateDataRepository)
+    reset(mockIncorporationCheckAPIConnector)
+    reset(mockCTRepository)
+    reset(mockHeldRepo)
+    reset(mockDesConnector)
+    reset(mockBRConnector)
+  }
+
   trait mockService extends RegistrationHoldingPenService {
     val stateDataRepository = mockStateDataRepository
     val incorporationCheckAPIConnector = mockIncorporationCheckAPIConnector
-    val ctRepository = mockctRepository
-    val heldRepo = mockheldRepo
+    val ctRepository = mockCTRepository
+    val heldRepo = mockHeldRepo
     val accountingService = mockAccountService
     val desConnector = mockDesConnector
     val brConnector = mockBRConnector
@@ -66,7 +82,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
   trait SetupMockedAudit {
     val service = new mockService {
-      override def processSuccessDesResponse(item: IncorpUpdate, ctReg: CorporationTaxRegistration)(implicit hc: HeaderCarrier) = Future.successful(true)
+      override def processSuccessDesResponse(item: IncorpUpdate, ctReg: CorporationTaxRegistration, auditDetail: JsObject)(implicit hc: HeaderCarrier) = Future.successful(true)
     }
   }
 
@@ -181,14 +197,14 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
     import RegistrationHoldingPenService.FailedToRetrieveByAckRef
 
     "return a valid Held record found" in new Setup {
-      when(mockheldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
+      when(mockHeldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
         .thenReturn(Future.successful(Some(validHeld)))
 
       val result = service.fetchHeldData(testAckRef)
       await(result) shouldBe validHeld
     }
     "return a FailedToRetrieveByTxId when a record cannot be retrieved" in new Setup {
-      when(mockheldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
+      when(mockHeldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
         .thenReturn(Future.successful(None))
 
       val result = service.fetchHeldData(testAckRef)
@@ -237,14 +253,14 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
     import RegistrationHoldingPenService.FailedToRetrieveByTxId
 
     "return a CorporationTaxRegistration document when one is found by Transaction ID" in new Setup{
-      when(mockctRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
+      when(mockCTRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
         .thenReturn(Future.successful(Some(validCR)))
 
       await(service.fetchRegistrationByTxId(transId)) shouldBe validCR
 
     }
     "return a FailedToRetrieveByTxId when one is not found" in new Setup {
-      when(mockctRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
+      when(mockCTRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
         .thenReturn(Future.successful(None))
 
       intercept[FailedToRetrieveByTxId](await(service.fetchRegistrationByTxId(transId)))
@@ -261,16 +277,16 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockAuthConnector.getUserDetails(Matchers.any[HeaderCarrier]()))
         .thenReturn(Future.successful(Some(testUserDetails)))
 
-      when(mockAuditConnector.sendEvent(Matchers.any[SuccessfulIncorporationAuditEvent]())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]()))
+      when(mockAuditConnector.sendEvent(Matchers.any[RegistrationAuditEvent]())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]()))
         .thenReturn(Future.successful(Success))
 
-      when(mockheldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
+      when(mockHeldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
         .thenReturn(Future.successful(Some(validHeld)))
 
-      when(mockctRepository.updateHeldToSubmitted(Matchers.eq(validCR.registrationID), Matchers.eq(incorpSuccess.crn), Matchers.any()))
+      when(mockCTRepository.updateHeldToSubmitted(Matchers.eq(validCR.registrationID), Matchers.eq(incorpSuccess.crn), Matchers.any()))
         .thenReturn(Future.successful(true))
 
-      when(mockheldRepo.removeHeldDocument(Matchers.eq(validCR.registrationID)))
+      when(mockHeldRepo.removeHeldDocument(Matchers.eq(validCR.registrationID)))
         .thenReturn(Future.successful(true))
 
       when(mockAccountService.calculateSubmissionDates(Matchers.any(), Matchers.any(), Matchers.any()))
@@ -281,19 +297,21 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
       await(service.updateHeldSubmission(incorpSuccess, validCR, validCR.registrationID)) shouldBe true
 
-      val captor = ArgumentCaptor.forClass(classOf[SuccessfulIncorporationAuditEvent])
+      val captor = ArgumentCaptor.forClass(classOf[RegistrationAuditEvent])
 
-      verify(mockAuditConnector).sendEvent(captor.capture())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]())
+      verify(mockAuditConnector, times(2)).sendEvent(captor.capture())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]())
 
-      val audit = captor.getValue
+      val audit = captor.getAllValues
 
-      audit.auditType shouldBe "successIncorpInformation"
-      (audit.detail \ "incorporationDate").as[String] shouldBe "2016-08-10"
+      audit.get(0).auditType shouldBe "successIncorpInformation"
+      (audit.get(0).detail \ "incorporationDate").as[String] shouldBe "2016-08-10"
+
+      audit.get(1).auditType shouldBe "ctRegistrationSubmission"
 
     }
 
     "fail if DES states invalid" in new Setup {
-      when(mockheldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
+      when(mockHeldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
         .thenReturn(Future.successful(Some(validHeld)))
 
       when(mockAccountService.calculateSubmissionDates(Matchers.any(), Matchers.any(), Matchers.any()))
@@ -302,13 +320,23 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockDesConnector.ctSubmission(Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any()))
         .thenReturn(Future.successful(InvalidDesRequest("wibble")))
 
+      when(mockAuditConnector.sendEvent(Matchers.any[RegistrationAuditEvent]())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]()))
+        .thenReturn(Future.successful(Success))
+
+      val captor = ArgumentCaptor.forClass(classOf[RegistrationAuditEvent])
+
       intercept[InvalidSubmission] {
         await(service.updateHeldSubmission(incorpSuccess, validCR, validCR.registrationID))
       }.message should endWith ("""- Reason: "wibble".""")
+
+      verify(mockAuditConnector, times(1)).sendEvent(captor.capture())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]())
+
+      val audit = captor.getValue
+      audit.auditType shouldBe "successIncorpInformation"
     }
 
     "fail if DES states not found" in new Setup {
-      when(mockheldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
+      when(mockHeldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
         .thenReturn(Future.successful(Some(validHeld)))
 
       when(mockAccountService.calculateSubmissionDates(Matchers.any(), Matchers.any(), Matchers.any()))
@@ -317,9 +345,19 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockDesConnector.ctSubmission(Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any()))
         .thenReturn(Future.successful(NotFoundDesResponse))
 
+      when(mockAuditConnector.sendEvent(Matchers.any[RegistrationAuditEvent]())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]()))
+        .thenReturn(Future.successful(Success))
+
+      val captor = ArgumentCaptor.forClass(classOf[RegistrationAuditEvent])
+
       intercept[InvalidSubmission] {
         await(service.updateHeldSubmission(incorpSuccess, validCR, validCR.registrationID))
       }
+
+      verify(mockAuditConnector, times(1)).sendEvent(captor.capture())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]())
+
+      val audit = captor.getValue
+      audit.auditType shouldBe "successIncorpInformation"
     }
 
     "fail if missing ackref" in new Setup {
@@ -335,22 +373,23 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
         implicit val hc = new HeaderCarrier()
 
         override def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration, journeyId : String)(implicit hc : HeaderCarrier) = Future.successful(true)
+        override def updateSubmittedSubmission(ctReg: CorporationTaxRegistration) = Future.successful(true)
       }
     }
     "return true for a DES ready submission" in new SetupNoProcess {
-      when(mockctRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
+      when(mockCTRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
         .thenReturn(Future.successful(Some(validCR)))
 
       await(service.updateSubmissionWithIncorporation(incorpSuccess)) shouldBe true
     }
-    "return false for a submission that is already 'Submitted" in new SetupNoProcess {
-      when(mockctRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
+    "return true for a submission that is already 'Submitted" in new SetupNoProcess {
+      when(mockCTRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
         .thenReturn(Future.successful(Some(submittedCR)))
 
       await(service.updateSubmissionWithIncorporation(incorpSuccess)) shouldBe true
     }
     "return false for a submission that is neither 'Held' nor 'Submitted'" in new SetupNoProcess {
-      when(mockctRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
+      when(mockCTRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
         .thenReturn(Future.successful(Some(failCaseCR)))
 
       intercept[UnexpectedStatus]{await(service.updateSubmissionWithIncorporation(incorpSuccess))}
@@ -425,23 +464,51 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
     }
 
     "return a future true when processing an accepted incorporation" in new SetupBoolean {
+//      when(mockAuditConnector.sendEvent(Matchers.any[RegistrationAuditEvent]())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]()))
+//        .thenReturn(Future.successful(Success))
+//
+//      val captor = ArgumentCaptor.forClass(classOf[RegistrationAuditEvent])
+
+      when(mockCTRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
+        .thenReturn(Future.successful(Some(validCR)))
+
       await(serviceTrue.processIncorporationUpdate(incorpSuccess)) shouldBe true
+//
+//      verify(mockAuditConnector, times(1)).sendEvent(captor.capture())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]())
+//
+//      val audit = captor.getValue
+//      audit.auditType shouldBe "successIncorpInformation"
+
     }
 
     "return a future false when processing an accepted incorporation" in new SetupBoolean {
+//      when(mockAuditConnector.sendEvent(Matchers.any[RegistrationAuditEvent]())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]()))
+//        .thenReturn(Future.successful(Success))
+
+//      val captor = ArgumentCaptor.forClass(classOf[RegistrationAuditEvent])
+      when(mockCTRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
+        .thenReturn(Future.successful(Some(validCR)))
+      
       await(serviceFalse.processIncorporationUpdate(incorpSuccess)) shouldBe false
+
+//      verify(mockAuditConnector, times(1)).sendEvent(captor.capture())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]())
+//
+//      val audit = captor.getValue
+//      audit.auditType shouldBe "successIncorpInformation"
+
+
     }
     "return a future true when processing a rejected incorporation" in new Setup{
-      when(mockctRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
+      when(mockCTRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
         .thenReturn(Future.successful(Some(validCR)))
 
       when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any()))
         .thenReturn(Future.successful(Success))
 
-      when(mockheldRepo.removeHeldDocument(Matchers.eq(validCR.registrationID)))
+      when(mockHeldRepo.removeHeldDocument(Matchers.eq(validCR.registrationID)))
         .thenReturn(Future.successful(true))
 
-      when(mockctRepository.removeTaxRegistrationById(Matchers.eq(validCR.registrationID)))
+      when(mockCTRepository.removeTaxRegistrationById(Matchers.eq(validCR.registrationID)))
         .thenReturn(Future.successful(true))
 
       when(mockBRConnector.removeMetadata(Matchers.eq(validCR.registrationID))(Matchers.any()))

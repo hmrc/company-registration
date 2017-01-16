@@ -16,7 +16,7 @@
 
 package services
 
-import audit.{DesSubmissionEvent, SubmissionEventDetail, UserRegistrationSubmissionEvent}
+import audit.{SubmissionEventDetail, UserRegistrationSubmissionEvent}
 import config.MicroserviceAuditConnector
 import connectors.{AuthConnector, BusinessRegistrationConnector, BusinessRegistrationSuccessResponse}
 import models.des._

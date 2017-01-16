@@ -16,8 +16,7 @@
 
 package services
 
-import audit.{DesSubmissionEvent, SubmissionEventDetail}
-import audit.{FailedIncorporationAuditEvent, FailedIncorporationAuditEventDetail, SuccessfulIncorporationAuditEvent, SuccessfulIncorporationAuditEventDetail}
+import audit._
 import config.MicroserviceAuditConnector
 import connectors._
 import helpers.DateHelper
@@ -144,12 +143,12 @@ trait RegistrationHoldingPenService extends DateHelper {
             )
           )
         } yield {
-          response
+          (response, submission)
         }
         fResponse flatMap {
-          case SuccessDesResponse(response) => processSuccessDesResponse(item, ctReg)
-          case InvalidDesRequest(message) => processInvalidDesRequest(ackRef, message)
-          case NotFoundDesResponse => processNotFoundDesResponse(ackRef)
+          case (SuccessDesResponse(response), auditDetail) => processSuccessDesResponse(item, ctReg, auditDetail)
+          case (InvalidDesRequest(message), _) => processInvalidDesRequest(ackRef, message)
+          case (NotFoundDesResponse, _) => processNotFoundDesResponse(ackRef)
         }
       }
       case None => {
@@ -160,11 +159,11 @@ trait RegistrationHoldingPenService extends DateHelper {
     }
   }
 
-  private[services] def processSuccessDesResponse(item: IncorpUpdate, ctReg: CorporationTaxRegistration)(implicit hc: HeaderCarrier): Future[Boolean] = {
+  private[services] def processSuccessDesResponse(item: IncorpUpdate, ctReg: CorporationTaxRegistration, auditDetail : JsObject)(implicit hc: HeaderCarrier): Future[Boolean] = {
     for {
       userDetails <- microserviceAuthConnector.getUserDetails
       authProviderId = userDetails.get.authProviderId
-//      _ <- auditDesSubmission(ctReg.registrationID, ctReg.companyDetails.get.ppob, authProviderId, Json.toJson(ctReg).as[JsObject])
+      _ <- auditDesSubmission(ctReg.registrationID, authProviderId, auditDetail)
       updated <- ctRepository.updateHeldToSubmitted(ctReg.registrationID, item.crn, formatTimestamp(now))
       deleted <- heldRepo.removeHeldDocument(ctReg.registrationID)
     } yield {
@@ -172,14 +171,8 @@ trait RegistrationHoldingPenService extends DateHelper {
     }
   }
 
-  private[services] def auditDesSubmission(rID: String, ppob: PPOB, authProviderId: String, jsSubmission: JsObject)(implicit hc: HeaderCarrier) = {
-    import PPOB.RO
-
-    val (txID, uprn) = (ppob.addressType, ppob.address) match {
-      case (RO, _) => (None, None)
-      case (_, Some(address)) => (Some(address.txid), address.uprn)
-    }
-    val event = new DesSubmissionEvent(SubmissionEventDetail(rID, authProviderId, txID, uprn, ppob.addressType, jsSubmission))
+  private[services] def auditDesSubmission(rID: String, authProviderId: String, jsSubmission: JsObject)(implicit hc: HeaderCarrier) = {
+    val event = new DesSubmissionEvent(DesSubmissionAuditEventDetail(rID, authProviderId, jsSubmission))
     auditConnector.sendEvent(event)
   }
 
@@ -196,7 +189,7 @@ trait RegistrationHoldingPenService extends DateHelper {
     Future.failed(new InvalidSubmission(errMsg))
   }
 
-  private def updateSubmittedSubmission(ctReg: CorporationTaxRegistration): Future[Boolean] = {
+  private[services] def updateSubmittedSubmission(ctReg: CorporationTaxRegistration): Future[Boolean] = {
     heldRepo.removeHeldDocument(ctReg.registrationID)
   }
 

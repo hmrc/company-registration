@@ -34,7 +34,7 @@ object SubmissionEventDetail {
   implicit val writes = new Writes[SubmissionEventDetail] {
     def writes(detail: SubmissionEventDetail) = {
 
-      def businessAddressAuditWrites(address: BusinessAddress) = BusinessAddress.auditWrites(detail.transId, "LOOKUP", detail.uprn, address)
+      def businessAddressAuditWrites(address: BusinessAddress) = BusinessAddress.auditWrites(detail.transId, detail.addressEventType, detail.uprn, address)
       def businessContactAuditWrites(contact: BusinessContactDetails) = BusinessContactDetails.auditWrites(contact)
 
       val address = (detail.jsSubmission \ "registration" \ "corporationTax" \ "businessAddress").
@@ -63,6 +63,3 @@ object SubmissionEventDetail {
 
 class UserRegistrationSubmissionEvent(details: SubmissionEventDetail)(implicit hc: HeaderCarrier)
   extends RegistrationAuditEvent("interimCTRegistrationDetails", None, Json.toJson(details).as[JsObject])(hc)
-
-class DesSubmissionEvent(details: SubmissionEventDetail)(implicit hc: HeaderCarrier)
-  extends RegistrationAuditEvent("ctRegistrationSubmission", None, Json.toJson(details).as[JsObject])(hc)
