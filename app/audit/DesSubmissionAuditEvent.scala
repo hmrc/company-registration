@@ -31,25 +31,13 @@ object DesSubmissionAuditEventDetail {
   implicit val writes = new Writes[DesSubmissionAuditEventDetail] {
     def writes(detail: DesSubmissionAuditEventDetail) = {
 
-      val address = (detail.jsSubmission \ "registration" \ "corporationTax" \ "businessAddress").
-        asOpt[BusinessAddress].fold { Json.obj() } {
-        address => Json.obj("businessAddress" -> Json.toJson(address).as[JsObject])
-      }
-
-      val contactDetails = (detail.jsSubmission \ "registration" \ "corporationTax" \ "businessContactDetails").
-        asOpt[BusinessContactDetails].fold { Json.obj() } {
-        contact => Json.obj("businessContactDetails" -> Json.toJson(contact).as[JsObject])
-      }
-
       Json.obj(
         JOURNEY_ID -> detail.regId,
         ACK_REF -> (detail.jsSubmission \ "acknowledgementReference"),
         REG_METADATA -> (detail.jsSubmission \ "registration" \ "metadata").as[JsObject].++(
           Json.obj("authProviderId" -> detail.authProviderId)
         ).-("sessionId").-("credentialId"),
-        CORP_TAX -> (detail.jsSubmission \ "registration" \ "corporationTax").as[JsObject].++
-        ( address ).++
-        ( contactDetails )
+        CORP_TAX -> (detail.jsSubmission \ "registration" \ "corporationTax").as[JsObject]
       )
     }
   }
