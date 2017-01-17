@@ -26,7 +26,6 @@ class DesSubmissionEventSpec extends UnitSpec {
   "DesSubmissionEventDetail" should {
 
     val regId = "123456789"
-    val authProviderId = "apid001"
     val ackRef = "BRCT1234"
     val timestamp = "2001-12-31T12:00:00.000Z"
 
@@ -38,7 +37,6 @@ class DesSubmissionEventSpec extends UnitSpec {
           |   "acknowledgementReference": "$ackRef",
           |   "registrationMetadata": {
           |      "businessType": "Limited company",
-          |      "authProviderId": "$authProviderId",
           |      "formCreationTimestamp": "$timestamp",
           |      "submissionFromAgent": false,
           |      "language": "eng",
@@ -76,7 +74,6 @@ class DesSubmissionEventSpec extends UnitSpec {
 
       val testModel = DesSubmissionAuditEventDetail(
         regId,
-        authProviderId,
         Json.toJson(InterimDesRegistration(
           ackRef,
           Metadata(
@@ -97,7 +94,6 @@ class DesSubmissionEventSpec extends UnitSpec {
           )
         )).as[JsObject]
       )
-//      println(Json.toJson(testModel)(SubmissionEventDetail.writes) + "\n" + expected)
       Json.toJson(testModel)(DesSubmissionAuditEventDetail.writes) shouldBe expected
     }
   }

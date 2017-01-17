@@ -16,12 +16,10 @@
 
 package audit
 
-import models.des.{BusinessAddress, BusinessContactDetails}
 import play.api.libs.json.{JsObject, Json, Writes}
 import uk.gov.hmrc.play.http.HeaderCarrier
 
 case class DesSubmissionAuditEventDetail(regId: String,
-                                         authProviderId: String,
                                          jsSubmission: JsObject)
 
 object DesSubmissionAuditEventDetail {
@@ -34,9 +32,8 @@ object DesSubmissionAuditEventDetail {
       Json.obj(
         JOURNEY_ID -> detail.regId,
         ACK_REF -> (detail.jsSubmission \ "acknowledgementReference"),
-        REG_METADATA -> (detail.jsSubmission \ "registration" \ "metadata").as[JsObject].++(
-          Json.obj("authProviderId" -> detail.authProviderId)
-        ).-("sessionId").-("credentialId"),
+        REG_METADATA -> (detail.jsSubmission \ "registration" \ "metadata").as[JsObject]
+        .-("sessionId").-("credentialId"),
         CORP_TAX -> (detail.jsSubmission \ "registration" \ "corporationTax").as[JsObject]
       )
     }

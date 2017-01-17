@@ -161,9 +161,7 @@ trait RegistrationHoldingPenService extends DateHelper {
 
   private[services] def processSuccessDesResponse(item: IncorpUpdate, ctReg: CorporationTaxRegistration, auditDetail : JsObject)(implicit hc: HeaderCarrier): Future[Boolean] = {
     for {
-      userDetails <- microserviceAuthConnector.getUserDetails
-      authProviderId = userDetails.get.authProviderId
-      _ <- auditDesSubmission(ctReg.registrationID, authProviderId, auditDetail)
+      _ <- auditDesSubmission(ctReg.registrationID, auditDetail)
       updated <- ctRepository.updateHeldToSubmitted(ctReg.registrationID, item.crn, formatTimestamp(now))
       deleted <- heldRepo.removeHeldDocument(ctReg.registrationID)
     } yield {
@@ -171,8 +169,8 @@ trait RegistrationHoldingPenService extends DateHelper {
     }
   }
 
-  private[services] def auditDesSubmission(rID: String, authProviderId: String, jsSubmission: JsObject)(implicit hc: HeaderCarrier) = {
-    val event = new DesSubmissionEvent(DesSubmissionAuditEventDetail(rID, authProviderId, jsSubmission))
+  private[services] def auditDesSubmission(rID: String, jsSubmission: JsObject)(implicit hc: HeaderCarrier) = {
+    val event = new DesSubmissionEvent(DesSubmissionAuditEventDetail(rID, jsSubmission))
     auditConnector.sendEvent(event)
   }
 
