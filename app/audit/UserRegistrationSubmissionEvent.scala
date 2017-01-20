@@ -17,6 +17,7 @@
 package audit
 
 import models.des.{BusinessAddress, BusinessContactDetails}
+import play.api.mvc.{Request, AnyContent}
 import uk.gov.hmrc.play.http.HeaderCarrier
 import play.api.libs.json._
 
@@ -61,5 +62,5 @@ object SubmissionEventDetail {
   }
 }
 
-class UserRegistrationSubmissionEvent(details: SubmissionEventDetail)(implicit hc: HeaderCarrier)
-  extends RegistrationAuditEvent("interimCTRegistrationDetails", None, Json.toJson(details).as[JsObject])(hc)
+class UserRegistrationSubmissionEvent(details: SubmissionEventDetail)(implicit hc: HeaderCarrier, req: Request[AnyContent])
+  extends RegistrationAuditEvent("interimCTRegistrationDetails", None, Json.toJson(details).as[JsObject])(hc, Some(req))

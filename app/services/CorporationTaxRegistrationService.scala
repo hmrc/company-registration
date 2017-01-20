@@ -21,6 +21,7 @@ import config.MicroserviceAuditConnector
 import connectors.{AuthConnector, BusinessRegistrationConnector, BusinessRegistrationSuccessResponse}
 import models.des._
 import models.{BusinessRegistration, RegistrationStatus}
+import play.api.mvc.{Request, AnyContent}
 import repositories.HeldSubmissionRepository
 import connectors.IncorporationCheckAPIConnector
 import helpers.DateHelper
@@ -98,7 +99,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
     corporationTaxRegistrationRepository.retrieveCorporationTaxRegistration(rID)
   }
 
-  def updateConfirmationReferences(rID: String, refs: ConfirmationReferences)(implicit hc: HeaderCarrier): Future[Option[ConfirmationReferences]] = {
+  def updateConfirmationReferences(rID: String, refs: ConfirmationReferences)(implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[Option[ConfirmationReferences]] = {
     for {
       ackRef <- generateAcknowledgementReference
       updatedRef <- corporationTaxRegistrationRepository.updateConfirmationReferences(rID, refs.copy(acknowledgementReference = ackRef))
@@ -110,7 +111,8 @@ trait CorporationTaxRegistrationService extends DateHelper {
     }
   }
 
-  private[services] def storeAndUpdateSubmission(rID: String, ackRef: String, heldSubmission: InterimDesRegistration)(implicit hc: HeaderCarrier): Future[String] = {
+  private[services] def storeAndUpdateSubmission(rID: String, ackRef: String, heldSubmission: InterimDesRegistration)
+                                                (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[String] = {
     val submissionAsJson = Json.toJson(heldSubmission).as[JsObject]
     for {
       heldSubmissionData <- heldSubmissionRepository.storePartialSubmission(rID, ackRef, submissionAsJson)
@@ -123,14 +125,14 @@ trait CorporationTaxRegistrationService extends DateHelper {
     } yield submissionStatus
   }
 
-  private[services] def auditUserSubmission(rID: String, ppob: PPOB, authProviderId: String, jsSubmission: JsObject)(implicit hc: HeaderCarrier) = {
+  private[services] def auditUserSubmission(rID: String, ppob: PPOB, authProviderId: String, jsSubmission: JsObject)(implicit hc: HeaderCarrier, req: Request[AnyContent]) = {
     import PPOB.RO
 
     val (txID, uprn) = (ppob.addressType, ppob.address) match {
       case (RO, _) => (None, None)
       case (_, Some(address)) => (Some(address.txid), address.uprn)
     }
-    val event = new UserRegistrationSubmissionEvent(SubmissionEventDetail(rID, authProviderId, txID, uprn, ppob.addressType, jsSubmission))
+    val event = new UserRegistrationSubmissionEvent(SubmissionEventDetail(rID, authProviderId, txID, uprn, ppob.addressType, jsSubmission))(hc, req)
     auditConnector.sendEvent(event)
   }
 

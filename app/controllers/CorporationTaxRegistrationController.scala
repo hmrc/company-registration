@@ -21,7 +21,7 @@ import connectors.AuthConnector
 import models.{AcknowledgementReferences, ConfirmationReferences, CorporationTaxRegistrationRequest}
 import play.api.Logger
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.Action
+import play.api.mvc.{AnyContentAsJson, Action}
 import services.{CorporationTaxRegistrationService, MetricsService}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
@@ -120,9 +120,9 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
           withJsonBody[ConfirmationReferences] {
             refs =>
               val timer = metrics.updateReferencesCRTimer.time()
-              ctService.updateConfirmationReferences(registrationID, refs) map {
+              ctService.updateConfirmationReferences(registrationID, refs)(hc, request.map(js => AnyContentAsJson(js))) map {
                 case Some(references) => timer.stop()
-                                         Ok(Json.toJson(references))
+                                         Ok(Json.toJson[ConfirmationReferences](references))
                 case None => NotFound
               }
           }
