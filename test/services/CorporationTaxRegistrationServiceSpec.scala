@@ -25,6 +25,7 @@ import org.joda.time.DateTime
 import org.mockito.Matchers
 import org.mockito.Mockito._
 import play.api.libs.json.{Json, JsObject}
+import play.api.test.FakeRequest
 import repositories.{HeldSubmissionMongoRepository, HeldSubmissionData}
 import services.CorporationTaxRegistrationService.{FailedToGetBRMetadata, FailedToGetCTData, FailedToGetCredId}
 import uk.gov.hmrc.play.audit.http.connector.{AuditResult, AuditConnector}
@@ -39,6 +40,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
 
   implicit val mongo = mongoDB
   implicit val hc = HeaderCarrier(sessionId = Some(SessionId("testSessionId")))
+  implicit val req = FakeRequest("GET", "/test-path")
 
   val mockBusinessRegistrationConnector = mock[BusinessRegistrationConnector]
   val mockHeldSubmissionRepository = mock[HeldSubmissionMongoRepository]

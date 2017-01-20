@@ -18,6 +18,7 @@ package audit
 
 import audit.RegistrationAuditEvent.buildTags
 import play.api.libs.json.JsObject
+import play.api.mvc.{Request, AnyContent}
 import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
 import uk.gov.hmrc.play.http.HeaderCarrier
 
@@ -26,18 +27,20 @@ case class TagSet(
                    clientPort: Boolean,
                    requestId: Boolean,
                    sessionId: Boolean,
-                   authorisation: Boolean
+                   authorisation: Boolean,
+                   path: Boolean
                  )
 
 object TagSet {
-  val ALL_TAGS = TagSet(true, true, true, true, true)
-  val NO_TAGS = TagSet(false, false, false, false, false)
-  val REQUEST_ONLY = TagSet(false, false, true, false, false)
+  val ALL_TAGS = TagSet(true, true, true, true, true, true)
+  val NO_TAGS = TagSet(false, false, false, false, false, false)
+  val REQUEST_ONLY = TagSet(false, false, true, false, false, false)
 }
 
 import audit.TagSet.ALL_TAGS
 
-abstract class RegistrationAuditEvent(auditType: String, transactionName : Option[String], detail: JsObject, tagSet: TagSet = ALL_TAGS)(implicit hc: HeaderCarrier)
+abstract class RegistrationAuditEvent(auditType: String, transactionName : Option[String], detail: JsObject, tagSet: TagSet = ALL_TAGS)
+                                     (implicit hc: HeaderCarrier, optReq: Option[Request[AnyContent]] = None)
   extends ExtendedDataEvent(
     auditSource = "company-registration",
     auditType = auditType,
@@ -52,14 +55,16 @@ object RegistrationAuditEvent {
   val ACK_REF = "acknowledgementReference"
   val REG_METADATA = "registrationMetadata"
   val CORP_TAX = "corporationTax"
+  val PATH = "path"
 
-  def buildTags(transactionName: String, tagSet: TagSet)(implicit hc: HeaderCarrier) = {
+  def buildTags(transactionName: String, tagSet: TagSet)(implicit hc: HeaderCarrier, optReq: Option[Request[AnyContent]]) = {
     Map("transactionName" -> transactionName) ++
       buildClientIP(tagSet) ++
       buildClientPort(tagSet) ++
       buildRequestId(tagSet) ++
       buildSessionId(tagSet) ++
-      buildAuthorization(tagSet)
+      buildAuthorization(tagSet) ++
+      buildPath(tagSet)
   }
 
   private def buildClientIP(tagSet: TagSet)(implicit hc: HeaderCarrier) =
@@ -77,4 +82,11 @@ object RegistrationAuditEvent {
   private def buildAuthorization(tagSet: TagSet)(implicit hc: HeaderCarrier) =
     if(tagSet.authorisation) Map(hc.names.authorisation -> hc.authorization.map(_.value).getOrElse("-")) else Map()
 
+  private def buildPath(tagSet: TagSet)(implicit optReq: Option[Request[AnyContent]]) = {
+    if (tagSet.path) {
+      optReq.fold(Map[String, String]())(req => Map(PATH -> req.path))
+    } else {
+      Map()
+    }
+  }
 }
