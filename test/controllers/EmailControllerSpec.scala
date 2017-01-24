@@ -43,7 +43,7 @@ class EmailControllerSpec extends SCRSSpec with MockitoSugar with AuthFixture{
   }
 
   val registrationId = "12345"
-  val email = Email("testAddress", "GG", linkSent = true, verified = true)
+  val email = Email("testAddress", "GG", linkSent = true, verified = true, returnLinkEmailSent = true)
 
 
   "retrieveEmail" should {

@@ -22,7 +22,8 @@ import play.api.libs.json._
 case class Email(address: String,
                  emailType: String,
                  linkSent: Boolean,
-                 verified: Boolean)
+                 verified: Boolean,
+                 returnLinkEmailSent : Boolean)
 
 object Email {
 
@@ -30,6 +31,7 @@ object Email {
       (__ \ "address").format[String] and
       (__ \ "type").format[String] and
       (__ \ "link-sent").format[Boolean] and
-      (__ \ "verified").format[Boolean]
+      (__ \ "verified").format[Boolean] and
+      (__ \ "return-link-email-sent").format[Boolean]
     )(Email.apply, unlift(Email.unapply))
 }

@@ -54,7 +54,7 @@ class UserAccessSpec extends UnitSpec {
            |  "registration-id" : "regID",
            |  "created" : true,
            |  "confirmation-reference": false,
-           |  "email": { "address": "a@a.a", "type": "GG", "link-sent": true, "verified": false }
+           |  "email": { "address": "a@a.a", "type": "GG", "link-sent": true, "verified": false, "return-link-email-sent": false}
            |}
        """.stripMargin
 
@@ -63,7 +63,7 @@ class UserAccessSpec extends UnitSpec {
           "regID",
           created= true,
           confRefs = false,
-          verifiedEmail = Some(Email("a@a.a", "GG", true, false))
+          verifiedEmail = Some(Email("a@a.a", "GG", true, false, false))
         )
 
       val result = Json.toJson[UserAccessSuccessResponse](testModel)

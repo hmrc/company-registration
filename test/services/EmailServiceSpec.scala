@@ -36,7 +36,7 @@ class EmailServiceSpec extends UnitSpec with MockitoSugar {
   }
 
   val registrationId = "12345"
-  val email = Email("testAddress", "GG", linkSent = true, verified = true)
+  val email = Email("testAddress", "GG", linkSent = true, verified = true, returnLinkEmailSent = true)
 
   "updateEmail" should {
 
