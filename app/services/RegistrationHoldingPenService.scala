@@ -31,12 +31,10 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.control.NoStackTrace
 
-object RegistrationHoldingPenService extends RegistrationHoldingPenService {
 
-  //$COVERAGE-OFF$
+object RegistrationHoldingPenService extends RegistrationHoldingPenService {
   override val desConnector = DesConnector
   override val incorporationCheckAPIConnector = IncorporationCheckAPIConnector
-  //$COVERAGE-ON$
   override val stateDataRepository = Repositories.stateDataRepository
   override val ctRepository = Repositories.cTRepository
   override val heldRepo = Repositories.heldSubmissionRepository
@@ -47,8 +45,12 @@ object RegistrationHoldingPenService extends RegistrationHoldingPenService {
 }
 
 private[services] class InvalidSubmission(val message: String) extends NoStackTrace
+private[services] case class DesError(message: String) extends NoStackTrace
 private[services] class MissingAckRef(val message: String) extends NoStackTrace
 private[services] class UnexpectedStatus(val status: String) extends NoStackTrace
+
+private[services] object FailedToUpdateSubmissionWithAcceptedIncorp extends NoStackTrace
+private[services] object FailedToUpdateSubmissionWithRejectedIncorp extends NoStackTrace
 
 trait RegistrationHoldingPenService extends DateHelper {
 
@@ -62,21 +64,21 @@ trait RegistrationHoldingPenService extends DateHelper {
   val auditConnector: AuditConnector
   val microserviceAuthConnector: AuthConnector
 
-  private[services] class FailedToRetrieveByTxId(transId: String)  extends NoStackTrace
+  private[services] case class FailedToRetrieveByTxId(transId: String) extends NoStackTrace
   private[services] class FailedToRetrieveByAckRef extends NoStackTrace
   private[services] class MissingAccountingDates extends NoStackTrace
 
   def updateNextSubmissionByTimepoint(implicit hc: HeaderCarrier): Future[String] = {
     fetchIncorpUpdate flatMap { items =>
       val results = items map { item =>
-        //TODO see SCRS-3766
+        //TODO see SCRS-3766|
         processIncorporationUpdate(item)
       }
-      Future.sequence(results) flatMap { r =>
+      Future.sequence(results) flatMap { _ =>
         //TODO For day one, take the first timepoint - see SCRS-3766
         items.headOption match {
-          case Some(head) => stateDataRepository.updateTimepoint(head.timepoint)
-          case None => Future.successful("")
+          case Some(head) => stateDataRepository.updateTimepoint(head.timepoint).map(tp => s"Incorporation ${head.status} - Timepoint updated to $tp")
+          case None => Future.successful("No Incorporation updates were fetched")
         }
       }
     }
@@ -87,61 +89,41 @@ trait RegistrationHoldingPenService extends DateHelper {
       case "accepted" =>
         for {
           ctReg <- fetchRegistrationByTxId(item.transactionId)
-          result <- updateSubmissionWithIncorporation(item)
-        } yield result
+          result <- updateSubmissionWithIncorporation(item, ctReg)
+        } yield {
+          if(result) result else throw FailedToUpdateSubmissionWithAcceptedIncorp
+        }
       case "rejected" =>
-        val reason = item.statusDescription.fold("")(f => " Reason given:" + f)
+        val reason = item.statusDescription.fold("No reason given")(f => " Reason given:" + f)
         Logger.info("Incorporation rejected for Transaction: " + item.transactionId + reason)
         for{
           ctReg <- fetchRegistrationByTxId(item.transactionId)
-          _ <- auditConnector.sendEvent(
-            new FailedIncorporationAuditEvent(
-              FailedIncorporationAuditEventDetail(
-                ctReg.registrationID,
-                item.statusDescription.getOrElse("No reason provided")
-              ),
-              "failedIncorpInformation",
-              "failedIncorpInformation"
-            )
-          )
+          _ <- auditFailedIncorporation(item, ctReg)
           heldDeleted <- heldRepo.removeHeldDocument(ctReg.registrationID)
           ctDeleted <- ctRepository.removeTaxRegistrationById(ctReg.registrationID)
           metadataDeleted <- brConnector.removeMetadata(ctReg.registrationID)
         } yield {
-          heldDeleted && ctDeleted && metadataDeleted
+          if(heldDeleted && ctDeleted && metadataDeleted) true else throw FailedToUpdateSubmissionWithRejectedIncorp
         }
     }
   }
 
-  private[services] def updateSubmissionWithIncorporation(item: IncorpUpdate)(implicit hc : HeaderCarrier): Future[Boolean] = {
-    Logger.debug(s"""Got tx_id "${item.transactionId}" """)
-    fetchRegistrationByTxId(item.transactionId) flatMap { ctReg =>
-      import RegistrationStatus.{HELD,SUBMITTED}
-      ctReg.status match {
-        case HELD => updateHeldSubmission(item, ctReg, ctReg.registrationID)
-        case SUBMITTED => updateSubmittedSubmission(ctReg)
-        case unknown => updateOtherSubmission(ctReg.registrationID, item.transactionId, unknown)
-      }
+  private[services] def updateSubmissionWithIncorporation(item: IncorpUpdate, ctReg: CorporationTaxRegistration)(implicit hc : HeaderCarrier): Future[Boolean] = {
+    import RegistrationStatus.{HELD,SUBMITTED}
+    ctReg.status match {
+      case HELD => updateHeldSubmission(item, ctReg, ctReg.registrationID)
+      case SUBMITTED => updateSubmittedSubmission(ctReg)
+      case unknown => updateOtherSubmission(ctReg.registrationID, item.transactionId, unknown)
     }
   }
 
   private[services] def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration, journeyId : String)(implicit hc : HeaderCarrier) : Future[Boolean] = {
     getAckRef(ctReg) match {
-      case Some(ackRef) => {
+      case Some(ackRef) =>
         val fResponse = for {
           submission <- constructFullSubmission(item, ctReg, ackRef)
           response <- postSubmissionToDes(ackRef, submission, journeyId)
-          _ <- auditConnector.sendEvent(
-            new SuccessfulIncorporationAuditEvent(
-              SuccessfulIncorporationAuditEventDetail(
-                ctReg.registrationID,
-                item.crn,
-                item.incorpDate
-              ),
-              "successIncorpInformation",
-              "successIncorpInformation"
-            )
-          )
+          _ <- auditSuccessfulIncorporation(item, ctReg)
         } yield {
           (response, submission)
         }
@@ -149,13 +131,9 @@ trait RegistrationHoldingPenService extends DateHelper {
           case (SuccessDesResponse(response), auditDetail) => processSuccessDesResponse(item, ctReg, auditDetail)
           case (InvalidDesRequest(message), _) => processInvalidDesRequest(ackRef, message)
           case (NotFoundDesResponse, _) => processNotFoundDesResponse(ackRef)
+          case (DesErrorResponse, _) => processDesErrorResponse(ackRef)
         }
-      }
-      case None => {
-        val errMsg = s"""Held Registration doc is missing the ack ref for tx_id "${item.transactionId}"."""
-        Logger.error(errMsg)
-        Future.failed(new MissingAckRef(errMsg))
-      }
+      case None => processMissingAckRefForTxID(item.transactionId)
     }
   }
 
@@ -174,6 +152,32 @@ trait RegistrationHoldingPenService extends DateHelper {
     auditConnector.sendEvent(event)
   }
 
+  private[services] def auditSuccessfulIncorporation(item: IncorpUpdate, ctReg: CorporationTaxRegistration)(implicit hc: HeaderCarrier) = {
+    val event = new SuccessfulIncorporationAuditEvent(
+        SuccessfulIncorporationAuditEventDetail(
+          ctReg.registrationID,
+          item.crn,
+          item.incorpDate
+        ),
+        "successIncorpInformation",
+        "successIncorpInformation"
+    )
+    auditConnector.sendEvent(event)
+  }
+
+  private[services] def auditFailedIncorporation(item: IncorpUpdate, ctReg: CorporationTaxRegistration)(implicit hc: HeaderCarrier) = {
+    val event = new FailedIncorporationAuditEvent(
+        FailedIncorporationAuditEventDetail(
+          ctReg.registrationID,
+          item.statusDescription.getOrElse("No reason provided")
+        ),
+        "failedIncorpInformation",
+        "failedIncorpInformation"
+      )
+
+    auditConnector.sendEvent(event)
+  }
+
 
   private def processInvalidDesRequest(ackRef: String, message: String) = {
     val errMsg = s"""Submission to DES failed for ack ref ${ackRef} - Reason: "${message}"."""
@@ -185,6 +189,18 @@ trait RegistrationHoldingPenService extends DateHelper {
     val errMsg = s"""Request sent to DES for ack ref ${ackRef} not found" """
     Logger.error(errMsg)
     Future.failed(new InvalidSubmission(errMsg))
+  }
+
+  private def processDesErrorResponse(ackRef: String) = {
+    val errMsg = s"Submission to DES returned an error for ack ref $ackRef"
+    Logger.error(errMsg)
+    Future.failed(new DesError(errMsg))
+  }
+
+  private def processMissingAckRefForTxID(txID: String) = {
+    val errMsg = s"""Held Registration doc is missing the ack ref for tx_id "$txID"."""
+    Logger.error(errMsg)
+    Future.failed(new MissingAckRef(errMsg))
   }
 
   private[services] def updateSubmittedSubmission(ctReg: CorporationTaxRegistration): Future[Boolean] = {

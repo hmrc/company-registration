@@ -380,19 +380,19 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockCTRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
         .thenReturn(Future.successful(Some(validCR)))
 
-      await(service.updateSubmissionWithIncorporation(incorpSuccess)) shouldBe true
+      await(service.updateSubmissionWithIncorporation(incorpSuccess, validCR)) shouldBe true
     }
     "return true for a submission that is already 'Submitted" in new SetupNoProcess {
       when(mockCTRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
         .thenReturn(Future.successful(Some(submittedCR)))
 
-      await(service.updateSubmissionWithIncorporation(incorpSuccess)) shouldBe true
+      await(service.updateSubmissionWithIncorporation(incorpSuccess, submittedCR)) shouldBe true
     }
     "return false for a submission that is neither 'Held' nor 'Submitted'" in new SetupNoProcess {
       when(mockCTRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
         .thenReturn(Future.successful(Some(failCaseCR)))
 
-      intercept[UnexpectedStatus]{await(service.updateSubmissionWithIncorporation(incorpSuccess))}
+      intercept[UnexpectedStatus]{await(service.updateSubmissionWithIncorporation(incorpSuccess, failCaseCR))}
     }
 
   }
@@ -417,8 +417,9 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
       val result = await(service.updateNextSubmissionByTimepoint)
 
-      result.length shouldBe 9
-      result shouldBe timepoint
+      val tp = result.split(" ").reverse.head
+      tp.length shouldBe 9
+      tp shouldBe timepoint
     }
 
     "return the first Timepoint for a response with two incorp updates" in new SetupNoProcess {
@@ -433,8 +434,9 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
       val result = await(service.updateNextSubmissionByTimepoint)
 
-      result.length shouldBe 9
-      result shouldBe timepoint
+      val tp = result.split(" ").reverse.head
+      tp.length shouldBe 9
+      tp shouldBe timepoint
     }
 
     "return a Json.object when there's no incorp updates" in new SetupNoProcess {
@@ -446,7 +448,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
       val result = await(service.updateNextSubmissionByTimepoint)
 
-      result shouldBe ""
+      result shouldBe "No Incorporation updates were fetched"
     }
 
   }
@@ -455,11 +457,11 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
     trait SetupBoolean {
       val serviceTrue = new mockService {
-        override def updateSubmissionWithIncorporation(item: IncorpUpdate)(implicit hc : HeaderCarrier) = Future.successful(true)
+        override def updateSubmissionWithIncorporation(item: IncorpUpdate, ctReg: CorporationTaxRegistration)(implicit hc : HeaderCarrier) = Future.successful(true)
       }
 
       val serviceFalse = new mockService {
-        override def updateSubmissionWithIncorporation(item: IncorpUpdate)(implicit hc : HeaderCarrier) = Future.successful(false)
+        override def updateSubmissionWithIncorporation(item: IncorpUpdate, ctReg: CorporationTaxRegistration)(implicit hc : HeaderCarrier) = Future.successful(false)
       }
     }
 
@@ -481,7 +483,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
     }
 
-    "return a future false when processing an accepted incorporation" in new SetupBoolean {
+    "return a FailedToUpdateSubmissionWithAcceptedIncorp when processing an accepted incorporation returns a false" in new SetupBoolean {
 //      when(mockAuditConnector.sendEvent(Matchers.any[RegistrationAuditEvent]())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]()))
 //        .thenReturn(Future.successful(Success))
 
@@ -489,7 +491,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockCTRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
         .thenReturn(Future.successful(Some(validCR)))
       
-      await(serviceFalse.processIncorporationUpdate(incorpSuccess)) shouldBe false
+      intercept[FailedToUpdateSubmissionWithAcceptedIncorp.type](await(serviceFalse.processIncorporationUpdate(incorpSuccess)) shouldBe false)
 
 //      verify(mockAuditConnector, times(1)).sendEvent(captor.capture())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]())
 //
