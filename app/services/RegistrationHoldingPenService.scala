@@ -31,6 +31,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.control.NoStackTrace
 
+
 object RegistrationHoldingPenService extends RegistrationHoldingPenService {
   override val desConnector = DesConnector
   override val incorporationCheckAPIConnector = IncorporationCheckAPIConnector
@@ -47,6 +48,9 @@ private[services] class InvalidSubmission(val message: String) extends NoStackTr
 private[services] case class DesError(message: String) extends NoStackTrace
 private[services] class MissingAckRef(val message: String) extends NoStackTrace
 private[services] class UnexpectedStatus(val status: String) extends NoStackTrace
+
+private[services] object FailedToUpdateSubmissionWithAcceptedIncorp extends NoStackTrace
+private[services] object FailedToUpdateSubmissionWithRejectedIncorp extends NoStackTrace
 
 trait RegistrationHoldingPenService extends DateHelper {
 
@@ -70,10 +74,10 @@ trait RegistrationHoldingPenService extends DateHelper {
         //TODO see SCRS-3766|
         processIncorporationUpdate(item)
       }
-      Future.sequence(results) flatMap { r =>
+      Future.sequence(results) flatMap { _ =>
         //TODO For day one, take the first timepoint - see SCRS-3766
         items.headOption match {
-          case Some(head) => stateDataRepository.updateTimepoint(head.timepoint).map(tp => s"Timepoint updated to $tp")
+          case Some(head) => stateDataRepository.updateTimepoint(head.timepoint).map(tp => s"Incorporation ${head.status} - Timepoint updated to $tp")
           case None => Future.successful("No Incorporation updates were fetched")
         }
       }
@@ -86,7 +90,9 @@ trait RegistrationHoldingPenService extends DateHelper {
         for {
           ctReg <- fetchRegistrationByTxId(item.transactionId)
           result <- updateSubmissionWithIncorporation(item, ctReg)
-        } yield result
+        } yield {
+          if(result) result else throw FailedToUpdateSubmissionWithAcceptedIncorp
+        }
       case "rejected" =>
         val reason = item.statusDescription.fold("No reason given")(f => " Reason given:" + f)
         Logger.info("Incorporation rejected for Transaction: " + item.transactionId + reason)
@@ -97,7 +103,7 @@ trait RegistrationHoldingPenService extends DateHelper {
           ctDeleted <- ctRepository.removeTaxRegistrationById(ctReg.registrationID)
           metadataDeleted <- brConnector.removeMetadata(ctReg.registrationID)
         } yield {
-          heldDeleted && ctDeleted && metadataDeleted
+          if(heldDeleted && ctDeleted && metadataDeleted) true else throw FailedToUpdateSubmissionWithRejectedIncorp
         }
     }
   }

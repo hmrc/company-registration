@@ -34,10 +34,9 @@ trait SubmissionCheckController extends BaseController {
   def triggerSubmissionCheck = Action.async {
     implicit request =>
       service.updateNextSubmissionByTimepoint
-        .map(tp => Ok(s"No errors - $tp"))
+        .map(Ok(_))
         .recover{
-          case ex: HttpException => new Status(ex.responseCode)(s"A Http exception was caught - ${ex.responseCode} ${ex.message}")
-          case ex: Throwable => InternalServerError(s"An error has occurred - ${ex.getMessage}")
+          case ex: Throwable => InternalServerError(s"An error has occurred during the submission - ${ex.getMessage}")
         }
   }
 }
