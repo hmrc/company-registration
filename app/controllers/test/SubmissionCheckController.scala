@@ -16,12 +16,11 @@
 
 package controllers.test
 
-import play.api.libs.json.JsObject
 import play.api.mvc.Action
 import services.RegistrationHoldingPenService
+import uk.gov.hmrc.play.http.HttpException
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 object SubmissionCheckController extends SubmissionCheckController {
@@ -34,8 +33,11 @@ trait SubmissionCheckController extends BaseController {
 
   def triggerSubmissionCheck = Action.async {
     implicit request =>
-      service.updateNextSubmissionByTimepoint map {
-        res => Ok(res)
-      }
+      service.updateNextSubmissionByTimepoint
+        .map(tp => Ok(s"No errors - $tp"))
+        .recover{
+          case ex: HttpException => new Status(ex.responseCode)(s"A Http exception was caught - ${ex.responseCode} ${ex.message}")
+          case ex: Throwable => InternalServerError(s"An error has occurred - ${ex.getMessage}")
+        }
   }
 }
