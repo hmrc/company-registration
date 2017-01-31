@@ -58,6 +58,7 @@ case class CorporationTaxRegistration(internalId: String,
 //}
 
 object CorporationTaxRegistration {
+  implicit val formatEmail = Email.formats
   implicit val formatCH = CHROAddress.format
   implicit val formatPPOBAddress = PPOBAddress.format
   implicit val formatPPOB = PPOB.format
@@ -68,7 +69,6 @@ object CorporationTaxRegistration {
   implicit val formatAck = AcknowledgementReferences.apiFormat
   implicit val formatConfirmationReferences = ConfirmationReferences.format
   implicit val formatAccountsPrepDate = AccountPrepDetails.format
-  implicit val formatEmail = Email.formats
   implicit val format = Json.format[CorporationTaxRegistration]
   def now = DateTime.now(DateTimeZone.UTC)
 }
