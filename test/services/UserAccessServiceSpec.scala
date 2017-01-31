@@ -169,7 +169,7 @@ class UserAccessServiceSpec
         .createCorporationTaxRegistrationRecord(anyString(), anyString(), anyString()))
         .thenReturn(validDraftCorporationTaxRegistration)
 
-      val expectedEmail = Email("a@a.a", "GG",true, false)
+      val expectedEmail = Email("a@a.a", "GG",true, false, false)
       val draft = draftCorporationTaxRegistration(regId).copy(verifiedEmail = Some(expectedEmail))
       when(mockCTService.retrieveCorporationTaxRegistrationRecord(Matchers.eq(regId)))
         .thenReturn(Some(draft))

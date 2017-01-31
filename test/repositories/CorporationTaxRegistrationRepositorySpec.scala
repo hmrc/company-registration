@@ -346,7 +346,7 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
 
   "updateEmail" should {
 
-    val email = Email("testAddress", "GG", linkSent = true, verified = true)
+    val email = Email("testAddress", "GG", linkSent = true, verified = true, returnLinkEmailSent = true)
 
     "insert a new email block into an existing CT registration" in new {
       val selector = BSONDocument("registrationID" -> BSONString(registrationID))
@@ -369,7 +369,7 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
     }
 
     "return email information if it exists" in {
-      val expectedEmail = Email("testAddress", "GG", linkSent = true, verified = true)
+      val expectedEmail = Email("testAddress", "GG", linkSent = true, verified = true, returnLinkEmailSent = true)
       val expectedDoc = validDraftCorporationTaxRegistration.copy(verifiedEmail = Some(expectedEmail))
       val selector = BSONDocument("registrationID" -> BSONString(registrationID))
       setupFindFor(repository.collection, selector, Some(expectedDoc))
