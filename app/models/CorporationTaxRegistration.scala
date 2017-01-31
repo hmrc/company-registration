@@ -50,15 +50,14 @@ case class CorporationTaxRegistration(internalId: String,
                                       crn: Option[String] = None,
                                       submissionTimestamp: Option[String] = None,
                                       verifiedEmail: Option[Email] = None,
-                                      createdTime: DateTime = CorporationTaxRegistration.now
+                                      createdTime: DateTime = CorporationTaxRegistration.now,
+                                      lastSignedIn: DateTime = CorporationTaxRegistration.now
                                      )
 
-//object CorporationTaxRegistration {
-//  def now = DateTime.now(DateTimeZone.UTC)
-//}
-
 object CorporationTaxRegistration {
-  implicit val formatEmail = Email.formats
+
+  def now = DateTime.now(DateTimeZone.UTC)
+
   implicit val formatCH = CHROAddress.format
   implicit val formatPPOBAddress = PPOBAddress.format
   implicit val formatPPOB = PPOB.format
@@ -69,8 +68,51 @@ object CorporationTaxRegistration {
   implicit val formatAck = AcknowledgementReferences.apiFormat
   implicit val formatConfirmationReferences = ConfirmationReferences.format
   implicit val formatAccountsPrepDate = AccountPrepDetails.format
-  implicit val format = Json.format[CorporationTaxRegistration]
-  def now = DateTime.now(DateTimeZone.UTC)
+  implicit val formatEmail = Email.formats
+
+  val cTReads = (
+    (__ \ "internalId").read[String] and
+      (__ \ "registrationID").read[String] and
+      (__ \ "status").read[String] and
+      (__ \ "formCreationTimestamp").read[String] and
+      (__ \ "language").read[String] and
+      (__ \ "acknowledgementReferences").readNullable[AcknowledgementReferences] and
+      (__ \ "confirmationReferences").readNullable[ConfirmationReferences] and
+      (__ \ "companyDetails").readNullable[CompanyDetails] and
+      (__ \ "accountingDetails").readNullable[AccountingDetails] and
+      (__ \ "tradingDetails").readNullable[TradingDetails] and
+      (__ \ "contactDetails").readNullable[ContactDetails] and
+      (__ \ "accountsPreparation").readNullable[AccountPrepDetails] and
+      (__ \ "crn").readNullable[String] and
+      (__ \ "submissionTimestamp").readNullable[String] and
+      (__ \ "verifiedEmail").readNullable[Email] and
+      (__ \ "createdTime").read[DateTime] and
+      (__ \ "lastSignedIn").read[DateTime].orElse(Reads.pure(CorporationTaxRegistration.now))
+    )(CorporationTaxRegistration.apply _)
+
+  val cTWrites: OWrites[CorporationTaxRegistration] = (
+    (__ \ "internalId").write[String] and
+      (__ \ "registrationID").write[String] and
+      (__ \ "status").write[String] and
+      (__ \ "formCreationTimestamp").write[String] and
+      (__ \ "language").write[String] and
+      (__ \ "acknowledgementReferences").writeNullable[AcknowledgementReferences] and
+      (__ \ "confirmationReferences").writeNullable[ConfirmationReferences] and
+      (__ \ "companyDetails").writeNullable[CompanyDetails] and
+      (__ \ "accountingDetails").writeNullable[AccountingDetails] and
+      (__ \ "tradingDetails").writeNullable[TradingDetails] and
+      (__ \ "contactDetails").writeNullable[ContactDetails] and
+      (__ \ "accountsPreparation").writeNullable[AccountPrepDetails] and
+      (__ \ "crn").writeNullable[String] and
+      (__ \ "submissionTimestamp").writeNullable[String] and
+      (__ \ "verifiedEmail").writeNullable[Email] and
+      (__ \ "createdTime").write[DateTime] and
+      (__ \ "lastSignedIn").write[DateTime]
+    )(unlift(CorporationTaxRegistration.unapply))
+
+  implicit val format = Format(cTReads, cTWrites)
+  implicit val oFormat = OFormat(cTReads, cTWrites)
+>>>>>>> SCRS-4366 added lastSignedIn to CRReg doc
 }
 
 case class AcknowledgementReferences(ctUtr: String,
@@ -78,7 +120,7 @@ case class AcknowledgementReferences(ctUtr: String,
                                      status: String)
 
 object AcknowledgementReferences {
-//  implicit val format = Json.format[AcknowledgementReferences]
+
   val apiFormat = (
     (__ \ "ctUtr").format[String] and
       (__ \ "timestamp").format[String] and
