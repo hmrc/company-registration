@@ -18,6 +18,7 @@ package repositories
 
 import auth.{AuthorisationResource, Crypto}
 import models._
+import org.joda.time.DateTime
 import play.api.libs.functional.syntax.unlift
 import play.api.libs.json.Reads.maxLength
 import play.api.libs.json.{__, Json, JsObject, JsValue}
@@ -70,6 +71,7 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def removeTaxRegistrationById(registrationId: String): Future[Boolean]
   def updateEmail(registrationId: String, email: Email): Future[Option[Email]]
   def retrieveEmail(registrationId: String): Future[Option[Email]]
+  def updateLastSignedIn(regId: String, dateTime: DateTime): Future[DateTime]
 }
 
 private[repositories] class MissingCTDocument(regId: String) extends NoStackTrace
@@ -95,6 +97,12 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
       sparse = false
     )
   )
+
+  override def updateLastSignedIn(regId: String, dateTime: DateTime): Future[DateTime] = {
+    val selector = registrationIDSelector(regId)
+    val update = BSONDocument("$set" -> BSONDocument("lastSignedIn" -> dateTime.getMillis))
+    collection.update(selector, update).map(_ => dateTime)
+  }
 
   override def updateCTRecordWithAcknowledgments(ackRef : String, ctRecord: CorporationTaxRegistration): Future[WriteResult] = {
     implicit val format = CorporationTaxRegistrationMongo.format
@@ -126,6 +134,7 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
     val selector = registrationIDSelector(registrationID)
     collection.find(selector).one[CorporationTaxRegistration]
   }
+
 
   override def updateCompanyDetails(registrationID: String, companyDetails: CompanyDetails): Future[Option[CompanyDetails]] = {
     retrieveCorporationTaxRegistration(registrationID).flatMap {

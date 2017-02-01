@@ -95,8 +95,13 @@ trait CorporationTaxRegistrationService extends DateHelper {
     corporationTaxRegistrationRepository.createCorporationTaxRegistration(record)
   }
 
-  def retrieveCorporationTaxRegistrationRecord(rID: String): Future[Option[CorporationTaxRegistration]] = {
-    corporationTaxRegistrationRepository.retrieveCorporationTaxRegistration(rID)
+  def retrieveCorporationTaxRegistrationRecord(rID: String, lastSignedIn: Option[DateTime] = None): Future[Option[CorporationTaxRegistration]] = {
+    val repo = corporationTaxRegistrationRepository
+    repo.retrieveCorporationTaxRegistration(rID) map {
+      doc =>
+        lastSignedIn map ( repo.updateLastSignedIn(rID, _))
+        doc
+    }
   }
 
   def updateConfirmationReferences(rID: String, refs: ConfirmationReferences)(implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[Option[ConfirmationReferences]] = {

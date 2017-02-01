@@ -41,7 +41,7 @@ trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with Accou
 
   def draftCorporationTaxRegistration(regId: String) = CorporationTaxRegistration(
     internalId = "tiid",
-    registrationID = "0123456789",
+    registrationID = regId,
     status = DRAFT,
     formCreationTimestamp = "2001-12-31T12:00:00Z",
     language = "en",
@@ -49,7 +49,8 @@ trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with Accou
     companyDetails = Some(validCompanyDetails),
     accountingDetails = Some(validAccountingDetails),
     tradingDetails = Some(TradingDetails()),
-    contactDetails = Some(contactDetails)
+    contactDetails = Some(contactDetails),
+    verifiedEmail = None
   )
 
   def validConfRefsWithData(ackRef: Option[String] = None) = ConfirmationReferences(
@@ -82,4 +83,15 @@ trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with Accou
     formCreationTimestamp = "2001-12-31T12:00:00Z",
     Links(Some("/company-registration/corporation-tax-registration/0123456789"))
   )
+
+  def buildCTRegistrationResponse(regId: String = "0123456789",
+                                  status: String = DRAFT,
+                                  timeStamp: String = "2001-12-31T12:00:00Z") = {
+    CorporationTaxRegistrationResponse(
+      registrationID = regId,
+      status = status,
+      formCreationTimestamp = timeStamp,
+      Links(Some(s"/company-registration/corporation-tax-registration/$regId"))
+    )
+  }
 }

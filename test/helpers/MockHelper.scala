@@ -14,19 +14,15 @@
  * limitations under the License.
  */
 
-package fixtures
+package helpers
 
-import connectors.{Authority, UserIds}
+import org.mockito.Mockito._
 
-trait AuthFixture {
+trait MockHelper {
 
-  val validAuthority = Authority(
-    "test.uri", "testGGID", "test.userDetailsLink", UserIds("tiid","teid")
-  )
+  def collectMocks[T <: AnyRef](mocks: T*): Seq[T] = mocks
 
-  def buildAuthority(internalId: String = "tiid") = {
-    Authority(
-      "test.uri", "testGGID", "test.userDetailsLink", UserIds(internalId,"teid")
-    )
+  def resetMocks[T <: AnyRef](mocks: Seq[T]): Unit = {
+    mocks.map(reset(_))
   }
 }

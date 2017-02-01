@@ -112,7 +112,6 @@ object CorporationTaxRegistration {
 
   implicit val format = Format(cTReads, cTWrites)
   implicit val oFormat = OFormat(cTReads, cTWrites)
->>>>>>> SCRS-4366 added lastSignedIn to CRReg doc
 }
 
 case class AcknowledgementReferences(ctUtr: String,

@@ -21,6 +21,7 @@ import java.util.UUID
 import models.RegistrationStatus._
 import models._
 import org.joda.time.DateTime
+import org.joda.time.chrono.ISOChronology
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import reactivemongo.api.commands.WriteResult
@@ -144,15 +145,16 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       formCreationTimestamp = "2001-12-31T12:00:00Z",
       language = "en",
       confirmationReferences = Some(validConfirmationReferences),
-      createdTime = DateTime.now
+      createdTime = DateTime.now,
+      lastSignedIn = DateTime.now
     )
 
     "return an optional ct record" when {
+
       "given an ack ref" in new Setup {
         await(setupCollection(repository, validHeldCorporationTaxRegistration))
 
         val result = await(repository.retrieveByAckRef(ackRef)).get
-
         result shouldBe validHeldCorporationTaxRegistration
       }
     }
@@ -224,7 +226,8 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
       )),
       tradingDetails = Some(TradingDetails(true)),
-      createdTime = DateTime.now
+      createdTime = DateTime.now,
+      lastSignedIn = DateTime.now
     )
 
     "remove all details under that RegId from the collection" in new Setup {

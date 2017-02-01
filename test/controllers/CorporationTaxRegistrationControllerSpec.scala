@@ -20,46 +20,57 @@ import connectors.AuthConnector
 import fixtures.{AuthFixture, CorporationTaxRegistrationFixture}
 import helpers.SCRSSpec
 import mocks.MockMetricsService
-import models.{AcknowledgementReferences, ConfirmationReferences, CorporationTaxRegistration}
+import models.{AcknowledgementReferences, ConfirmationReferences}
 import org.mockito.Matchers
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import services.CorporationTaxRegistrationService
 import play.api.test.Helpers._
-import play.api.mvc.Results.Status
+import org.mockito.Mockito._
+import org.mockito.Matchers.{eq => eqTo}
+import org.mockito.Matchers.any
+import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.Future
-import org.mockito.Mockito._
-import uk.gov.hmrc.play.http.HeaderCarrier
 
 class CorporationTaxRegistrationControllerSpec extends SCRSSpec with CorporationTaxRegistrationFixture with AuthFixture {
 
   class Setup {
     val controller = new CorporationTaxRegistrationController {
-      override val ctService = mockCTDataService
-      override val resourceConn = mockCTDataRepository
-      override val auth = mockAuthConnector
-      override val metrics = MockMetricsService
+      val ctService = mockCTDataService
+      val resourceConn = mockCTDataRepository
+      val auth = mockAuthConnector
+      val metrics = MockMetricsService
     }
   }
 
+  val internalId = "int-12345"
+  val regId = "reg-12345"
+  val authority = buildAuthority(internalId)
+
   "CorporationTaxRegistrationController" should {
+
     "use the correct CTDataService" in {
       CorporationTaxRegistrationController.ctService shouldBe CorporationTaxRegistrationService
     }
-    "use the correct authconnector" in {
+    "use the correct auth connector" in {
       CorporationTaxRegistrationController.auth shouldBe AuthConnector
     }
   }
 
   "createCorporationTaxRegistration" should {
+
     "return a 201 when a new entry is created from the parsed json" in new Setup {
-      CTServiceMocks.createCTDataRecord(validDraftCorporationTaxRegistration)
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+      AuthenticationMocks.getCurrentAuthority(Some(authority))
+
+      when(mockCTDataService.createCorporationTaxRegistrationRecord(eqTo(internalId), eqTo(regId), eqTo("en")))
+        .thenReturn(Future.successful(draftCorporationTaxRegistration(regId)))
 
       val request = FakeRequest().withJsonBody(Json.toJson(validCorporationTaxRegistrationRequest))
-      val result = call(controller.createCorporationTaxRegistration("0123456789"), request)
-      await(jsonBodyOf(result)) shouldBe Json.toJson(validCorporationTaxRegistrationResponse)
+      val response = buildCTRegistrationResponse(regId)
+
+      val result = call(controller.createCorporationTaxRegistration(regId), request)
+      await(jsonBodyOf(result)) shouldBe Json.toJson(response)
       status(result) shouldBe CREATED
     }
 
@@ -67,21 +78,26 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
       AuthenticationMocks.getCurrentAuthority(None)
 
       val request = FakeRequest().withJsonBody(Json.toJson(validDraftCorporationTaxRegistration))
-      val result = call(controller.createCorporationTaxRegistration("0123456789"), request)
+      val result = call(controller.createCorporationTaxRegistration(regId), request)
       status(result) shouldBe FORBIDDEN
     }
   }
 
   "retrieveCorporationTaxRegistration" should {
+
     "return a 200 and a CorporationTaxRegistration model is one is found" in new Setup {
       val regId = "0123456789"
-      CTServiceMocks.retrieveCTDataRecord(regId, Some(validDraftCorporationTaxRegistration))
+
+      when(mockCTDataService.retrieveCorporationTaxRegistrationRecord(eqTo(regId), any()))
+        .thenReturn(Future.successful(Some(validDraftCorporationTaxRegistration)))
+
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
 
       when(mockCTDataRepository.getInternalId(Matchers.contains(regId))).
         thenReturn(Future.successful(Some((regId, validAuthority.ids.internalId))))
 
       val result = call(controller.retrieveCorporationTaxRegistration(regId), FakeRequest())
+
       status(result) shouldBe OK
       await(jsonBodyOf(result)) shouldBe Json.toJson(Some(validCorporationTaxRegistrationResponse))
     }
@@ -336,7 +352,7 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
       val request = FakeRequest().withBody(jsonBody)
 
       "a CT record cannot be found against the given ack ref" in new Setup {
-        when(mockCTDataService.updateCTRecordWithAckRefs(Matchers.eq(ackRef), Matchers.eq(refs)))
+        when(mockCTDataService.updateCTRecordWithAckRefs(eqTo(ackRef), eqTo(refs)))
           .thenReturn(Future.successful(None))
 
         val result = controller.acknowledgementConfirmation(ackRef)(request)
