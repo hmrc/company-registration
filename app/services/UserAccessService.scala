@@ -18,6 +18,7 @@ package services
 
 import connectors.{BusinessRegistrationConnector, BusinessRegistrationNotFoundResponse, BusinessRegistrationSuccessResponse}
 import models.{CorporationTaxRegistration, UserAccessLimitReachedResponse, UserAccessSuccessResponse}
+import org.joda.time.{DateTimeZone, DateTime}
 import play.api.libs.json.{JsValue, Json}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import uk.gov.hmrc.play.config.ServicesConfig
@@ -50,27 +51,25 @@ trait UserAccessService {
   def checkUserAccess(internalId: String)(implicit hc : HeaderCarrier): Future[Either[JsValue,UserAccessSuccessResponse]] = {
     brConnector.retrieveMetadata flatMap {
       case BusinessRegistrationSuccessResponse(metadata) =>
-        createResponse(metadata.registrationID, false) map { Right(_) }
+        val now = DateTime.now(DateTimeZone.UTC)
+        for {
+          _ <- brConnector.updateLastSignedIn(metadata.registrationID, now)
+          oCrData <- ctService.retrieveCorporationTaxRegistrationRecord(metadata.registrationID, Some(now))
+        } yield {
+          oCrData match {
+            case Some(crData) => Right(UserAccessSuccessResponse(crData.registrationID, false, hasConfRefs(crData), crData.verifiedEmail))
+            case _ => throw new MissingRegistration(metadata.registrationID) //todo - after a rejected submission this will always return a failed future - need to delete BR
+          }
+        }
       case BusinessRegistrationNotFoundResponse =>
         throttleService.checkUserAccess flatMap {
           case false => Future.successful(Left(Json.toJson(UserAccessLimitReachedResponse(limitReached=true))))
-          case true => for{
+          case true => for {
             metaData <- brConnector.createMetadataEntry
             crData <- ctService.createCorporationTaxRegistrationRecord(internalId, metaData.registrationID, "en")
-            result <- createResponse(metaData.registrationID, true)
-          } yield Right(result)
+          } yield Right(UserAccessSuccessResponse(crData.registrationID, true, hasConfRefs(crData), crData.verifiedEmail))
         }
       case _ => throw new Exception("Something went wrong")
-    }
-  }
-
-
-  private[services] def createResponse(regId: String, created: Boolean): Future[UserAccessSuccessResponse] = {
-    ctService.retrieveCorporationTaxRegistrationRecord(regId) flatMap {
-      case Some(doc) => {
-        Future.successful(UserAccessSuccessResponse(regId, created, hasConfRefs(doc), doc.verifiedEmail))
-      }
-      case None => Future.failed(new MissingRegistration(regId))//todo - after a rejected submission this will always return a failed future - need to delete BR
     }
   }
 

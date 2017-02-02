@@ -18,6 +18,7 @@ package connectors
 
 import config.WSHttp
 import models.{BusinessRegistration, BusinessRegistrationRequest}
+import org.joda.time.DateTime
 import play.api.Logger
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.play.config.ServicesConfig
@@ -40,7 +41,7 @@ case class BusinessRegistrationErrorResponse(err: Exception) extends BusinessReg
 trait BusinessRegistrationConnector {
 
   val businessRegUrl: String
-  val http: HttpGet with HttpPost
+  val http: HttpGet with HttpPost with HttpPatch
 
   def createMetadataEntry(implicit hc: HeaderCarrier): Future[BusinessRegistration] = {
     val json = Json.toJson[BusinessRegistrationRequest](BusinessRegistrationRequest("ENG"))
@@ -79,6 +80,17 @@ trait BusinessRegistrationConnector {
   def dropMetadataCollection(implicit hc: HeaderCarrier) = {
     http.GET[JsValue](s"$businessRegUrl/business-registration/test-only/drop-collection") map { res =>
       (res \ "message").as[String]
+    }
+  }
+
+  def updateLastSignedIn(registrationId: String, dateTime: DateTime)(implicit hc: HeaderCarrier): Future[String] = {
+    val json = Json.toJson(dateTime)
+    http.PATCH[JsValue, HttpResponse](s"$businessRegUrl/business-registration/business-tax-registration/last-signed-in/$registrationId", json).map{
+      res => res.body
+    } recover {
+      case ex: HttpException =>
+        Logger.error(s"[BusinessRegistrationConnector] [updateLastSignedIn] - ${ex.responseCode} Could not update lastSignedIn for regId: $registrationId - reason: ${ex.getMessage}")
+        throw new Exception(ex.getMessage)
     }
   }
 }

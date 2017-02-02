@@ -51,7 +51,7 @@ trait SCRSMocks
     }
 
     def retrieveCTDataRecord(regId: String, result: Option[CorporationTaxRegistration]): OngoingStubbing[Future[Option[CorporationTaxRegistration]]] = {
-      when(mockCTDataService.retrieveCorporationTaxRegistrationRecord(Matchers.eq(regId)))
+      when(mockCTDataService.retrieveCorporationTaxRegistrationRecord(Matchers.eq(regId), Matchers.any()))
         .thenReturn(Future.successful(result))
     }
 

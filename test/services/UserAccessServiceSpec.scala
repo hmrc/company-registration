@@ -18,8 +18,10 @@ package services
 
 import connectors.{BusinessRegistrationConnector, _}
 import fixtures.{BusinessRegistrationFixture, CorporationTaxRegistrationFixture}
+import helpers.MockHelper
 import models.{Email, UserAccessLimitReachedResponse, UserAccessSuccessResponse}
-import org.mockito.Matchers
+import org.joda.time.{DateTimeZone, DateTime}
+import org.mockito.Matchers.{eq => eqTo}
 import org.mockito.Matchers.{any, anyString}
 import org.scalatest.mock.MockitoSugar
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
@@ -31,39 +33,33 @@ import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-import scalaz.Alpha.M
 
 class UserAccessServiceSpec
   extends UnitSpec with MockitoSugar with WithFakeApplication with BusinessRegistrationFixture with CorporationTaxRegistrationFixture
-  with BeforeAndAfterEach {
+  with BeforeAndAfterEach with MockHelper {
 
   val mockBRConnector = mock[BusinessRegistrationConnector]
   val mockCTRepo = mock[CorporationTaxRegistrationMongoRepository]
   val mockCTService = mock[CorporationTaxRegistrationService]
   val mockThrottleService = mock[ThrottleService]
 
+  val mocks = collectMocks(mockBRConnector, mockCTRepo, mockCTService, mockThrottleService)
+
   implicit val hc = HeaderCarrier()
 
-  trait mockService extends UserAccessService {
-    val threshold = 10
-    val brConnector = mockBRConnector
-    val ctService = mockCTService
-    val ctRepository = mockCTRepo
-    val throttleService = mockThrottleService
-  }
-
   trait Setup {
-    val service = new mockService {}
+    val service = new UserAccessService {
+      val threshold = 10
+      val brConnector = mockBRConnector
+      val ctService = mockCTService
+      val ctRepository = mockCTRepo
+      val throttleService = mockThrottleService
+    }
   }
 
-  // TODO - check SCRSSpec
   override def beforeEach() {
-    reset(mockBRConnector)
-    reset(mockCTRepo)
-    reset(mockCTService)
-    reset(mockThrottleService)
+    resetMocks(mocks)
   }
-
 
   "UserAccessService" should {
     "use the correct business registration connector" in {
@@ -78,116 +74,101 @@ class UserAccessServiceSpec
     "use the correct throttle service" in {
       UserAccessService.throttleService shouldBe ThrottleService
     }
+    "use the correct threshold from config" in {
+      UserAccessService.threshold shouldBe 10
+    }
   }
 
-  "checkUserAccess (isolated)" should {
+  "checkUserAccess" should {
 
-    trait SetupNoProcess {
-      val service = new mockService {
-        override def createResponse(regId: String, created: Boolean): Future[UserAccessSuccessResponse] = {
-          Future.successful(UserAccessSuccessResponse(regId, created, false))
-        }
-      }
-    }
+    val regId = "12345"
+    val internalId = "int-123"
+    val dateTime = DateTime.now(DateTimeZone.UTC)
 
-    "return a 200 with false" in new SetupNoProcess {
+    "return a UserAccessSuccessResponse with the created and confirmation ref flags set to false" in new Setup {
       when(mockBRConnector.retrieveMetadata(any(), any()))
-        .thenReturn(BusinessRegistrationSuccessResponse(validBusinessRegistrationResponse))
-      await(service.checkUserAccess("123")) shouldBe Right(UserAccessSuccessResponse("12345", false, false))
+        .thenReturn(BusinessRegistrationSuccessResponse(businessRegistrationResponse(regId)))
+      when(mockBRConnector.updateLastSignedIn(any(), any())(any()))
+        .thenReturn(Future.successful(dateTime.toString))
+      when(mockCTService.retrieveCorporationTaxRegistrationRecord(eqTo(regId), any[Option[DateTime]]()))
+        .thenReturn(Some(draftCorporationTaxRegistration(regId)))
+
+      await(service.checkUserAccess(internalId)) shouldBe Right(UserAccessSuccessResponse(regId, false, false))
     }
 
-    "return a 429 with limit reached" in new Setup {
+    "return a UserAccessLimitReachedResponse when the throttle service returns a false" in new Setup {
       when(mockBRConnector.retrieveMetadata(any(), any()))
         .thenReturn(BusinessRegistrationNotFoundResponse)
       when(mockThrottleService.checkUserAccess)
         .thenReturn(Future(false))
       when(mockBRConnector.createMetadataEntry(any()))
         .thenReturn(validBusinessRegistrationResponse)
-      when(mockCTService
-        .createCorporationTaxRegistrationRecord(anyString(), anyString(), anyString()))
+      when(mockCTService.createCorporationTaxRegistrationRecord(anyString(), anyString(), anyString()))
         .thenReturn(validDraftCorporationTaxRegistration)
-
 
       await(service.checkUserAccess("321")) shouldBe Left(Json.toJson(UserAccessLimitReachedResponse(true)))
     }
 
-    "return a 200 with a regId and created set to true" in new SetupNoProcess {
+    "fail if the registration is missing" in new Setup {
+      when(mockBRConnector.retrieveMetadata(any(), any()))
+        .thenReturn(BusinessRegistrationSuccessResponse(businessRegistrationResponse(regId)))
+      when(mockBRConnector.updateLastSignedIn(any(), any())(any()))
+        .thenReturn(Future.successful(dateTime.toString))
+      when(mockCTService.retrieveCorporationTaxRegistrationRecord(eqTo(regId), any[Option[DateTime]]()))
+        .thenReturn(None)
+
+      intercept[MissingRegistration] {
+        await(service.checkUserAccess(internalId))
+      }
+    }
+
+    "be successful with no conf refs but with email info" in new Setup {
+      val expectedEmail = Email("a@a.a", "GG",true, false, false)
+      val draftCTReg = draftCorporationTaxRegistration(regId).copy(verifiedEmail = Some(expectedEmail))
+
       when(mockBRConnector.retrieveMetadata(any(), any()))
         .thenReturn(BusinessRegistrationNotFoundResponse)
       when(mockThrottleService.checkUserAccess)
         .thenReturn(Future(true))
       when(mockBRConnector.createMetadataEntry(any()))
-        .thenReturn(validBusinessRegistrationResponse)
-      when(mockCTService
-        .createCorporationTaxRegistrationRecord(anyString(), anyString(), anyString()))
-        .thenReturn(validDraftCorporationTaxRegistration)
+        .thenReturn(businessRegistrationResponse(regId))
+      when(mockCTService.createCorporationTaxRegistrationRecord(anyString(), anyString(), anyString()))
+        .thenReturn(draftCTReg)
 
+      await(service.checkUserAccess(internalId)) shouldBe
+        Right(UserAccessSuccessResponse(regId, true, false, Some(expectedEmail)))
+    }
+
+    "return a UserAccessSuccessResponse with the created flag set to true" in new Setup {
+      when(mockBRConnector.retrieveMetadata(any(), any()))
+        .thenReturn(BusinessRegistrationNotFoundResponse)
+      when(mockThrottleService.checkUserAccess)
+        .thenReturn(Future(true))
+      when(mockBRConnector.createMetadataEntry(any()))
+        .thenReturn(businessRegistrationResponse(regId))
+      when(mockCTService.createCorporationTaxRegistrationRecord(anyString(), anyString(), anyString()))
+        .thenReturn(draftCorporationTaxRegistration(regId))
 
       await(service.checkUserAccess("321")) shouldBe Right(UserAccessSuccessResponse("12345", true, false))
     }
 
-    "return an error" in new Setup {
-      when(mockBRConnector.retrieveMetadata(any(), any()))
-        .thenReturn(BusinessRegistrationForbiddenResponse)
-      val ex = intercept[Exception] {
-        await(service.checkUserAccess("555"))
-      }
-      ex.getMessage shouldBe "Something went wrong"
-    }
-  }
-
-  "checkUserAccess (with CR doc info)" should {
-
-    "be successful return a 200 with false" in new Setup {
-      val regId = "12345"
+    "return a UserAccessSuccessResponse with the confirmation refs flag set to true" in new Setup {
       when(mockBRConnector.retrieveMetadata(any(), any()))
         .thenReturn(BusinessRegistrationSuccessResponse(businessRegistrationResponse(regId)))
-      when(mockCTService.retrieveCorporationTaxRegistrationRecord(Matchers.eq(regId)))
-        .thenReturn(Some(draftCorporationTaxRegistration(regId)))
-
-      await(service.checkUserAccess("123")) shouldBe Right(UserAccessSuccessResponse("12345", false, false))
-    }
-
-    "fail if the registration is missing" in new Setup {
-      val regId = "12345"
-      when(mockBRConnector.retrieveMetadata(any(), any()))
-        .thenReturn(BusinessRegistrationSuccessResponse(businessRegistrationResponse(regId)))
-      when(mockCTService.retrieveCorporationTaxRegistrationRecord(Matchers.eq(regId)))
-        .thenReturn(None)
-
-      intercept[MissingRegistration] {
-        await(service.checkUserAccess("123"))
-      }
-    }
-
-    "be successful with no conf refs but with email info" in new Setup {
-      val regId = "12345"
-      when(mockBRConnector.retrieveMetadata(any(), any())).thenReturn(BusinessRegistrationNotFoundResponse)
-      when(mockThrottleService.checkUserAccess).thenReturn(Future(true))
-      when(mockBRConnector.createMetadataEntry(any())).thenReturn(validBusinessRegistrationResponse)
-      when(mockCTService
-        .createCorporationTaxRegistrationRecord(anyString(), anyString(), anyString()))
-        .thenReturn(validDraftCorporationTaxRegistration)
-
-      val expectedEmail = Email("a@a.a", "GG",true, false, false)
-      val draft = draftCorporationTaxRegistration(regId).copy(verifiedEmail = Some(expectedEmail))
-      when(mockCTService.retrieveCorporationTaxRegistrationRecord(Matchers.eq(regId)))
-        .thenReturn(Some(draft))
-
-      await(service.checkUserAccess("321")) shouldBe
-        Right(UserAccessSuccessResponse("12345", true, false, Some(expectedEmail)))
-    }
-
-    "be successful with some conf references" in new Setup {
-      val regId = "12345"
-
-      when(mockBRConnector.retrieveMetadata(any(), any()))
-        .thenReturn(BusinessRegistrationSuccessResponse(businessRegistrationResponse(regId)))
-      when(mockCTService.retrieveCorporationTaxRegistrationRecord(Matchers.eq(regId)))
+      when(mockBRConnector.updateLastSignedIn(any(), any())(any()))
+        .thenReturn(Future.successful(dateTime.toString))
+      when(mockCTService.retrieveCorporationTaxRegistrationRecord(eqTo(regId), any()))
         .thenReturn(Some(validHeldCTRegWithData(regId)))
 
-      await(service.checkUserAccess("321")) shouldBe Right(UserAccessSuccessResponse("12345", false, true))
+      await(service.checkUserAccess(internalId)) shouldBe Right(UserAccessSuccessResponse(regId, false, true))
     }
 
+    "return an error when retrieving metadata returns a forbidden response" in new Setup {
+      when(mockBRConnector.retrieveMetadata(any(), any()))
+        .thenReturn(BusinessRegistrationForbiddenResponse)
+
+      val ex = intercept[Exception](await(service.checkUserAccess(internalId)))
+      ex.getMessage shouldBe "Something went wrong"
+    }
   }
 }

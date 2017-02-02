@@ -18,9 +18,11 @@ package repositories
 
 import auth.{AuthorisationResource, Crypto}
 import models._
+import org.joda.time.DateTime
+import play.api.Logger
 import play.api.libs.functional.syntax.unlift
 import play.api.libs.json.Reads.maxLength
-import play.api.libs.json.{__, Json, JsObject, JsValue}
+import play.api.libs.json._
 import reactivemongo.api.DB
 import reactivemongo.bson.BSONDocument
 import reactivemongo.api.commands.WriteResult
@@ -29,7 +31,7 @@ import reactivemongo.bson._
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.control.NoStackTrace
 
@@ -44,7 +46,11 @@ object CorporationTaxRegistrationMongo {
   implicit val formatConfirmationReferences = ConfirmationReferences.format
   implicit val formatAccountsPrepDate = AccountPrepDetails.format
   implicit val formatEmail = Email.formats
-  implicit val format = Json.format[CorporationTaxRegistration]
+  //  implicit val format = CorporationTaxRegistration.format
+  implicit val format2 = Json.format[CorporationTaxRegistration]
+
+  implicit val format = Format(CorporationTaxRegistration.cTReads(formatAck), CorporationTaxRegistration.cTWrites(formatAck))
+  implicit val oFormat = OFormat(CorporationTaxRegistration.cTReads(formatAck), CorporationTaxRegistration.cTWrites(formatAck))
 }
 
 trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegistration, BSONObjectID]{
@@ -70,16 +76,18 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def removeTaxRegistrationById(registrationId: String): Future[Boolean]
   def updateEmail(registrationId: String, email: Email): Future[Option[Email]]
   def retrieveEmail(registrationId: String): Future[Option[Email]]
+  def updateLastSignedIn(regId: String, dateTime: DateTime): Future[DateTime]
 }
 
 private[repositories] class MissingCTDocument(regId: String) extends NoStackTrace
 
 class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
-  extends ReactiveRepository[CorporationTaxRegistration, BSONObjectID]("corporation-tax-registration-information", mongo, CorporationTaxRegistrationMongo.format, ReactiveMongoFormats.objectIdFormats)
+  extends ReactiveRepository[CorporationTaxRegistration, BSONObjectID]("corporation-tax-registration-information", mongo, CorporationTaxRegistrationMongo.oFormat, ReactiveMongoFormats.objectIdFormats)
   with CorporationTaxRegistrationRepository
   with AuthorisationResource[String] {
 
   private val crypto = Crypto
+  implicit val format = CorporationTaxRegistrationMongo.oFormat
 
   override def indexes: Seq[Index] = Seq(
     Index(
@@ -96,8 +104,13 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
     )
   )
 
+  override def updateLastSignedIn(regId: String, dateTime: DateTime): Future[DateTime] = {
+    val selector = registrationIDSelector(regId)
+    val update = BSONDocument("$set" -> BSONDocument("lastSignedIn" -> dateTime.getMillis))
+    collection.update(selector, update).map(_ => dateTime)
+  }
+
   override def updateCTRecordWithAcknowledgments(ackRef : String, ctRecord: CorporationTaxRegistration): Future[WriteResult] = {
-    implicit val format = CorporationTaxRegistrationMongo.format
     val updateSelector = BSONDocument("confirmationReferences.acknowledgement-reference" -> BSONString(ackRef))
     collection.update(updateSelector, ctRecord, upsert = false)
   }
@@ -126,6 +139,7 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
     val selector = registrationIDSelector(registrationID)
     collection.find(selector).one[CorporationTaxRegistration]
   }
+
 
   override def updateCompanyDetails(registrationID: String, companyDetails: CompanyDetails): Future[Option[CompanyDetails]] = {
     retrieveCorporationTaxRegistration(registrationID).flatMap {
