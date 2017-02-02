@@ -58,47 +58,49 @@ object CorporationTaxRegistration {
 
   def now = DateTime.now(DateTimeZone.UTC)
 
-  implicit val formatCH = CHROAddress.format
+  val formatCH = CHROAddress.format
   implicit val formatPPOBAddress = PPOBAddress.format
   implicit val formatPPOB = PPOB.format
   implicit val formatTD = TradingDetails.format
-  implicit val formatCompanyDetails = CompanyDetails.format
+  val formatCompanyDetails = CompanyDetails.format
   implicit val formatAccountingDetails = AccountingDetails.formats
   implicit val formatContactDetails = ContactDetails.format
-  implicit val formatAck = AcknowledgementReferences.apiFormat
+  val formatAck = AcknowledgementReferences.apiFormat
   implicit val formatConfirmationReferences = ConfirmationReferences.format
   implicit val formatAccountsPrepDate = AccountPrepDetails.format
   implicit val formatEmail = Email.formats
 
-  val cTReads = (
-    (__ \ "internalId").read[String] and
-      (__ \ "registrationID").read[String] and
-      (__ \ "status").read[String] and
-      (__ \ "formCreationTimestamp").read[String] and
-      (__ \ "language").read[String] and
-      (__ \ "acknowledgementReferences").readNullable[AcknowledgementReferences] and
-      (__ \ "confirmationReferences").readNullable[ConfirmationReferences] and
-      (__ \ "companyDetails").readNullable[CompanyDetails] and
-      (__ \ "accountingDetails").readNullable[AccountingDetails] and
-      (__ \ "tradingDetails").readNullable[TradingDetails] and
-      (__ \ "contactDetails").readNullable[ContactDetails] and
-      (__ \ "accountsPreparation").readNullable[AccountPrepDetails] and
-      (__ \ "crn").readNullable[String] and
-      (__ \ "submissionTimestamp").readNullable[String] and
-      (__ \ "verifiedEmail").readNullable[Email] and
-      (__ \ "createdTime").read[DateTime] and
-      (__ \ "lastSignedIn").read[DateTime].orElse(Reads.pure(CorporationTaxRegistration.now))
-    )(CorporationTaxRegistration.apply _)
+  def cTReads(rdsAck: Reads[AcknowledgementReferences]) = {
+    (
+      (__ \ "internalId").read[String] and
+        (__ \ "registrationID").read[String] and
+        (__ \ "status").read[String] and
+        (__ \ "formCreationTimestamp").read[String] and
+        (__ \ "language").read[String] and
+        (__ \ "acknowledgementReferences").readNullable[AcknowledgementReferences](rdsAck) and
+        (__ \ "confirmationReferences").readNullable[ConfirmationReferences] and
+        (__ \ "companyDetails").readNullable[CompanyDetails](formatCompanyDetails) and
+        (__ \ "accountingDetails").readNullable[AccountingDetails] and
+        (__ \ "tradingDetails").readNullable[TradingDetails] and
+        (__ \ "contactDetails").readNullable[ContactDetails] and
+        (__ \ "accountsPreparation").readNullable[AccountPrepDetails] and
+        (__ \ "crn").readNullable[String] and
+        (__ \ "submissionTimestamp").readNullable[String] and
+        (__ \ "verifiedEmail").readNullable[Email] and
+        (__ \ "createdTime").read[DateTime] and
+        (__ \ "lastSignedIn").read[DateTime].orElse(Reads.pure(CorporationTaxRegistration.now))
+      ) (CorporationTaxRegistration.apply _)
+  }
 
-  val cTWrites: OWrites[CorporationTaxRegistration] = (
+  def cTWrites(wtsAck: Writes[AcknowledgementReferences]): OWrites[CorporationTaxRegistration] = (
     (__ \ "internalId").write[String] and
       (__ \ "registrationID").write[String] and
       (__ \ "status").write[String] and
       (__ \ "formCreationTimestamp").write[String] and
       (__ \ "language").write[String] and
-      (__ \ "acknowledgementReferences").writeNullable[AcknowledgementReferences] and
+      (__ \ "acknowledgementReferences").writeNullable[AcknowledgementReferences](wtsAck) and
       (__ \ "confirmationReferences").writeNullable[ConfirmationReferences] and
-      (__ \ "companyDetails").writeNullable[CompanyDetails] and
+      (__ \ "companyDetails").writeNullable[CompanyDetails](formatCompanyDetails) and
       (__ \ "accountingDetails").writeNullable[AccountingDetails] and
       (__ \ "tradingDetails").writeNullable[TradingDetails] and
       (__ \ "contactDetails").writeNullable[ContactDetails] and
@@ -110,8 +112,7 @@ object CorporationTaxRegistration {
       (__ \ "lastSignedIn").write[DateTime]
     )(unlift(CorporationTaxRegistration.unapply))
 
-  implicit val format = Format(cTReads, cTWrites)
-  implicit val oFormat = OFormat(cTReads, cTWrites)
+  implicit val format: Format[CorporationTaxRegistration] = Format(cTReads(formatAck), cTWrites(formatAck))
 }
 
 case class AcknowledgementReferences(ctUtr: String,
@@ -154,14 +155,14 @@ case class CompanyDetails(companyName: String,
                           jurisdiction: String)
 
 object CompanyDetails extends CompanyDetailsValidator {
-  implicit val formatCH = CHROAddress.format
-  implicit val formatPPOBAddress = PPOBAddress.format
-  implicit val formatPPOB = PPOB.format
-  implicit val formatTD = TradingDetails.format
+  val formatCH = CHROAddress.format
+  val formatPPOBAddress = PPOBAddress.format
+  val formatPPOB = PPOB.format
+  val formatTD = TradingDetails.format
   implicit val format = (
     (__ \ "companyName").format[String](companyNameValidator) and
-      (__ \ "cHROAddress").format[CHROAddress] and
-      (__ \ "pPOBAddress").format[PPOB] and
+      (__ \ "cHROAddress").format[CHROAddress](formatCH) and
+      (__ \ "pPOBAddress").format[PPOB](formatPPOB) and
       (__ \ "jurisdiction").format[String]
     ) (CompanyDetails.apply, unlift(CompanyDetails.unapply))
 }
