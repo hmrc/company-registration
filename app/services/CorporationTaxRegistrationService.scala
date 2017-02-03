@@ -105,14 +105,20 @@ trait CorporationTaxRegistrationService extends DateHelper {
   }
 
   def updateConfirmationReferences(rID: String, refs: ConfirmationReferences)(implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[Option[ConfirmationReferences]] = {
-    for {
-      ackRef <- generateAcknowledgementReference
-      updatedRef <- corporationTaxRegistrationRepository.updateConfirmationReferences(rID, refs.copy(acknowledgementReference = ackRef))
-      heldSubmission <- buildPartialDesSubmission(rID, ackRef)
-      submissionStatus <- storeAndUpdateSubmission(rID, ackRef, heldSubmission)
-      _ <- removeTaxRegistrationInformation(rID)
-    } yield {
-      updatedRef
+    corporationTaxRegistrationRepository.retrieveConfirmationReference(rID) flatMap {
+      case existingRefs @ Some(confRefs) =>
+        Logger.info(s"[CorporationTaxRegistrationService] [updateConfirmationReferences] - Confirmation refs for Reg ID: $rID already exist")
+        Future.successful(existingRefs)
+      case None =>
+        for {
+          ackRef <- generateAcknowledgementReference
+          updatedRef <- corporationTaxRegistrationRepository.updateConfirmationReferences(rID, refs.copy(acknowledgementReference = ackRef))
+          heldSubmission <- buildPartialDesSubmission(rID, ackRef)
+          submissionStatus <- storeAndUpdateSubmission(rID, ackRef, heldSubmission)
+          _ <- removeTaxRegistrationInformation(rID)
+        } yield {
+          updatedRef
+        }
     }
   }
 

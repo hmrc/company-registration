@@ -179,13 +179,15 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
       partialDesSubmission.toString()
     )
 
-    "return the updated reference acknowledgement number" in new Setup {
+    "return the updated reference acknowledgement number if there are no existing conf refs for the supplied reg ID" in new Setup {
 
       val heldStatus = "held"
       val expected = ConfirmationReferences("testTransaction", "testPayRef", "testPayAmount", "")
 
       val userDetails = UserDetailsModel("testName", "testEmail", "testAffinityGroup", None, None, None, None, "testAuthProviderId", "testAuthProviderType")
 
+      when(mockCTDataRepository.retrieveConfirmationReference(registrationId))
+        .thenReturn(Future.successful(None))
       when(mockBusinessRegistrationConnector.retrieveMetadata(Matchers.any(), Matchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
       when(mockCTDataRepository.updateConfirmationReferences(Matchers.any(), Matchers.any()))
@@ -211,6 +213,20 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
       val result = service.updateConfirmationReferences(registrationId, ConfirmationReferences("testTransaction", "testPayRef", "testPayAmount", ""))
       await(result) shouldBe Some(expected)
     }
+
+    "return confirmation references if they already exist for the supplied regID in CR collection" in new Setup {
+
+      val heldStatus = "held"
+      val expected = ConfirmationReferences("testTransaction", "testPayRef", "testPayAmount", "")
+
+      val userDetails = UserDetailsModel("testName", "testEmail", "testAffinityGroup", None, None, None, None, "testAuthProviderId", "testAuthProviderType")
+
+      when(mockCTDataRepository.retrieveConfirmationReference(registrationId))
+        .thenReturn(Future.successful(Some(expected)))
+
+      val result = service.updateConfirmationReferences(registrationId, ConfirmationReferences("testTransaction", "testPayRef", "testPayAmount", ""))
+      await(result) shouldBe Some(expected)
+    }
   }
 
   "retrieveConfirmationReference" should {
@@ -224,6 +240,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
       val result = service.retrieveConfirmationReference(regID)
       await(result) shouldBe Some(expected)
     }
+
     "return an empty option if an Ack ref is not found" in new Setup {
       when(mockCTDataRepository.retrieveConfirmationReference(Matchers.contains(regID)))
         .thenReturn(Future.successful(None))
