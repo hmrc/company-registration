@@ -217,15 +217,16 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
     "return confirmation references if they already exist for the supplied regID in CR collection" in new Setup {
 
       val heldStatus = "held"
-      val expected = ConfirmationReferences("testTransaction", "testPayRef", "testPayAmount", "")
+      val fromCoho = ConfirmationReferences("testTransaction", "testPayRef", "testPayAmount", "")
+      val existing = ConfirmationReferences("testTransExist", "testPayRefExist", "testPayAmountExist", "")
 
       val userDetails = UserDetailsModel("testName", "testEmail", "testAffinityGroup", None, None, None, None, "testAuthProviderId", "testAuthProviderType")
 
       when(mockCTDataRepository.retrieveConfirmationReference(registrationId))
-        .thenReturn(Future.successful(Some(expected)))
+        .thenReturn(Future.successful(Some(existing)))
 
-      val result = service.updateConfirmationReferences(registrationId, ConfirmationReferences("testTransaction", "testPayRef", "testPayAmount", ""))
-      await(result) shouldBe Some(expected)
+      val result = service.updateConfirmationReferences(registrationId, fromCoho)
+      await(result) shouldBe Some(existing)
     }
   }
 
