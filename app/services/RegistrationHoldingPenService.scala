@@ -71,7 +71,7 @@ trait RegistrationHoldingPenService extends DateHelper {
   def updateNextSubmissionByTimepoint(implicit hc: HeaderCarrier): Future[String] = {
     fetchIncorpUpdate flatMap { items =>
       val results = items map { item =>
-        //TODO see SCRS-3766|
+        //TODO see SCRS-3766
         processIncorporationUpdate(item)
       }
       Future.sequence(results) flatMap { _ =>
@@ -140,7 +140,7 @@ trait RegistrationHoldingPenService extends DateHelper {
   private[services] def processSuccessDesResponse(item: IncorpUpdate, ctReg: CorporationTaxRegistration, auditDetail : JsObject)(implicit hc: HeaderCarrier): Future[Boolean] = {
     for {
       _ <- auditDesSubmission(ctReg.registrationID, auditDetail)
-      updated <- ctRepository.updateHeldToSubmitted(ctReg.registrationID, item.crn, formatTimestamp(now))
+      updated <- ctRepository.updateHeldToSubmitted(ctReg.registrationID, item.crn.get, formatTimestamp(now))
       deleted <- heldRepo.removeHeldDocument(ctReg.registrationID)
     } yield {
       updated && deleted
@@ -156,8 +156,8 @@ trait RegistrationHoldingPenService extends DateHelper {
     val event = new SuccessfulIncorporationAuditEvent(
         SuccessfulIncorporationAuditEventDetail(
           ctReg.registrationID,
-          item.crn,
-          item.incorpDate
+          item.crn.get,
+          item.incorpDate.get
         ),
         "successIncorpInformation",
         "successIncorpInformation"
@@ -217,7 +217,7 @@ trait RegistrationHoldingPenService extends DateHelper {
       heldData <- fetchHeldData(ackRef)
       dates <- calculateDates(item, ctReg.accountingDetails, ctReg.accountsPreparation)
     } yield {
-      appendDataToSubmission(item.crn, dates, heldData.submission)
+      appendDataToSubmission(item.crn.get, dates, heldData.submission)
     }
   }
 
@@ -265,7 +265,7 @@ trait RegistrationHoldingPenService extends DateHelper {
 
     accountingDetails map { details =>
       val prepDate = accountsPreparation flatMap (_.endDate)
-      accountingService.calculateSubmissionDates(item.incorpDate, activeDate(details), prepDate)
+      accountingService.calculateSubmissionDates(item.incorpDate.get, activeDate(details), prepDate)
     } match {
       case Some(dates) => Future.successful(dates)
       case None => Future.failed(new MissingAccountingDates)

@@ -29,22 +29,23 @@ case class SubmissionCheckResponse(
 
 case class IncorpUpdate(transactionId : String,
                         status : String,
-                        crn : String,
-                        incorpDate:  DateTime,
+                        crn : Option[String],
+                        incorpDate:  Option[DateTime],
                         timepoint : String,
                         statusDescription : Option[String] = None)
 
 object SubmissionCheckResponse {
-  implicit val dateReads = Reads[DateTime]( js =>
+  val dateReads = Reads[DateTime]( js =>
     js.validate[String].map[DateTime](
       DateTime.parse(_, DateTimeFormat.forPattern("yyyy-MM-dd"))
     )
   )
+
   implicit val incorpReads : Reads[IncorpUpdate] = (
       ( __ \ "transaction_id" ).read[String] and
       ( __ \ "transaction_status" ).read[String] and
-      ( __ \ "company_number" ).read[String] and
-      ( __ \ "incorporated_on" ).read[DateTime](dateReads) and
+      ( __ \ "company_number" ).readNullable[String] and
+      ( __ \ "incorporated_on" ).readNullable[DateTime](dateReads) and
       ( __ \ "timepoint" ).read[String] and
       ( __ \ "transaction_status_description" ).readNullable[String]
     )(IncorpUpdate.apply _)

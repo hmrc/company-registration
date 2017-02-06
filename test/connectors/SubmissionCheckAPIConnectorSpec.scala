@@ -50,8 +50,8 @@ class SubmissionCheckAPIConnectorSpec extends UnitSpec with MockitoSugar with Wi
                                     IncorpUpdate(
                                       "transactionId",
                                       "status",
-                                      "crn",
-                                      new DateTime(2016, 8, 10, 0, 0),
+                                      Some("crn"),
+                                      Some(new DateTime(2016, 8, 10, 0, 0)),
                                       "100000011")
                                   ),
                                   "testNextLink")
