@@ -101,8 +101,8 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
   import RegistrationStatus._
   val submittedCR = validCR.copy(status = SUBMITTED)
   val failCaseCR = validCR.copy(status = DRAFT)
-  val incorpSuccess = IncorpUpdate(transId, "accepted", "012345", new DateTime(2016, 8, 10, 0, 0), timepoint)
-  val incorpRejected = IncorpUpdate(transId, "rejected", "012345", new DateTime(2016, 8, 10, 0, 0), timepoint, Some("testReason"))
+  val incorpSuccess = IncorpUpdate(transId, "accepted", Some("012345"), Some(new DateTime(2016, 8, 10, 0, 0)), timepoint)
+  val incorpRejected = IncorpUpdate(transId, "rejected", None, None, timepoint, Some("testReason"))
   val submissionCheckResponseSingle = SubmissionCheckResponse(Seq(incorpSuccess), "testNextLink")
   val submissionCheckResponseDouble = SubmissionCheckResponse(Seq(incorpSuccess,incorpSuccess), "testNextLink")
   val submissionCheckResponseNone = SubmissionCheckResponse(Seq(), "testNextLink")
@@ -283,7 +283,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockHeldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
         .thenReturn(Future.successful(Some(validHeld)))
 
-      when(mockCTRepository.updateHeldToSubmitted(Matchers.eq(validCR.registrationID), Matchers.eq(incorpSuccess.crn), Matchers.any()))
+      when(mockCTRepository.updateHeldToSubmitted(Matchers.eq(validCR.registrationID), Matchers.eq(incorpSuccess.crn.get), Matchers.any()))
         .thenReturn(Future.successful(true))
 
       when(mockHeldRepo.removeHeldDocument(Matchers.eq(validCR.registrationID)))
