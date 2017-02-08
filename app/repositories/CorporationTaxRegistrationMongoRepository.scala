@@ -91,6 +91,12 @@ class CorporationTaxRegistrationMongoRepository(implicit mongo: () => DB)
 
   override def indexes: Seq[Index] = Seq(
     Index(
+      key = Seq("registrationID" -> IndexType.Ascending),
+      name = Some("RegIdIndex"),
+      unique = false,
+      sparse = false
+    ),
+    Index(
       key = Seq("confirmationReferences.acknowledgement-reference" -> IndexType.Ascending),
       name = Some("AckRefIndex"),
       unique = false,
