@@ -73,7 +73,7 @@ trait ContactDetailsValidator {
 
   val nameValidator = readToFmt(length(100) keepAnd pattern("^[A-Za-z 0-9'\\\\-]{1,100}$".r))
   val phoneValidator = readToFmt(length(20) keepAnd pattern("^[0-9 ]{1,20}$".r))
-  val emailValidator = readToFmt(length(70) keepAnd pattern("^[A-Za-z0-9\\\\-_.@]{1,70}$".r))
+  val emailValidator = readToFmt(length(70) keepAnd pattern("^[A-Za-z0-9\\-_.@]{1,70}$".r))
 }
 
 trait AccountingDetailsValidator {
