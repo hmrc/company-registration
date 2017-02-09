@@ -91,6 +91,30 @@ class ContactDetailsSpec extends UnitSpec with JsonFormatValidation {
       val result = Json.parse(json).validate[ContactDetails]
       shouldHaveErrors(result, JsPath() \ "contactEmail", Seq(ValidationError("error.pattern")))
     }
+
+    "check with a valid email address" in {
+      val contactDetails = ContactDetails("testFirstName", None, "testSurname", None, Some("1234567890"), Some("xxx@xxx.com"))
+      val jsonNoContact = Json.parse("""{"contactFirstName":"testFirstName","contactSurname":"testSurname", "contactMobileNumber":"1234567890", "contactEmail":"xxx@xxx.com"}""")
+
+      val result = Json.fromJson[ContactDetails](jsonNoContact)
+      result shouldBe JsSuccess(contactDetails)
+    }
+
+    "check with a valid email address containing a hyphen" in {
+      val contactDetails = ContactDetails("testFirstName", None, "testSurname", None, Some("1234567890"), Some("xxx@xxx-xxx.com"))
+      val json = """{"contactFirstName":"testFirstName","contactSurname":"testSurname", "contactMobileNumber":"1234567890", "contactEmail":"xxx@xxx-xxx.com"}"""
+      val result = Json.parse(json).validate[ContactDetails]
+
+      result shouldBe JsSuccess(contactDetails)
+    }
+
+    "check with an email address containing a plus - that DES can't accept" in {
+      val json = """{"contactFirstName":"testFirstName","contactSurname":"testSurname", "contactMobileNumber":"1234567890", "contactEmail":"xxx+xxx@xxx.com"}"""
+      val result = Json.parse(json).validate[ContactDetails]
+
+      shouldHaveErrors(result, JsPath() \ "contactEmail", Seq(ValidationError("error.pattern")))
+    }
+
   }
 
   "reading from json into a ContactDetails case class" should {
