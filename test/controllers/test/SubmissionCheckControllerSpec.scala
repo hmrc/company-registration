@@ -16,43 +16,72 @@
 
 package controllers.test
 
+import org.joda.time.Duration
+import org.mockito.Matchers
 import org.scalatest.mock.MockitoSugar
 import play.api.test.FakeRequest
 import services.RegistrationHoldingPenService
+import uk.gov.hmrc.lock.{LockRepository, LockKeeper}
 import uk.gov.hmrc.play.test.UnitSpec
 import org.mockito.Mockito._
-import org.mockito.Matchers.any
 
-import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.{ExecutionContext, Future}
 
 class SubmissionCheckControllerSpec extends UnitSpec with MockitoSugar {
 
   val mockRegHoldingPenService = mock[RegistrationHoldingPenService]
+  val mockLockKeeper = mock[LockKeeper]
 
-  class Setup {
+  class Setup(withLock: Boolean) {
     val controller = new SubmissionCheckController {
       val service = mockRegHoldingPenService
+      val name = "test"
+      override lazy val lock = new LockKeeper {
+        override def lockId: String = "testLockId"
+        override def repo: LockRepository = mock[LockRepository]
+        override val forceLockReleaseAfter: Duration = Duration.standardSeconds(FiniteDuration(1L, "seconds").toSeconds)
+
+        override def tryLock[T](body: => Future[T])(implicit ec : ExecutionContext): Future[Option[T]] = {
+          withLock match {
+            case true => body.map(Some(_))
+            case false => body.map(_ => None)
+          }
+        }
+      }
     }
   }
 
   "triggerSubmissionCheck" should {
 
-    "return a 200 when a successful future is supplied" in new Setup {
-      when(mockRegHoldingPenService.updateNextSubmissionByTimepoint(any()))
-        .thenReturn(Future.successful("any string"))
+    implicit val ex = scala.concurrent.ExecutionContext.Implicits.global
+    val res = "testString"
+
+    "return a 200 when a successful future is supplied" in new Setup(true) {
+      when(mockRegHoldingPenService.updateNextSubmissionByTimepoint(Matchers.any()))
+        .thenReturn(Future.successful(res))
 
       val result = await(controller.triggerSubmissionCheck(FakeRequest()))
       status(result) shouldBe 200
-      bodyOf(result) shouldBe "any string"
+      bodyOf(result) shouldBe res
     }
 
-    "return a 500 with the exception message when a failed future is supplied" in new Setup {
-      when(mockRegHoldingPenService.updateNextSubmissionByTimepoint(any()))
+    "return a 500 with the exception message when a failed future is supplied" in new Setup(true) {
+      when(mockRegHoldingPenService.updateNextSubmissionByTimepoint(Matchers.any()))
         .thenReturn(Future.failed(new Exception("ex message")))
 
       val result = await(controller.triggerSubmissionCheck(FakeRequest()))
       status(result) shouldBe 500
-      bodyOf(result) shouldBe "An error has occurred during the submission - ex message"
+      bodyOf(result) shouldBe s"${controller.name} failed - An error has occurred during the submission - ex message"
+    }
+
+    "return a 200 with a failed to acquire lock message when the lock could not be acquired" in new Setup(false) {
+      when(mockRegHoldingPenService.updateNextSubmissionByTimepoint(Matchers.any()))
+        .thenReturn(Future.successful(res))
+
+      val result = await(controller.triggerSubmissionCheck(FakeRequest()))
+      status(result) shouldBe 200
+      bodyOf(result) shouldBe s"${controller.name} failed - could not acquire lock"
     }
   }
 }
