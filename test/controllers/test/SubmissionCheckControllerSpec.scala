@@ -31,7 +31,6 @@ import scala.concurrent.{ExecutionContext, Future}
 class SubmissionCheckControllerSpec extends UnitSpec with MockitoSugar {
 
   val mockRegHoldingPenService = mock[RegistrationHoldingPenService]
-  val mockLockKeeper = mock[LockKeeper]
 
   class Setup(withLock: Boolean) {
     val controller = new SubmissionCheckController {

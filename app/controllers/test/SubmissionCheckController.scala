@@ -60,6 +60,4 @@ trait SubmissionCheckController extends BaseController {
         case ex: Exception => InternalServerError(s"$name failed - An error has occurred during the submission - ${ex.getMessage}")
       }
   }
-
-  def t = lock.tryLock[String](Future.successful("test"))
 }
