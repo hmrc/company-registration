@@ -102,3 +102,9 @@ trait AccountPrepDetailsValidator {
     }
   )
 }
+
+trait TradingDetailsValidator {
+  import Validation.readToFmt
+
+  val tradingDetailsValidator = readToFmt(pattern("""^(true|false)$""".r, "expected either 'true' or 'false' but neither was found"))
+}

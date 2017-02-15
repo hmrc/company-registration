@@ -84,7 +84,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       contactDetails = Some(ContactDetails(
         "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
       )),
-      tradingDetails = Some(TradingDetails(true))
+      tradingDetails = Some(TradingDetails("true"))
     )
 
     "remove companyDetails, contactDetails and tradingDetails objects from the collection" in new Setup {
@@ -225,7 +225,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       contactDetails = Some(ContactDetails(
         "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
       )),
-      tradingDetails = Some(TradingDetails(true)),
+      tradingDetails = Some(TradingDetails("true")),
       createdTime = DateTime.now,
       lastSignedIn = DateTime.now
     )

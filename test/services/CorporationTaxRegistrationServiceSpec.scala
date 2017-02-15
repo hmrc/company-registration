@@ -124,7 +124,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
         Some("0123456789"),
         Some("test@email.co.uk")
       )),
-      tradingDetails = Some(TradingDetails(false))
+      tradingDetails = Some(TradingDetails("false"))
     )
 
     val partialDesSubmission = Json.parse(
@@ -374,7 +374,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
         language = "en",
         companyDetails = company,
         contactDetails = contact,
-        tradingDetails = Some(TradingDetails(false))
+        tradingDetails = Some(TradingDetails("false"))
       )
     }
 
@@ -450,7 +450,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
         Some("0123456789"),
         Some("test@email.co.uk")
       )),
-      tradingDetails = Some(TradingDetails(false))
+      tradingDetails = Some(TradingDetails("false"))
     )
 
     // TODO - refactor and tweak tests (focus this on the complete partial)
