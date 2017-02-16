@@ -121,9 +121,14 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
             refs =>
               val timer = metrics.updateReferencesCRTimer.time()
               ctService.updateConfirmationReferences(registrationID, refs)(hc, request.map(js => AnyContentAsJson(js))) map {
-                case Some(references) => timer.stop()
-                                         Ok(Json.toJson[ConfirmationReferences](references))
-                case None => NotFound
+                case Some(references) =>
+                  timer.stop()
+                  Logger.info(s"[Confirmation Refs] Acknowledgement ref:${references.acknowledgementReference} " +
+                    s"- Transaction id:${references.transactionId} - Payment ref:${references.paymentReference}")
+                  Ok(Json.toJson[ConfirmationReferences](references))
+                case None =>
+                  timer.stop()
+                  NotFound
               }
           }
         case NotLoggedInOrAuthorised =>
