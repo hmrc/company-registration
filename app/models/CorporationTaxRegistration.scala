@@ -256,10 +256,13 @@ object ContactDetails extends ContactDetailsValidator {
   )
 }
 
-case class TradingDetails(regularPayments: Boolean = false)
+case class TradingDetails(regularPayments: String = "")
 
-object TradingDetails {
-  implicit val format = Json.format[TradingDetails]
+object TradingDetails extends TradingDetailsValidator {
+
+  implicit val format =
+    (__ \ "regularPayments").format[String](tradingDetailsValidator).inmap((r: String) => TradingDetails(r), (tD: TradingDetails) => tD.regularPayments)
+    (TradingDetails.apply _, unlift(TradingDetails.unapply))
 }
 
 

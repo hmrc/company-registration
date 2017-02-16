@@ -258,7 +258,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
       ),
       interimCorporationTax = InterimCorporationTax(
         companyName = companyDetails.companyName,
-        returnsOnCT61 = tradingDetails.regularPayments,
+        returnsOnCT61 = tradingDetails.regularPayments.toBoolean,
         businessAddress = businessAddress, //todo - SCRS-3708: make business address optional
         businessContactName = businessContactName,
         businessContactDetails = businessContactDetails

@@ -68,11 +68,11 @@ class TradingDetailsControllerSpec extends SCRSSpec with AuthFixture {
         .thenReturn(Future.successful(Some(regID -> validAuthority.ids.internalId)))
 
       when(mockTradingDetailsService.retrieveTradingDetails(Matchers.eq(regID)))
-        .thenReturn(Future.successful(Some(TradingDetails(true))))
+        .thenReturn(Future.successful(Some(TradingDetails("true"))))
 
       val result = TestController.retrieveTradingDetails(regID)(FakeRequest())
       status(result) shouldBe OK
-      await(jsonBodyOf(result)) shouldBe Json.toJson(TradingDetails(true))
+      await(jsonBodyOf(result)) shouldBe Json.toJson(TradingDetails("true"))
     }
 
     "return a 404 - Not Found if the record does not exist" in new Setup {
@@ -120,13 +120,13 @@ class TradingDetailsControllerSpec extends SCRSSpec with AuthFixture {
       when(mockCTDataRepository.getInternalId(Matchers.any()))
         .thenReturn(Future.successful(Some(regID -> validAuthority.ids.internalId)))
 
-      when(mockTradingDetailsService.updateTradingDetails(Matchers.eq("testRegID"), Matchers.eq(TradingDetails(true))))
-        .thenReturn(Future.successful(Some(TradingDetails(true))))
+      when(mockTradingDetailsService.updateTradingDetails(Matchers.eq("testRegID"), Matchers.eq(TradingDetails("true"))))
+        .thenReturn(Future.successful(Some(TradingDetails("true"))))
 
-      val request = FakeRequest().withBody(Json.toJson(TradingDetails(true)))
+      val request = FakeRequest().withBody(Json.toJson(TradingDetails("true")))
       val result = call(TestController.updateTradingDetails("testRegID"), request)
       status(result) shouldBe OK
-      await(jsonBodyOf(result)) shouldBe Json.toJson(TradingDetails(true))
+      await(jsonBodyOf(result)) shouldBe Json.toJson(TradingDetails("true"))
     }
 
     "return a 404 - Not Found if the record to update does not exist" in new Setup {
@@ -134,10 +134,10 @@ class TradingDetailsControllerSpec extends SCRSSpec with AuthFixture {
       when(mockCTDataRepository.getInternalId(Matchers.any()))
         .thenReturn(Future.successful(Some(regID -> validAuthority.ids.internalId)))
 
-      when(mockTradingDetailsService.updateTradingDetails(Matchers.eq("testRegID"), Matchers.eq(TradingDetails(true))))
+      when(mockTradingDetailsService.updateTradingDetails(Matchers.eq("testRegID"), Matchers.eq(TradingDetails("true"))))
         .thenReturn(Future.successful(None))
 
-      val request = FakeRequest().withBody(Json.toJson(TradingDetails(true)))
+      val request = FakeRequest().withBody(Json.toJson(TradingDetails("true")))
       val result = call(TestController.updateTradingDetails("testRegID"), request)
       status(result) shouldBe NOT_FOUND
       await(jsonBodyOf(result)) shouldBe Json.parse(s"""{"statusCode":"404","message":"Could not find trading details record"}""")
@@ -147,7 +147,7 @@ class TradingDetailsControllerSpec extends SCRSSpec with AuthFixture {
       AuthenticationMocks.getCurrentAuthority(None)
       when(mockCTDataRepository.getInternalId(Matchers.any())).thenReturn(Future.successful(Some("testRegID" -> "testID")))
 
-      val request = FakeRequest().withBody(Json.toJson(TradingDetails(true)))
+      val request = FakeRequest().withBody(Json.toJson(TradingDetails("true")))
       val result = call(TestController.updateTradingDetails(regID), request)
       status(result) shouldBe FORBIDDEN
     }
@@ -156,7 +156,7 @@ class TradingDetailsControllerSpec extends SCRSSpec with AuthFixture {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       when(mockCTDataRepository.getInternalId(Matchers.any())).thenReturn(Future.successful(Some("invalidRegID" -> "invalidID")))
 
-      val request = FakeRequest().withBody(Json.toJson(TradingDetails(true)))
+      val request = FakeRequest().withBody(Json.toJson(TradingDetails("true")))
       val result = call(TestController.updateTradingDetails(regID), request)
       status(result) shouldBe FORBIDDEN
     }
@@ -165,10 +165,10 @@ class TradingDetailsControllerSpec extends SCRSSpec with AuthFixture {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       when(mockCTDataRepository.getInternalId(Matchers.any())).thenReturn(Future.successful(None))
 
-      when(mockTradingDetailsService.updateTradingDetails(Matchers.eq("testRegID"), Matchers.eq(TradingDetails(true))))
+      when(mockTradingDetailsService.updateTradingDetails(Matchers.eq("testRegID"), Matchers.eq(TradingDetails("true"))))
         .thenReturn(Future.successful(None))
 
-      val request = FakeRequest().withBody(Json.toJson(TradingDetails(true)))
+      val request = FakeRequest().withBody(Json.toJson(TradingDetails("true")))
       val result = call(TestController.updateTradingDetails(regID), request)
       status(result) shouldBe NOT_FOUND
     }
