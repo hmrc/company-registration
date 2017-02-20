@@ -16,6 +16,8 @@
 
 package controllers
 
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
 import controllers.test.EmailController
 import fixtures.AuthFixture
 import helpers.SCRSSpec
@@ -31,6 +33,9 @@ import play.api.test.Helpers._
 import scala.concurrent.Future
 
 class EmailControllerSpec extends SCRSSpec with MockitoSugar with AuthFixture{
+
+  implicit val system = ActorSystem("CR")
+  implicit val materializer = ActorMaterializer()
 
   val mockEmailService = mock[EmailService]
 

@@ -18,7 +18,7 @@ package audit
 
 import models.des._
 import org.joda.time.DateTime
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsObject, JsString, Json}
 import uk.gov.hmrc.play.test.UnitSpec
 
 class UserRegistrationSubmissionEventSpec extends UnitSpec {
@@ -106,7 +106,6 @@ class UserRegistrationSubmissionEventSpec extends UnitSpec {
           )
         )).as[JsObject]
       )
-      println(Json.toJson(testModel)(SubmissionEventDetail.writes) + "\n" + expected)
       Json.toJson(testModel)(SubmissionEventDetail.writes) shouldBe expected
     }
   }

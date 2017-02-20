@@ -62,20 +62,8 @@ class UserAccessServiceSpec
   }
 
   "UserAccessService" should {
-    "use the correct business registration connector" in {
-      UserAccessService.brConnector shouldBe BusinessRegistrationConnector
-    }
-    "use the correct company registration repository" in {
-      UserAccessService.ctRepository shouldBe Repositories.cTRepository
-    }
-    "use the correct company registration service" in {
-      UserAccessService.ctService shouldBe CorporationTaxRegistrationService
-    }
-    "use the correct throttle service" in {
-      UserAccessService.throttleService shouldBe ThrottleService
-    }
-    "use the correct threshold from config" in {
-      UserAccessService.threshold shouldBe 10
+    "use the correct threshold from config" in new Setup {
+      service.threshold shouldBe 10
     }
   }
 

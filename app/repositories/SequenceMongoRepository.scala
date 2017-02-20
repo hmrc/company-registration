@@ -46,3 +46,4 @@ class SequenceMongoRepository(implicit mongo: () => DB)
     }
   }
 }
+

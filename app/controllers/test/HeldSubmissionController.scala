@@ -16,15 +16,18 @@
 
 package controllers.test
 
+import javax.inject.{Inject, Singleton}
+
 import play.api.libs.json.Json
-import play.api.mvc.{Result, Action}
+import play.api.mvc.{Action, Result}
 import repositories.{HeldSubmissionMongoRepository, Repositories}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-object HeldSubmissionController extends HeldSubmissionController {
-  val heldSubmissionRepo = Repositories.heldSubmissionRepository
+@Singleton
+class HeldSubmissionControllerImp @Inject() (repositories: Repositories) extends HeldSubmissionController {
+  val heldSubmissionRepo = repositories.heldSubmissionRepository
 }
 
 trait HeldSubmissionController extends BaseController {

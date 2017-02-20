@@ -17,21 +17,25 @@
 package controllers
 
 
-import connectors.AuthConnector
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
 import fixtures.{AccountingDetailsFixture, AuthFixture}
 import helpers.SCRSSpec
-import org.mockito.Mockito._
+import mocks.MockMetricsService
 import models.{AccountPrepDetails, ErrorResponse}
 import org.mockito.Matchers
+import org.mockito.Mockito._
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import services.{AccountingDetailsService, CorporationTaxRegistrationService, PrepareAccountService}
-import mocks.MockMetricsService
+import services.PrepareAccountService
 
 import scala.concurrent.Future
 
 class AccountingDetailsControllerSpec extends SCRSSpec with AuthFixture with AccountingDetailsFixture {
+
+  implicit val system = ActorSystem("CR")
+  implicit val materializer = ActorMaterializer()
 
   val mockPrepareAccountService = mock[PrepareAccountService]
 
@@ -46,18 +50,6 @@ class AccountingDetailsControllerSpec extends SCRSSpec with AuthFixture with Acc
   }
 
   val registrationID = "12345"
-
-  "AccountingDetailsController" should {
-    "use the correct auth connector" in {
-      AccountingDetailsController.auth shouldBe AuthConnector
-    }
-    "use the correct resource connector" in {
-      AccountingDetailsController.resourceConn shouldBe CorporationTaxRegistrationService.corporationTaxRegistrationRepository
-    }
-    "use the correct service" in {
-      AccountingDetailsController.accountingDetailsService shouldBe AccountingDetailsService
-    }
-  }
 
   "retrieveAccountingDetails" should {
     "return a 200 with accounting details in the json body when authorised" in new Setup {

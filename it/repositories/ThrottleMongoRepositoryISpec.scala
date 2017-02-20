@@ -20,14 +20,19 @@ import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import services.ThrottleService
 import uk.gov.hmrc.mongo.MongoSpecSupport
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
+import uk.gov.hmrc.time.DateTimeUtils
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class ThrottleMongoRepositoryISpec extends UnitSpec with MongoSpecSupport with BeforeAndAfterEach with BeforeAndAfterAll with WithFakeApplication {
 
   class Setup {
-    val service = ThrottleService
-    val repository = ThrottleService.throttleMongoRepository
+    val service = new ThrottleService {
+      val throttleMongoRepository = new ThrottleMongoRepository
+      val dateTime = DateTimeUtils.now
+      val threshold = 10
+    }
+    val repository = service.throttleMongoRepository
     await(repository.drop)
     await(repository.ensureIndexes)
   }
@@ -35,7 +40,7 @@ class ThrottleMongoRepositoryISpec extends UnitSpec with MongoSpecSupport with B
   override def afterAll() = new Setup {
     await(repository.drop)
   }
-
+  DateTimeUtils.now
   val testKey = "testKey"
 
   "Throttle repository" should {
@@ -67,7 +72,7 @@ class ThrottleMongoRepositoryISpec extends UnitSpec with MongoSpecSupport with B
     }
 
     "return false when the user count is over the limit" in new Setup {
-      for(i <- 0 to 15){service.checkUserAccess}
+      for(i <- 0 to 15){await(service.checkUserAccess)}
 
       await(service.checkUserAccess) shouldBe false
     }

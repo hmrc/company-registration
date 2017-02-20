@@ -20,35 +20,37 @@ object MicroServiceBuild extends Build with MicroService {
 }
 
 private object AppDependencies {
-  import play.PlayImport._
   import play.core.PlayVersion
+  import play.sbt.PlayImport._
 
-  private val microserviceBootstrapVersion = "4.4.0"
+  private val microserviceBootstrapVersion = "5.8.0"
   private val playAuthVersion = "4.2.0"
-  private val playHealthVersion = "1.1.0"
-  private val playJsonLoggerVersion = "2.1.1"
+  private val playHealthVersion = "2.0.0"
+  private val logbackJsonLoggerVersion = "3.1.0"
   private val playUrlBindersVersion = "2.0.0"
   private val playConfigVersion = "3.0.0"
   private val domainVersion = "4.0.0"
-  private val hmrcTestVersion = "1.9.0"
-  private val playReactivemongoVersion = "4.8.0"
+  private val hmrcTestVersion = "2.1.0"
+  private val reactiveMongoVersion = "5.1.0"
+  private val mockitoVersion = "1.9.0"
+  private val scalatestPlusPlayVersion = "1.5.1"
   private val playSchedulingVersion = "3.0.0"
   private val mongoLockVersion = "3.4.0"
   private val cryptoVersion = "3.1.0"
 
   val compile = Seq(
     ws,
-    "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,
     "uk.gov.hmrc" %% "microservice-bootstrap" % microserviceBootstrapVersion,
     "uk.gov.hmrc" %% "play-authorisation" % playAuthVersion,
     "uk.gov.hmrc" %% "play-health" % playHealthVersion,
     "uk.gov.hmrc" %% "play-url-binders" % playUrlBindersVersion,
     "uk.gov.hmrc" %% "play-config" % playConfigVersion,
-    "uk.gov.hmrc" %% "play-json-logger" % playJsonLoggerVersion,
+    "uk.gov.hmrc" %% "logback-json-logger" % logbackJsonLoggerVersion,
     "uk.gov.hmrc" %% "domain" % domainVersion,
     "uk.gov.hmrc" %% "play-scheduling" % playSchedulingVersion,
     "uk.gov.hmrc" %% "mongo-lock" % mongoLockVersion,
-    "uk.gov.hmrc" %% "crypto" % cryptoVersion
+    "uk.gov.hmrc" %% "crypto" % cryptoVersion,
+    "uk.gov.hmrc" %% "play-reactivemongo" % reactiveMongoVersion
   )
 
   trait TestDependencies {
@@ -61,9 +63,10 @@ private object AppDependencies {
       override lazy val test = Seq(
         "uk.gov.hmrc" %% "hmrctest" % hmrcTestVersion % scope,
         "org.scalatest" %% "scalatest" % "2.2.6" % scope,
-        "org.scalatestplus" %% "play" % "1.2.0" % scope,
+        "org.scalatestplus.play" %% "scalatestplus-play" % scalatestPlusPlayVersion % scope,
         "org.pegdown" % "pegdown" % "1.5.0" % scope,
         "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
+        "org.mockito" % "mockito-core" % mockitoVersion % scope,
         "uk.gov.hmrc" %% "reactivemongo-test" % "1.6.0" % scope
       )
     }.test
@@ -79,6 +82,7 @@ private object AppDependencies {
         "org.scalatest" %% "scalatest" % "2.2.6" % scope,
         "org.pegdown" % "pegdown" % "1.5.0" % scope,
         "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
+        "org.scalatestplus.play" %% "scalatestplus-play" % scalatestPlusPlayVersion % scope,
         "uk.gov.hmrc" %% "reactivemongo-test" % "1.6.0" % scope
       )
     }.test

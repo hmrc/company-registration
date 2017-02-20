@@ -16,6 +16,8 @@
 
 package controllers.test
 
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
 import connectors.BusinessRegistrationConnector
 import models.ConfirmationReferences
 import org.mockito.Matchers
@@ -24,13 +26,16 @@ import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import repositories._
 import services.CorporationTaxRegistrationService
-import uk.gov.hmrc.play.test.{WithFakeApplication, UnitSpec}
+import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 import org.mockito.Mockito._
 import play.api.test.Helpers._
 
 import scala.concurrent.Future
 
 class TestEndpointControllerSpec extends UnitSpec with MockitoSugar with WithFakeApplication{
+
+  implicit val system = ActorSystem("CR")
+  implicit val materializer = ActorMaterializer()
 
   val mockThrottleRepository = mock[ThrottleMongoRepository]
   val mockCTRepository = mock[CorporationTaxRegistrationMongoRepository]
@@ -50,12 +55,6 @@ class TestEndpointControllerSpec extends UnitSpec with MockitoSugar with WithFak
     }
   }
 
-  "TestEndpointController" should {
-
-    "use the correct businessRegistrationConnector" in {
-      TestEndpointController.bRConnector shouldBe BusinessRegistrationConnector
-    }
-  }
 
   "modifyThrottledUsers" should {
 

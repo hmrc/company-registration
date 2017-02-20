@@ -28,11 +28,6 @@ class ContactDetailsServiceSpec extends SCRSSpec with ContactDetailsFixture {
     }
   }
 
-  "ContactDetailsService" should {
-    "use the correct repository" in {
-      ContactDetailsService.corporationTaxRegistrationRepository shouldBe Repositories.cTRepository
-    }
-  }
 
   "retrieveContactDetails" should {
     "return a contact details response if a contact details record exists" in new Setup {

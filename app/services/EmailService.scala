@@ -16,13 +16,16 @@
 
 package services
 
+import javax.inject.{Inject, Singleton}
+
 import models.Email
-import repositories.{Repositories, CorporationTaxRegistrationMongoRepository}
+import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 
 import scala.concurrent.Future
 
-object EmailService extends EmailService {
-  val ctRepository = Repositories.cTRepository
+@Singleton
+class EmailServiceImp @Inject() (repositories: Repositories) extends EmailService {
+  val ctRepository = repositories.cTRepository
 }
 
 trait EmailService {

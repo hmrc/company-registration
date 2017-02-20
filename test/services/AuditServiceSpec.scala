@@ -18,7 +18,7 @@ package services
 
 import audit.{CTRegistrationSubmissionAuditEventDetails, DesResponse}
 import org.scalatest.mock.MockitoSugar
-import play.api.libs.json.Json
+import play.api.libs.json.{JsDefined, Json}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
@@ -46,6 +46,7 @@ class AuditServiceSpec extends UnitSpec with MockitoSugar {
         )
 
         val result = TestService.buildCTRegSubmissionEvent(testModel)
+        //val jsonDate: JsDefined = ("testProcessingDate")
 
         result.auditSource shouldBe "company-registration"
         result.auditType shouldBe "ctRegistrationSubmissionSuccessful"

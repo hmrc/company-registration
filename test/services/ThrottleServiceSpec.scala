@@ -37,12 +37,6 @@ class ThrottleServiceSpec extends UnitSpec with MockitoSugar with WithFakeApplic
     }
   }
 
-  "ThrottleService" should {
-    "use the correct repository" in {
-      ThrottleService.throttleMongoRepository shouldBe Repositories.throttleRepository
-    }
-  }
-
   "getCurrentDay" should {
     "return the current day" in new Setup {
       service.getCurrentDay shouldBe "2000-02-01"

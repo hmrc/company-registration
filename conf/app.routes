@@ -1,27 +1,27 @@
 # microservice specific routes
-GET        /throttle/check-user-access                                                      controllers.UserAccessController.checkUserAccess
+GET        /throttle/check-user-access                                                      @controllers.UserAccessController.checkUserAccess
 
-GET        /corporation-tax-registration/:registrationId                                    controllers.CorporationTaxRegistrationController.retrieveCorporationTaxRegistration(registrationId)
-PUT        /corporation-tax-registration/:registrationId                                    controllers.CorporationTaxRegistrationController.createCorporationTaxRegistration(registrationId)
+GET        /corporation-tax-registration/:registrationId                                    @controllers.CorporationTaxRegistrationController.retrieveCorporationTaxRegistration(registrationId)
+PUT        /corporation-tax-registration/:registrationId                                    @controllers.CorporationTaxRegistrationController.createCorporationTaxRegistration(registrationId)
 
-GET        /corporation-tax-registration/:registrationId/corporation-tax-registration       controllers.CorporationTaxRegistrationController.retrieveFullCorporationTaxRegistration(registrationId)
+GET        /corporation-tax-registration/:registrationId/corporation-tax-registration       @controllers.CorporationTaxRegistrationController.retrieveFullCorporationTaxRegistration(registrationId)
 
-GET        /corporation-tax-registration/:registrationID/company-details                    controllers.CompanyDetailsController.retrieveCompanyDetails(registrationID: String)
-PUT        /corporation-tax-registration/:registrationID/company-details                    controllers.CompanyDetailsController.updateCompanyDetails(registrationID: String)
+GET        /corporation-tax-registration/:registrationID/company-details                    @controllers.CompanyDetailsController.retrieveCompanyDetails(registrationID: String)
+PUT        /corporation-tax-registration/:registrationID/company-details                    @controllers.CompanyDetailsController.updateCompanyDetails(registrationID: String)
 
-GET        /corporation-tax-registration/:registrationID/accounting-details                 controllers.AccountingDetailsController.retrieveAccountingDetails(registrationID: String)
-PUT        /corporation-tax-registration/:registrationID/accounting-details                 controllers.AccountingDetailsController.updateAccountingDetails(registrationID: String)
+GET        /corporation-tax-registration/:registrationID/accounting-details                 @controllers.AccountingDetailsController.retrieveAccountingDetails(registrationID: String)
+PUT        /corporation-tax-registration/:registrationID/accounting-details                 @controllers.AccountingDetailsController.updateAccountingDetails(registrationID: String)
 
-GET        /corporation-tax-registration/:registrationID/trading-details                    controllers.TradingDetailsController.retrieveTradingDetails(registrationID : String)
-PUT        /corporation-tax-registration/:registrationID/trading-details                    controllers.TradingDetailsController.updateTradingDetails(registrationID : String)
+GET        /corporation-tax-registration/:registrationID/trading-details                    @controllers.TradingDetailsController.retrieveTradingDetails(registrationID : String)
+PUT        /corporation-tax-registration/:registrationID/trading-details                    @controllers.TradingDetailsController.updateTradingDetails(registrationID : String)
 
-GET        /corporation-tax-registration/:registrationID/contact-details                    controllers.ContactDetailsController.retrieveContactDetails(registrationID)
-PUT        /corporation-tax-registration/:registrationID/contact-details                    controllers.ContactDetailsController.updateContactDetails(registrationID)
+GET        /corporation-tax-registration/:registrationID/contact-details                    @controllers.ContactDetailsController.retrieveContactDetails(registrationID)
+PUT        /corporation-tax-registration/:registrationID/contact-details                    @controllers.ContactDetailsController.updateContactDetails(registrationID)
 
-GET        /corporation-tax-registration/:registrationID/confirmation-references            controllers.CorporationTaxRegistrationController.retrieveConfirmationReference(registrationID)
-PUT        /corporation-tax-registration/:registrationID/confirmation-references            controllers.CorporationTaxRegistrationController.updateReferences(registrationID)
+GET        /corporation-tax-registration/:registrationID/confirmation-references            @controllers.CorporationTaxRegistrationController.retrieveConfirmationReference(registrationID)
+PUT        /corporation-tax-registration/:registrationID/confirmation-references            @controllers.CorporationTaxRegistrationController.updateReferences(registrationID)
 
-POST       /corporation-tax-registration/acknowledgement-confirmation                       controllers.CorporationTaxRegistrationController.acknowledgementConfirmation(ackref : String)
+POST       /corporation-tax-registration/acknowledgement-confirmation                       @controllers.CorporationTaxRegistrationController.acknowledgementConfirmation(ackref : String)
 
-PUT        /corporation-tax-registration/:registrationId/update-email                       controllers.test.EmailController.updateEmail(registrationId: String)
-GET        /corporation-tax-registration/:registrationId/retrieve-email                     controllers.test.EmailController.retrieveEmail(registrationId: String)
+PUT        /corporation-tax-registration/:registrationId/update-email                       @controllers.test.EmailController.updateEmail(registrationId: String)
+GET        /corporation-tax-registration/:registrationId/retrieve-email                     @controllers.test.EmailController.retrieveEmail(registrationId: String)

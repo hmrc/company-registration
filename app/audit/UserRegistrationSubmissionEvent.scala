@@ -50,7 +50,7 @@ object SubmissionEventDetail {
 
       Json.obj(
         JOURNEY_ID -> detail.regId,
-        ACK_REF -> (detail.jsSubmission \ "acknowledgementReference"),
+        ACK_REF -> (detail.jsSubmission \ "acknowledgementReference").as[JsString],
         REG_METADATA -> (detail.jsSubmission \ "registration" \ "metadata").as[JsObject].++(
           Json.obj("authProviderId" -> detail.authProviderId)
         ).-("sessionId").-("credentialId"),

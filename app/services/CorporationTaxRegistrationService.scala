@@ -16,12 +16,14 @@
 
 package services
 
+import javax.inject.{Inject, Singleton}
+
 import audit.{SubmissionEventDetail, UserRegistrationSubmissionEvent}
 import config.MicroserviceAuditConnector
 import connectors.{AuthConnector, BusinessRegistrationConnector, BusinessRegistrationSuccessResponse}
 import models.des._
 import models.{BusinessRegistration, RegistrationStatus}
-import play.api.mvc.{Request, AnyContent}
+import play.api.mvc.{AnyContent, Request}
 import repositories.HeldSubmissionRepository
 import connectors.IncorporationCheckAPIConnector
 import helpers.DateHelper
@@ -38,13 +40,14 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.control.NoStackTrace
 
-object CorporationTaxRegistrationService extends CorporationTaxRegistrationService {
-  override val corporationTaxRegistrationRepository = Repositories.cTRepository
-  override val sequenceRepository = Repositories.sequenceRepository
-  override val stateDataRepository = Repositories.stateDataRepository
+@Singleton
+class CorporationTaxRegistrationServiceImp @Inject() (repositories: Repositories) extends CorporationTaxRegistrationService {
+  override val corporationTaxRegistrationRepository = repositories.cTRepository
+  override val sequenceRepository = repositories.sequenceRepository
+  override val stateDataRepository = repositories.stateDataRepository
   override val microserviceAuthConnector = AuthConnector
   override val brConnector = BusinessRegistrationConnector
-  val heldSubmissionRepository = Repositories.heldSubmissionRepository
+  val heldSubmissionRepository = repositories.heldSubmissionRepository
   val auditConnector = MicroserviceAuditConnector
 
   def currentDateTime = DateTime.now(DateTimeZone.UTC)

@@ -24,17 +24,22 @@ import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.Action
 import services.{AccountingDetailsService, CorporationTaxRegistrationService, MetricsService, PrepareAccountService}
 import uk.gov.hmrc.play.microservice.controller.BaseController
+import javax.inject.Inject
+
+import repositories.Repositories
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 
-object AccountingDetailsController extends AccountingDetailsController{
+class AccountingDetailsControllerImp @Inject() (metrics: MetricsService, repositories: Repositories,
+                                                accountingDetailsServ: AccountingDetailsService, prepareAccountServ: PrepareAccountService)
+  extends AccountingDetailsController {
   override val auth = AuthConnector
-  override val resourceConn = CorporationTaxRegistrationService.corporationTaxRegistrationRepository
-  override val accountingDetailsService = AccountingDetailsService
-  override val metricsService: MetricsService = MetricsService
-  override val prepareAccountService = PrepareAccountService
+  override val resourceConn = repositories.cTRepository
+  override val accountingDetailsService = accountingDetailsServ
+  override val metricsService: MetricsService = metrics
+  override val prepareAccountService = prepareAccountServ
 }
 
 trait AccountingDetailsController extends BaseController with Authenticated with Authorisation[String] {

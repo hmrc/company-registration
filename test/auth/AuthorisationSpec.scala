@@ -20,15 +20,16 @@ import connectors.{AuthConnector, Authority, UserIds}
 import org.mockito.Matchers
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
-import org.scalatest.{WordSpecLike, BeforeAndAfter, ShouldMatchers}
+import org.scalatest.{BeforeAndAfter, ShouldMatchers, WordSpecLike}
 import play.api.mvc.Results
 import play.api.test.FakeApplication
 import play.api.test.Helpers._
 import uk.gov.hmrc.play.http.HeaderCarrier
+import uk.gov.hmrc.play.test.WithFakeApplication
 
 import scala.concurrent.Future
 
-class AuthorisationSpec extends FakeApplication with WordSpecLike with ShouldMatchers with MockitoSugar with BeforeAndAfter {
+class AuthorisationSpec extends WordSpecLike with WithFakeApplication with ShouldMatchers with MockitoSugar with BeforeAndAfter {
 
   implicit val hc = HeaderCarrier()
 

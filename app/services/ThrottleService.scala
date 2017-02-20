@@ -16,6 +16,8 @@
 
 package services
 
+import javax.inject.{Inject, Singleton}
+
 import org.joda.time.DateTime
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.microservice.controller.BaseController
@@ -29,8 +31,9 @@ sealed trait ThrottleResponse
 case class ThrottleSuccessResponse(registrationID: String) extends ThrottleResponse
 case object ThrottleTooManyRequestsResponse extends ThrottleResponse
 
-object ThrottleService extends ThrottleService with ServicesConfig {
-  val throttleMongoRepository = Repositories.throttleRepository
+@Singleton
+class ThrottleServiceImp @Inject() (repositories: Repositories) extends ThrottleService with ServicesConfig {
+  val throttleMongoRepository = repositories.throttleRepository
   //$COVERAGE-OFF$
   def dateTime = DateTimeUtils.now
   val threshold = getConfInt("throttle-threshold", throw new Exception("throttle-threshold not found in config"))

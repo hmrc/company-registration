@@ -51,12 +51,12 @@ class DesSubmissionEventSpec extends UnitSpec {
           |      "returnsOnCT61": false,
           |      "companyACharity": false,
           |      "businessAddress": {
-          |         "country": "United Kingdom",
           |         "line1": "14 Matheson House",
           |         "line2": "Grange Central",
           |         "line3": "Town Centre",
           |         "line4": "Telford",
-          |         "postcode": "TF3 4ER"
+          |         "postcode": "TF3 4ER",
+          |         "country": "United Kingdom"
           |      },
           |      "businessContactName": {
           |         "firstName": "Billy",
@@ -98,3 +98,4 @@ class DesSubmissionEventSpec extends UnitSpec {
     }
   }
 }
+

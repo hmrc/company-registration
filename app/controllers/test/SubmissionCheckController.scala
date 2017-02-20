@@ -16,7 +16,9 @@
 
 package controllers.test
 
-import jobs.CheckSubmissionJob.lockTimeout
+import javax.inject.{Inject, Singleton}
+
+import jobs.CheckSubmissionJob
 import org.joda.time.Duration
 import play.api.Logger
 import play.api.mvc.Action
@@ -28,13 +30,16 @@ import uk.gov.hmrc.play.microservice.controller.BaseController
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-object SubmissionCheckController extends SubmissionCheckController {
-  val service = RegistrationHoldingPenService
+@Singleton
+class SubmissionCheckControllerImp @Inject() (registrationHoldingPenService: RegistrationHoldingPenService,
+                                              repositories: Repositories, checkSubmissionJob: CheckSubmissionJob)
+  extends SubmissionCheckController {
+  val service = registrationHoldingPenService
   val name = "check-submission-test-endpoint"
   override lazy val lock: LockKeeper = new LockKeeper() {
     override val lockId = s"$name-lock"
-    override val forceLockReleaseAfter: Duration = lockTimeout
-    override val repo = Repositories.lockRepository
+    override val forceLockReleaseAfter: Duration = checkSubmissionJob.lockTimeout
+    override val repo = repositories.lockRepository
   }
 }
 

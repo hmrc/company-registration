@@ -16,13 +16,16 @@
 
 package services
 
+import javax.inject.{Inject, Singleton}
+
 import models.CompanyDetails
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 
 import scala.concurrent.Future
 
-object CompanyDetailsService extends CompanyDetailsService {
-  override val corporationTaxRegistrationRepository = Repositories.cTRepository
+@Singleton
+class CompanyDetailsServiceImp @Inject() (repositories: Repositories) extends CompanyDetailsService {
+  override val corporationTaxRegistrationRepository = repositories.cTRepository
 }
 
 trait CompanyDetailsService {

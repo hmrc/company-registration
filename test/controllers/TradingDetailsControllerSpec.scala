@@ -18,6 +18,8 @@ package controllers
 
 import java.util.UUID
 
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
 import connectors.AuthConnector
 import fixtures.AuthFixture
 import helpers.SCRSSpec
@@ -27,11 +29,15 @@ import org.mockito.Mockito._
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import services.{CorporationTaxRegistrationService, TradingDetailsService, MetricsService}
+import services.{CorporationTaxRegistrationService, MetricsService, TradingDetailsService}
 import mocks.MockMetricsService
+
 import scala.concurrent.Future
 
 class TradingDetailsControllerSpec extends SCRSSpec with AuthFixture {
+
+  implicit val system = ActorSystem("CR")
+  implicit val materializer = ActorMaterializer()
 
   val mockTradingDetailsService = mock[TradingDetailsService]
 
@@ -46,19 +52,6 @@ class TradingDetailsControllerSpec extends SCRSSpec with AuthFixture {
 
   val regID = UUID.randomUUID.toString
 
-  "TradingDetailsController" should {
-    "use the correct auth connector" in {
-      TradingDetailsController.auth shouldBe AuthConnector
-    }
-
-    "use the correct trading details service" in {
-      TradingDetailsController.tradingDetailsService shouldBe TradingDetailsService
-    }
-
-    "use the correct resourceConn" in {
-      TradingDetailsController.resourceConn shouldBe CorporationTaxRegistrationService.corporationTaxRegistrationRepository
-    }
-  }
 
   "retrieveTradingDetails" should {
     "retrieve a 200 - Ok and a Json package of TradingDetails" in new Setup {
