@@ -39,7 +39,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.control.NoStackTrace
 
 
-object CorporationTaxRegistrationMongo extends MongoDbConnection with ReactiveMongoFormats {
+object CorporationTaxRegistrationMongo extends ReactiveMongoFormats {
   implicit val formatCH = CHROAddress.format
   implicit val formatPPOB = PPOBAddress.format
   implicit val formatTD = TradingDetails.format
@@ -89,7 +89,9 @@ private[repositories] class MissingCTDocument(regId: String) extends NoStackTrac
 
 class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
   extends ReactiveRepository[CorporationTaxRegistration, BSONObjectID]("corporation-tax-registration-information",
-    mongo, CorporationTaxRegistrationMongo.oFormat, ReactiveMongoFormats.objectIdFormats)
+    mongo,
+    CorporationTaxRegistrationMongo.oFormat,
+    ReactiveMongoFormats.objectIdFormats)
   with CorporationTaxRegistrationRepository
   with AuthorisationResource[String] {
 

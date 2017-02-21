@@ -17,8 +17,9 @@
 package services
 
 import audit.{CTRegistrationSubmissionAuditEventDetails, DesResponse}
+import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
-import play.api.libs.json.{JsDefined, Json}
+import play.api.libs.json.{JsObject, JsValue, Json}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
@@ -46,31 +47,30 @@ class AuditServiceSpec extends UnitSpec with MockitoSugar {
         )
 
         val result = TestService.buildCTRegSubmissionEvent(testModel)
-        //val jsonDate: JsDefined = ("testProcessingDate")
 
         result.auditSource shouldBe "company-registration"
         result.auditType shouldBe "ctRegistrationSubmissionSuccessful"
         result.tags("transactionName") shouldBe "CTRegistrationSubmission"
-        result.detail.\("processingDate") shouldBe Json.toJson("testProcessingDate")
-        result.detail.\("acknowledgementReference") shouldBe Json.toJson("testAckRef")
+        result.detail.\("processingDate").as[JsValue] shouldBe Json.toJson("testProcessingDate")
+        result.detail.\("acknowledgementReference").as[JsValue] shouldBe Json.toJson("testAckRef")
       }
     }
 
     "construct a failed AuditEvent" when {
       "given a details model that has reason defined" in new Setup {
-        val testModel = CTRegistrationSubmissionAuditEventDetails(
+        val testModel2 = CTRegistrationSubmissionAuditEventDetails(
           "testJourneyId",
           None,
           None,
           Some("testReason")
         )
 
-        val result = TestService.buildCTRegSubmissionEvent(testModel)
+        val result = TestService.buildCTRegSubmissionEvent(testModel2)
 
         result.auditSource shouldBe "company-registration"
         result.auditType shouldBe "ctRegistrationSubmissionFailed"
         result.tags("transactionName") shouldBe "CTRegistrationSubmissionFailed"
-        result.detail.\("reason") shouldBe Json.toJson("testReason")
+        result.detail.\("reason").as[JsValue] shouldBe Json.toJson("testReason")
       }
     }
   }

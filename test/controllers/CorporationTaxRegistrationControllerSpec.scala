@@ -24,7 +24,7 @@ import helpers.SCRSSpec
 import mocks.MockMetricsService
 import models.{AcknowledgementReferences, ConfirmationReferences}
 import org.mockito.Matchers
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import play.api.test.FakeRequest
 import services.CorporationTaxRegistrationService
 import play.api.test.Helpers._
@@ -310,8 +310,8 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
   "acknowledgementConfirmation" should {
     "return a bad request" when {
       "given invalid json" in new Setup {
-        val request = FakeRequest().withJsonBody(Json.toJson(""))
-        val result = controller.acknowledgementConfirmation("TestAckRef")(request).run
+        val request = FakeRequest().withBody[JsValue](Json.toJson(""))
+        val result = call(controller.acknowledgementConfirmation("TestAckRef"), request)
         status(result) shouldBe BAD_REQUEST
       }
     }
