@@ -31,7 +31,7 @@ sealed trait ThrottleResponse
 case class ThrottleSuccessResponse(registrationID: String) extends ThrottleResponse
 case object ThrottleTooManyRequestsResponse extends ThrottleResponse
 
-@Singleton
+
 class ThrottleServiceImp @Inject() (repositories: Repositories) extends ThrottleService with ServicesConfig {
   val throttleMongoRepository = repositories.throttleRepository
   //$COVERAGE-OFF$

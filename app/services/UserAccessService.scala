@@ -30,7 +30,7 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.control.NoStackTrace
 
-@Singleton
+
 class UserAccessServiceImp @Inject() (repositories: Repositories, corporationTaxRegistrationService: CorporationTaxRegistrationService,
                                       throttleServ: ThrottleService) extends UserAccessService with ServicesConfig {
   val brConnector = BusinessRegistrationConnector

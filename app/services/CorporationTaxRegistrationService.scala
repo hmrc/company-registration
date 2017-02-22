@@ -40,7 +40,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.control.NoStackTrace
 
-@Singleton
+
 class CorporationTaxRegistrationServiceImp @Inject() (repositories: Repositories) extends CorporationTaxRegistrationService {
   override val corporationTaxRegistrationRepository = repositories.cTRepository
   override val sequenceRepository = repositories.sequenceRepository

@@ -16,7 +16,7 @@
 
 package services
 
-import javax.inject.{Inject, Singleton}
+import javax.inject.Inject
 
 import audit._
 import config.MicroserviceAuditConnector
@@ -33,17 +33,18 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.control.NoStackTrace
 
-@Singleton
-class RegistrationHoldingPenServiceImp @Inject() (repositories: Repositories, accountingDetailsService: AccountingDetailsService) extends RegistrationHoldingPenService {
+
+class RegistrationHoldingPenServiceImp @Inject() (repositories: Repositories, accountingDetailsService: AccountingDetailsService)
+  extends RegistrationHoldingPenService {
   override val desConnector = DesConnector
   override val incorporationCheckAPIConnector = IncorporationCheckAPIConnector
   override val stateDataRepository = repositories.stateDataRepository
   override val ctRepository = repositories.cTRepository
   override val heldRepo = repositories.heldSubmissionRepository
   override val accountingService = accountingDetailsService
-  val brConnector = BusinessRegistrationConnector
-  val auditConnector = MicroserviceAuditConnector
-  val microserviceAuthConnector = AuthConnector
+  override val brConnector = BusinessRegistrationConnector
+  override val auditConnector = MicroserviceAuditConnector
+  override val microserviceAuthConnector = AuthConnector
 }
 
 private[services] class InvalidSubmission(val message: String) extends NoStackTrace

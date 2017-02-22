@@ -25,7 +25,7 @@ import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 
 import scala.concurrent.Future
 
-@Singleton
+
 class AccountingDetailsServiceImp @Inject() (repositories: Repositories) extends AccountingDetailsService {
   override val corporationTaxRegistrationRepository = repositories.cTRepository
 }

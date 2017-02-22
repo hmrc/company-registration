@@ -23,7 +23,7 @@ import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 
 import scala.concurrent.Future
 
-@Singleton
+
 class EmailServiceImp @Inject() (repositories: Repositories) extends EmailService {
   val ctRepository = repositories.cTRepository
 }
@@ -40,3 +40,5 @@ trait EmailService {
     ctRepository.retrieveEmail(registrationId)
   }
 }
+
+

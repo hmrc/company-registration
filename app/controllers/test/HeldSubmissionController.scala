@@ -25,7 +25,7 @@ import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-@Singleton
+
 class HeldSubmissionControllerImp @Inject() (repositories: Repositories) extends HeldSubmissionController {
   val heldSubmissionRepo = repositories.heldSubmissionRepository
 }

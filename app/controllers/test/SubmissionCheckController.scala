@@ -30,7 +30,7 @@ import uk.gov.hmrc.play.microservice.controller.BaseController
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-@Singleton
+
 class SubmissionCheckControllerImp @Inject() (registrationHoldingPenService: RegistrationHoldingPenService,
                                               repositories: Repositories, checkSubmissionJob: CheckSubmissionJob)
   extends SubmissionCheckController {

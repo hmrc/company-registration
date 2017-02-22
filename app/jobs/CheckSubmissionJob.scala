@@ -56,7 +56,7 @@ trait CheckSubmissionJob extends ExclusiveScheduledJob with JobConfig {
   //$COVERAGE-ON$
 }
 
-@Singleton
+
 class CheckSubmissionJobImp @Inject() (repositories: Repositories, registrationHoldingPenService: RegistrationHoldingPenService)
   extends CheckSubmissionJob {
   val name = "check-submission-job"

@@ -25,7 +25,7 @@ import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-@Singleton
+
 class TradingDetailsServiceImp @Inject() (repositories: Repositories) extends TradingDetailsService {
   val corporationTaxRegistrationRepository = repositories.cTRepository
 }
