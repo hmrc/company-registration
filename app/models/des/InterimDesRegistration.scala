@@ -213,7 +213,7 @@ case class InterimCorporationTax(
 object InterimCorporationTax {
   implicit val writes = new Writes[InterimCorporationTax] {
     def writes(m: InterimCorporationTax) = {
-      val address = Json.toJson(m.businessAddress).as[Option[JsObject]]
+      val address = m.businessAddress map {Json.toJson(_).as[JsObject]}
       val name: JsObject = Json.toJson(m.businessContactName).as[JsObject]
       val contactDetails: JsObject = Json.toJson(m.businessContactDetails).as[JsObject]
       Json.obj(

@@ -16,22 +16,23 @@
 
 package controllers
 
+import javax.inject.Inject
+
 import auth.{Authenticated, LoggedIn, NotLoggedIn}
 import connectors.AuthConnector
-import models.CorporationTaxRegistration
 import play.api.libs.json.Json
 import play.api.mvc.Action
-import services.{CorporationTaxRegistrationService, UserAccessService, MetricsService}
+import services.{MetricsService, UserAccessService}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.control.NoStackTrace
 
-object UserAccessController extends UserAccessController {
+class UserAccessControllerImp @Inject() (metrics: MetricsService, userAccessServ: UserAccessService) extends UserAccessController {
   override val auth = AuthConnector
-  val userAccessService = UserAccessService
-  override val metricsService: MetricsService = MetricsService
+  val userAccessService = userAccessServ
+  override val metricsService: MetricsService = metrics
 }
 
 trait UserAccessController extends BaseController with Authenticated{

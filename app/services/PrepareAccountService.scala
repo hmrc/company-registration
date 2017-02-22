@@ -16,14 +16,22 @@
 
 package services
 
+import javax.inject.{Inject, Singleton}
+
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
 import models.AccountPrepDetails
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-object PrepareAccountService extends PrepareAccountService {
-  val repository = Repositories.cTRepository
+
+class PrepareAccountServiceImp @Inject() (repositories: Repositories, system: ActorSystem) extends PrepareAccountService {
+
+  implicit val materializer = ActorMaterializer()(system)
+
+  val repository = repositories.cTRepository
 
 }
 trait PrepareAccountService {
@@ -37,3 +45,5 @@ trait PrepareAccountService {
     }
   }
 }
+
+

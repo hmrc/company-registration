@@ -16,16 +16,18 @@
 
 package controllers
 
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
 import connectors.AuthConnector
 import fixtures.AuthFixture
 import helpers.SCRSSpec
 import models.{UserAccessLimitReachedResponse, UserAccessSuccessResponse}
-import org.mockito.Matchers.{any,anyString}
+import org.mockito.Matchers.{any, anyString}
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
-import services.{CorporationTaxRegistrationService, UserAccessService, MetricsService}
+import services.{CorporationTaxRegistrationService, MetricsService, UserAccessService}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 import play.api.test.Helpers._
 import uk.gov.hmrc.play.http.HeaderCarrier
@@ -34,6 +36,9 @@ import mocks.MockMetricsService
 import scala.concurrent.Future
 
 class UserAccessControllerSpec extends UnitSpec with MockitoSugar with WithFakeApplication with SCRSSpec with AuthFixture{
+
+  implicit val system = ActorSystem("CR")
+  implicit val materializer = ActorMaterializer()
 
   val mockUserAccessService = mock[UserAccessService]
 
@@ -47,14 +52,6 @@ class UserAccessControllerSpec extends UnitSpec with MockitoSugar with WithFakeA
     }
   }
 
-  "UserAccessController" should {
-    "use the correct auth connector" in {
-      UserAccessController.auth shouldBe AuthConnector
-    }
-    "use the correct service" in{
-      UserAccessController.userAccessService shouldBe UserAccessService
-    }
-  }
 
   "checkUserAccess" should {
 

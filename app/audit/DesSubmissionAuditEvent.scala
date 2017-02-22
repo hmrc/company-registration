@@ -16,7 +16,7 @@
 
 package audit
 
-import play.api.libs.json.{JsObject, Json, Writes}
+import play.api.libs.json.{JsObject, JsString, Json, Writes}
 import uk.gov.hmrc.play.http.HeaderCarrier
 
 case class DesSubmissionAuditEventDetail(regId: String,
@@ -31,7 +31,7 @@ object DesSubmissionAuditEventDetail {
 
       Json.obj(
         JOURNEY_ID -> detail.regId,
-        ACK_REF -> (detail.jsSubmission \ "acknowledgementReference"),
+        ACK_REF -> (detail.jsSubmission \ "acknowledgementReference").as[JsString],
         REG_METADATA -> (detail.jsSubmission \ "registration" \ "metadata").as[JsObject]
         .-("sessionId").-("credentialId"),
         CORP_TAX -> (detail.jsSubmission \ "registration" \ "corporationTax").as[JsObject]

@@ -18,6 +18,7 @@ package services
 
 import fixtures.AccountingDetailsFixture
 import helpers.SCRSSpec
+import models.SubmissionDates
 import org.joda.time.DateTime
 
 class AccountingDetailsServiceSpec extends SCRSSpec with AccountingDetailsFixture {
@@ -60,55 +61,54 @@ class AccountingDetailsServiceSpec extends SCRSSpec with AccountingDetailsFixtur
 
 
   "Calculate dates for CT submission" when {
-    import AccountingDetailsService.calculateSubmissionDates
     def date(s: String): DateTime = DateTime.parse(s)
 
     "checking the dates" should {
-      "calculate the correct end of month next year" in {
-        import AccountingDetailsService.endOfMonthPlusOneYear
+      "calculate the correct end of month next year" in new Setup {
 
-        endOfMonthPlusOneYear(date("2017-01-01")) shouldBe date("2018-01-31")
-        endOfMonthPlusOneYear(date("2016-12-31")) shouldBe date("2017-12-31")
-        endOfMonthPlusOneYear(date("2017-02-01")) shouldBe date("2018-02-28")
-        endOfMonthPlusOneYear(date("2019-02-01")) shouldBe date("2020-02-29")
-        endOfMonthPlusOneYear(date("2019-02-28")) shouldBe date("2020-02-29")
-        endOfMonthPlusOneYear(date("2019-03-01")) shouldBe date("2020-03-31")
-        endOfMonthPlusOneYear(date("2016-02-29")) shouldBe date("2017-02-28")
-        endOfMonthPlusOneYear(date("2016-03-01")) shouldBe date("2017-03-31")
+        service.endOfMonthPlusOneYear(date("2017-01-01")) shouldBe date("2018-01-31")
+        service.endOfMonthPlusOneYear(date("2016-12-31")) shouldBe date("2017-12-31")
+        service.endOfMonthPlusOneYear(date("2017-02-01")) shouldBe date("2018-02-28")
+        service.endOfMonthPlusOneYear(date("2019-02-01")) shouldBe date("2020-02-29")
+        service.endOfMonthPlusOneYear(date("2019-02-28")) shouldBe date("2020-02-29")
+        service.endOfMonthPlusOneYear(date("2019-03-01")) shouldBe date("2020-03-31")
+        service.endOfMonthPlusOneYear(date("2016-02-29")) shouldBe date("2017-02-28")
+        service.endOfMonthPlusOneYear(date("2016-03-01")) shouldBe date("2017-03-31")
       }
     }
 
     "called with 'Do not intend to start trading' selected" should {
 
-      "return a 5 years from the Incorporation date for 'companyActiveDate' and 'startDateOfFirstAccountingPeriod' dates and plus 1 year (end of month for Intended date)" in {
+      "return a 5 years from the Incorporation date for 'companyActiveDate' and 'startDateOfFirstAccountingPeriod' " +
+        "dates and plus 1 year (end of month for Intended date)" in new Setup {
         val dateOfIncorp: DateTime = date("2020-1-1")
         val targetActiveDate = date("2025-1-1")
         val targetIntendedDate = date("2026-1-31")
 
-        val result = calculateSubmissionDates(dateOfIncorp, DoNotIntendToTrade, None)
+        val result:SubmissionDates = service.calculateSubmissionDates(dateOfIncorp, DoNotIntendToTrade, None)
 
         result.companyActiveDate                 shouldBe targetActiveDate
         result.startDateOfFirstAccountingPeriod  shouldBe targetActiveDate
         result.intendedAccountsPreparationDate   shouldBe targetIntendedDate
       }
 
-      "return correct intendedAccountsPreperationDate when called on a leap year edge case" in {
+      "return correct intendedAccountsPreperationDate when called on a leap year edge case" in new Setup {
         val dateOfIncorp: DateTime = date("2014-2-28")
         val targetResult = date("2019-2-28")
         val successfulEdgeCase = date("2020-2-29")
 
-        val result = calculateSubmissionDates(dateOfIncorp, DoNotIntendToTrade, None)
+        val result:SubmissionDates = service.calculateSubmissionDates(dateOfIncorp, DoNotIntendToTrade, None)
 
         result.companyActiveDate                 shouldBe targetResult
         result.startDateOfFirstAccountingPeriod  shouldBe targetResult
         result.intendedAccountsPreparationDate   shouldBe successfulEdgeCase
       }
 
-      "return correct intendedAccountsPreperationDate when called on a non-leap year edge case" in {
+      "return correct intendedAccountsPreperationDate when called on a non-leap year edge case" in new Setup {
         val dateOfIncorp: DateTime = date("2016-2-28")
         val successfulEdgeCase = date("2022-2-28")
 
-        val result = calculateSubmissionDates(dateOfIncorp, DoNotIntendToTrade, None)
+        val result:SubmissionDates = service.calculateSubmissionDates(dateOfIncorp, DoNotIntendToTrade, None)
 
         result.intendedAccountsPreparationDate   shouldBe successfulEdgeCase
       }
@@ -117,22 +117,22 @@ class AccountingDetailsServiceSpec extends SCRSSpec with AccountingDetailsFixtur
 
     "called with 'Date of incorporation' selected" should {
 
-      "return the date of Incorporation and Accounting preparation date as provided by user" in {
+      "return the date of Incorporation and Accounting preparation date as provided by user" in new Setup {
         val dateOfIncorp = date("2020-1-1")
         val providedDate = date("2020-1-1")
 
-        val result = calculateSubmissionDates(dateOfIncorp, ActiveOnIncorporation, Some(providedDate))
+        val result:SubmissionDates = service.calculateSubmissionDates(dateOfIncorp, ActiveOnIncorporation, Some(providedDate))
 
         result.companyActiveDate                  shouldBe dateOfIncorp
         result.startDateOfFirstAccountingPeriod   shouldBe dateOfIncorp
         result.intendedAccountsPreparationDate    shouldBe providedDate
       }
 
-      "return the date of Incorporation and Accounting preparation date calculated as the end of the month 1 year from the Incorporation date" in {
+      "return the date of Incorporation and Accounting preparation date calculated as the end of the month 1 year from the Incorporation date" in new Setup {
         val dateOfIncorp = date("2020-1-1")
         val targetPrepDate = date("2021-1-31")
 
-        val result = calculateSubmissionDates(dateOfIncorp, ActiveOnIncorporation, None)
+        val result:SubmissionDates = service.calculateSubmissionDates(dateOfIncorp, ActiveOnIncorporation, None)
 
         result.companyActiveDate                  shouldBe dateOfIncorp
         result.startDateOfFirstAccountingPeriod   shouldBe dateOfIncorp
@@ -143,24 +143,24 @@ class AccountingDetailsServiceSpec extends SCRSSpec with AccountingDetailsFixtur
 
     "called with 'Future start date' provided" should {
 
-      "return the date of Incorporation and Accounting preparation date as provided by user" in {
+      "return the date of Incorporation and Accounting preparation date as provided by user" in new Setup {
         val futureDate = date("2020-1-1")
         val providedDate = date("2021-1-1")
         val dateOfIncorp = date("2020-1-1")
 
-        val result = calculateSubmissionDates(dateOfIncorp, ActiveInFuture(futureDate), Some(providedDate))
+        val result:SubmissionDates = service.calculateSubmissionDates(dateOfIncorp, ActiveInFuture(futureDate), Some(providedDate))
 
         result.companyActiveDate                  shouldBe futureDate
         result.startDateOfFirstAccountingPeriod   shouldBe futureDate
         result.intendedAccountsPreparationDate    shouldBe providedDate
       }
 
-      "return the date of Incorporation and Accounting preparation date calculated as the end of the month 1 year from the Future date" in {
+      "return the date of Incorporation and Accounting preparation date calculated as the end of the month 1 year from the Future date" in new Setup {
         val futureDate = date("2020-1-1")
         val dateOfIncorp: DateTime = date("2019-6-8")
         val targetPrepDate = date("2021-1-31")
 
-        val result = calculateSubmissionDates(dateOfIncorp, ActiveInFuture(futureDate), None)
+        val result:SubmissionDates = service.calculateSubmissionDates(dateOfIncorp, ActiveInFuture(futureDate), None)
 
         result.companyActiveDate                  shouldBe futureDate
         result.startDateOfFirstAccountingPeriod   shouldBe futureDate

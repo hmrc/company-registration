@@ -16,12 +16,14 @@
 
 package controllers.test
 
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
 import org.joda.time.Duration
 import org.mockito.Matchers
 import org.scalatest.mock.MockitoSugar
 import play.api.test.FakeRequest
 import services.RegistrationHoldingPenService
-import uk.gov.hmrc.lock.{LockRepository, LockKeeper}
+import uk.gov.hmrc.lock.{LockKeeper, LockRepository}
 import uk.gov.hmrc.play.test.UnitSpec
 import org.mockito.Mockito._
 
@@ -29,6 +31,9 @@ import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 
 class SubmissionCheckControllerSpec extends UnitSpec with MockitoSugar {
+
+  implicit val system = ActorSystem("CR")
+  implicit val materializer = ActorMaterializer()
 
   val mockRegHoldingPenService = mock[RegistrationHoldingPenService]
 

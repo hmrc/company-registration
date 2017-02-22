@@ -40,5 +40,5 @@ trait Crypto {
 }
 
 object Crypto extends Crypto {
-  override val crypto = CryptoWithKeysFromConfig(baseConfigKey = "mongo-encryption")
+  override lazy val crypto = CryptoWithKeysFromConfig(baseConfigKey = "mongo-encryption")
 }

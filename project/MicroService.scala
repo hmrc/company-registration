@@ -1,5 +1,6 @@
+import play.routes.compiler.StaticRoutesGenerator
 import sbt.Keys._
-import sbt.Tests.{SubProcess, Group}
+import sbt.Tests.{Group, SubProcess}
 import sbt._
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin._
 
@@ -8,14 +9,16 @@ trait MicroService {
 
   import uk.gov.hmrc._
   import DefaultBuildSettings._
-  import uk.gov.hmrc.{SbtBuildInfo, ShellPrompt}
-
+  import uk.gov.hmrc.SbtAutoBuildPlugin
+  import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
+  import uk.gov.hmrc.versioning.SbtGitVersioning
   import TestPhases._
+  import play.sbt.routes.RoutesKeys.routesGenerator
 
   val appName: String
 
   lazy val appDependencies : Seq[ModuleID] = ???
-  lazy val plugins : Seq[Plugins] = Seq(play.PlayScala)
+  lazy val plugins : Seq[Plugins] = Seq(play.sbt.PlayScala)
   lazy val playSettings : Seq[Setting[_]] = Seq.empty
 
     lazy val scoverageSettings = {
@@ -30,7 +33,7 @@ trait MicroService {
     }
 
   lazy val microservice = Project(appName, file("."))
-    .enablePlugins(Seq(play.PlayScala) ++ plugins : _*)
+    .enablePlugins(Seq(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin) ++ plugins : _*)
     .settings(playSettings ++ scoverageSettings : _*)
     .settings(scalaSettings: _*)
     .settings(scoverageSettings : _*)
@@ -44,6 +47,7 @@ trait MicroService {
       fork in Test := false,
       retrieveManaged := true,
       evictionWarningOptions in update := EvictionWarningOptions.default.withWarnScalaVersionEviction(false),
+      routesGenerator := StaticRoutesGenerator,
       scalacOptions ++= List(
         "-Xlint:-missing-interpolator"
       )
@@ -56,7 +60,10 @@ trait MicroService {
       addTestReportOption(IntegrationTest, "int-test-reports"),
       testGrouping in IntegrationTest := oneForkedJvmPerTest((definedTests in IntegrationTest).value),
       parallelExecution in IntegrationTest := false)
-    .settings(resolvers += Resolver.bintrayRepo("hmrc", "releases"))
+    .settings(
+       resolvers += Resolver.bintrayRepo("hmrc", "releases"),
+       resolvers += Resolver.jcenterRepo
+       )
 }
 
 private object TestPhases {
@@ -66,3 +73,5 @@ private object TestPhases {
       test => new Group(test.name, Seq(test), SubProcess(ForkOptions(runJVMOptions = Seq("-Dtest.name=" + test.name))))
     }
 }
+
+

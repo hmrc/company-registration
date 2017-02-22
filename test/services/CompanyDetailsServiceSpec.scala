@@ -32,13 +32,7 @@ class CompanyDetailsServiceSpec extends SCRSSpec with CompanyDetailsFixture {
 
 //  val registrationID = UUID.randomUUID().toString
   val registrationID = "12345"
-
-
-  "CompanyDetailsService" should {
-    "use the correct repository" in {
-      CompanyDetailsService.corporationTaxRegistrationRepository shouldBe Repositories.cTRepository
-    }
-  }
+  
 
   "retrieveCompanyDetails" should {
     "return the CompanyDetails when a company details record is found" in new Setup {

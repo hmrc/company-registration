@@ -36,7 +36,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
   extends UnitSpec with MongoSpecSupport with BeforeAndAfterEach with ScalaFutures with Eventually with WithFakeApplication {
 
   class Setup {
-    val repository = new CorporationTaxRegistrationMongoRepository()
+    val repository = new CorporationTaxRegistrationMongoRepository(mongo)
     await(repository.drop)
     await(repository.ensureIndexes)
   }

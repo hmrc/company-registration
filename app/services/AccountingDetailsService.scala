@@ -16,6 +16,8 @@
 
 package services
 
+import javax.inject.{Inject, Singleton}
+
 import models.SubmissionDates
 import org.joda.time.DateTime
 import models.AccountingDetails
@@ -23,8 +25,9 @@ import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 
 import scala.concurrent.Future
 
-object AccountingDetailsService extends AccountingDetailsService {
-  override val corporationTaxRegistrationRepository = Repositories.cTRepository
+
+class AccountingDetailsServiceImp @Inject() (repositories: Repositories) extends AccountingDetailsService {
+  override val corporationTaxRegistrationRepository = repositories.cTRepository
 }
 
 sealed trait ActiveDate

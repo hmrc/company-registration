@@ -16,23 +16,27 @@
 
 package controllers
 
+import javax.inject.Inject
+
 import auth._
 import connectors.AuthConnector
 import models.{CompanyDetails, ErrorResponse, TradingDetails}
 import play.api.Logger
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.Action
+import repositories.Repositories
 import services.{CompanyDetailsService, CorporationTaxRegistrationService, MetricsService}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-object CompanyDetailsController extends CompanyDetailsController {
+class CompanyDetailsControllerImp @Inject() (metrics: MetricsService, repositories: Repositories,
+                                             companyDetailsServ: CompanyDetailsService) extends CompanyDetailsController {
   override val auth: AuthConnector = AuthConnector
-  val resourceConn = CorporationTaxRegistrationService.corporationTaxRegistrationRepository
-  override val companyDetailsService = CompanyDetailsService
-  override val metricsService: MetricsService = MetricsService
+  val resourceConn = repositories.cTRepository
+  override val companyDetailsService = companyDetailsServ
+  override val metricsService: MetricsService = metrics
 }
 
 trait CompanyDetailsController extends BaseController with Authenticated with Authorisation[String]{

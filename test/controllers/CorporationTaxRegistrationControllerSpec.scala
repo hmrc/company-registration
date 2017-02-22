@@ -16,13 +16,15 @@
 
 package controllers
 
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
 import connectors.AuthConnector
 import fixtures.{AuthFixture, CorporationTaxRegistrationFixture}
 import helpers.SCRSSpec
 import mocks.MockMetricsService
 import models.{AcknowledgementReferences, ConfirmationReferences}
 import org.mockito.Matchers
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import play.api.test.FakeRequest
 import services.CorporationTaxRegistrationService
 import play.api.test.Helpers._
@@ -34,6 +36,9 @@ import uk.gov.hmrc.play.http.HeaderCarrier
 import scala.concurrent.Future
 
 class CorporationTaxRegistrationControllerSpec extends SCRSSpec with CorporationTaxRegistrationFixture with AuthFixture {
+
+  implicit val system = ActorSystem("CR")
+  implicit val materializer = ActorMaterializer()
 
   class Setup {
     val controller = new CorporationTaxRegistrationController {
@@ -48,15 +53,6 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
   val regId = "reg-12345"
   val authority = buildAuthority(internalId)
 
-  "CorporationTaxRegistrationController" should {
-
-    "use the correct CTDataService" in {
-      CorporationTaxRegistrationController.ctService shouldBe CorporationTaxRegistrationService
-    }
-    "use the correct auth connector" in {
-      CorporationTaxRegistrationController.auth shouldBe AuthConnector
-    }
-  }
 
   "createCorporationTaxRegistration" should {
 
@@ -314,8 +310,8 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
   "acknowledgementConfirmation" should {
     "return a bad request" when {
       "given invalid json" in new Setup {
-        val request = FakeRequest().withJsonBody(Json.toJson(""))
-        val result = controller.acknowledgementConfirmation("TestAckRef")(request).run
+        val request = FakeRequest().withBody[JsValue](Json.toJson(""))
+        val result = call(controller.acknowledgementConfirmation("TestAckRef"), request)
         status(result) shouldBe BAD_REQUEST
       }
     }

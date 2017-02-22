@@ -16,23 +16,29 @@
 
 package controllers
 
+import javax.inject.Inject
+
 import auth._
 import connectors.AuthConnector
 import models.{AcknowledgementReferences, ConfirmationReferences, CorporationTaxRegistrationRequest}
 import play.api.Logger
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.{AnyContentAsJson, Action}
+import play.api.mvc.{Action, AnyContentAsJson}
+import repositories.Repositories
 import services.{CorporationTaxRegistrationService, MetricsService}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-object CorporationTaxRegistrationController extends CorporationTaxRegistrationController {
-  val ctService = CorporationTaxRegistrationService
-  val resourceConn = CorporationTaxRegistrationService.corporationTaxRegistrationRepository
+class CorporationTaxRegistrationControllerImp @Inject() (metricsService: MetricsService,
+                                                         corporationTaxRegistrationService: CorporationTaxRegistrationService,
+                                                         repositories: Repositories)
+  extends CorporationTaxRegistrationController {
+  val ctService = corporationTaxRegistrationService
+  val resourceConn = repositories.cTRepository
   val auth = AuthConnector
-  val metrics = MetricsService
+  val metrics = metricsService
 }
 
 trait CorporationTaxRegistrationController extends BaseController with Authenticated with Authorisation[String] {
@@ -178,3 +184,8 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
       }
   }
 }
+
+
+
+
+

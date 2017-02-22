@@ -16,17 +16,22 @@
 
 package controllers
 
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
 import connectors.AuthConnector
-import fixtures.{AuthFixture, ContactDetailsFixture,ContactDetailsResponse}
+import fixtures.{AuthFixture, ContactDetailsFixture, ContactDetailsResponse}
 import helpers.SCRSSpec
 import models.ErrorResponse
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import services.{CorporationTaxRegistrationService, ContactDetailsService, MetricsService}
+import services.{ContactDetailsService, CorporationTaxRegistrationService, MetricsService}
 import mocks.MockMetricsService
 
 class ContactDetailsControllerSpec extends SCRSSpec with ContactDetailsFixture with AuthFixture {
+
+  implicit val system = ActorSystem("CR")
+  implicit val materializer = ActorMaterializer()
 
   trait Setup {
     val controller = new ContactDetailsController {
@@ -39,17 +44,6 @@ class ContactDetailsControllerSpec extends SCRSSpec with ContactDetailsFixture w
 
   val registrationID = "12345"
 
-  "ContactDetailsController" should {
-    "use the correct auth connector" in {
-      ContactDetailsController.auth shouldBe AuthConnector
-    }
-    "use the correct resource connector" in {
-      ContactDetailsController.resourceConn shouldBe CorporationTaxRegistrationService.corporationTaxRegistrationRepository
-    }
-    "use the correct service" in {
-      ContactDetailsController.contactDetailsService shouldBe ContactDetailsService
-    }
-  }
 
   "retrieveContactDetails" should {
     "return a 200 with contact details in the json body when authorised" in new Setup {

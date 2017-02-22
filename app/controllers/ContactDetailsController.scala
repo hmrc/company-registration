@@ -16,23 +16,27 @@
 
 package controllers
 
+import javax.inject.Inject
+
 import auth._
 import connectors.AuthConnector
 import models.{ContactDetails, ErrorResponse}
 import play.api.Logger
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.Action
+import repositories.Repositories
 import services.{ContactDetailsService, CorporationTaxRegistrationService, MetricsService}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-object ContactDetailsController extends ContactDetailsController{
+class ContactDetailsControllerImp @Inject() (metrics: MetricsService, repositories: Repositories,
+                                             contactDetailsServ: ContactDetailsService) extends ContactDetailsController{
   override val auth = AuthConnector
-  override val resourceConn = CorporationTaxRegistrationService.corporationTaxRegistrationRepository
-  override val contactDetailsService = ContactDetailsService
-  override val metricsService: MetricsService = MetricsService
+  override val resourceConn = repositories.cTRepository
+  override val contactDetailsService = contactDetailsServ
+  override val metricsService: MetricsService = metrics
 }
 
 trait ContactDetailsController extends BaseController with Authenticated with Authorisation[String] {

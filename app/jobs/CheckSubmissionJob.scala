@@ -16,6 +16,8 @@
 
 package jobs
 
+import javax.inject.{Inject, Singleton}
+
 import org.joda.time.Duration
 import play.api.Logger
 import repositories.Repositories
@@ -54,13 +56,15 @@ trait CheckSubmissionJob extends ExclusiveScheduledJob with JobConfig {
   //$COVERAGE-ON$
 }
 
-object CheckSubmissionJob extends CheckSubmissionJob {
+
+class CheckSubmissionJobImp @Inject() (repositories: Repositories, registrationHoldingPenService: RegistrationHoldingPenService)
+  extends CheckSubmissionJob {
   val name = "check-submission-job"
-  lazy val regHoldingPenService = RegistrationHoldingPenService
+  lazy val regHoldingPenService = registrationHoldingPenService
 
   override lazy val lock: LockKeeper = new LockKeeper() {
     override val lockId = s"$name-lock"
     override val forceLockReleaseAfter: Duration = lockTimeout
-    override val repo = Repositories.lockRepository
+    override val repo = repositories.lockRepository
   }
 }

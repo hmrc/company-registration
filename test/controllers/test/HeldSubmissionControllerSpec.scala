@@ -16,6 +16,8 @@
 
 package controllers.test
 
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
 import org.mockito.Matchers
 import org.scalatest.mock.MockitoSugar
 import play.api.libs.json.Json
@@ -27,6 +29,9 @@ import org.mockito.Mockito._
 import scala.concurrent.Future
 
 class HeldSubmissionControllerSpec extends UnitSpec with MockitoSugar {
+
+  implicit val system = ActorSystem("CR")
+  implicit val materializer = ActorMaterializer()
 
   val mockHeldSubmissionRepo = mock[HeldSubmissionMongoRepository]
 

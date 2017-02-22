@@ -16,12 +16,17 @@
 
 package controllers.test
 
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
 import org.scalatest.BeforeAndAfterEach
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.play.test.UnitSpec
 
 class FeatureSwitchControllerSpec extends UnitSpec with BeforeAndAfterEach {
+
+  implicit val system = ActorSystem("CR")
+  implicit val materializer = ActorMaterializer()
 
   override def beforeEach() {
     System.clearProperty("feature.submissionCheck")

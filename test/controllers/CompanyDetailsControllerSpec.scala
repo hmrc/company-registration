@@ -16,20 +16,25 @@
 
 package controllers
 
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
 import connectors.AuthConnector
-import fixtures.{CompanyDetailsFixture, AuthFixture}
+import fixtures.{AuthFixture, CompanyDetailsFixture}
 import helpers.SCRSSpec
 import org.mockito.Matchers
 import org.mockito.Mockito._
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
-import play.api.test.Helpers.{call, OK, FORBIDDEN, NOT_FOUND}
+import play.api.test.Helpers.{FORBIDDEN, NOT_FOUND, OK, call}
 import services.{CompanyDetailsService, MetricsService}
 import mocks.MockMetricsService
 
 import scala.concurrent.Future
 
 class CompanyDetailsControllerSpec extends SCRSSpec with AuthFixture with CompanyDetailsFixture {
+
+  implicit val system = ActorSystem("CR")
+  implicit val materializer = ActorMaterializer()
 
   trait Setup {
     val controller = new CompanyDetailsController {
@@ -42,14 +47,6 @@ class CompanyDetailsControllerSpec extends SCRSSpec with AuthFixture with Compan
 
   val registrationID = "12345"
 
-  "CompanyDetailsController" should {
-    "use the correct AuthConnector" in {
-      CompanyDetailsController.auth shouldBe AuthConnector
-    }
-    "use the correct CompanyDetailsService" in {
-      CompanyDetailsController.companyDetailsService shouldBe CompanyDetailsService
-    }
-  }
 
   "retrieveCompanyDetails" should {
     "return a 200 - Ok and a Company details record if one is found in the database" in new Setup {

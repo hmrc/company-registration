@@ -16,6 +16,8 @@
 
 package controllers.test
 
+import javax.inject.{Inject, Singleton}
+
 import auth.Authorisation
 import connectors.AuthConnector
 import models.Email
@@ -27,9 +29,10 @@ import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-object EmailController extends EmailController {
-  val emailService = EmailService
-  val resourceConn = Repositories.cTRepository
+
+class EmailControllerImp @Inject() (emailServ: EmailService, repositories: Repositories) extends EmailController {
+  val emailService = emailServ
+  val resourceConn = repositories.cTRepository
   val auth = AuthConnector
 }
 

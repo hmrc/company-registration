@@ -20,20 +20,21 @@ import java.util.UUID
 
 import org.mockito.Mockito._
 import org.mockito.Matchers
-import org.scalatest.{WordSpecLike, BeforeAndAfter, ShouldMatchers}
+import org.scalatest.{BeforeAndAfter, ShouldMatchers, WordSpecLike}
 import org.scalatest.mock.MockitoSugar
-import play.api.libs.json.{Json, JsValue}
+import play.api.libs.json.{JsValue, Json}
 import play.api.test.FakeApplication
 import play.api.test.Helpers._
 import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse, _}
 import uk.gov.hmrc.play.http.logging.SessionId
+import uk.gov.hmrc.play.test.WithFakeApplication
 
 import scala.concurrent.Future
 
 /**
   * Created by crispy on 03/08/16.
   */
-class AuthConnectorSpec extends FakeApplication with WordSpecLike with ShouldMatchers with MockitoSugar with BeforeAndAfter {
+class AuthConnectorSpec extends WordSpecLike with WithFakeApplication with ShouldMatchers with MockitoSugar with BeforeAndAfter {
 
   implicit val hc = HeaderCarrier()
 

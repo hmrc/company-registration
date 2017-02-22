@@ -36,12 +36,7 @@ class TradingDetailsServiceSpec extends SCRSSpec with CorporationTaxRegistration
       val corporationTaxRegistrationRepository = mockCTDataRepository
     }
   }
-
-  "TradingDetailsService" should {
-    "use the correct CTRegRepo" in {
-      TradingDetailsService.corporationTaxRegistrationRepository shouldBe Repositories.cTRepository
-    }
-  }
+  
 
   "retrieveTradingDetails" should {
     "fetch trading details if a record exists against the given registration ID" in new Setup {

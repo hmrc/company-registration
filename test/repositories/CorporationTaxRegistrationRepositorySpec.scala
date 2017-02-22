@@ -35,7 +35,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSupport with MongoMocks with MockitoSugar with BeforeAndAfter
   with CorporationTaxRegistrationFixture with ContactDetailsFixture {
 
-  class MockedCorporationTaxRegistrationRepository extends CorporationTaxRegistrationMongoRepository {
+  class MockedCorporationTaxRegistrationRepository extends CorporationTaxRegistrationMongoRepository(mongo) {
     override lazy val collection = mockCollection()
 
     override def indexes = Seq()

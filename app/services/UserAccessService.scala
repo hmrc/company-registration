@@ -16,9 +16,11 @@
 
 package services
 
+import javax.inject.{Inject, Singleton}
+
 import connectors.{BusinessRegistrationConnector, BusinessRegistrationNotFoundResponse, BusinessRegistrationSuccessResponse}
 import models.{CorporationTaxRegistration, UserAccessLimitReachedResponse, UserAccessSuccessResponse}
-import org.joda.time.{DateTimeZone, DateTime}
+import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json.{JsValue, Json}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import uk.gov.hmrc.play.config.ServicesConfig
@@ -28,11 +30,13 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.control.NoStackTrace
 
-object UserAccessService extends UserAccessService with ServicesConfig {
+
+class UserAccessServiceImp @Inject() (repositories: Repositories, corporationTaxRegistrationService: CorporationTaxRegistrationService,
+                                      throttleServ: ThrottleService) extends UserAccessService with ServicesConfig {
   val brConnector = BusinessRegistrationConnector
-  val ctService = CorporationTaxRegistrationService
-  val ctRepository = Repositories.cTRepository
-  val throttleService = ThrottleService
+  val ctService = corporationTaxRegistrationService
+  val ctRepository = repositories.cTRepository
+  val throttleService = throttleServ
   //$COVERAGE-OFF$
   val threshold = getConfInt("throttle-threshold", throw new Exception("Could not find Threshold in config"))
   //$COVERAGE-ON$
