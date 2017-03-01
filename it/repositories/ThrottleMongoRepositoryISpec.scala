@@ -67,7 +67,7 @@ class ThrottleMongoRepositoryISpec extends UnitSpec with MongoSpecSupport with B
     }
 
     "return false when the user count is over the limit" in new Setup {
-      for(i <- 0 to 15){service.checkUserAccess}
+      for(i <- 0 to 15){await(service.checkUserAccess)}
 
       await(service.checkUserAccess) shouldBe false
     }

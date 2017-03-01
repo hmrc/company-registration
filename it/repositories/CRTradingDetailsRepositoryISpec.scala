@@ -40,7 +40,7 @@ class CRTradingDetailsRepositoryISpec
     repo.insert(ctRegistration)
   }
 
-  "Trading details in the CR registratin" should {
+  "Trading details in the CR registration" should {
 
     val registrationId = "testRegId"
 
