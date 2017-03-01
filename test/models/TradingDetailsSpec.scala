@@ -22,28 +22,45 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 class TradingDetailsSpec extends UnitSpec {
 
-  "Reading from Json" should {
+  "Reading from Json with regular payments string" should {
 
     "succeed when a trading details model contains a 'true' is supplied as json" in {
-      val json = Json.toJson(TradingDetails("true"))
+      val json = Json.parse("""{"regularPayments":"true"}""")
       val result = json.validate[TradingDetails]
 
       result.isSuccess shouldBe true
     }
 
     "succeed when a trading details model contains a 'false' is supplied as json" in {
-      val json = Json.toJson(TradingDetails("false"))
+      val json = Json.parse("""{"regularPayments":"false"}""")
       val result = json.validate[TradingDetails]
 
       result.isSuccess shouldBe true
     }
 
     "fail validation when Trading details does not contain a 'true' or a 'false'" in {
-      val json = Json.toJson(TradingDetails("test"))
+      val json = Json.parse("""{"regularPayments":"test"}""")
       val result = json.validate[TradingDetails]
 
       result.isSuccess shouldBe false
       result.asEither.left.get shouldBe Seq((JsPath \ "regularPayments",List(ValidationError("expected either 'true' or 'false' but neither was found"))))
+    }
+  }
+
+  "Reading from Json with regular payments boolean" should {
+
+    "succeed when a trading details model contains a 'true' is supplied as json" in {
+      val json = Json.parse("""{"regularPayments":true}""")
+      val result = json.validate[TradingDetails]
+
+      result.isSuccess shouldBe true
+    }
+
+    "succeed when a trading details model contains a 'false' is supplied as json" in {
+      val json = Json.parse("""{"regularPayments":false}""")
+      val result = json.validate[TradingDetails]
+
+      result.isSuccess shouldBe true
     }
   }
 }
