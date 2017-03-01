@@ -29,6 +29,7 @@ class TradingDetailsSpec extends UnitSpec {
       val result = json.validate[TradingDetails]
 
       result.isSuccess shouldBe true
+      result.asOpt.get shouldBe TradingDetails("true")
     }
 
     "succeed when a trading details model contains a 'false' is supplied as json" in {
@@ -36,6 +37,7 @@ class TradingDetailsSpec extends UnitSpec {
       val result = json.validate[TradingDetails]
 
       result.isSuccess shouldBe true
+      result.asOpt.get shouldBe TradingDetails("false")
     }
 
     "fail validation when Trading details does not contain a 'true' or a 'false'" in {
@@ -54,6 +56,7 @@ class TradingDetailsSpec extends UnitSpec {
       val result = json.validate[TradingDetails]
 
       result.isSuccess shouldBe true
+      result.asOpt.get shouldBe TradingDetails("true")
     }
 
     "succeed when a trading details model contains a 'false' is supplied as json" in {
@@ -61,6 +64,7 @@ class TradingDetailsSpec extends UnitSpec {
       val result = json.validate[TradingDetails]
 
       result.isSuccess shouldBe true
+      result.asOpt.get shouldBe TradingDetails("false")
     }
   }
 }
