@@ -260,9 +260,20 @@ case class TradingDetails(regularPayments: String = "")
 
 object TradingDetails extends TradingDetailsValidator {
 
-  implicit val format =
-    (__ \ "regularPayments").format[String](tradingDetailsValidator).inmap((r: String) => TradingDetails(r), (tD: TradingDetails) => tD.regularPayments)
-    (TradingDetails.apply _, unlift(TradingDetails.unapply))
+  val boolToStringReads: Reads[String] = new Reads[String] {
+    def reads(json: JsValue): JsResult[String] = {
+      json match {
+        case JsBoolean(true) => JsSuccess("true")
+        case JsBoolean(false) => JsSuccess("false")
+        case _ => JsError()
+      }
+    }
+  }
+
+  val reads: Reads[TradingDetails] = (__ \ "regularPayments").read[String](boolToStringReads orElse tradingDetailsValidator).map(p => TradingDetails(p))
+  val write: Writes[TradingDetails] = (__ \ "regularPayments").write[String].contramap(td => td.regularPayments)
+
+  implicit val format = Format(reads, write)
 }
 
 
