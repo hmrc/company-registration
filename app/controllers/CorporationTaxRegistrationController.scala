@@ -183,6 +183,21 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
           }
       }
   }
+
+  def updateRegistrationProgress(registrationID: String) = Action.async[JsValue](parse.json) {
+    implicit request =>
+      authorised(registrationID){
+        case Authorised(_) => ctService.updateRegistrationProgress(registrationID, "")
+        case NotLoggedInOrAuthorised =>
+          Logger.info(s"[CorporationTaxRegistrationController] [retrieveConfirmationReference] User not logged in")
+          Future.successful(Forbidden)
+        case NotAuthorised(_) =>
+        Logger.info(s"[CorporationTaxRegistrationController] [retrieveConfirmationReference] User logged in but not authorised for resource $registrationID")
+        Future.successful(Forbidden)
+        case AuthResourceNotFound(_) => Future.successful(NotFound)
+      }
+      //Future.successful(Ok)
+  }
 }
 
 

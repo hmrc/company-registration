@@ -47,6 +47,8 @@
 
     <logger name="application" level="WARN"/>
 
+    <logger name="javax.management" level="INFO"/>
+
     <logger name="com.google" level="ERROR"/>
     <logger name="akka" level="ERROR"/>
 

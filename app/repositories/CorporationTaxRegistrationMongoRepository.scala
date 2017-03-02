@@ -83,6 +83,7 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def updateEmail(registrationId: String, email: Email): Future[Option[Email]]
   def retrieveEmail(registrationId: String): Future[Option[Email]]
   def updateLastSignedIn(regId: String, dateTime: DateTime): Future[DateTime]
+  def updateRegistrationProgress(regId: String, progress: String): Future[Option[String]]
 }
 
 private[repositories] class MissingCTDocument(regId: String) extends NoStackTrace
@@ -100,6 +101,7 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
   private val crypto = Crypto
   val cTRMongo = CorporationTaxRegistrationMongo
   implicit val format = cTRMongo.oFormat
+  super.indexes
 
   override def indexes: Seq[Index] = Seq(
     Index(
@@ -317,7 +319,17 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
     }
   }
 
-  def dropCollection = {
-    collection.drop()
+  override def updateRegistrationProgress(regId: String, progress: String): Future[Option[String]] = {
+    retrieveCorporationTaxRegistration(regId) flatMap {
+      case Some(registration) =>
+        collection.update(
+          registrationIDSelector(regId),
+          registration.copy(registrationProgress = Some(progress)),
+          upsert = false
+        ).map(_ => Some(progress))
+      case _ => Future.successful(None)
+    }
   }
+
+  def dropCollection = collection.drop()
 }

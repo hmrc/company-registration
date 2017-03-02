@@ -40,6 +40,7 @@ case class CorporationTaxRegistration(internalId: String,
                                       status: String = RegistrationStatus.DRAFT,
                                       formCreationTimestamp: String,
                                       language: String,
+                                      registrationProgress: Option[String] = None,
                                       acknowledgementReferences: Option[AcknowledgementReferences] = None,
                                       confirmationReferences: Option[ConfirmationReferences] = None,
                                       companyDetails: Option[CompanyDetails] = None,
@@ -77,6 +78,7 @@ object CorporationTaxRegistration {
         (__ \ "status").read[String] and
         (__ \ "formCreationTimestamp").read[String] and
         (__ \ "language").read[String] and
+        (__ \ "registrationProgress").readNullable[String] and
         (__ \ "acknowledgementReferences").readNullable[AcknowledgementReferences](rdsAck) and
         (__ \ "confirmationReferences").readNullable[ConfirmationReferences] and
         (__ \ "companyDetails").readNullable[CompanyDetails](formatCompanyDetails) and
@@ -98,6 +100,7 @@ object CorporationTaxRegistration {
       (__ \ "status").write[String] and
       (__ \ "formCreationTimestamp").write[String] and
       (__ \ "language").write[String] and
+      (__ \ "registrationProgress").writeNullable[String] and
       (__ \ "acknowledgementReferences").writeNullable[AcknowledgementReferences](wtsAck) and
       (__ \ "confirmationReferences").writeNullable[ConfirmationReferences] and
       (__ \ "companyDetails").writeNullable[CompanyDetails](formatCompanyDetails) and

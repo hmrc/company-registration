@@ -356,4 +356,12 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
       }
     }
   }
+
+  "updateRegistrationProgress" should {
+
+    "" in new Setup {
+      val request = FakeRequest().withBody(Json.parse("""{"k":"v"}"""))
+      await(controller.updateRegistrationProgress(regId)(request)) shouldBe ""
+    }
+  }
 }

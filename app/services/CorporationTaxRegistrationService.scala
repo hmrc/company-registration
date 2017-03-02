@@ -40,7 +40,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.control.NoStackTrace
 
-
 class CorporationTaxRegistrationServiceImp @Inject() (repositories: Repositories) extends CorporationTaxRegistrationService {
   override val corporationTaxRegistrationRepository = repositories.cTRepository
   override val sequenceRepository = repositories.sequenceRepository
@@ -54,6 +53,10 @@ class CorporationTaxRegistrationServiceImp @Inject() (repositories: Repositories
 
   override val submissionCheckAPIConnector = IncorporationCheckAPIConnector
 }
+
+sealed trait RegistrationProgress
+case object RegistrationProgressUpdated extends RegistrationProgress
+case object CompanyRegistrationDoesNotExist extends RegistrationProgress
 
 trait CorporationTaxRegistrationService extends DateHelper {
 
@@ -69,6 +72,12 @@ trait CorporationTaxRegistrationService extends DateHelper {
 
   val submissionCheckAPIConnector: IncorporationCheckAPIConnector
 
+  def updateRegistrationProgress(regID: String, progress: String): Future[RegistrationProgress] = {
+    corporationTaxRegistrationRepository.updateRegistrationProgress(regID, progress).map{
+      case Some(_) => RegistrationProgressUpdated
+      case None => CompanyRegistrationDoesNotExist
+    }
+  }
 
   def updateCTRecordWithAckRefs(ackRef: String, refPayload: AcknowledgementReferences): Future[Option[CorporationTaxRegistration]] = {
     corporationTaxRegistrationRepository.retrieveByAckRef(ackRef) flatMap {
