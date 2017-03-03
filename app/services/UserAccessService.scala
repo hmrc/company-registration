@@ -61,7 +61,7 @@ trait UserAccessService {
           oCrData <- ctService.retrieveCorporationTaxRegistrationRecord(metadata.registrationID, Some(now))
         } yield {
           oCrData match {
-            case Some(crData) => Right(UserAccessSuccessResponse(crData.registrationID, false, hasConfRefs(crData), crData.verifiedEmail))
+            case Some(crData) => Right(UserAccessSuccessResponse(crData.registrationID, false, hasConfRefs(crData), crData.verifiedEmail, crData.registrationProgress))
             case _ => throw new MissingRegistration(metadata.registrationID) //todo - after a rejected submission this will always return a failed future - need to delete BR
           }
         }
@@ -71,7 +71,7 @@ trait UserAccessService {
           case true => for {
             metaData <- brConnector.createMetadataEntry
             crData <- ctService.createCorporationTaxRegistrationRecord(internalId, metaData.registrationID, "en")
-          } yield Right(UserAccessSuccessResponse(crData.registrationID, true, hasConfRefs(crData), crData.verifiedEmail))
+          } yield Right(UserAccessSuccessResponse(crData.registrationID, true, hasConfRefs(crData), crData.verifiedEmail, crData.registrationProgress))
         }
       case _ => throw new Exception("Something went wrong")
     }

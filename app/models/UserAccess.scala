@@ -24,7 +24,8 @@ case class UserAccessSuccessResponse
   registrationId: String,
   created: Boolean,
   confRefs: Boolean,
-  verifiedEmail: Option[Email] = None
+  verifiedEmail: Option[Email] = None,
+  registrationProgress: Option[String] = None
 )
 
 object UserAccessSuccessResponse {
@@ -32,7 +33,8 @@ object UserAccessSuccessResponse {
     (JsPath \ "registration-id").write[String] and
     (JsPath \ "created").write[Boolean] and
     (JsPath \ "confirmation-reference").write[Boolean] and
-    (JsPath \ "email").writeNullable[Email]
+    (JsPath \ "email").writeNullable[Email] and
+    (JsPath \ "registration-progress").writeNullable[String]
   )(unlift(UserAccessSuccessResponse.unapply))
 }
 
