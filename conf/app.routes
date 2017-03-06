@@ -27,3 +27,5 @@ POST       /corporation-tax-registration/acknowledgement-confirmation           
 
 PUT        /corporation-tax-registration/:registrationId/update-email                       @controllers.test.EmailController.updateEmail(registrationId: String)
 GET        /corporation-tax-registration/:registrationId/retrieve-email                     @controllers.test.EmailController.retrieveEmail(registrationId: String)
+
+PUT        /corporation-tax-registration/:registrationId/update-registration-progress       @controllers.CorporationTaxRegistrationController.updateRegistrationProgress(registrationId: String)
