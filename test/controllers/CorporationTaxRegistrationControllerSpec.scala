@@ -23,10 +23,9 @@ import fixtures.{AuthFixture, CorporationTaxRegistrationFixture}
 import helpers.SCRSSpec
 import mocks.MockMetricsService
 import models.{AcknowledgementReferences, ConfirmationReferences}
-import org.mockito.Matchers
+import org.mockito.{ArgumentCaptor, Matchers}
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.FakeRequest
-import services.CorporationTaxRegistrationService
 import play.api.test.Helpers._
 import org.mockito.Mockito._
 import org.mockito.Matchers.{eq => eqTo}
@@ -354,6 +353,48 @@ class CorporationTaxRegistrationControllerSpec extends SCRSSpec with Corporation
         val result = controller.acknowledgementConfirmation(ackRef)(request)
         status(result) shouldBe NOT_FOUND
       }
+    }
+  }
+
+  "updateRegistrationProgress" should {
+
+    import services.{RegistrationProgressUpdated, CompanyRegistrationDoesNotExist}
+
+    def setupAuth() = {
+      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+      AuthorisationMocks.getInternalId(validAuthority.ids.internalId, Some((regId, validAuthority.ids.internalId)))
+    }
+
+    def progressRequest(progress: String) = Json.parse(s"""{"registration-progress":"${progress}"}""")
+
+    "Extract the progress correctly from the message and request doc is updated" in new Setup {
+      setupAuth()
+
+      val progress = "HO5"
+      val request = FakeRequest().withBody(progressRequest(progress))
+      when(mockCTDataService.updateRegistrationProgress(Matchers.eq(regId), Matchers.any[String]())).
+        thenReturn(Future.successful(RegistrationProgressUpdated))
+      val response = await(controller.updateRegistrationProgress(regId)(request))
+
+      status(response) shouldBe OK
+
+      val captor = ArgumentCaptor.forClass(classOf[String])
+      verify(mockCTDataService, times(1)).updateRegistrationProgress(Matchers.eq(regId), captor.capture())
+      captor.getValue shouldBe progress
+    }
+
+    "Return not found is the doc couldn't be updated" in new Setup {
+      setupAuth()
+
+      val progress = "N/A"
+      val request = FakeRequest().withBody(progressRequest(progress))
+      when(mockCTDataService.updateRegistrationProgress(Matchers.eq(regId), Matchers.any[String]())).
+        thenReturn(Future.successful(CompanyRegistrationDoesNotExist))
+      val response = await(controller.updateRegistrationProgress(regId)(request))
+
+      status(response) shouldBe NOT_FOUND
+
+      verify(mockCTDataService, times(1)).updateRegistrationProgress(Matchers.eq(regId), Matchers.any[String]())
     }
   }
 }

@@ -242,4 +242,29 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       retrieve  shouldBe None
     }
   }
+
+  "Registration Progress" should {
+    val registrationId = UUID.randomUUID.toString
+
+    val corporationTaxRegistration = CorporationTaxRegistration(
+      internalId = "intId",
+      registrationID = registrationId,
+      formCreationTimestamp = "testDateTime",
+      language = "en",
+      registrationProgress = None
+    )
+
+    "be stored in the document correctly" in new Setup {
+      await(setupCollection(repository, corporationTaxRegistration))
+
+      def retrieve = await(repository.retrieveCorporationTaxRegistration(registrationId))
+
+      retrieve.get.registrationProgress shouldBe None
+
+      val progress = "foo"
+      await(repository.updateRegistrationProgress(registrationId, progress))
+
+      retrieve.get.registrationProgress shouldBe Some(progress)
+    }
+  }
 }

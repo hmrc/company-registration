@@ -21,6 +21,8 @@ PUT        /corporation-tax-registration/:registrationID/contact-details        
 GET        /corporation-tax-registration/:registrationID/confirmation-references            @controllers.CorporationTaxRegistrationController.retrieveConfirmationReference(registrationID)
 PUT        /corporation-tax-registration/:registrationID/confirmation-references            @controllers.CorporationTaxRegistrationController.updateReferences(registrationID)
 
+PUT        /corporation-tax-registration/:registrationID/progress                           @controllers.CorporationTaxRegistrationController.updateRegistrationProgress(registrationID)
+
 POST       /corporation-tax-registration/acknowledgement-confirmation                       @controllers.CorporationTaxRegistrationController.acknowledgementConfirmation(ackref : String)
 
 PUT        /corporation-tax-registration/:registrationId/update-email                       @controllers.test.EmailController.updateEmail(registrationId: String)

@@ -22,10 +22,10 @@ import auth._
 import connectors.AuthConnector
 import models.{AcknowledgementReferences, ConfirmationReferences, CorporationTaxRegistrationRequest}
 import play.api.Logger
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.{Action, AnyContentAsJson}
 import repositories.Repositories
-import services.{CorporationTaxRegistrationService, MetricsService}
+import services.{CorporationTaxRegistrationService, MetricsService, RegistrationProgressUpdated}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.Future
@@ -181,6 +181,32 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
               Ok
             case None => NotFound("Ack ref not found")
           }
+      }
+  }
+
+  def updateRegistrationProgress(registrationID: String) = Action.async[JsValue](parse.json) {
+    implicit request =>
+      authorised(registrationID){
+        case Authorised(_) => {
+          withJsonBody[JsObject] {
+            body =>
+              val progress = (body \ "registration-progress").as[String]
+              ctService.updateRegistrationProgress(registrationID, progress) map { result =>
+                import services.{RegistrationProgressUpdated, CompanyRegistrationDoesNotExist}
+                result match {
+                  case(RegistrationProgressUpdated) => Ok
+                  case(CompanyRegistrationDoesNotExist) => NotFound
+                }
+              }
+          }
+        }
+        case NotLoggedInOrAuthorised =>
+          Logger.info(s"[CorporationTaxRegistrationController] [retrieveConfirmationReference] User not logged in")
+          Future.successful(Forbidden)
+        case NotAuthorised(_) =>
+        Logger.info(s"[CorporationTaxRegistrationController] [retrieveConfirmationReference] User logged in but not authorised for resource $registrationID")
+        Future.successful(Forbidden)
+        case AuthResourceNotFound(_) => Future.successful(NotFound)
       }
   }
 }
