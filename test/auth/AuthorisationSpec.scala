@@ -17,19 +17,19 @@
 package auth
 
 import connectors.{AuthConnector, Authority, UserIds}
+import helpers.SCRSSpec
 import org.mockito.Matchers
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
-import org.scalatest.{BeforeAndAfter, ShouldMatchers, WordSpecLike}
+import org.scalatest.BeforeAndAfter
+import org.scalatest.mockito.MockitoSugar
 import play.api.mvc.Results
-import play.api.test.FakeApplication
-import play.api.test.Helpers._
+import play.api.test.Helpers.{OK, FORBIDDEN}
 import uk.gov.hmrc.play.http.HeaderCarrier
-import uk.gov.hmrc.play.test.WithFakeApplication
+import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.Future
 
-class AuthorisationSpec extends WordSpecLike with WithFakeApplication with ShouldMatchers with MockitoSugar with BeforeAndAfter {
+class AuthorisationSpec extends SCRSSpec with BeforeAndAfter {
 
   implicit val hc = HeaderCarrier()
 

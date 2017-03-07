@@ -20,6 +20,7 @@ import controllers.test._
 import controllers._
 import jobs.{CheckSubmissionJob, CheckSubmissionJobImp}
 import services._
+import uk.gov.hmrc.play.config.inject.{DefaultServicesConfig, ServicesConfig}
 
 /**
   * Created by jackie on 16/02/17.
@@ -45,6 +46,7 @@ class Module extends AbstractModule {
     bind(classOf[UserAccessController]) to classOf[UserAccessControllerImp]
     bind(classOf[SubmissionCheckController]) to classOf[SubmissionCheckControllerImp]
     bind(classOf[CheckSubmissionJob]) to classOf[CheckSubmissionJobImp]
+    bind(classOf[ServicesConfig]) to classOf[DefaultServicesConfig]
 
     bindServices()
 

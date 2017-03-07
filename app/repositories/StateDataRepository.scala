@@ -40,7 +40,7 @@ trait StateDataRepository extends Repository[TimePoint, BSONObjectID] {
   def retrieveTimePoint : Future[Option[String]]
 }
 
-class StateDataMongoRepository(implicit mongo: () => DB)
+class StateDataMongoRepository(mongo: () => DB)
   extends ReactiveRepository[TimePoint, BSONObjectID]("state-data", mongo, TimePoint.formats, ReactiveMongoFormats.objectIdFormats)
     with StateDataRepository {
 

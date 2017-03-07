@@ -34,9 +34,6 @@ import scala.concurrent.Future
 
 class EmailControllerSpec extends SCRSSpec with MockitoSugar with AuthFixture{
 
-  implicit val system = ActorSystem("CR")
-  implicit val materializer = ActorMaterializer()
-
   val mockEmailService = mock[EmailService]
 
   class Setup {

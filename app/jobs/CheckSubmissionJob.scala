@@ -29,10 +29,11 @@ import utils.SCRSFeatureSwitches
 
 import scala.concurrent.{ExecutionContext, Future}
 
-trait CheckSubmissionJob extends ExclusiveScheduledJob with JobConfig {
+trait CheckSubmissionJob extends ExclusiveScheduledJob {
 
   val lock: LockKeeper
   val regHoldingPenService: RegistrationHoldingPenService
+  val lockTimeout: Duration
 
   //$COVERAGE-OFF$
   override def executeInMutex(implicit ec: ExecutionContext): Future[Result] = {
@@ -57,14 +58,20 @@ trait CheckSubmissionJob extends ExclusiveScheduledJob with JobConfig {
 }
 
 
-class CheckSubmissionJobImp @Inject() (repositories: Repositories, registrationHoldingPenService: RegistrationHoldingPenService)
+class CheckSubmissionJobImp @Inject()(repositories: Repositories,
+                                      registrationHoldingPenService: RegistrationHoldingPenService,
+                                      config: JobConfig)
   extends CheckSubmissionJob {
-  val name = "check-submission-job"
+  override val name = "check-submission-job"
   lazy val regHoldingPenService = registrationHoldingPenService
+
+  override lazy val initialDelay = config.initialDelay
+  override lazy val interval = config.interval
+  lazy val lockTimeout = config.lockTimeout
 
   override lazy val lock: LockKeeper = new LockKeeper() {
     override val lockId = s"$name-lock"
-    override val forceLockReleaseAfter: Duration = lockTimeout
+    override val forceLockReleaseAfter: Duration = config.lockTimeout
     override val repo = repositories.lockRepository
   }
 }

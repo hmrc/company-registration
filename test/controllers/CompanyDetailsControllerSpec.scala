@@ -33,9 +33,6 @@ import scala.concurrent.Future
 
 class CompanyDetailsControllerSpec extends SCRSSpec with AuthFixture with CompanyDetailsFixture {
 
-  implicit val system = ActorSystem("CR")
-  implicit val materializer = ActorMaterializer()
-
   trait Setup {
     val controller = new CompanyDetailsController {
       override val auth = mockAuthConnector

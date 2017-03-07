@@ -38,7 +38,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 class HeldSubmissionRepositorySpec extends UnitSpec with MongoSpecSupport with MongoMocks with MockitoSugar with BeforeAndAfter {
 
-  class MockedHeldSubmissionRepository extends HeldSubmissionMongoRepository {
+  class MockedHeldSubmissionRepository extends HeldSubmissionMongoRepository(mongo) {
     override lazy val collection = mockCollection()
     override def indexes: Seq[Index] = Seq()
   }

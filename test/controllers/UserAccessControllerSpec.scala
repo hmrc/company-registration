@@ -37,9 +37,6 @@ import scala.concurrent.Future
 
 class UserAccessControllerSpec extends UnitSpec with MockitoSugar with WithFakeApplication with SCRSSpec with AuthFixture{
 
-  implicit val system = ActorSystem("CR")
-  implicit val materializer = ActorMaterializer()
-
   val mockUserAccessService = mock[UserAccessService]
 
   implicit val hc = HeaderCarrier()

@@ -30,7 +30,7 @@ trait SequenceRepository extends Repository[Sequence, BSONObjectID]{
   def getNext(sequenceID: String): Future[Int]
 }
 
-class SequenceMongoRepository(implicit mongo: () => DB)
+class SequenceMongoRepository(mongo: () => DB)
   extends ReactiveRepository[Sequence, BSONObjectID]("sequence", mongo, Sequence.formats, ReactiveMongoFormats.objectIdFormats)
   with SequenceRepository{
 

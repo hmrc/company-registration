@@ -61,7 +61,7 @@ class ThrottleCheckISpec extends IntegrationSpecBase {
     await(crRepo.drop)
     await(crRepo.ensureIndexes)
 
-    val throttleRepo = new ThrottleMongoRepository
+    val throttleRepo = new ThrottleMongoRepository(db)
     await(throttleRepo.drop)
     await(throttleRepo.ensureIndexes)
   }

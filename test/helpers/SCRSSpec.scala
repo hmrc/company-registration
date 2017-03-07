@@ -16,13 +16,27 @@
 
 package helpers
 
+import akka.actor.ActorSystem
+import akka.stream.Materializer
 import mocks.SCRSMocks
 import org.scalatest.BeforeAndAfterEach
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
+import play.api.inject.guice.GuiceApplicationBuilder
+import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 import org.mockito.Mockito.reset
 
+import scala.concurrent.ExecutionContext
+
 trait SCRSSpec extends UnitSpec with MockitoSugar with WithFakeApplication with SCRSMocks with BeforeAndAfterEach {
+
+  override lazy val fakeApplication = new GuiceApplicationBuilder().build()
+
+	implicit val actorSystem: ActorSystem = fakeApplication.actorSystem
+	implicit val materializer: Materializer = fakeApplication.materializer
+
+	implicit val defaultHC: HeaderCarrier = HeaderCarrier()
+	implicit val defaultEC: ExecutionContext = ExecutionContext.global.prepare()
 
 	override def beforeEach() {
 		reset(mockCTDataService)

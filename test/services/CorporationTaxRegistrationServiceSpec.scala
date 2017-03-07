@@ -31,7 +31,7 @@ import repositories.{HeldSubmissionMongoRepository, HeldSubmissionData}
 import uk.gov.hmrc.play.audit.http.connector.{AuditResult, AuditConnector}
 import uk.gov.hmrc.play.audit.model.{DataEvent, AuditEvent}
 import uk.gov.hmrc.play.http.HeaderCarrier
-import uk.gov.hmrc.play.http.logging.SessionId
+import uk.gov.hmrc.play.http.logging.{Authorization, SessionId}
 
 
 import scala.concurrent.Future
@@ -39,7 +39,6 @@ import scala.concurrent.Future
 class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTaxRegistrationFixture with MongoFixture with AuthFixture with MongoMocks {
 
   implicit val mongo = mongoDB
-  implicit val hc = HeaderCarrier(sessionId = Some(SessionId("testSessionId")))
   implicit val req = FakeRequest("GET", "/test-path")
 
   val mockBusinessRegistrationConnector = mock[BusinessRegistrationConnector]
@@ -175,6 +174,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
     )
 
     "return the updated reference acknowledgement number if there are no existing conf refs for the supplied reg ID" in new Setup {
+      implicit val hc = HeaderCarrier(sessionId = Some(SessionId("test-session-id")))
 
       val heldStatus = "held"
       val expected = ConfirmationReferences("testTransaction", "testPayRef", "testPayAmount", "")
@@ -205,7 +205,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
 
       SequenceRepositoryMocks.getNext("testSeqID", 3)
 
-      val result = service.updateConfirmationReferences(registrationId, ConfirmationReferences("testTransaction", "testPayRef", "testPayAmount", ""))
+      val result = service.updateConfirmationReferences(registrationId, ConfirmationReferences("testTransaction", "testPayRef", "testPayAmount", ""))(hc, req)
       await(result) shouldBe Some(expected)
     }
 
@@ -257,7 +257,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
       when(mockAuthConnector.getCurrentAuthority()(Matchers.any()))
         .thenReturn(Future.successful(Some(authority)))
 
-      val result = service.retrieveCredId
+      val result = service.retrieveCredId(hc)
       await(result) shouldBe "testGatewayID"
     }
 
@@ -274,8 +274,6 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
   "retrieveBRMetadata" should {
 
     val registrationId = "testRegId"
-
-    implicit val hc = HeaderCarrier()
 
     val businessRegistration = BusinessRegistration(
       registrationId,
@@ -475,7 +473,7 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
       when(mockCTDataRepository.retrieveCorporationTaxRegistration(Matchers.eq(registrationId)))
         .thenReturn(Future.successful(Some(corporationTaxRegistration)))
 
-      val result = service.buildPartialDesSubmission(registrationId, ackRef)
+      val result = service.buildPartialDesSubmission(registrationId, ackRef)(hc)
       await(result).toString shouldBe interimDesRegistration.toString
     }
   }

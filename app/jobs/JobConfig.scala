@@ -16,26 +16,29 @@
 
 package jobs
 
-import uk.gov.hmrc.play.config.ServicesConfig
+import javax.inject.{Singleton, Inject}
+
 import scala.concurrent.duration.{Duration => ScalaDuration, FiniteDuration}
 import org.joda.time.{Duration => JodaDuration}
+import uk.gov.hmrc.play.config.inject.ServicesConfig
 
-trait JobConfig extends ServicesConfig {
+@Singleton
+class JobConfig @Inject()(config: ServicesConfig) {
 
-  val name: String
+  val name: String = "check-submission-job"
 
   lazy val INITIAL_DELAY       = s"$name.schedule.initialDelay"
   lazy val INTERVAL            = s"$name.schedule.interval"
   lazy val LOCK_TIMEOUT        = s"$name.schedule.lockTimeout"
 
   lazy val initialDelay = {
-    val dur = ScalaDuration.create(getConfString(INITIAL_DELAY,
+    val dur = ScalaDuration.create(config.getConfString(INITIAL_DELAY,
       throw new RuntimeException(s"Could not find config $INITIAL_DELAY")))
     FiniteDuration(dur.length, dur.unit)
   }
 
   lazy val interval = {
-    val dur = ScalaDuration.create(getConfString(INTERVAL,
+    val dur = ScalaDuration.create(config.getConfString(INTERVAL,
       //$COVERAGE-OFF$
       throw new RuntimeException(s"Could not find config $INTERVAL")))
       //$COVERAGE-ON$
@@ -43,7 +46,7 @@ trait JobConfig extends ServicesConfig {
   }
 
   lazy val lockTimeout : JodaDuration = {
-    val dur = ScalaDuration.create(getConfString(LOCK_TIMEOUT,
+    val dur = ScalaDuration.create(config.getConfString(LOCK_TIMEOUT,
       throw new RuntimeException(s"Could not find config $LOCK_TIMEOUT")))
     JodaDuration.standardSeconds( FiniteDuration(dur.length, dur.unit).toSeconds )
   }

@@ -32,7 +32,7 @@ import scala.concurrent.Future
 class HeldSubmissionMongoRepositoryISpec extends UnitSpec with ScalaFutures with MongoSpecSupport with BeforeAndAfterEach with BeforeAndAfterAll with WithFakeApplication {
 
   class Setup {
-    val repository = new HeldSubmissionMongoRepository
+    val repository = new HeldSubmissionMongoRepository(mongo)
     await(repository.drop)
     await(repository.ensureIndexes)
   }

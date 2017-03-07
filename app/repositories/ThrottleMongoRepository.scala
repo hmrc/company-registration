@@ -31,7 +31,7 @@ trait ThrottleRepository extends Repository[UserCount, BSONObjectID]{
   def compensate(date: String, threshold: Int): Future[Int]
 }
 
-class ThrottleMongoRepository(implicit mongo: () => DB)
+class ThrottleMongoRepository(mongo: () => DB)
   extends ReactiveRepository[UserCount, BSONObjectID]("throttle", mongo, UserCount.formats, ReactiveMongoFormats.objectIdFormats)
   with ThrottleRepository {
 
