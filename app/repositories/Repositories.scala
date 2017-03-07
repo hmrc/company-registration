@@ -16,22 +16,26 @@
 
 package repositories
 
-import javax.inject.Singleton
+import javax.inject.{Inject, Singleton}
 
-import uk.gov.hmrc.lock.LockRepository
-import play.modules.reactivemongo.MongoDbConnection
+import play.api.{Play, Application}
+import uk.gov.hmrc.lock.{LockMongoRepository, LockRepository}
+import play.modules.reactivemongo.{ReactiveMongoComponent, MongoDbConnection}
 import reactivemongo.api.DB
+import uk.gov.hmrc.mongo.MongoConnector
 
-class Repositories extends MongoDbConnection with Repos {
+class Repositories @Inject()(app: Application) extends Repos {
   //private implicit val mongo = new MongoDbConnection{}.db
   //private implicit val mongo = db
+  lazy val mongoConnector:MongoConnector = app.injector.instanceOf[ReactiveMongoComponent].mongoConnector
+  lazy val db = mongoConnector.db
 
   override lazy val cTRepository = new CorporationTaxRegistrationMongoRepository(db)
-  override lazy val sequenceRepository = new SequenceMongoRepository
-  override lazy val throttleRepository = new ThrottleMongoRepository
-  override lazy val stateDataRepository = new StateDataMongoRepository
-  override lazy val heldSubmissionRepository = new HeldSubmissionMongoRepository
-  override lazy val lockRepository = new LockRepository
+  override lazy val sequenceRepository = new SequenceMongoRepository(db)
+  override lazy val throttleRepository = new ThrottleMongoRepository(db)
+  override lazy val stateDataRepository = new StateDataMongoRepository(db)
+  override lazy val heldSubmissionRepository = new HeldSubmissionMongoRepository(db)
+  override lazy val lockRepository = LockMongoRepository(db)
 }
 
 trait Repos {

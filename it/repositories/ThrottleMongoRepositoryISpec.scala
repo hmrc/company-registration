@@ -28,7 +28,7 @@ class ThrottleMongoRepositoryISpec extends UnitSpec with MongoSpecSupport with B
 
   class Setup {
     val service = new ThrottleService {
-      val throttleMongoRepository = new ThrottleMongoRepository
+      val throttleMongoRepository = new ThrottleMongoRepository(mongo)
       val dateTime = DateTimeUtils.now
       val threshold = 10
     }

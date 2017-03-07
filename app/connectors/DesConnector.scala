@@ -116,8 +116,8 @@ trait DesConnector extends ServicesConfig with AuditService with RawResponseRead
 object DesConnector extends DesConnector {
   // $COVERAGE-OFF$
   val auditConnector = MicroserviceAuditConnector
-  val urlHeaderEnvironment: String = getConfString("des-service.environment", throw new Exception("could not find config value for des-service.environment"))
-  val urlHeaderAuthorization: String = s"Bearer ${getConfString("des-service.authorization-token",
+  lazy val urlHeaderEnvironment: String = getConfString("des-service.environment", throw new Exception("could not find config value for des-service.environment"))
+  lazy val urlHeaderAuthorization: String = s"Bearer ${getConfString("des-service.authorization-token",
     throw new Exception("could not find config value for des-service.authorization-token"))}"
   // $COVERAGE-ON$
 }

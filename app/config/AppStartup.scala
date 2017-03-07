@@ -18,6 +18,7 @@ package config
 
 import javax.inject.Inject
 
+import jobs.CheckSubmissionJob
 import play.api.{Application, Logger}
 
 /**
@@ -32,7 +33,9 @@ trait AppStartup {
 }
 
 class DefaultAppStartup @Inject()(
-                                   val app: Application
+                                   val app: Application,
+                                   jobExecutor: JobExecutor,
+                                   job: CheckSubmissionJob
                                  ) extends AppStartup {
 
   override lazy val graphiteConfig: GraphiteConfig = new GraphiteConfig(app)
@@ -41,5 +44,7 @@ class DefaultAppStartup @Inject()(
 
   Logger.info(s"Starting microservice : $appName : in mode : ${app.mode}")
   if(graphiteConfig.enabled) graphiteConfig.startGraphite()
+
+  jobExecutor.scheduleJobs(Seq(job))
 
 }

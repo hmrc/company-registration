@@ -19,6 +19,7 @@ package services
 import javax.inject.{Singleton,Inject}
 import com.codahale.metrics.{Counter, Timer}
 import com.kenshoo.play.metrics.Metrics
+import uk.gov.hmrc.play.graphite.MicroserviceMetrics
 
 @Singleton
 class MetricsServiceImp @Inject() (metricsInstance: Metrics) extends MetricsService {

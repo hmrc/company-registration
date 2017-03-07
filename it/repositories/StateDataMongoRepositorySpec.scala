@@ -28,7 +28,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 class StateDataMongoRepositorySpec extends UnitSpec with ScalaFutures with MongoSpecSupport with BeforeAndAfterEach with BeforeAndAfterAll with WithFakeApplication {
 
   class Setup {
-    val repository = new StateDataMongoRepository
+    val repository = new StateDataMongoRepository(mongo)
     await(repository.drop)
     await(repository.ensureIndexes)
   }

@@ -28,7 +28,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object BusinessRegistrationConnector extends BusinessRegistrationConnector with ServicesConfig {
-  val businessRegUrl = baseUrl("business-registration")
+  lazy val businessRegUrl = baseUrl("business-registration")
   val http = WSHttp
 }
 

@@ -61,7 +61,7 @@ trait HeldSubmissionRepository extends Repository[HeldSubmissionData, BSONObject
   def removeHeldDocument(regId: String): Future[Boolean]
 }
 
-class HeldSubmissionMongoRepository(implicit mongo: () => DB)
+class HeldSubmissionMongoRepository(mongo: () => DB)
   extends ReactiveRepository[HeldSubmissionData, BSONObjectID]("held-submission", mongo, HeldSubmissionData.formats, ReactiveMongoFormats.objectIdFormats)
   with HeldSubmissionRepository{
 
