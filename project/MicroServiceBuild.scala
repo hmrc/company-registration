@@ -31,12 +31,12 @@ private object AppDependencies {
   private val playConfigVersion = "4.2.0"
   private val domainVersion = "4.0.0"
   private val hmrcTestVersion = "2.1.0"
-  private val reactiveMongoVersion = "5.1.0"
+  private val reactiveMongoVersion = "5.2.0"
   private val mockitoVersion = "1.9.0"
   private val scalatestPlusPlayVersion = "1.5.1"
   private val playSchedulingVersion = "3.0.0"
-  private val mongoLockVersion = "4.0.0"
-  private val cryptoVersion = "3.1.0"
+  private val mongoLockVersion = "4.1.0"
+  private val cryptoVersion = "4.2.0"
 
   val compile = Seq(
     ws,
