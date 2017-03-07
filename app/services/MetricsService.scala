@@ -22,8 +22,8 @@ import com.kenshoo.play.metrics.Metrics
 import uk.gov.hmrc.play.graphite.MicroserviceMetrics
 
 @Singleton
-class MetricsServiceImp @Inject() (metricsInstance: Metrics) extends MetricsService {
-  val metrics = metricsInstance
+class MetricsServiceImp @Inject()() extends MetricsService with MicroserviceMetrics {
+  //val metrics = metricsInstance
 
   override val ctutrConfirmationCounter: Counter = metrics.defaultRegistry.counter("ctutr-confirmation-counter")
 
