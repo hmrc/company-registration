@@ -40,13 +40,13 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.control.NoStackTrace
 
-class CorporationTaxRegistrationServiceImp @Inject() (repositories: Repositories) extends CorporationTaxRegistrationService {
-  override val corporationTaxRegistrationRepository = repositories.cTRepository
-  override val sequenceRepository = repositories.sequenceRepository
-  override val stateDataRepository = repositories.stateDataRepository
+object CorporationTaxRegistrationService extends CorporationTaxRegistrationService {
+  override val corporationTaxRegistrationRepository = Repositories.cTRepository
+  override val sequenceRepository = Repositories.sequenceRepository
+  override val stateDataRepository = Repositories.stateDataRepository
   override val microserviceAuthConnector = AuthConnector
   override val brConnector = BusinessRegistrationConnector
-  val heldSubmissionRepository = repositories.heldSubmissionRepository
+  val heldSubmissionRepository = Repositories.heldSubmissionRepository
   val auditConnector = MicroserviceAuditConnector
 
   def currentDateTime = DateTime.now(DateTimeZone.UTC)

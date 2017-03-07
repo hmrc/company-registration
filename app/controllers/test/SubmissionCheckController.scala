@@ -31,15 +31,14 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 
-class SubmissionCheckControllerImp @Inject() (registrationHoldingPenService: RegistrationHoldingPenService,
-                                              repositories: Repositories, checkSubmissionJob: CheckSubmissionJob)
+object SubmissionCheckController
   extends SubmissionCheckController {
-  val service = registrationHoldingPenService
+  val service = RegistrationHoldingPenService
   val name = "check-submission-test-endpoint"
   override lazy val lock: LockKeeper = new LockKeeper() {
     override val lockId = s"$name-lock"
-    override val forceLockReleaseAfter: Duration = checkSubmissionJob.lockTimeout
-    override val repo = repositories.lockRepository
+    override val forceLockReleaseAfter: Duration = CheckSubmissionJob.lockTimeout
+    override val repo = Repositories.lockRepository
   }
 }
 

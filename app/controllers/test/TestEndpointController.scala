@@ -31,14 +31,14 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 
-class TestEndpointControllerImp @Inject() (repositories: Repositories, corporationTaxRegistrationService: CorporationTaxRegistrationService)
+object TestEndpointController
   extends TestEndpointController {
-  val throttleMongoRepository = repositories.throttleRepository
-  val cTMongoRepository = repositories.cTRepository
+  val throttleMongoRepository = Repositories.throttleRepository
+  val cTMongoRepository = Repositories.cTRepository
   val bRConnector = BusinessRegistrationConnector
-  val heldRepository = repositories.heldSubmissionRepository
-  val cTService = corporationTaxRegistrationService
-  val stateRepo = repositories.stateDataRepository
+  val heldRepository = Repositories.heldSubmissionRepository
+  val cTService = CorporationTaxRegistrationService
+  val stateRepo = Repositories.stateDataRepository
 }
 
 trait TestEndpointController extends BaseController {

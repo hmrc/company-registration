@@ -31,12 +31,11 @@ import uk.gov.hmrc.play.microservice.controller.BaseController
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class CorporationTaxRegistrationControllerImp @Inject() (metricsService: MetricsService,
-                                                         corporationTaxRegistrationService: CorporationTaxRegistrationService,
-                                                         repositories: Repositories)
+class CorporationTaxRegistrationControllerImp @Inject() (metricsService: MetricsService
+                                                        )
   extends CorporationTaxRegistrationController {
-  val ctService = corporationTaxRegistrationService
-  val resourceConn = repositories.cTRepository
+  val ctService = CorporationTaxRegistrationService
+  val resourceConn = Repositories.cTRepository
   val auth = AuthConnector
   val metrics = metricsService
 }

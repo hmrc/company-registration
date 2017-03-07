@@ -32,12 +32,12 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 
-class AccountingDetailsControllerImp @Inject() (metrics: MetricsService, repositories: Repositories,
-                                                accountingDetailsServ: AccountingDetailsService, prepareAccountServ: PrepareAccountService)
+class AccountingDetailsControllerImp @Inject() (metrics: MetricsService,
+                                                prepareAccountServ: PrepareAccountService)
   extends AccountingDetailsController {
   override val auth = AuthConnector
-  override val resourceConn = repositories.cTRepository
-  override val accountingDetailsService = accountingDetailsServ
+  override val resourceConn = Repositories.cTRepository
+  override val accountingDetailsService = AccountingDetailsService
   override val metricsService: MetricsService = metrics
   override val prepareAccountService = prepareAccountServ
 }

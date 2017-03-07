@@ -18,7 +18,6 @@ import com.google.inject.AbstractModule
 import config.{AppStartup, DefaultAppStartup}
 import controllers.test._
 import controllers._
-import jobs.{CheckSubmissionJob, CheckSubmissionJobImp}
 import services._
 
 /**
@@ -35,16 +34,12 @@ class Module extends AbstractModule {
 
     bind(classOf[EmailController]) to classOf[EmailControllerImp]
     bind(classOf[HeldSubmissionController]) to classOf[HeldSubmissionControllerImp]
-    bind(classOf[SubmissionCheckController]) to classOf[SubmissionCheckControllerImp]
-    bind(classOf[TestEndpointController]) to classOf[TestEndpointControllerImp]
     bind(classOf[AccountingDetailsController]) to classOf[AccountingDetailsControllerImp]
     bind(classOf[CompanyDetailsController]) to classOf[CompanyDetailsControllerImp]
     bind(classOf[ContactDetailsController]) to classOf[ContactDetailsControllerImp]
     bind(classOf[CorporationTaxRegistrationController]) to classOf[CorporationTaxRegistrationControllerImp]
     bind(classOf[TradingDetailsController]) to classOf[TradingDetailsControllerImp]
     bind(classOf[UserAccessController]) to classOf[UserAccessControllerImp]
-    bind(classOf[SubmissionCheckController]) to classOf[SubmissionCheckControllerImp]
-    bind(classOf[CheckSubmissionJob]) to classOf[CheckSubmissionJobImp]
 
     bindServices()
 
@@ -52,14 +47,11 @@ class Module extends AbstractModule {
 
   private def bindServices() {
     bind(classOf[MetricsService]) to classOf[MetricsServiceImp]
-    bind(classOf[AccountingDetailsService]) to classOf[AccountingDetailsServiceImp]
     bind(classOf[CompanyDetailsService]) to classOf[CompanyDetailsServiceImp]
     bind(classOf[ContactDetailsService]) to classOf[ContactDetailsServiceImp]
-    bind(classOf[CorporationTaxRegistrationService]) to classOf[CorporationTaxRegistrationServiceImp]
     bind(classOf[EmailService]) to classOf[EmailServiceImp]
     bind(classOf[MetricsService]) to classOf[MetricsServiceImp]
     bind(classOf[PrepareAccountService]) to classOf[PrepareAccountServiceImp]
-    bind(classOf[RegistrationHoldingPenService]) to classOf[RegistrationHoldingPenServiceImp]
     bind(classOf[ThrottleService]) to classOf[ThrottleServiceImp]
     bind(classOf[TradingDetailsService]) to classOf[TradingDetailsServiceImp]
     bind(classOf[UserAccessService]) to classOf[UserAccessServiceImp]

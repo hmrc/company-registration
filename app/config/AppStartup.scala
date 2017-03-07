@@ -18,6 +18,7 @@ package config
 
 import javax.inject.Inject
 
+import jobs.CheckSubmissionJob
 import play.api.{Application, Logger}
 
 /**
@@ -41,5 +42,6 @@ class DefaultAppStartup @Inject()(
 
   Logger.info(s"Starting microservice : $appName : in mode : ${app.mode}")
   if(graphiteConfig.enabled) graphiteConfig.startGraphite()
+
 
 }

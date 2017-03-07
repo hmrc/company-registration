@@ -31,11 +31,10 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.control.NoStackTrace
 
 
-class UserAccessServiceImp @Inject() (repositories: Repositories, corporationTaxRegistrationService: CorporationTaxRegistrationService,
-                                      throttleServ: ThrottleService) extends UserAccessService with ServicesConfig {
+class UserAccessServiceImp @Inject() (throttleServ: ThrottleService) extends UserAccessService with ServicesConfig {
   val brConnector = BusinessRegistrationConnector
-  val ctService = corporationTaxRegistrationService
-  val ctRepository = repositories.cTRepository
+  val ctService = CorporationTaxRegistrationService
+  val ctRepository = Repositories.cTRepository
   val throttleService = throttleServ
   //$COVERAGE-OFF$
   val threshold = getConfInt("throttle-threshold", throw new Exception("Could not find Threshold in config"))

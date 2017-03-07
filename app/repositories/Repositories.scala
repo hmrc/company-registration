@@ -18,28 +18,18 @@ package repositories
 
 import javax.inject.Singleton
 
+
 import uk.gov.hmrc.lock.LockRepository
 import play.modules.reactivemongo.MongoDbConnection
-import reactivemongo.api.DB
 
-class Repositories extends MongoDbConnection with Repos {
-  //private implicit val mongo = new MongoDbConnection{}.db
-  //private implicit val mongo = db
+object Repositories {
+  private implicit val mongo = new MongoDbConnection {}.db
 
-  override lazy val cTRepository = new CorporationTaxRegistrationMongoRepository(db)
-  override lazy val sequenceRepository = new SequenceMongoRepository
-  override lazy val throttleRepository = new ThrottleMongoRepository
-  override lazy val stateDataRepository = new StateDataMongoRepository
-  override lazy val heldSubmissionRepository = new HeldSubmissionMongoRepository
-  override lazy val lockRepository = new LockRepository
-}
-
-trait Repos {
-  val cTRepository: CorporationTaxRegistrationMongoRepository
-  val sequenceRepository: SequenceMongoRepository
-  val throttleRepository: ThrottleMongoRepository
-  val stateDataRepository: StateDataMongoRepository
-  val heldSubmissionRepository: HeldSubmissionMongoRepository
-  val lockRepository: LockRepository
+  lazy val cTRepository = new CorporationTaxRegistrationMongoRepository(mongo)
+  lazy val sequenceRepository = new SequenceMongoRepository()
+  lazy val throttleRepository = new ThrottleMongoRepository()
+  lazy val stateDataRepository = new StateDataMongoRepository()
+  lazy val heldSubmissionRepository = new HeldSubmissionMongoRepository
+  lazy val lockRepository = new LockRepository()
 }
 

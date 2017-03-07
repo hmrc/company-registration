@@ -31,11 +31,10 @@ import repositories.Repositories
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class TradingDetailsControllerImp @Inject() (metrics: MetricsService, tradingDetailsServ: TradingDetailsService,
-                                             repositories: Repositories)
+class TradingDetailsControllerImp @Inject() (metrics: MetricsService, tradingDetailsServ: TradingDetailsService)
   extends TradingDetailsController {
   val tradingDetailsService = tradingDetailsServ
-  val resourceConn = repositories.cTRepository
+  val resourceConn = Repositories.cTRepository
   val auth = AuthConnector
   override val metricsService: MetricsService = metrics
 }

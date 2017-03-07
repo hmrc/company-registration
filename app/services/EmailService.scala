@@ -24,8 +24,8 @@ import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import scala.concurrent.Future
 
 
-class EmailServiceImp @Inject() (repositories: Repositories) extends EmailService {
-  val ctRepository = repositories.cTRepository
+class EmailServiceImp extends EmailService {
+  val ctRepository = Repositories.cTRepository
 }
 
 trait EmailService {
