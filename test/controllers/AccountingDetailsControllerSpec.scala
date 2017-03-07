@@ -34,9 +34,6 @@ import scala.concurrent.Future
 
 class AccountingDetailsControllerSpec extends SCRSSpec with AuthFixture with AccountingDetailsFixture {
 
-  implicit val system = ActorSystem("CR")
-  implicit val materializer = ActorMaterializer()
-
   val mockPrepareAccountService = mock[PrepareAccountService]
 
   trait Setup {

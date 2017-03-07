@@ -30,9 +30,6 @@ import mocks.MockMetricsService
 
 class ContactDetailsControllerSpec extends SCRSSpec with ContactDetailsFixture with AuthFixture {
 
-  implicit val system = ActorSystem("CR")
-  implicit val materializer = ActorMaterializer()
-
   trait Setup {
     val controller = new ContactDetailsController {
       override val contactDetailsService = mockContactDetailsService

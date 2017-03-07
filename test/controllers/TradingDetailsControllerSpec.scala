@@ -36,9 +36,6 @@ import scala.concurrent.Future
 
 class TradingDetailsControllerSpec extends SCRSSpec with AuthFixture {
 
-  implicit val system = ActorSystem("CR")
-  implicit val materializer = ActorMaterializer()
-
   val mockTradingDetailsService = mock[TradingDetailsService]
 
   class Setup {

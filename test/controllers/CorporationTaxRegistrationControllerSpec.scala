@@ -36,9 +36,6 @@ import scala.concurrent.Future
 
 class CorporationTaxRegistrationControllerSpec extends SCRSSpec with CorporationTaxRegistrationFixture with AuthFixture {
 
-  implicit val system = ActorSystem("CR")
-  implicit val materializer = ActorMaterializer()
-
   class Setup {
     val controller = new CorporationTaxRegistrationController {
       val ctService = mockCTDataService
