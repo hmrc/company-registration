@@ -33,7 +33,6 @@ class Module extends AbstractModule {
       .asEagerSingleton()
 
     bind(classOf[EmailController]) to classOf[EmailControllerImp]
-    //bind(classOf[HeldSubmissionController]) to classOf[HeldSubmissionControllerImp]
     bind(classOf[AccountingDetailsController]) to classOf[AccountingDetailsControllerImp]
     bind(classOf[CompanyDetailsController]) to classOf[CompanyDetailsControllerImp]
     bind(classOf[ContactDetailsController]) to classOf[ContactDetailsControllerImp]
