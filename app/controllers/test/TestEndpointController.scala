@@ -16,7 +16,6 @@
 
 package controllers.test
 
-import javax.inject.{Inject, Singleton}
 
 import connectors.BusinessRegistrationConnector
 import helpers.DateHelper
@@ -28,7 +27,6 @@ import services.CorporationTaxRegistrationService
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 
 
 object TestEndpointController
