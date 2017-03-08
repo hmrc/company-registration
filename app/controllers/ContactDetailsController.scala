@@ -31,10 +31,10 @@ import uk.gov.hmrc.play.microservice.controller.BaseController
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class ContactDetailsControllerImp @Inject() (metrics: MetricsService, repositories: Repositories,
+class ContactDetailsControllerImp @Inject() (metrics: MetricsService,
                                              contactDetailsServ: ContactDetailsService) extends ContactDetailsController{
   override val auth = AuthConnector
-  override val resourceConn = repositories.cTRepository
+  override val resourceConn = Repositories.cTRepository
   override val contactDetailsService = contactDetailsServ
   override val metricsService: MetricsService = metrics
 }

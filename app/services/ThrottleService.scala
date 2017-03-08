@@ -32,8 +32,8 @@ case class ThrottleSuccessResponse(registrationID: String) extends ThrottleRespo
 case object ThrottleTooManyRequestsResponse extends ThrottleResponse
 
 
-class ThrottleServiceImp @Inject() (repositories: Repositories) extends ThrottleService with ServicesConfig {
-  val throttleMongoRepository = repositories.throttleRepository
+class ThrottleServiceImp extends ThrottleService with ServicesConfig {
+  val throttleMongoRepository = Repositories.throttleRepository
   //$COVERAGE-OFF$
   def dateTime = DateTimeUtils.now
   val threshold = getConfInt("throttle-threshold", throw new Exception("throttle-threshold not found in config"))

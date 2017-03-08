@@ -26,8 +26,8 @@ import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import scala.concurrent.Future
 
 
-class AccountingDetailsServiceImp @Inject() (repositories: Repositories) extends AccountingDetailsService {
-  override val corporationTaxRegistrationRepository = repositories.cTRepository
+object AccountingDetailsService extends AccountingDetailsService {
+  override val corporationTaxRegistrationRepository = Repositories.cTRepository
 }
 
 sealed trait ActiveDate

@@ -39,6 +39,7 @@ trait UserAccessController extends BaseController with Authenticated{
 
   val userAccessService : UserAccessService
   val metricsService: MetricsService
+  val auth: AuthConnector
 
   def checkUserAccess = Action.async {
     implicit request =>

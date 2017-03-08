@@ -34,14 +34,14 @@ import scala.concurrent.Future
 import scala.util.control.NoStackTrace
 
 
-class RegistrationHoldingPenServiceImp @Inject() (repositories: Repositories, accountingDetailsService: AccountingDetailsService)
+object RegistrationHoldingPenService
   extends RegistrationHoldingPenService {
   override val desConnector = DesConnector
   override val incorporationCheckAPIConnector = IncorporationCheckAPIConnector
-  override val stateDataRepository = repositories.stateDataRepository
-  override val ctRepository = repositories.cTRepository
-  override val heldRepo = repositories.heldSubmissionRepository
-  override val accountingService = accountingDetailsService
+  override val stateDataRepository = Repositories.stateDataRepository
+  override val ctRepository = Repositories.cTRepository
+  override val heldRepo = Repositories.heldSubmissionRepository
+  override val accountingService = AccountingDetailsService
   override val brConnector = BusinessRegistrationConnector
   override val auditConnector = MicroserviceAuditConnector
   override val microserviceAuthConnector = AuthConnector

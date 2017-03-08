@@ -27,11 +27,11 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 
-class PrepareAccountServiceImp @Inject() (repositories: Repositories, system: ActorSystem) extends PrepareAccountService {
+class PrepareAccountServiceImp @Inject() (system: ActorSystem) extends PrepareAccountService {
 
   implicit val materializer = ActorMaterializer()(system)
 
-  val repository = repositories.cTRepository
+  val repository = Repositories.cTRepository
 
 }
 trait PrepareAccountService {

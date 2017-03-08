@@ -30,9 +30,9 @@ import uk.gov.hmrc.play.microservice.controller.BaseController
 import scala.concurrent.ExecutionContext.Implicits.global
 
 
-class EmailControllerImp @Inject() (emailServ: EmailService, repositories: Repositories) extends EmailController {
+class EmailControllerImp @Inject() (emailServ: EmailService) extends EmailController {
   val emailService = emailServ
-  val resourceConn = repositories.cTRepository
+  val resourceConn = Repositories.cTRepository
   val auth = AuthConnector
 }
 

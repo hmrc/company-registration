@@ -26,8 +26,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 
-class TradingDetailsServiceImp @Inject() (repositories: Repositories) extends TradingDetailsService {
-  val corporationTaxRegistrationRepository = repositories.cTRepository
+class TradingDetailsServiceImp extends TradingDetailsService {
+  val corporationTaxRegistrationRepository = Repositories.cTRepository
 }
 
 trait TradingDetailsService extends BaseController {
