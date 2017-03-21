@@ -62,7 +62,7 @@
     <logger name="com.google" level="ERROR"/>
     <logger name="akka" level="ERROR"/>
 
-    <logger name="connector" level="TRACE">
+    <logger name="connector" level="INFO">
         <appender-ref ref="STDOUT"/>
     </logger>
 
