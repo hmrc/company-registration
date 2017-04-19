@@ -23,6 +23,7 @@ import config.MicroserviceAuditConnector
 import connectors._
 import helpers.DateHelper
 import models._
+import org.joda.time.DateTime
 import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import repositories._
@@ -260,6 +261,10 @@ trait RegistrationHoldingPenService extends DateHelper {
       case Some(held) => Future.successful(held)
       case None => Future.failed(new FailedToRetrieveByAckRef)
     }
+  }
+
+  def fetchHeldDataTime(regId: String): Future[Option[DateTime]] = {
+    heldRepo.retrieveHeldSubmissionTime(regId)
   }
 
   private[services] def calculateDates(item: IncorpUpdate,
