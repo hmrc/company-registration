@@ -504,6 +504,8 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockCTRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
         .thenReturn(Future.successful(Some(validCR)))
 
+      when(mockCTRepository.updateSubmissionStatus(Matchers.any(), Matchers.any())).thenReturn(Future.successful("rejected"))
+
       when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any()))
         .thenReturn(Future.successful(Success))
 

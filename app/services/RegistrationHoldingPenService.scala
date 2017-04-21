@@ -104,10 +104,12 @@ trait RegistrationHoldingPenService extends DateHelper {
           ctReg <- fetchRegistrationByTxId(item.transactionId)
           _ <- auditFailedIncorporation(item, ctReg)
           heldDeleted <- heldRepo.removeHeldDocument(ctReg.registrationID)
-          ctDeleted <- ctRepository.removeTaxRegistrationById(ctReg.registrationID)
-          metadataDeleted <- brConnector.removeMetadata(ctReg.registrationID)
+          crRejected <- ctRepository.updateSubmissionStatus(ctReg.registrationID, "rejected")
+          //ctDeleted <- ctRepository.removeTaxRegistrationById(ctReg.registrationID)
+          //metadataDeleted <- brConnector.removeMetadata(ctReg.registrationID)
         } yield {
-          if(heldDeleted && ctDeleted && metadataDeleted) true else throw FailedToUpdateSubmissionWithRejectedIncorp
+          if(heldDeleted && crRejected == "rejected") true else throw FailedToUpdateSubmissionWithRejectedIncorp
+          //TODO take care of deleting ctRegistration and metadata
         }
     }
   }
