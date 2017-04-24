@@ -55,6 +55,7 @@ private[services] class UnexpectedStatus(val status: String) extends NoStackTrac
 
 private[services] object FailedToUpdateSubmissionWithAcceptedIncorp extends NoStackTrace
 private[services] object FailedToUpdateSubmissionWithRejectedIncorp extends NoStackTrace
+private[services] object FailedToDeleteSubmissionData extends NoStackTrace
 
 trait RegistrationHoldingPenService extends DateHelper {
 
@@ -88,6 +89,15 @@ trait RegistrationHoldingPenService extends DateHelper {
     }
   }
 
+  def deleteRejectedSubmissionData(regId: String)(implicit hc: HeaderCarrier): Future[Boolean] = {
+    for {
+      ctDeleted <- ctRepository.removeTaxRegistrationById(regId)
+      metadataDeleted <- brConnector.removeMetadata(regId)
+    } yield {
+      if (ctDeleted && metadataDeleted) true else throw FailedToDeleteSubmissionData
+    }
+  }
+
   private[services] def processIncorporationUpdate(item : IncorpUpdate)(implicit hc: HeaderCarrier): Future[Boolean] = {
     item.status match {
       case "accepted" =>
@@ -105,11 +115,8 @@ trait RegistrationHoldingPenService extends DateHelper {
           _ <- auditFailedIncorporation(item, ctReg)
           heldDeleted <- heldRepo.removeHeldDocument(ctReg.registrationID)
           crRejected <- ctRepository.updateSubmissionStatus(ctReg.registrationID, "rejected")
-          //ctDeleted <- ctRepository.removeTaxRegistrationById(ctReg.registrationID)
-          //metadataDeleted <- brConnector.removeMetadata(ctReg.registrationID)
         } yield {
           if(heldDeleted && crRejected == "rejected") true else throw FailedToUpdateSubmissionWithRejectedIncorp
-          //TODO take care of deleting ctRegistration and metadata
         }
     }
   }

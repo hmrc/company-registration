@@ -22,6 +22,7 @@ import play.api.Logger
 import play.api.libs.json.Json
 import play.api.mvc.{Action, Result}
 import repositories.{HeldSubmissionMongoRepository, Repositories}
+import services.RegistrationHoldingPenService
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -30,11 +31,13 @@ import scala.concurrent.Future
 object HeldController extends HeldController {
   val auth = AuthConnector
   val repoConn = Repositories.heldSubmissionRepository
+  val service = RegistrationHoldingPenService
 }
 
 trait HeldController extends BaseController with Authenticated {
 
   val repoConn: HeldSubmissionMongoRepository
+  val service: RegistrationHoldingPenService
 
   def fetchHeldSubmissionTime(regId: String) = Action.async {
     implicit request =>
@@ -46,8 +49,16 @@ trait HeldController extends BaseController with Authenticated {
         case _ =>
           Logger.info(s"[HeldController] [fetchHeldSubmissionTime] User not logged in")
           Future.successful(Forbidden)
-
       }
   }
+
+  def deleteSubmissionData(regId: String) = Action.async {
+    implicit request =>
+      service.deleteRejectedSubmissionData(regId).map{
+        case true => Ok
+        case false => NotFound
+      }
+  }
+
 }
 
