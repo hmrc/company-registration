@@ -54,9 +54,14 @@ trait HeldController extends BaseController with Authenticated {
 
   def deleteSubmissionData(regId: String) = Action.async {
     implicit request =>
-      service.deleteRejectedSubmissionData(regId).map{
-        case true => Ok
-        case false => NotFound
+      authenticated {
+        case LoggedIn(_) => service.deleteRejectedSubmissionData(regId).map {
+          case true => Ok
+          case false => NotFound
+        }
+        case _ =>
+          Logger.info(s"[HeldController] [deleteHeldSubmissionData] User not logged in")
+          Future.successful(Forbidden)
       }
   }
 
