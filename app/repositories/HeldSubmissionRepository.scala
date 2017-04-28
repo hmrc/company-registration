@@ -105,7 +105,6 @@ class HeldSubmissionMongoRepository(implicit mongo: () => DB)
   }
 
   override def retrieveHeldSubmissionTime(regId: String): Future[Option[DateTime]] = {
-    println("######################## in held submission ####" + regId)
     val selector = BSONDocument("_id" -> BSONString(regId))
     collection.find(selector).one[HeldSubmissionData] map (_.map(_.heldTime))
   }
