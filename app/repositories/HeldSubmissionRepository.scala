@@ -59,6 +59,7 @@ trait HeldSubmissionRepository extends Repository[HeldSubmissionData, BSONObject
   def retrieveSubmissionByRegId(regId: String): Future[Option[HeldSubmission]]
   def retrieveSubmissionByAckRef(ackRef: String): Future[Option[HeldSubmission]]
   def removeHeldDocument(regId: String): Future[Boolean]
+  def retrieveHeldSubmissionTime(regId: String): Future[Option[DateTime]]
 }
 
 class HeldSubmissionMongoRepository(implicit mongo: () => DB)
@@ -101,6 +102,11 @@ class HeldSubmissionMongoRepository(implicit mongo: () => DB)
     collection.find(selector).one[HeldSubmissionData] map {
       _ map { mapHeldSubmission( _ ) }
     }
+  }
+
+  override def retrieveHeldSubmissionTime(regId: String): Future[Option[DateTime]] = {
+    val selector = BSONDocument("_id" -> BSONString(regId))
+    collection.find(selector).one[HeldSubmissionData] map (_.map(_.heldTime))
   }
 
   def retrieveSubmissionByAckRef(ackRef: String): Future[Option[HeldSubmission]] = {

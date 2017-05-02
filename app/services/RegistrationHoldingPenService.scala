@@ -23,6 +23,7 @@ import config.MicroserviceAuditConnector
 import connectors._
 import helpers.DateHelper
 import models._
+import org.joda.time.DateTime
 import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import repositories._
@@ -54,6 +55,7 @@ private[services] class UnexpectedStatus(val status: String) extends NoStackTrac
 
 private[services] object FailedToUpdateSubmissionWithAcceptedIncorp extends NoStackTrace
 private[services] object FailedToUpdateSubmissionWithRejectedIncorp extends NoStackTrace
+private[services] object FailedToDeleteSubmissionData extends NoStackTrace
 
 trait RegistrationHoldingPenService extends DateHelper {
 
@@ -87,6 +89,15 @@ trait RegistrationHoldingPenService extends DateHelper {
     }
   }
 
+  def deleteRejectedSubmissionData(regId: String)(implicit hc: HeaderCarrier): Future[Boolean] = {
+    for {
+      ctDeleted <- ctRepository.removeTaxRegistrationById(regId)
+      metadataDeleted <- brConnector.removeMetadata(regId)
+    } yield {
+      if (ctDeleted && metadataDeleted) true else throw FailedToDeleteSubmissionData
+    }
+  }
+
   private[services] def processIncorporationUpdate(item : IncorpUpdate)(implicit hc: HeaderCarrier): Future[Boolean] = {
     item.status match {
       case "accepted" =>
@@ -103,10 +114,9 @@ trait RegistrationHoldingPenService extends DateHelper {
           ctReg <- fetchRegistrationByTxId(item.transactionId)
           _ <- auditFailedIncorporation(item, ctReg)
           heldDeleted <- heldRepo.removeHeldDocument(ctReg.registrationID)
-          ctDeleted <- ctRepository.removeTaxRegistrationById(ctReg.registrationID)
-          metadataDeleted <- brConnector.removeMetadata(ctReg.registrationID)
+          crRejected <- ctRepository.updateSubmissionStatus(ctReg.registrationID, "rejected")
         } yield {
-          if(heldDeleted && ctDeleted && metadataDeleted) true else throw FailedToUpdateSubmissionWithRejectedIncorp
+          if(heldDeleted && crRejected == "rejected") true else throw FailedToUpdateSubmissionWithRejectedIncorp
         }
     }
   }
@@ -260,6 +270,10 @@ trait RegistrationHoldingPenService extends DateHelper {
       case Some(held) => Future.successful(held)
       case None => Future.failed(new FailedToRetrieveByAckRef)
     }
+  }
+
+  def fetchHeldDataTime(regId: String): Future[Option[DateTime]] = {
+    heldRepo.retrieveHeldSubmissionTime(regId)
   }
 
   private[services] def calculateDates(item: IncorpUpdate,

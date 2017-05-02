@@ -208,6 +208,7 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
         case AuthResourceNotFound(_) => Future.successful(NotFound)
       }
   }
+
 }
 
 
