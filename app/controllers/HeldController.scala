@@ -21,7 +21,7 @@ import connectors.AuthConnector
 import play.api.Logger
 import play.api.libs.json.Json
 import play.api.mvc.{Action, Result}
-import repositories.{HeldSubmissionMongoRepository, Repositories}
+import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmissionMongoRepository, Repositories}
 import services.RegistrationHoldingPenService
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
@@ -30,19 +30,21 @@ import scala.concurrent.Future
 
 object HeldController extends HeldController {
   val auth = AuthConnector
-  val repoConn = Repositories.heldSubmissionRepository
+  val resourceConn = Repositories.cTRepository
+  val heldRepo = Repositories.heldSubmissionRepository
   val service = RegistrationHoldingPenService
 }
 
-trait HeldController extends BaseController with Authenticated {
+trait HeldController extends BaseController with Authenticated with Authorisation[String] {
 
-  val repoConn: HeldSubmissionMongoRepository
+  val resourceConn: CorporationTaxRegistrationMongoRepository
+  val heldRepo: HeldSubmissionMongoRepository
   val service: RegistrationHoldingPenService
 
   def fetchHeldSubmissionTime(regId: String) = Action.async {
     implicit request =>
       authenticated {
-        case LoggedIn(_) => repoConn.retrieveHeldSubmissionTime(regId).map {
+        case LoggedIn(_) => heldRepo.retrieveHeldSubmissionTime(regId).map {
           case Some(time) => Ok(Json.toJson(time))
           case None => NotFound
         }
@@ -54,11 +56,14 @@ trait HeldController extends BaseController with Authenticated {
 
   def deleteSubmissionData(regId: String) = Action.async {
     implicit request =>
-      authenticated {
-        case LoggedIn(_) => service.deleteRejectedSubmissionData(regId).map {
+      authorised(regId) {
+        case Authorised(_) => service.deleteRejectedSubmissionData(regId).map {
           case true => Ok
           case false => NotFound
         }
+        case AuthResourceNotFound(_) =>
+          Logger.info(s"[HeldController] [deleteHeldSubmissionData] User registration not found")
+          Future.successful(NotFound)
         case _ =>
           Logger.info(s"[HeldController] [deleteHeldSubmissionData] User not logged in")
           Future.successful(Forbidden)

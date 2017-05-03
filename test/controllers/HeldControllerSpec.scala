@@ -44,8 +44,9 @@ class HeldControllerSpec extends SCRSSpec with AuthFixture {
   trait Setup {
     val controller = new HeldController {
       override val service: RegistrationHoldingPenService = mockRegHoldingPen
-      override val repoConn: HeldSubmissionMongoRepository = mockHeldSubRepo
+      override val heldRepo: HeldSubmissionMongoRepository = mockHeldSubRepo
       override val auth: AuthConnector = mockAuthConnector
+      override val resourceConn = mockCTDataRepository
     }
   }
 
@@ -57,7 +58,7 @@ class HeldControllerSpec extends SCRSSpec with AuthFixture {
   "fetchHeldSubmissionTime" should {
     "return a 200 response along with a submission time" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(controller.repoConn.retrieveHeldSubmissionTime(Matchers.any())).thenReturn(Future.successful(Some(dateTime)))
+      when(controller.heldRepo.retrieveHeldSubmissionTime(Matchers.any())).thenReturn(Future.successful(Some(dateTime)))
 
       val result = await(controller.fetchHeldSubmissionTime(regId)(FakeRequest()))
       status(result) shouldBe OK
@@ -66,7 +67,7 @@ class HeldControllerSpec extends SCRSSpec with AuthFixture {
 
     "return a 404 (Not found) response" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(controller.repoConn.retrieveHeldSubmissionTime(Matchers.any())).thenReturn(Future.successful(None))
+      when(controller.heldRepo.retrieveHeldSubmissionTime(Matchers.any())).thenReturn(Future.successful(None))
 
       val result = await(controller.fetchHeldSubmissionTime(regId)(FakeRequest()))
       status(result) shouldBe NOT_FOUND
@@ -83,7 +84,7 @@ class HeldControllerSpec extends SCRSSpec with AuthFixture {
 
   "deleteSubmissionData" should {
     "return a 200 response when a user is logged in and their rejected submission data is deleted" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+      AuthorisationMocks.mockSuccessfulAuthorisation(regId, validAuthority)
       when(controller.service.deleteRejectedSubmissionData(Matchers.any())(Matchers.any())).thenReturn(Future.successful(true))
 
       val result = await(controller.deleteSubmissionData(regId)(FakeRequest()))
@@ -91,7 +92,7 @@ class HeldControllerSpec extends SCRSSpec with AuthFixture {
     }
 
     "return a 404 (Not found) response when a user's rejected submission data is not found" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+      AuthorisationMocks.mockAuthResourceNotFound(validAuthority)
       when(controller.service.deleteRejectedSubmissionData(Matchers.any())(Matchers.any())).thenReturn(Future.successful(false))
 
       val result = await(controller.deleteSubmissionData(regId)(FakeRequest()))
@@ -99,7 +100,7 @@ class HeldControllerSpec extends SCRSSpec with AuthFixture {
     }
 
     "return a Forbidden response when an unauthenticated user tries to delete submission data" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(None)
+      AuthorisationMocks.mockNotAuthorised(regId, validAuthority)
 
       val result = await(controller.deleteSubmissionData(regId)(FakeRequest()))
       status(result) shouldBe FORBIDDEN

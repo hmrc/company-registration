@@ -39,6 +39,10 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     val repository = new CorporationTaxRegistrationMongoRepository(mongo)
     await(repository.drop)
     await(repository.ensureIndexes)
+
+    def insert(reg: CorporationTaxRegistration) = await(repository.insert(reg))
+    def count = await(repository.count)
+    def retrieve(regId: String) = await(repository.retrieveCorporationTaxRegistration(regId))
   }
 
   def setupCollection(repo: CorporationTaxRegistrationMongoRepository, ctRegistration: CorporationTaxRegistration): Future[WriteResult] = {
@@ -209,11 +213,11 @@ class CorporationTaxRegistrationMongoRepositoryISpec
   }
 
   "removeTaxRegistrationById" should {
-    val registrationId = UUID.randomUUID.toString
+    val regId = UUID.randomUUID.toString
 
     val corporationTaxRegistration = CorporationTaxRegistration(
       internalId = "intId",
-      registrationID = registrationId,
+      registrationID = regId,
       formCreationTimestamp = "testDateTime",
       language = "en",
       companyDetails = Some(CompanyDetails(
@@ -233,13 +237,25 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     "remove all details under that RegId from the collection" in new Setup {
       await(setupCollection(repository, corporationTaxRegistration))
 
-      def retrieve = await(repository.retrieveCorporationTaxRegistration(registrationId))
 
-      lazy val response = repository.removeTaxRegistrationById(registrationId)
+      lazy val response = repository.removeTaxRegistrationById(regId)
 
-      retrieve shouldBe Some(corporationTaxRegistration)
+      retrieve(regId) shouldBe Some(corporationTaxRegistration)
       await(response) shouldBe true
-      retrieve  shouldBe None
+      retrieve(regId)  shouldBe None
+    }
+
+    "remove only the data associated with the supplied regId" in new Setup {
+      count shouldBe 0
+      insert(corporationTaxRegistration)
+      insert(corporationTaxRegistration.copy(registrationID = "otherRegId"))
+      count shouldBe 2
+
+      val result = await(repository.removeTaxRegistrationById(regId))
+
+      count shouldBe 1
+      retrieve(regId) shouldBe None
+      retrieve("otherRegId") shouldBe Some(corporationTaxRegistration.copy(registrationID = "otherRegId"))
     }
   }
 
