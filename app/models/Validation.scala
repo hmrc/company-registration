@@ -64,7 +64,7 @@ trait CompanyDetailsValidator {
 
   import Validation._
 
-  val companyNameValidator = readToFmt(pattern("^[A-Za-z 0-9\\-,.()/'&amp;&quot;!%*_+:@&lt;&gt;?=;]{1,160}$".r))
+  val companyNameValidator = readToFmt(pattern("^[A-Za-z 0-9\\-,.()/'&\"!%*_+:@<>?=;]{1,160}$".r))
 }
 
 trait ContactDetailsValidator {
