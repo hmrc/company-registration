@@ -27,7 +27,7 @@ import play.api.Play
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.play.audit.http.HttpAuditing
 import uk.gov.hmrc.play.audit.http.config.LoadAuditingConfig
-import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.config.{AppName, RunMode}
 import uk.gov.hmrc.play.http.logging.SessionId
 import uk.gov.hmrc.play.http.ws.{WSGet, WSPost, WSPut}
@@ -120,6 +120,9 @@ class DesConnectorSpec extends UnitSpec with OneServerPerSuite with MockitoSugar
     "for an invalid request, return the reason" in new Setup {
       when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
         thenReturn(Future.successful(HttpResponse(400, responseJson = Some(Json.obj("reason" -> "wibble")))))
+
+      when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any()))
+        .thenReturn(Future.successful(AuditResult.Success))
 
       val result = await(connector.ctSubmission("",submission,"testJID"))
 

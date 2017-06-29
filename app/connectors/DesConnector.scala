@@ -16,6 +16,7 @@
 
 package connectors
 
+import audit.DesSubmissionEventFailure
 import config.{MicroserviceAuditConnector, WSHttp}
 import play.api.Logger
 import play.api.http.Status._
@@ -65,23 +66,26 @@ trait DesConnector extends ServicesConfig with AuditService with RawResponseRead
   def ctSubmission(ackRef:String, submission: JsObject, journeyId : String)(implicit headerCarrier: HeaderCarrier): Future[DesResponse] = {
     val url: String = s"""${serviceURL}${baseURI}${ctRegistrationURI}"""
     val response = cPOST(url, submission)
-    response map { r =>
+    response flatMap { r =>
       sendCTRegSubmissionEvent(buildCTRegSubmissionEvent(ctRegSubmissionFromJson(journeyId, r.json.as[JsObject])))
       r.status match {
         case OK =>
           Logger.info(s"Successful Des submission for ackRef ${ackRef} to ${url}")
-          SuccessDesResponse(r.json.as[JsObject])
+          Future.successful(SuccessDesResponse(r.json.as[JsObject]))
         case ACCEPTED =>
           Logger.info(s"Accepted Des submission for ackRef ${ackRef} to ${url}")
-          SuccessDesResponse(r.json.as[JsObject])
+          Future.successful(SuccessDesResponse(r.json.as[JsObject]))
         case CONFLICT => {
           Logger.warn(s"ETMP reported a duplicate submission for ack ref ${ackRef}")
-          SuccessDesResponse(r.json.as[JsObject])
+          Future.successful(SuccessDesResponse(r.json.as[JsObject]))
         }
         case BAD_REQUEST => {
           val message = (r.json \ "reason").as[String]
           Logger.warn(s"ETMP reported an error with the request ${message}")
-          InvalidDesRequest(message)
+          val event = new DesSubmissionEventFailure(journeyId, submission)
+          auditConnector.sendEvent(event) map {
+            _ => InvalidDesRequest(message)
+          }
         }
       }
     } recover {
