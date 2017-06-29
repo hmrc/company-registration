@@ -18,13 +18,14 @@ package audit
 
 import play.api.libs.json.{JsObject, JsString, Json, Writes}
 import uk.gov.hmrc.play.http.HeaderCarrier
+import RegistrationAuditEvent.JOURNEY_ID
 
 case class DesSubmissionAuditEventDetail(regId: String,
                                          jsSubmission: JsObject)
 
 object DesSubmissionAuditEventDetail {
 
-  import RegistrationAuditEvent.{JOURNEY_ID, ACK_REF, REG_METADATA, CORP_TAX}
+  import RegistrationAuditEvent.{ACK_REF, REG_METADATA, CORP_TAX}
 
   implicit val writes = new Writes[DesSubmissionAuditEventDetail] {
     def writes(detail: DesSubmissionAuditEventDetail) = {
@@ -42,3 +43,6 @@ object DesSubmissionAuditEventDetail {
 
 class DesSubmissionEvent(details: DesSubmissionAuditEventDetail)(implicit hc: HeaderCarrier)
   extends RegistrationAuditEvent("ctRegistrationSubmission", None, Json.toJson(details).as[JsObject])(hc)
+
+class DesSubmissionEventFailure(regId: String, details: JsObject)(implicit hc: HeaderCarrier)
+  extends RegistrationAuditEvent("ctRegistrationSubmissionFailed", None, Json.obj("submission" -> details, JOURNEY_ID -> regId))(hc)
