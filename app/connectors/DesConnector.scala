@@ -16,6 +16,7 @@
 
 package connectors
 
+import audit.DesSubmissionEventFailure
 import config.{MicroserviceAuditConnector, WSHttp}
 import play.api.Logger
 import play.api.http.Status._
@@ -81,7 +82,10 @@ trait DesConnector extends ServicesConfig with AuditService with RawResponseRead
         case BAD_REQUEST => {
           val message = (r.json \ "reason").as[String]
           Logger.warn(s"ETMP reported an error with the request ${message}")
-          InvalidDesRequest(message)
+          val event = new DesSubmissionEventFailure(journeyId, submission)
+          auditConnector.sendEvent(event) map {
+              _ => InvalidDesRequest(message)
+          }
         }
       }
     } recover {
