@@ -18,7 +18,12 @@ package services
 
 import connectors.{AuthConnector, SendEmailConnector}
 import models.SendEmailRequest
+import play.api.mvc.{AnyContent, Request}
+import sun.security.krb5.internal.AuthContext
 import uk.gov.hmrc.play.config.ServicesConfig
+import uk.gov.hmrc.play.http.HeaderCarrier
+
+import scala.concurrent.Future
 
 
 object SendEmailService extends SendEmailService with ServicesConfig {
@@ -42,5 +47,11 @@ object SendEmailService extends SendEmailService with ServicesConfig {
           force = true
         )
     }
+
+    def sendVATEmail(emailAddress :String)
+                        (implicit hc: HeaderCarrier): Future[Boolean] = {
+
+      SendEmailConnector.requestEmail(generateVATEmailRequest(Seq(emailAddress)))
+          }
 
   }

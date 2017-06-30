@@ -46,6 +46,7 @@ object RegistrationHoldingPenService
   override val brConnector = BusinessRegistrationConnector
   override val auditConnector = MicroserviceAuditConnector
   override val microserviceAuthConnector = AuthConnector
+  val sendEmailService = SendEmailService
 }
 
 private[services] class InvalidSubmission(val message: String) extends NoStackTrace
@@ -68,6 +69,7 @@ trait RegistrationHoldingPenService extends DateHelper {
   val brConnector: BusinessRegistrationConnector
   val auditConnector: AuditConnector
   val microserviceAuthConnector: AuthConnector
+  val sendEmailService : SendEmailService
 
   private[services] case class FailedToRetrieveByTxId(transId: String) extends NoStackTrace
   private[services] class FailedToRetrieveByAckRef extends NoStackTrace
@@ -103,6 +105,7 @@ trait RegistrationHoldingPenService extends DateHelper {
       case "accepted" =>
         for {
           ctReg <- fetchRegistrationByTxId(item.transactionId)
+          emailResult <- sendEmailService.sendVATEmail(ctReg.verifiedEmail.get.address)
           result <- updateSubmissionWithIncorporation(item, ctReg)
         } yield {
           if(result) result else throw FailedToUpdateSubmissionWithAcceptedIncorp
