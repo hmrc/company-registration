@@ -32,10 +32,11 @@ class PPOBAddressSpec extends UnitSpec with JsonFormatValidation {
   def jsonLine(key: S, value: S, comma: Boolean): OS = Some(s""""${key}" : "${value}"${lineEnd(comma)}""")
   def jsonLine(key: S, value: OS, comma: Boolean = true): OS = value.map(v=>s""""${key}" : "${v}"${lineEnd(comma)}""")
 
-  def j(line1: S = "1", line3: OS = None, pc: OS = None, country: OS = None, uprn: OS = None): S = {
+  def j(line1: S = "1", line3: OS = None, line4: OS = None, pc: OS = None, country: OS = None, uprn: OS = None): S = {
     val extra: S = Seq(
       jsonLine("addressLine1", line1, false),
       jsonLine("addressLine3", line3, false),
+      jsonLine("addressLine4", line4, false),
       jsonLine("postCode", pc, false),
       jsonLine("country", country, false),
       jsonLine("uprn", uprn, false)
@@ -98,6 +99,23 @@ class PPOBAddressSpec extends UnitSpec with JsonFormatValidation {
       val result = Json.parse(json).validate[PPOBAddress]
 
       shouldBeSuccess(expected, result)
+    }
+
+    "Be able to be parsed from JSON - 18 chars in line 4" in {
+      val line3 = Some("Line3")
+      val addressLine4 = Some("18charsinaddLine4x")
+      val json = j(line3=line3, line4=addressLine4, country=Some("c"), uprn=Some("xxx"))
+      val expected = PPOBAddress("1", "2", line3, Some("18charsinaddLine4x"), None, Some("c"), Some("xxx"), "txid")
+      val result = Json.parse(json).validate[PPOBAddress]
+      shouldBeSuccess(expected, result)
+    }
+
+    "Fail if 19chars in Address Line 4" in {
+      val line3 = Some("Line3")
+      val line4 = Some("19charsinaddLine4xx")
+      val json = j(line3=line3, line4=line4, country=Some("c"), uprn=Some("xxx"))
+      val result = Json.parse(json).validate[PPOBAddress]
+      shouldHaveErrors(result, JsPath() \ "addressLine4", Seq(ValidationError("error.maxLength", 18),ValidationError("error.pattern")))
     }
 
     "fail to be read from JSON if line2 is empty string" in {
