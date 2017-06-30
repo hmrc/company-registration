@@ -48,6 +48,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
   val mockBRConnector = mock[BusinessRegistrationConnector]
   val mockAuthConnector = mock[AuthConnector]
   val mockAuditConnector = mock[AuditConnector]
+  val mockSendEmailService = mock[SendEmailService]
 
   override def beforeEach() {
     resetMocks()
@@ -74,6 +75,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
     val brConnector = mockBRConnector
     val auditConnector = mockAuditConnector
     val microserviceAuthConnector = mockAuthConnector
+    val sendEmailService = mockSendEmailService
   }
 
   trait Setup {
@@ -96,7 +98,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
   val testRegId = UUID.randomUUID.toString
   val transId = UUID.randomUUID().toString
   val validCR = validHeldCTRegWithData(ackRef=Some(testAckRef)).copy(
-    accountsPreparation = Some(AccountPrepDetails(AccountPrepDetails.COMPANY_DEFINED,Some(date("2017-01-01"))))
+    accountsPreparation = Some(AccountPrepDetails(AccountPrepDetails.COMPANY_DEFINED,Some(date("2017-01-01")))), verifiedEmail = Some(Email("testemail.com","",true,true,true))
   )
   import RegistrationStatus._
   val submittedCR = validCR.copy(status = SUBMITTED)
@@ -473,7 +475,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
       when(mockCTRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
         .thenReturn(Future.successful(Some(validCR)))
-
+      when(mockSendEmailService.sendVATEmail(Matchers.eq("testemail.com"))(Matchers.any[HeaderCarrier]())).thenReturn(Future.successful(true))
       await(serviceTrue.processIncorporationUpdate(incorpSuccess)) shouldBe true
 //
 //      verify(mockAuditConnector, times(1)).sendEvent(captor.capture())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]())
