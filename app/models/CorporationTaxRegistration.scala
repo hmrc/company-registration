@@ -206,7 +206,7 @@ object PPOBAddress extends HMRCAddressValidator {
     ((__ \ "addressLine1").format[String](lineValidator) and
       (__ \ "addressLine2").format[String](lineValidator) and
       (__ \ "addressLine3").formatNullable[String](lineValidator) and
-      (__ \ "addressLine4").formatNullable[String](lineValidator) and
+      (__ \ "addressLine4").formatNullable[String](line4Validator) and
       (__ \ "postCode").formatNullable[String](postcodeValidator) and
       (__ \ "country").formatNullable[String](countryValidator) and
       (__ \ "uprn").formatNullable[String] and
