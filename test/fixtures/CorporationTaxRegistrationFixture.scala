@@ -17,7 +17,7 @@
 package fixtures
 
 import models._
-import play.api.libs.json.Json
+import play.api.libs.json.{JsObject, Json}
 
 case class CorporationTaxRegistrationResponse(
   registrationID: String,
@@ -94,4 +94,48 @@ trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with Accou
       Links(Some(s"/company-registration/corporation-tax-registration/$regId"))
     )
   }
+
+  val heldJson: JsObject = Json.parse(
+    """
+      |{
+      |   "acknowledgementReference":"BRCT00000000001",
+      |   "registration":{
+      |      "metadata":{
+      |         "businessType":"Limited company",
+      |         "submissionFromAgent":false,
+      |         "declareAccurateAndComplete":true,
+      |         "sessionId":"session-152ebc2f-8e0d-4137-8236-058b295fe52f",
+      |         "credentialId":"cred-id-254524311264",
+      |         "language":"ENG",
+      |         "formCreationTimestamp":"2017-07-03T13:19:54.000+01:00",
+      |         "completionCapacity":"Director"
+      |      },
+      |      "corporationTax":{
+      |         "companyOfficeNumber":"623",
+      |         "hasCompanyTakenOverBusiness":false,
+      |         "companyMemberOfGroup":false,
+      |         "companiesHouseCompanyName":"Company Name Ltd",
+      |         "returnsOnCT61":false,
+      |         "companyACharity":false,
+      |         "businessAddress":{
+      |            "line1":"12 address line 1",
+      |            "line2":"address line 2",
+      |            "line3":"address line 3",
+      |            "line4":"address line 4",
+      |            "postcode":"ZZ11 1ZZ"
+      |         },
+      |         "businessContactName":{
+      |            "firstName":"MGD",
+      |            "middleNames":"GG Stub Test",
+      |            "lastName":"Org"
+      |         },
+      |         "businessContactDetails":{
+      |            "phoneNumber":"1234",
+      |            "mobileNumber":"123456",
+      |            "email":"6email@whatever.com"
+      |         }
+      |      }
+      |   }
+      |}
+    """.stripMargin).as[JsObject]
 }

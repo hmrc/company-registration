@@ -25,7 +25,7 @@ import models._
 import org.joda.time.DateTime
 import org.mockito.{ArgumentCaptor, Matchers}
 import org.scalatest.mock.MockitoSugar
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsString, JsPath, JsObject, Json}
 import repositories.{CorporationTaxRegistrationRepository, HeldSubmission, HeldSubmissionRepository, StateDataRepository}
 import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
@@ -76,6 +76,8 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
     val auditConnector = mockAuditConnector
     val microserviceAuthConnector = mockAuthConnector
     val sendEmailService = mockSendEmailService
+    override val addressLine4FixRegID: String = "false"
+    override val amendedAddressLine4: String = ""
   }
 
   trait Setup {
@@ -85,6 +87,13 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
   trait SetupMockedAudit {
     val service = new mockService {
       override def processSuccessDesResponse(item: IncorpUpdate, ctReg: CorporationTaxRegistration, auditDetail: JsObject)(implicit hc: HeaderCarrier) = Future.successful(true)
+    }
+  }
+
+  class SetupWithAddressLine4Fix(regId: String, addressLine4: String) {
+    val service = new mockService {
+      override val addressLine4FixRegID: String = regId
+      override val amendedAddressLine4: String = addressLine4
     }
   }
 
@@ -198,6 +207,10 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
   "fetchHeldData" should {
     //import RegistrationHoldingPenService.FailedToRetrieveByAckRef
 
+    val regId = "reg-12345"
+    val ackRef = "ack-12345"
+    val addressLine4 = "testAddressLine4"
+
     "return a valid Held record found" in new Setup {
       when(mockHeldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
         .thenReturn(Future.successful(Some(validHeld)))
@@ -205,13 +218,18 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       val result = service.fetchHeldData(testAckRef)
       await(result) shouldBe validHeld
     }
-//    "return a FailedToRetrieveByTxId when a record cannot be retrieved" in new Setup {
-//      when(mockHeldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
-//        .thenReturn(Future.successful(None))
-//
-//      val result = service.fetchHeldData(testAckRef)
-//      intercept[FailedToRetrieveByAckRef](await(result))
-//    }
+
+    "return an amended address line 4 held record if the regId from config matces the documents" in new SetupWithAddressLine4Fix(regId, addressLine4) {
+      val held = HeldSubmission(regId, ackRef, heldJson)
+
+      when(mockHeldRepo.retrieveSubmissionByAckRef(Matchers.any()))
+        .thenReturn(Future.successful(Some(held)))
+
+      val result = await(service.fetchHeldData(ackRef))
+
+      result shouldNot be(held)
+      (result.submission \ "registration" \ "corporationTax" \ "businessAddress" \ "line4").toOption shouldBe Some(JsString(addressLine4))
+    }
   }
 
   "activeDates" should {
@@ -521,6 +539,23 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
         .thenReturn(Future.successful(true))
 
       await(service.processIncorporationUpdate(incorpRejected)) shouldBe true
+    }
+  }
+
+  "addressLine4Fix" should {
+
+    val regId = "reg-12345"
+    val addressLine4 = "testAL4"
+    val addressLine4Json = JsString(addressLine4)
+
+    "amend a held submissions' address line 4 with the one provided through config if the reg id's match" in new SetupWithAddressLine4Fix(regId, addressLine4) {
+      val result = await(service.addressLine4Fix(regId, heldJson))
+      (result \ "registration" \ "corporationTax" \ "businessAddress" \ "line4").toOption shouldBe Some(addressLine4Json)
+    }
+
+    "do not amend a held submissions' address line 4 if the reg id's do not match" in new SetupWithAddressLine4Fix("otherRegID", addressLine4) {
+      val result = await(service.addressLine4Fix(regId, heldJson))
+      result shouldBe heldJson
     }
   }
 }
