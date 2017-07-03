@@ -42,7 +42,6 @@ trait Authorisation[I] {
       resource <- resourceConn.getInternalId(id)
       result <- f(mapToAuthResult(authority, resource))
     } yield {
-      Logger.debug(s"Got authority = $authority")
       result
     }
   }
@@ -52,7 +51,6 @@ trait Authorisation[I] {
       authority <- auth.getCurrentAuthority()
       resource <- resourceConn.getInternalId(registrationId)
     } yield {
-      Logger.debug(s"Got authority = $authority")
       mapToAuthResult(authority, resource)
     }
 

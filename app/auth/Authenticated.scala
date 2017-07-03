@@ -33,13 +33,10 @@ trait Authenticated {
   val auth: AuthConnector
 
   def authenticated(f: => AuthenticationResult => Future[Result])(implicit hc: HeaderCarrier): Future[Result] = {
-    Logger.debug(s"Current user id is ${hc.userId}") // always outputs NONE :-(
-
     for {
       authority <- auth.getCurrentAuthority()
       result <- f(mapToAuthResult(authority))
     } yield {
-      Logger.debug(s"Got authority = $authority")
       result
     }
   }

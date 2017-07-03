@@ -25,9 +25,10 @@ import helpers.DateHelper
 import models._
 import org.joda.time.DateTime
 import play.api.Logger
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsPath, JsObject, Json}
 import repositories._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -36,7 +37,7 @@ import scala.util.control.NoStackTrace
 
 
 object RegistrationHoldingPenService
-  extends RegistrationHoldingPenService {
+  extends RegistrationHoldingPenService with ServicesConfig {
   override val desConnector = DesConnector
   override val incorporationCheckAPIConnector = IncorporationCheckAPIConnector
   override val stateDataRepository = Repositories.stateDataRepository
@@ -47,6 +48,9 @@ object RegistrationHoldingPenService
   override val auditConnector = MicroserviceAuditConnector
   override val microserviceAuthConnector = AuthConnector
   val sendEmailService = SendEmailService
+
+  val addressLine4FixRegID = getConfString("address-line-4-fix.regId", throw new Exception("could not find config key address-line-4-fix.regId"))
+  val amendedAddressLine4 = getConfString("address-line-4-fix.address-line-4", throw new Exception("could not find config key address-line-4-fix.address-line-4"))
 }
 
 private[services] class InvalidSubmission(val message: String) extends NoStackTrace
@@ -70,6 +74,9 @@ trait RegistrationHoldingPenService extends DateHelper {
   val auditConnector: AuditConnector
   val microserviceAuthConnector: AuthConnector
   val sendEmailService : SendEmailService
+
+  val addressLine4FixRegID: String
+  val amendedAddressLine4: String
 
   private[services] case class FailedToRetrieveByTxId(transId: String) extends NoStackTrace
   private[services] class FailedToRetrieveByAckRef extends NoStackTrace
@@ -268,10 +275,22 @@ trait RegistrationHoldingPenService extends DateHelper {
     }
   }
 
-  private[services] def fetchHeldData(ackRef: String) = {
+  private[services] def fetchHeldData(ackRef: String): Future[HeldSubmission] = {
     heldRepo.retrieveSubmissionByAckRef(ackRef) flatMap {
-      case Some(held) => Future.successful(held)
+      case Some(held) => Future.successful(held.copy(submission = addressLine4Fix(held.regId, held.submission)))
       case None => Future.failed(new FailedToRetrieveByAckRef)
+    }
+  }
+
+  private[services] def addressLine4Fix(regId: String, held: JsObject): JsObject = {
+    if(regId == addressLine4FixRegID){
+      held.deepMerge(
+        Json.obj("registration" ->
+          Json.obj("corporationTax" ->
+            Json.obj("businessAddress" ->
+              Json.obj("line4" -> amendedAddressLine4)))))
+    } else {
+      held
     }
   }
 
