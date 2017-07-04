@@ -16,7 +16,7 @@
 
 package services
 
-import javax.inject.Inject
+import java.util.Base64
 
 import audit._
 import config.MicroserviceAuditConnector
@@ -25,7 +25,7 @@ import helpers.DateHelper
 import models._
 import org.joda.time.DateTime
 import play.api.Logger
-import play.api.libs.json.{JsPath, JsObject, Json}
+import play.api.libs.json.{JsObject, Json}
 import repositories._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.config.ServicesConfig
@@ -34,7 +34,6 @@ import uk.gov.hmrc.play.http.HeaderCarrier
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.control.NoStackTrace
-
 
 object RegistrationHoldingPenService
   extends RegistrationHoldingPenService with ServicesConfig {
@@ -284,11 +283,12 @@ trait RegistrationHoldingPenService extends DateHelper {
 
   private[services] def addressLine4Fix(regId: String, held: JsObject): JsObject = {
     if(regId == addressLine4FixRegID){
+      val decodedAddressLine4 = new String(Base64.getDecoder.decode(amendedAddressLine4), "UTF-8")
       held.deepMerge(
         Json.obj("registration" ->
           Json.obj("corporationTax" ->
             Json.obj("businessAddress" ->
-              Json.obj("line4" -> amendedAddressLine4)))))
+              Json.obj("line4" -> decodedAddressLine4.mkString)))))
     } else {
       held
     }
