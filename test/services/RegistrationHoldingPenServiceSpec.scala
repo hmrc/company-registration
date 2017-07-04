@@ -16,12 +16,13 @@
 
 package services
 
-import java.util.UUID
+import java.util.{Base64, UUID}
 
 import audit.{DesSubmissionEvent, RegistrationAuditEvent, SuccessfulIncorporationAuditEvent}
 import connectors._
 import fixtures.CorporationTaxRegistrationFixture
 import models._
+import org.jboss.netty.handler.codec.base64.Base64Decoder
 import org.joda.time.DateTime
 import org.mockito.{ArgumentCaptor, Matchers}
 import org.scalatest.mock.MockitoSugar
@@ -209,7 +210,8 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
     val regId = "reg-12345"
     val ackRef = "ack-12345"
-    val addressLine4 = "testAddressLine4"
+    val addressLine4 = "testAL4"
+    val encodedAddressLine4 = "dGVzdEFMNA=="
 
     "return a valid Held record found" in new Setup {
       when(mockHeldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
@@ -219,7 +221,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       await(result) shouldBe validHeld
     }
 
-    "return an amended address line 4 held record if the regId from config matces the documents" in new SetupWithAddressLine4Fix(regId, addressLine4) {
+    "return an amended address line 4 held record if the regId from config matces the documents" in new SetupWithAddressLine4Fix(regId, encodedAddressLine4) {
       val held = HeldSubmission(regId, ackRef, heldJson)
 
       when(mockHeldRepo.retrieveSubmissionByAckRef(Matchers.any()))
@@ -546,14 +548,15 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
     val regId = "reg-12345"
     val addressLine4 = "testAL4"
+    val encodedAddressLine4 = "dGVzdEFMNA=="
     val addressLine4Json = JsString(addressLine4)
 
-    "amend a held submissions' address line 4 with the one provided through config if the reg id's match" in new SetupWithAddressLine4Fix(regId, addressLine4) {
+    "amend a held submissions' address line 4 with the one provided through config if the reg id's match" in new SetupWithAddressLine4Fix(regId, encodedAddressLine4) {
       val result = await(service.addressLine4Fix(regId, heldJson))
       (result \ "registration" \ "corporationTax" \ "businessAddress" \ "line4").toOption shouldBe Some(addressLine4Json)
     }
 
-    "do not amend a held submissions' address line 4 if the reg id's do not match" in new SetupWithAddressLine4Fix("otherRegID", addressLine4) {
+    "do not amend a held submissions' address line 4 if the reg id's do not match" in new SetupWithAddressLine4Fix("otherRegID", encodedAddressLine4) {
       val result = await(service.addressLine4Fix(regId, heldJson))
       result shouldBe heldJson
     }
