@@ -79,6 +79,8 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
     val sendEmailService = mockSendEmailService
     override val addressLine4FixRegID: String = "false"
     override val amendedAddressLine4: String = ""
+    override val blockageLoggingDay : String = "MON,TUE"
+    override val blockageLoggingTime : String = "08:00:00_17:00:00"
   }
 
   trait Setup {

@@ -16,6 +16,7 @@
 
 package services
 
+import java.time.LocalTime
 import java.util.Base64
 
 import audit._
@@ -30,6 +31,7 @@ import repositories._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http.HeaderCarrier
+import utils.DateCalculators
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -50,6 +52,8 @@ object RegistrationHoldingPenService
 
   val addressLine4FixRegID = getConfString("address-line-4-fix.regId", throw new Exception("could not find config key address-line-4-fix.regId"))
   val amendedAddressLine4 = getConfString("address-line-4-fix.address-line-4", throw new Exception("could not find config key address-line-4-fix.address-line-4"))
+  val blockageLoggingDay = getConfString("check-submission-job.schedule.blockage-logging-day", throw new RuntimeException(s"Could not find config schedule.blockage-logging-day"))
+  val blockageLoggingTime = getConfString("check-submission-job.schedule.blockage-logging-time", throw new RuntimeException(s"Could not find config schedule.blockage-logging-time"))
 }
 
 private[services] class InvalidSubmission(val message: String) extends NoStackTrace
@@ -76,10 +80,14 @@ trait RegistrationHoldingPenService extends DateHelper {
 
   val addressLine4FixRegID: String
   val amendedAddressLine4: String
+  val blockageLoggingDay : String
+  val blockageLoggingTime : String
 
-  private[services] case class FailedToRetrieveByTxId(transId: String) extends NoStackTrace
+//  case class FailedToRetrieveByTxId(transId: String) extends NoStackTrace
+  class FailedToRetrieveByTxId(val transId: String) extends NoStackTrace
   private[services] class FailedToRetrieveByAckRef extends NoStackTrace
   private[services] class MissingAccountingDates extends NoStackTrace
+
 
   def updateNextSubmissionByTimepoint(implicit hc: HeaderCarrier): Future[String] = {
     fetchIncorpUpdate flatMap { items =>
@@ -261,8 +269,18 @@ trait RegistrationHoldingPenService extends DateHelper {
     Logger.debug(s"""Got tx_id "${transId}" """)
     ctRepository.retrieveRegistrationByTransactionID(transId) flatMap {
       case Some(s) => Future.successful(s)
-      case None => Future.failed(new FailedToRetrieveByTxId(transId))
+      case None =>
+        if(inWorkingHours) {
+          Logger.error(s"We have an incorp blockage")
+          Logger.error(s"BLOCKAGE :  We have an incorp blockage with txid ${transId}")
+        }
+        Future.failed(throw new FailedToRetrieveByTxId(transId))
     }
+  }
+
+  def inWorkingHours: Boolean = {
+    DateCalculators.loggingDay(blockageLoggingDay, DateCalculators.getTheDay(DateTime.now)) &&
+      DateCalculators.loggingTime(blockageLoggingTime, LocalTime.now)
   }
 
   private[services] def activeDate(date: AccountingDetails) = {

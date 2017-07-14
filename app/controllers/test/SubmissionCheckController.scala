@@ -52,7 +52,12 @@ trait SubmissionCheckController extends BaseController {
     implicit request =>
       lock.tryLock[String] {
         Logger.info(s"[Test] [SubmissionCheckController] Triggered $name")
-        service.updateNextSubmissionByTimepoint
+        service.updateNextSubmissionByTimepoint recover {
+          case ex: RegistrationHoldingPenService.FailedToRetrieveByTxId =>
+            ex.getClass.toString
+          case ex =>
+            ex.getClass.toString
+        }
       } map {
         case Some(x) =>
           Logger.info(s"successfully acquired lock for $name")
@@ -61,7 +66,8 @@ trait SubmissionCheckController extends BaseController {
           Logger.info(s"failed to acquire lock for $name")
           Ok(s"$name failed - could not acquire lock")
       } recover {
-        case ex: Exception => InternalServerError(s"$name failed - An error has occurred during the submission - ${ex.getMessage}")
+        case ex: Exception =>
+          InternalServerError(s"$name failed - An error has occurred during the submission - ${ex.getMessage}")
       }
   }
 }
