@@ -70,12 +70,13 @@ class SubmissionCheckControllerSpec extends UnitSpec with MockitoSugar {
       bodyOf(result) shouldBe res
     }
 
-    "return a 500 with the exception message when a failed future is supplied" in new Setup(true) {
+    "return a 200 with the exception message when a failed future is supplied" in new Setup(true) {
       when(mockRegHoldingPenService.updateNextSubmissionByTimepoint(Matchers.any()))
-        .thenReturn(Future.failed(new Exception("ex message")))
+//        .thenReturn(Future.failed(new RegistrationHoldingPenService.FailedToRetrieveByTxId("")))
+        .thenReturn(Future.successful("test failed - An error has occurred during the submission - ex message"))
 
       val result = await(controller.triggerSubmissionCheck(FakeRequest()))
-      status(result) shouldBe 500
+      status(result) shouldBe 200
       bodyOf(result) shouldBe s"${controller.name} failed - An error has occurred during the submission - ex message"
     }
 
