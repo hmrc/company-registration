@@ -271,7 +271,7 @@ trait RegistrationHoldingPenService extends DateHelper {
       case Some(s) => Future.successful(s)
       case None =>
         if(inWorkingHours) {
-          Logger.error("We have an incorp blockage")
+          Logger.error("INCORP_BLOCKAGE")
         }
         Logger.error(s"BLOCKAGE :  We have an incorp blockage with txid ${transId}")
         Future.failed(throw new FailedToRetrieveByTxId(transId))
