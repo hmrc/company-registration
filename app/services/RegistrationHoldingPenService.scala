@@ -105,6 +105,12 @@ trait RegistrationHoldingPenService extends DateHelper {
     }
   }
 
+  def updateIncorp(incorpStatus: IncorpStatus, isAdmin: Boolean = false)(implicit hc: HeaderCarrier): Future[Boolean] = {
+    val incorpUpdate = incorpStatus.toIncorpUpdate
+    processIncorporationUpdate(incorpUpdate, isAdmin)
+  }
+
+
   def deleteRejectedSubmissionData(regId: String)(implicit hc: HeaderCarrier): Future[Boolean] = {
     for {
       ctDeleted <- ctRepository.removeTaxRegistrationById(regId)
@@ -114,13 +120,13 @@ trait RegistrationHoldingPenService extends DateHelper {
     }
   }
 
-  private[services] def processIncorporationUpdate(item : IncorpUpdate)(implicit hc: HeaderCarrier): Future[Boolean] = {
+  private[services] def processIncorporationUpdate(item : IncorpUpdate, isAdmin: Boolean = false)(implicit hc: HeaderCarrier): Future[Boolean] = {
     item.status match {
       case "accepted" =>
         for {
           ctReg <- fetchRegistrationByTxId(item.transactionId)
           emailResult <- sendEmailService.sendVATEmail(ctReg.verifiedEmail.get.address)
-          result <- updateSubmissionWithIncorporation(item, ctReg)
+          result <- updateSubmissionWithIncorporation(item, ctReg, isAdmin)
         } yield {
           if(result) result else throw FailedToUpdateSubmissionWithAcceptedIncorp
         }
@@ -138,27 +144,27 @@ trait RegistrationHoldingPenService extends DateHelper {
     }
   }
 
-  private[services] def updateSubmissionWithIncorporation(item: IncorpUpdate, ctReg: CorporationTaxRegistration)(implicit hc : HeaderCarrier): Future[Boolean] = {
+  private[services] def updateSubmissionWithIncorporation(item: IncorpUpdate, ctReg: CorporationTaxRegistration, isAdmin: Boolean = false)(implicit hc : HeaderCarrier): Future[Boolean] = {
     import RegistrationStatus.{HELD,SUBMITTED}
     ctReg.status match {
-      case HELD => updateHeldSubmission(item, ctReg, ctReg.registrationID)
+      case HELD => updateHeldSubmission(item, ctReg, ctReg.registrationID, isAdmin)
       case SUBMITTED => updateSubmittedSubmission(ctReg)
       case unknown => updateOtherSubmission(ctReg.registrationID, item.transactionId, unknown)
     }
   }
 
-  private[services] def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration, journeyId : String)(implicit hc : HeaderCarrier) : Future[Boolean] = {
+  private[services] def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration, journeyId : String, isAdmin: Boolean = false)(implicit hc : HeaderCarrier) : Future[Boolean] = {
     getAckRef(ctReg) match {
       case Some(ackRef) =>
         val fResponse = for {
           submission <- constructFullSubmission(item, ctReg, ackRef)
-          response <- postSubmissionToDes(ackRef, submission, journeyId)
+          response <- postSubmissionToDes(ackRef, submission, journeyId, isAdmin)
           _ <- auditSuccessfulIncorporation(item, ctReg)
         } yield {
           (response, submission)
         }
         fResponse flatMap {
-          case (SuccessDesResponse(response), auditDetail) => processSuccessDesResponse(item, ctReg, auditDetail)
+          case (SuccessDesResponse(response), auditDetail) => processSuccessDesResponse(item, ctReg, auditDetail,isAdmin)
           case (InvalidDesRequest(message), _) => processInvalidDesRequest(ackRef, message)
           case (NotFoundDesResponse, _) => processNotFoundDesResponse(ackRef)
           case (DesErrorResponse, _) => processDesErrorResponse(ackRef)
@@ -167,9 +173,10 @@ trait RegistrationHoldingPenService extends DateHelper {
     }
   }
 
-  private[services] def processSuccessDesResponse(item: IncorpUpdate, ctReg: CorporationTaxRegistration, auditDetail : JsObject)(implicit hc: HeaderCarrier): Future[Boolean] = {
+  private[services] def processSuccessDesResponse(item: IncorpUpdate, ctReg: CorporationTaxRegistration, auditDetail : JsObject, isAdmin: Boolean = false)
+                                                 (implicit hc: HeaderCarrier): Future[Boolean] = {
     for {
-      _ <- auditDesSubmission(ctReg.registrationID, auditDetail)
+      _ <- auditDesSubmission(ctReg.registrationID, auditDetail, isAdmin)
       updated <- ctRepository.updateHeldToSubmitted(ctReg.registrationID, item.crn.get, formatTimestamp(now))
       deleted <- heldRepo.removeHeldDocument(ctReg.registrationID)
     } yield {
@@ -177,8 +184,8 @@ trait RegistrationHoldingPenService extends DateHelper {
     }
   }
 
-  private[services] def auditDesSubmission(rID: String, jsSubmission: JsObject)(implicit hc: HeaderCarrier) = {
-    val event = new DesSubmissionEvent(DesSubmissionAuditEventDetail(rID, jsSubmission))
+  private[services] def auditDesSubmission(rID: String, jsSubmission: JsObject, isAdmin: Boolean = false)(implicit hc: HeaderCarrier) = {
+    val event = new DesSubmissionEvent(DesSubmissionAuditEventDetail(rID, jsSubmission),isAdmin)
     auditConnector.sendEvent(event)
   }
 
@@ -345,8 +352,8 @@ trait RegistrationHoldingPenService extends DateHelper {
       )
   }
 
-  private[services] def postSubmissionToDes(ackRef: String, submission: JsObject, journeyId : String) = {
+  private[services] def postSubmissionToDes(ackRef: String, submission: JsObject, journeyId : String, isAdmin: Boolean = false) = {
     val hc = new HeaderCarrier()
-    desConnector.ctSubmission(ackRef, submission, journeyId)(hc)
+    desConnector.ctSubmission(ackRef, submission, journeyId, isAdmin)(hc)
   }
 }

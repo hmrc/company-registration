@@ -34,6 +34,7 @@ class Module extends AbstractModule {
 
     bind(classOf[EmailController]) to classOf[EmailControllerImp]
     bind(classOf[AccountingDetailsController]) to classOf[AccountingDetailsControllerImp]
+    bind(classOf[ProcessIncorporationsController]) to classOf[ProcessIncorporationsControllerImp]
     bind(classOf[CompanyDetailsController]) to classOf[CompanyDetailsControllerImp]
     bind(classOf[ContactDetailsController]) to classOf[ContactDetailsControllerImp]
     bind(classOf[CorporationTaxRegistrationController]) to classOf[CorporationTaxRegistrationControllerImp]
@@ -41,7 +42,6 @@ class Module extends AbstractModule {
     bind(classOf[UserAccessController]) to classOf[UserAccessControllerImp]
 
     bindServices()
-
   }
 
   private def bindServices() {
@@ -54,7 +54,6 @@ class Module extends AbstractModule {
     bind(classOf[ThrottleService]) to classOf[ThrottleServiceImp]
     bind(classOf[TradingDetailsService]) to classOf[TradingDetailsServiceImp]
     bind(classOf[UserAccessService]) to classOf[UserAccessServiceImp]
-
   }
 
 }

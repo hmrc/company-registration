@@ -17,8 +17,8 @@
 package audit
 
 import audit.RegistrationAuditEvent.buildTags
-import play.api.libs.json.JsObject
-import play.api.mvc.{Request, AnyContent}
+import play.api.libs.json.{JsObject, Json}
+import play.api.mvc.{AnyContent, Request}
 import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
 import uk.gov.hmrc.play.http.HeaderCarrier
 
@@ -28,18 +28,20 @@ case class TagSet(
                    requestId: Boolean,
                    sessionId: Boolean,
                    authorisation: Boolean,
-                   path: Boolean
+                   path: Boolean,
+                   admin: Boolean = false
                  )
 
 object TagSet {
   val ALL_TAGS = TagSet(true, true, true, true, true, true)
   val NO_TAGS = TagSet(false, false, false, false, false, false)
   val REQUEST_ONLY = TagSet(false, false, true, false, false, false)
+  val REQUEST_ONLY_WITH_ADMIN = TagSet(false, false, true, false, false, false, true)
 }
 
 import audit.TagSet.ALL_TAGS
 
-abstract class RegistrationAuditEvent(auditType: String, transactionName : Option[String], detail: JsObject, tagSet: TagSet = ALL_TAGS)
+abstract class RegistrationAuditEvent(auditType: String, transactionName : Option[String],detail: JsObject, tagSet: TagSet = ALL_TAGS)
                                      (implicit hc: HeaderCarrier, optReq: Option[Request[AnyContent]] = None)
   extends ExtendedDataEvent(
     auditSource = "company-registration",
@@ -64,7 +66,8 @@ object RegistrationAuditEvent {
       buildRequestId(tagSet) ++
       buildSessionId(tagSet) ++
       buildAuthorization(tagSet) ++
-      buildPath(tagSet)
+      buildPath(tagSet) ++
+      buildAdmin(tagSet)
   }
 
   private def buildClientIP(tagSet: TagSet)(implicit hc: HeaderCarrier) =
@@ -81,6 +84,9 @@ object RegistrationAuditEvent {
 
   private def buildAuthorization(tagSet: TagSet)(implicit hc: HeaderCarrier) =
     if(tagSet.authorisation) Map(hc.names.authorisation -> hc.authorization.map(_.value).getOrElse("-")) else Map()
+
+  private def buildAdmin(tagSet: TagSet)(implicit hc: HeaderCarrier) =
+    if(tagSet.admin) Map("adminSubmission" -> "true") else Map()
 
   private def buildPath(tagSet: TagSet)(implicit optReq: Option[Request[AnyContent]]) = {
     if (tagSet.path) {

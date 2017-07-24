@@ -1,6 +1,13 @@
 # microservice specific routes
 GET        /throttle/check-user-access                                                      @controllers.UserAccessController.checkUserAccess
 
+PUT        /corporation-tax-registration/process-admin-incorp                               @controllers.ProcessIncorporationsController.processAdminIncorp
+PUT        /corporation-tax-registration/process-incorp                                     @controllers.ProcessIncorporationsController.processIncorp
+
+POST       /corporation-tax-registration/acknowledgement-confirmation                       @controllers.CorporationTaxRegistrationController.acknowledgementConfirmation(ackref : String)
+
+# PUT URLS WITHOUT A REG ID ABOVE THIS LINE !
+
 GET        /corporation-tax-registration/:registrationId                                    @controllers.CorporationTaxRegistrationController.retrieveCorporationTaxRegistration(registrationId)
 PUT        /corporation-tax-registration/:registrationId                                    @controllers.CorporationTaxRegistrationController.createCorporationTaxRegistration(registrationId)
 
@@ -25,11 +32,8 @@ PUT        /corporation-tax-registration/:registrationID/confirmation-references
 
 PUT        /corporation-tax-registration/:registrationID/progress                           @controllers.CorporationTaxRegistrationController.updateRegistrationProgress(registrationID)
 
-POST       /corporation-tax-registration/acknowledgement-confirmation                       @controllers.CorporationTaxRegistrationController.acknowledgementConfirmation(ackref : String)
-
 PUT        /corporation-tax-registration/:registrationId/update-email                       @controllers.test.EmailController.updateEmail(registrationId: String)
 GET        /corporation-tax-registration/:registrationId/retrieve-email                     @controllers.test.EmailController.retrieveEmail(registrationId: String)
 
 DELETE     /corporation-tax-registration/:registrationId/delete-submission                  controllers.HeldController.deleteSubmissionData(registrationId: String)
-
 

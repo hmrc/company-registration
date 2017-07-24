@@ -63,7 +63,7 @@ trait DesConnector extends ServicesConfig with AuditService with RawResponseRead
     def read(http: String, url: String, res: HttpResponse) = customDESRead(http, url, res)
   }
 
-  def ctSubmission(ackRef:String, submission: JsObject, journeyId : String)(implicit headerCarrier: HeaderCarrier): Future[DesResponse] = {
+  def ctSubmission(ackRef:String, submission: JsObject, journeyId : String, isAdmin: Boolean = false)(implicit headerCarrier: HeaderCarrier): Future[DesResponse] = {
     val url: String = s"""${serviceURL}${baseURI}${ctRegistrationURI}"""
     val response = cPOST(url, submission)
     response flatMap { r =>
