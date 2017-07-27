@@ -36,7 +36,7 @@ import javax.inject.{Inject, Singleton}
 
 import com.typesafe.config.Config
 import jobs.CheckSubmissionJob
-import play.api.{Application, Configuration, Play}
+import play.api.{Application, Configuration, Logger, Play}
 import uk.gov.hmrc.play.audit.filters.AuditFilter
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode}
@@ -44,6 +44,7 @@ import uk.gov.hmrc.play.http.logging.filters.LoggingFilter
 import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
 import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
 import net.ceedubs.ficus.Ficus._
+import repositories.Repositories
 import uk.gov.hmrc.play.scheduling.RunningOfScheduledJobs
 import uk.gov.hmrc.play.filters.MicroserviceFilterSupport
 
@@ -83,4 +84,15 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
   override val authFilter = Some(MicroserviceAuthFilter)
 
   override val scheduledJobs = Seq(CheckSubmissionJob)
+
+  override def onStart(app : play.api.Application) : scala.Unit = {
+
+    import scala.concurrent.ExecutionContext.Implicits.global
+    Repositories.cTRepository.getRegistrationStats() map {
+      stats => Logger.info(s"[RegStats] ${stats}")
+    }
+
+    super.onStart(app)
+  }
+
 }
