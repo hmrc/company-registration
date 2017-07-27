@@ -43,5 +43,4 @@ class DefaultAppStartup @Inject()(
   Logger.info(s"Starting microservice : $appName : in mode : ${app.mode}")
   if(graphiteConfig.enabled) graphiteConfig.startGraphite()
 
-
 }

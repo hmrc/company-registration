@@ -84,6 +84,7 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def retrieveEmail(registrationId: String): Future[Option[Email]]
   def updateLastSignedIn(regId: String, dateTime: DateTime): Future[DateTime]
   def updateRegistrationProgress(regId: String, progress: String): Future[Option[String]]
+  def getRegistrationStats(): Future[Map[String, Int]]
 }
 
 private[repositories] class MissingCTDocument(regId: String) extends NoStackTrace
@@ -328,6 +329,33 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
           upsert = false
         ).map(_ => Some(progress))
       case _ => Future.successful(None)
+    }
+  }
+
+  override def getRegistrationStats(): Future[Map[String, Int]] = {
+
+    import play.api.libs.json._
+    import reactivemongo.json.collection.JSONBatchCommands.AggregationFramework.{Group, Match, SumValue, Project}
+
+    // perform on all documents in the collection
+    val matchQuery = Match(Json.obj())
+    // covering query to minimise doc fetch (optimiser would probably spot this anyway and transform the query)
+    val project = Project(Json.obj("status" -> 1, "_id" -> 0))
+    // calculate the status counts
+    val group = Group(JsString("$status"))("count" -> SumValue(1))
+
+    val metrics = collection.aggregate(matchQuery, List(project, group)) map {
+      _.documents map {
+        d => {
+          val regime = (d \ "_id").as[String]
+          val count = (d \ "count").as[Int]
+          regime -> count
+        }
+      }
+    }
+
+    metrics map {
+      _.toMap
     }
   }
 
