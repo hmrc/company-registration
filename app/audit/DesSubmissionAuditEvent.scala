@@ -41,8 +41,8 @@ object DesSubmissionAuditEventDetail {
   }
 }
 
-class DesSubmissionEvent(details: DesSubmissionAuditEventDetail)(implicit hc: HeaderCarrier)
-  extends RegistrationAuditEvent("ctRegistrationSubmission", None, Json.toJson(details).as[JsObject])(hc)
+class DesSubmissionEvent(details: DesSubmissionAuditEventDetail,isAdmin: Boolean = false)(implicit hc: HeaderCarrier)
+  extends RegistrationAuditEvent("ctRegistrationSubmission", None, Json.toJson(details).as[JsObject], if(isAdmin)TagSet.REQUEST_ONLY_WITH_ADMIN else TagSet.REQUEST_ONLY)(hc)
 
 class DesSubmissionEventFailure(regId: String, details: JsObject)(implicit hc: HeaderCarrier)
   extends RegistrationAuditEvent("ctRegistrationSubmissionFailed", None, Json.obj("submission" -> details, JOURNEY_ID -> regId))(hc)

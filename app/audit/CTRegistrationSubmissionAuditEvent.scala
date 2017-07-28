@@ -38,4 +38,4 @@ object DesResponse {
 }
 
 class CTRegistrationAuditEvent(details: CTRegistrationSubmissionAuditEventDetails, auditType : String, transactionName : String)(implicit hc : HeaderCarrier)
-  extends RegistrationAuditEvent(auditType, Some(transactionName), Json.toJson(details).as[JsObject], TagSet.REQUEST_ONLY)
+  extends RegistrationAuditEvent(auditType, Some(transactionName), Json.toJson(details).as[JsObject])

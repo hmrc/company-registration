@@ -89,7 +89,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
   trait SetupMockedAudit {
     val service = new mockService {
-      override def processSuccessDesResponse(item: IncorpUpdate, ctReg: CorporationTaxRegistration, auditDetail: JsObject)(implicit hc: HeaderCarrier) = Future.successful(true)
+      override def processSuccessDesResponse(item: IncorpUpdate, ctReg: CorporationTaxRegistration, auditDetail: JsObject, isAdmin:Boolean)(implicit hc: HeaderCarrier) = Future.successful(true)
     }
   }
 
@@ -316,7 +316,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockAccountService.calculateSubmissionDates(Matchers.any(), Matchers.any(), Matchers.any()))
         .thenReturn(dates)
 
-      when(mockDesConnector.ctSubmission(Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any()))
+      when(mockDesConnector.ctSubmission(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any()))
         .thenReturn(Future.successful(SuccessDesResponse(Json.obj("x"->"y"))))
 
       await(service.updateHeldSubmission(incorpSuccess, validCR, validCR.registrationID)) shouldBe true
@@ -341,7 +341,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockAccountService.calculateSubmissionDates(Matchers.any(), Matchers.any(), Matchers.any()))
         .thenReturn(dates)
 
-      when(mockDesConnector.ctSubmission(Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any()))
+      when(mockDesConnector.ctSubmission(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any()))
         .thenReturn(Future.successful(InvalidDesRequest("wibble")))
 
       when(mockAuditConnector.sendEvent(Matchers.any[RegistrationAuditEvent]())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]()))
@@ -366,7 +366,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockAccountService.calculateSubmissionDates(Matchers.any(), Matchers.any(), Matchers.any()))
         .thenReturn(dates)
 
-      when(mockDesConnector.ctSubmission(Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any()))
+      when(mockDesConnector.ctSubmission(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any()))
         .thenReturn(Future.successful(NotFoundDesResponse))
 
       when(mockAuditConnector.sendEvent(Matchers.any[RegistrationAuditEvent]())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]()))
@@ -396,7 +396,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       val service = new mockService {
         implicit val hc = new HeaderCarrier()
 
-        override def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration, journeyId : String)(implicit hc : HeaderCarrier) = Future.successful(true)
+        override def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration, journeyId : String, isAdmin: Boolean = false)(implicit hc : HeaderCarrier) = Future.successful(true)
         override def updateSubmittedSubmission(ctReg: CorporationTaxRegistration) = Future.successful(true)
       }
     }
@@ -425,7 +425,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
     val expected = Json.obj("key" -> timepoint)
     trait SetupNoProcess {
       val service = new mockService {
-        override def processIncorporationUpdate(item: IncorpUpdate)(implicit hc: HeaderCarrier) = Future.successful(true)
+        override def processIncorporationUpdate(item: IncorpUpdate, isAdmin: Boolean = false)(implicit hc: HeaderCarrier) = Future.successful(true)
       }
     }
 
@@ -481,11 +481,11 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
     trait SetupBoolean {
       val serviceTrue = new mockService {
-        override def updateSubmissionWithIncorporation(item: IncorpUpdate, ctReg: CorporationTaxRegistration)(implicit hc : HeaderCarrier) = Future.successful(true)
+        override def updateSubmissionWithIncorporation(item: IncorpUpdate, ctReg: CorporationTaxRegistration, isAdmin: Boolean = false)(implicit hc : HeaderCarrier) = Future.successful(true)
       }
 
       val serviceFalse = new mockService {
-        override def updateSubmissionWithIncorporation(item: IncorpUpdate, ctReg: CorporationTaxRegistration)(implicit hc : HeaderCarrier) = Future.successful(false)
+        override def updateSubmissionWithIncorporation(item: IncorpUpdate, ctReg: CorporationTaxRegistration, isAdmin: Boolean = false)(implicit hc : HeaderCarrier) = Future.successful(false)
       }
     }
 
