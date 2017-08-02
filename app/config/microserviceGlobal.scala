@@ -92,6 +92,12 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
       stats => Logger.info(s"[RegStats] ${stats}")
     }
 
+    import java.util.Base64
+    val regIdConf = app.configuration.getString("registrationList").getOrElse("")
+    val regIdList = new String(Base64.getDecoder.decode(regIdConf), "UTF-8")
+
+    Repositories.cTRepository.checkDocumentStatus(regIdList.split(","))
+
     super.onStart(app)
   }
 

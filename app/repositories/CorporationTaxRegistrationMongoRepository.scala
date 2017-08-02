@@ -16,16 +16,11 @@
 
 package repositories
 
-import javax.inject.{Inject, Singleton}
-
 import auth.{AuthorisationResource, Crypto}
 import models._
 import org.joda.time.DateTime
 import play.api.Logger
-import play.api.libs.functional.syntax.unlift
-import play.api.libs.json.Reads.maxLength
 import play.api.libs.json._
-import play.modules.reactivemongo.MongoDbConnection
 import reactivemongo.api.DB
 import reactivemongo.bson.BSONDocument
 import reactivemongo.api.commands.WriteResult
@@ -34,7 +29,7 @@ import reactivemongo.bson._
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.control.NoStackTrace
 
@@ -85,6 +80,7 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def updateLastSignedIn(regId: String, dateTime: DateTime): Future[DateTime]
   def updateRegistrationProgress(regId: String, progress: String): Future[Option[String]]
   def getRegistrationStats(): Future[Map[String, Int]]
+  def checkDocumentStatus(regIds: Seq[String]): Future[Seq[Boolean]]
 }
 
 private[repositories] class MissingCTDocument(regId: String) extends NoStackTrace
@@ -357,6 +353,22 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
     metrics map {
       _.toMap
     }
+  }
+
+  override def checkDocumentStatus(regIds: Seq[String]): Future[Seq[Boolean]] = {
+    def check(regId: String) = {
+      retrieveCorporationTaxRegistration(regId) map {
+        doc =>
+          val status = doc.fold("NOT FOUND")(_.status)
+          Logger.error(s"Current status of regId: $regId is $status")
+          true
+      } recover {
+        case e =>
+          Logger.error(s"Data check was unsuccessful for regId: $regId")
+          false
+      }
+    }
+    Future.sequence(regIds.map(check))
   }
 
   def dropCollection = collection.drop()
