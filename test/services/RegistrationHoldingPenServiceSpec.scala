@@ -66,7 +66,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
     reset(mockBRConnector)
   }
 
-  trait mockSrv extends RegistrationHoldingPenService {
+  trait mockService extends RegistrationHoldingPenService {
     val stateDataRepository = mockStateDataRepository
     val incorporationCheckAPIConnector = mockIncorporationCheckAPIConnector
     val ctRepository = mockCTRepository
@@ -84,17 +84,17 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
   }
 
   trait Setup {
-    val service = new mockSrv {}
+    val service = new mockService {}
   }
 
   trait SetupMockedAudit {
-    val service = new mockSrv {
+    val service = new mockService {
       override def processSuccessDesResponse(item: IncorpUpdate, ctReg: CorporationTaxRegistration, auditDetail: JsObject, isAdmin:Boolean)(implicit hc: HeaderCarrier) = Future.successful(true)
     }
   }
 
   class SetupWithAddressLine4Fix(regId: String, addressLine4: String) {
-    val service = new mockSrv {
+    val service = new mockService {
       override val addressLine4FixRegID: String = regId
       override val amendedAddressLine4: String = addressLine4
     }
@@ -393,7 +393,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
   "updateSubmission" should {
     trait SetupNoProcess {
-      val service = new mockSrv {
+      val service = new mockService {
         implicit val hc = new HeaderCarrier()
 
         override def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration, journeyId : String, isAdmin: Boolean = false)(implicit hc : HeaderCarrier) = Future.successful(true)
@@ -424,7 +424,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
   "updateNextSubmissionByTimepoint" should {
     val expected = Json.obj("key" -> timepoint)
     trait SetupNoProcess {
-      val service = new mockSrv {
+      val service = new mockService {
         override def processIncorporationUpdate(item: IncorpUpdate, isAdmin: Boolean = false)(implicit hc: HeaderCarrier) = Future.successful(true)
       }
     }
@@ -480,11 +480,11 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
   "processIncorporationUpdate" should {
 
     trait SetupBoolean {
-      val serviceTrue = new mockSrv {
+      val serviceTrue = new mockService {
         override def updateSubmissionWithIncorporation(item: IncorpUpdate, ctReg: CorporationTaxRegistration, isAdmin: Boolean = false)(implicit hc : HeaderCarrier) = Future.successful(true)
       }
 
-      val serviceFalse = new mockSrv {
+      val serviceFalse = new mockService {
         override def updateSubmissionWithIncorporation(item: IncorpUpdate, ctReg: CorporationTaxRegistration, isAdmin: Boolean = false)(implicit hc : HeaderCarrier) = Future.successful(false)
       }
     }
