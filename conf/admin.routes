@@ -1,0 +1,2 @@
+
+GET        /fetch-ho6-registration-information/:registrationId        @controllers.admin.AdminController.fetchHO6RegistrationInformation(registrationId)

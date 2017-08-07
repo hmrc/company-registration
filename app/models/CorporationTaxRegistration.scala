@@ -313,3 +313,22 @@ object AccountPrepDetails extends AccountPrepDetailsValidator {
       aPD => if (aPD.endDate.isDefined) aPD.status == COMPANY_DEFINED else aPD.status != COMPANY_DEFINED
     )
 }
+
+case class HO6RegistrationInformation(status: String,
+                                      companyName: Option[String],
+                                      ho5Flag: Option[String])
+
+object HO6RegistrationInformation {
+
+  val reads = (
+    (__ \ "status").read[String] and
+      (__ \ "companyDetails" \ "companyName").readNullable[String].orElse(Reads.pure(None)) and
+      (__ \ "registrationProgress").readNullable[String]
+    )(HO6RegistrationInformation.apply _)
+
+  val writes = (
+    (__ \ "status").write[String] and
+      (__ \ "companyName").writeNullable[String] and
+      (__ \ "registrationProgress").writeNullable[String]
+    )(unlift(HO6RegistrationInformation.unapply))
+}
