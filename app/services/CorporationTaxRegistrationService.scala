@@ -277,4 +277,31 @@ trait CorporationTaxRegistrationService extends DateHelper {
       )
     )
   }
+
+
+  def checkDocumentStatus(regIds: Seq[String]): Future[Seq[Boolean]] = {
+    def check(regId: String) = {
+      corporationTaxRegistrationRepository.retrieveCorporationTaxRegistration(regId) map {
+        document =>
+          val doc = document.get
+          val status = doc.status
+          val ho5 = doc.registrationProgress.fold("HO5 NOT reached")(_ => "HO5 reached")
+          val txId = doc.confirmationReferences.fold("")(cr => s" TxId is = ${cr.transactionId}.")
+
+          for {
+            held <- heldSubmissionRepository.retrieveSubmissionByRegId(regId).recover {
+              case _ =>
+                Logger.error("Error fetching Held document")
+                None
+            }
+          } yield Logger.warn(s"Current status of regId: $regId is $status.$txId $ho5 and ${held.fold("no held document")(_ => "document is in held")}.")
+          true
+      } recover {
+        case e =>
+          Logger.error(s"Data check was unsuccessful for regId: $regId")
+          false
+      }
+    }
+    Future.sequence(regIds.map(check))
+  }
 }

@@ -23,7 +23,6 @@ import models._
 import org.joda.time.DateTime
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
-import play.api.Logger
 import reactivemongo.api.commands.WriteResult
 import uk.gov.hmrc.mongo.MongoSpecSupport
 import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec, WithFakeApplication}
@@ -32,7 +31,7 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class CorporationTaxRegistrationMongoRepositoryISpec
-  extends UnitSpec with MongoSpecSupport with BeforeAndAfterEach with ScalaFutures with Eventually with WithFakeApplication with LogCapturing {
+  extends UnitSpec with MongoSpecSupport with BeforeAndAfterEach with ScalaFutures with Eventually with WithFakeApplication {
 
   class Setup {
     val repository = new CorporationTaxRegistrationMongoRepository(mongo)
@@ -280,36 +279,6 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       await(repository.updateRegistrationProgress(registrationId, progress))
 
       retrieve.get.registrationProgress shouldBe Some(progress)
-    }
-  }
-
-
-  "checkDocumentStatus" should {
-
-    def corporationTaxRegistration(regId: String, testStatus: String) = CorporationTaxRegistration(
-      internalId = "9876543210",
-      registrationID = regId,
-      status = testStatus,
-      formCreationTimestamp = "2001-12-31T12:00:00Z",
-      language = "en"
-    )
-
-    val registrationIds = Seq.fill(5)(UUID.randomUUID.toString)
-
-    "log the status of a list of RegIds" in new Setup {
-      insert(corporationTaxRegistration(registrationIds(0), DRAFT))
-      insert(corporationTaxRegistration(registrationIds(1), HELD))
-      insert(corporationTaxRegistration(registrationIds(2), SUBMITTED))
-      insert(corporationTaxRegistration(registrationIds(3), HELD))
-      insert(corporationTaxRegistration(registrationIds(4), DRAFT))
-
-      withCaptureOfLoggingFrom(Logger) { logEvents =>
-        await(repository.checkDocumentStatus(registrationIds))
-        val logs = await(logEvents)
-        logs.length shouldBe 5
-        logs.head.getMessage should include("Current status of regId: ")
-      }
-
     }
   }
 }
