@@ -16,16 +16,10 @@
 
 package repositories
 
-import javax.inject.{Inject, Singleton}
-
 import auth.{AuthorisationResource, Crypto}
 import models._
 import org.joda.time.DateTime
-import play.api.Logger
-import play.api.libs.functional.syntax.unlift
-import play.api.libs.json.Reads.maxLength
 import play.api.libs.json._
-import play.modules.reactivemongo.MongoDbConnection
 import reactivemongo.api.DB
 import reactivemongo.bson.BSONDocument
 import reactivemongo.api.commands.WriteResult
@@ -34,7 +28,7 @@ import reactivemongo.bson._
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.control.NoStackTrace
 

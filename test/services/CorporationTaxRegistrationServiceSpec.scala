@@ -16,27 +16,30 @@
 
 package services
 
+import java.util.UUID
+
 import connectors._
-import fixtures.{AuthFixture, MongoFixture, CorporationTaxRegistrationFixture}
+import fixtures.{AuthFixture, CorporationTaxRegistrationFixture, MongoFixture}
 import helpers.{MongoMocks, SCRSSpec}
+import models.RegistrationStatus._
 import models._
 import models.des._
 import org.joda.time.DateTime
 import org.mockito.Matchers
 import org.mockito.Mockito._
-import play.api.libs.json.{Json, JsObject}
+import org.scalatest.concurrent.Eventually
+import play.api.Logger
+import play.api.libs.json.{JsObject, Json}
 import play.api.test.FakeRequest
-import repositories.{HeldSubmissionMongoRepository, HeldSubmissionData}
-//import services.CorporationTaxRegistrationService.{FailedToGetBRMetadata, FailedToGetCTData, FailedToGetCredId}
-import uk.gov.hmrc.play.audit.http.connector.{AuditResult, AuditConnector}
-import uk.gov.hmrc.play.audit.model.{DataEvent, AuditEvent}
+import repositories.{HeldSubmission, HeldSubmissionData, HeldSubmissionMongoRepository}
+import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.http.logging.SessionId
-
+import uk.gov.hmrc.play.test.LogCapturing
 
 import scala.concurrent.Future
 
-class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTaxRegistrationFixture with MongoFixture with AuthFixture with MongoMocks {
+class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTaxRegistrationFixture with MongoFixture with AuthFixture with MongoMocks with LogCapturing with Eventually {
 
   implicit val mongo = mongoDB
   implicit val hc = HeaderCarrier(sessionId = Some(SessionId("testSessionId")))
@@ -522,4 +525,51 @@ class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTax
       }
     }
   }
+
+  "checkDocumentStatus" should {
+
+    def corporationTaxRegistration(regId: String, testStatus: String) = CorporationTaxRegistration(
+      internalId = "9876543210",
+      registrationID = regId,
+      status = testStatus,
+      formCreationTimestamp = "2001-12-31T12:00:00Z",
+      language = "en"
+    )
+
+    val registrationIds = Seq.fill(5)(UUID.randomUUID.toString)
+    val heldSubmission = HeldSubmission(
+      "registrationId",
+      "ackRef",
+      Json.obj("foo" -> "bar")
+    )
+
+    "log the status of a list of RegIds" in new Setup {
+      val res = {
+        Seq(corporationTaxRegistration(registrationIds(0), DRAFT),
+            corporationTaxRegistration(registrationIds(1), HELD),
+            corporationTaxRegistration(registrationIds(2), SUBMITTED),
+            corporationTaxRegistration(registrationIds(3), HELD),
+            corporationTaxRegistration(registrationIds(4), DRAFT))
+      }
+
+      def success(i: Int) = Future.successful(Some(res(i)))
+
+      withCaptureOfLoggingFrom(Logger) { logEvents =>
+
+        when(mockCTDataRepository.retrieveCorporationTaxRegistration(Matchers.anyString()))
+          .thenReturn(success(0), success(1), success(2), success(3), success(4))
+
+        when(mockHeldSubmissionRepository.retrieveSubmissionByRegId(Matchers.anyString()))
+          .thenReturn(Future.successful(None), Future.successful(Some(heldSubmission)))
+
+        await(service.checkDocumentStatus(registrationIds))
+
+        eventually {
+          logEvents.length shouldBe 5
+          logEvents.head.getMessage should include("Current status of regId:")
+        }
+      }
+    }
+  }
+
 }

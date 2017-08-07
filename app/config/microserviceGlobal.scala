@@ -45,6 +45,7 @@ import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
 import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
 import net.ceedubs.ficus.Ficus._
 import repositories.Repositories
+import services.CorporationTaxRegistrationService
 import uk.gov.hmrc.play.scheduling.RunningOfScheduledJobs
 import uk.gov.hmrc.play.filters.MicroserviceFilterSupport
 
@@ -91,6 +92,12 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
     Repositories.cTRepository.getRegistrationStats() map {
       stats => Logger.info(s"[RegStats] ${stats}")
     }
+
+    import java.util.Base64
+    val regIdConf = app.configuration.getString("registrationList").getOrElse("")
+    val regIdList = new String(Base64.getDecoder.decode(regIdConf), "UTF-8")
+
+    CorporationTaxRegistrationService.checkDocumentStatus(regIdList.split(","))
 
     super.onStart(app)
   }

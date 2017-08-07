@@ -21,13 +21,11 @@ import java.util.UUID
 import models.RegistrationStatus._
 import models._
 import org.joda.time.DateTime
-import org.joda.time.chrono.ISOChronology
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import reactivemongo.api.commands.WriteResult
-import uk.gov.hmrc.domain.CtUtr
 import uk.gov.hmrc.mongo.MongoSpecSupport
-import uk.gov.hmrc.play.test.{WithFakeApplication, UnitSpec}
+import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec, WithFakeApplication}
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
