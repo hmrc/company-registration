@@ -18,6 +18,7 @@ package services
 
 import java.time.LocalTime
 import java.util.Base64
+import javax.inject.{Inject, Singleton}
 
 import audit._
 import config.MicroserviceAuditConnector

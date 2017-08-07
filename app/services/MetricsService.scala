@@ -21,8 +21,6 @@ import javax.inject.{Inject, Singleton}
 import com.codahale.metrics.{Counter, Timer}
 import com.kenshoo.play.metrics.Metrics
 
-import scala.concurrent.Future
-
 @Singleton
 class MetricsServiceImp @Inject() (metricsInstance: Metrics) extends MetricsService {
   val metrics = metricsInstance
@@ -52,9 +50,7 @@ class MetricsServiceImp @Inject() (metricsInstance: Metrics) extends MetricsServ
 
   override val userAccessCRTimer: Timer = metrics.defaultRegistry.timer("user-access-CR-timer")
 
-  override val desSubmissionCRTimer                   = metrics.defaultRegistry.timer("des-submission-call-timer")
-  override val desSubmissionSuccessResponseCounter    = metrics.defaultRegistry.counter("des-submission-success-response-counter")
-  override val desSubmissionFailedResponseCounter     = metrics.defaultRegistry.counter("des-submission-failed-response-counter")
+  override val desSubmissionCRTimer: Timer = metrics.defaultRegistry.timer("des-submission-CR-timer")
 }
 
 trait MetricsService {
@@ -85,19 +81,4 @@ trait MetricsService {
   val userAccessCRTimer : Timer
 
   val desSubmissionCRTimer : Timer
-  val desSubmissionSuccessResponseCounter : Counter
-  val desSubmissionFailedResponseCounter : Counter
-
-  def processDataResponseWithMetrics[T](success: Counter, failed: Counter, timer: Timer.Context)(f: => Future[T]): Future[T] = {
-    f map { data =>
-      timer.stop()
-      success.inc(1)
-      data
-    } recover {
-      case e =>
-        timer.stop()
-        failed.inc(1)
-        throw e
-    }
-  }
 }

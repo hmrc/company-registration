@@ -18,6 +18,7 @@ package connectors
 
 import java.util.UUID
 
+import mocks.MockMetricsService
 import org.mockito.Matchers
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
@@ -58,6 +59,7 @@ class DesConnectorSpec extends UnitSpec with OneServerPerSuite with MockitoSugar
       val urlHeaderEnvironment = "test"
       val urlHeaderAuthorization = "testAuth"
       val auditConnector = mockAuditConnector
+      val metricsService = MockMetricsService
     }
   }
 
