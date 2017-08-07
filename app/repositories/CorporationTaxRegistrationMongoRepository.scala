@@ -16,10 +16,13 @@
 
 package repositories
 
+import javax.inject.{Singleton, Inject}
+
 import auth.{AuthorisationResource, Crypto}
 import models._
 import org.joda.time.DateTime
 import play.api.libs.json._
+import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.DB
 import reactivemongo.bson.BSONDocument
 import reactivemongo.api.commands.WriteResult
@@ -32,6 +35,10 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.control.NoStackTrace
 
+@Singleton
+class CorpTaxRegistrationRepo @Inject()(mongo: ReactiveMongoComponent) {
+  val repo = new CorporationTaxRegistrationMongoRepository(mongo.mongoConnector.db)
+}
 
 object CorporationTaxRegistrationMongo extends ReactiveMongoFormats {
   implicit val formatCH = CHROAddress.format
@@ -79,6 +86,7 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def updateLastSignedIn(regId: String, dateTime: DateTime): Future[DateTime]
   def updateRegistrationProgress(regId: String, progress: String): Future[Option[String]]
   def getRegistrationStats(): Future[Map[String, Int]]
+  def fetchHO6Information(regId: String): Future[Option[HO6RegistrationInformation]]
 }
 
 private[repositories] class MissingCTDocument(regId: String) extends NoStackTrace
@@ -90,8 +98,6 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
     ReactiveMongoFormats.objectIdFormats)
   with CorporationTaxRegistrationRepository
   with AuthorisationResource[String] {
-
-
 
   private val crypto = Crypto
   val cTRMongo = CorporationTaxRegistrationMongo
@@ -351,6 +357,12 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
     metrics map {
       _.toMap
     }
+  }
+
+  override def fetchHO6Information(regId: String): Future[Option[HO6RegistrationInformation]] = {
+    retrieveCorporationTaxRegistration(regId) map (_.map{ reg =>
+      HO6RegistrationInformation(reg.status, reg.companyDetails.map(_.companyName), reg.registrationProgress)
+    })
   }
 
   def dropCollection = collection.drop()

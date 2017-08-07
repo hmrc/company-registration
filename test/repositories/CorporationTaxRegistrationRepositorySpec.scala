@@ -50,6 +50,11 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
   val registrationID = "12345"
   val txID = s"tx${registrationID}"
 
+  def mockFetchCTRegistrationDoc(regId: String, ctReg: Option[CorporationTaxRegistration]) = {
+    val selector = BSONDocument("registrationID" -> BSONString(regId))
+    setupFindFor(repository.collection, selector, ctReg)
+  }
+
   "createCorporationTaxRegistration" should {
     val randomRegid = UUID.randomUUID().toString
     val emptyReg: CorporationTaxRegistration = CorporationTaxRegistration(
@@ -376,6 +381,36 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
 
       val result = repository.retrieveEmail(registrationID)
       await(result) shouldBe Some(expectedEmail)
+    }
+  }
+
+  "fetchHO6Information" should {
+
+    "return a full HO6RegistrationInformation case class when a draft registration is returned from Mongo containing HO6 info" in {
+
+      mockFetchCTRegistrationDoc(registrationID, Some(draftCorporationTaxRegistration(registrationID, doneHO5 = true)))
+
+      val result = await(repository.fetchHO6Information(registrationID))
+
+      result shouldBe Some(HO6RegistrationInformation("draft", Some("testCompanyName"), Some("ho5")))
+    }
+
+    "return a a HO6RegistrationInformation case class containing Nones when a draft registration is returned from Mongo but the user hasn't done HO5" in {
+
+      mockFetchCTRegistrationDoc(registrationID, Some(draftCorporationTaxRegistration(registrationID, doneHO5 = false)))
+
+      val result = await(repository.fetchHO6Information(registrationID))
+
+      result shouldBe Some(HO6RegistrationInformation("draft", Some("testCompanyName"), None))
+    }
+
+    "return None when a draft registration is not found in Mongo" in {
+
+      mockFetchCTRegistrationDoc(registrationID, None)
+
+      val result = await(repository.fetchHO6Information(registrationID))
+
+      result shouldBe None
     }
   }
 }

@@ -22,7 +22,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 trait IntegrationSpecBase extends UnitSpec
   with OneServerPerSuite with ScalaFutures with IntegrationPatience with Matchers
-  with WiremockHelper with BeforeAndAfterEach with BeforeAndAfterAll {
+  with WiremockHelper with BeforeAndAfterEach with BeforeAndAfterAll with FakeAppConfig {
 
   override def beforeEach() = {
     resetWiremock()
@@ -37,4 +37,17 @@ trait IntegrationSpecBase extends UnitSpec
     stopWiremock()
     super.afterAll()
   }
+}
+
+trait FakeAppConfig {
+  import WiremockHelper._
+
+  def fakeConfig(additionalConfig: Map[String, String] = Map.empty) = Map(
+    "auditing.consumer.baseUri.host" -> s"$wiremockHost",
+    "auditing.consumer.baseUri.port" -> s"$wiremockPort",
+    "Test.auditing.consumer.baseUri.host" -> s"$wiremockHost",
+    "Test.auditing.consumer.baseUri.port" -> s"$wiremockPort",
+    "microservice.services.auth.host" -> s"$wiremockHost",
+    "microservice.services.auth.port" -> s"$wiremockPort"
+  ) ++ additionalConfig
 }

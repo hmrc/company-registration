@@ -39,7 +39,7 @@ trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with Accou
 
   val validDraftCorporationTaxRegistration = draftCorporationTaxRegistration("0123456789")
 
-  def draftCorporationTaxRegistration(regId: String) = CorporationTaxRegistration(
+  def draftCorporationTaxRegistration(regId: String, doneHO5: Boolean = false) = CorporationTaxRegistration(
     internalId = "tiid",
     registrationID = regId,
     status = DRAFT,
@@ -50,7 +50,8 @@ trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with Accou
     accountingDetails = Some(validAccountingDetails),
     tradingDetails = Some(TradingDetails()),
     contactDetails = Some(contactDetails),
-    verifiedEmail = None
+    verifiedEmail = None,
+    registrationProgress = if(doneHO5) Some("ho5") else None
   )
 
   def validConfRefsWithData(ackRef: Option[String] = None) = ConfirmationReferences(
