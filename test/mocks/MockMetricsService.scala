@@ -51,4 +51,5 @@ object MockMetricsService extends MetricsService with MockitoSugar {
 
   val userAccessCRTimer : Timer = mockTimer
 
+  val desSubmissionCRTimer : Timer = mockTimer
 }

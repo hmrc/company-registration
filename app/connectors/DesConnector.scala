@@ -18,10 +18,10 @@ package connectors
 
 import audit.DesSubmissionEventFailure
 import config.{MicroserviceAuditConnector, WSHttp}
-import play.api.Logger
+import play.api.{Logger, Play}
 import play.api.http.Status._
 import play.api.libs.json.{JsObject, Writes}
-import services.AuditService
+import services.{AuditService, MetricsService}
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.play.http.logging.Authorization
@@ -35,7 +35,6 @@ case object NotFoundDesResponse extends DesResponse
 case object DesErrorResponse extends DesResponse
 case class InvalidDesRequest(message: String) extends DesResponse
 
-
 trait DesConnector extends ServicesConfig with AuditService with RawResponseReads with HttpErrorFunctions {
 
   lazy val serviceURL = baseUrl("des-service")
@@ -47,6 +46,7 @@ trait DesConnector extends ServicesConfig with AuditService with RawResponseRead
 
   val http: HttpGet with HttpPost with HttpPut = WSHttp
 
+  val metricsService: MetricsService
 
   private[connectors] def customDESRead(http: String, url: String, response: HttpResponse) = {
     response.status match {
@@ -65,42 +65,42 @@ trait DesConnector extends ServicesConfig with AuditService with RawResponseRead
 
   def ctSubmission(ackRef:String, submission: JsObject, journeyId : String, isAdmin: Boolean = false)(implicit headerCarrier: HeaderCarrier): Future[DesResponse] = {
     val url: String = s"""${serviceURL}${baseURI}${ctRegistrationURI}"""
-    val response = cPOST(url, submission)
-    response flatMap { r =>
-      sendCTRegSubmissionEvent(buildCTRegSubmissionEvent(ctRegSubmissionFromJson(journeyId, r.json.as[JsObject])))
-      r.status match {
-        case OK =>
-          Logger.info(s"Successful Des submission for ackRef ${ackRef} to ${url}")
-          Future.successful(SuccessDesResponse(r.json.as[JsObject]))
-        case ACCEPTED =>
-          Logger.info(s"Accepted Des submission for ackRef ${ackRef} to ${url}")
-          Future.successful(SuccessDesResponse(r.json.as[JsObject]))
-        case CONFLICT => {
-          Logger.warn(s"ETMP reported a duplicate submission for ack ref ${ackRef}")
-          Future.successful(SuccessDesResponse(r.json.as[JsObject]))
+    metricsService.processDataResponseWithMetrics[DesResponse](metricsService.desSubmissionCRTimer.time()) {
+      val response = cPOST(url, submission)
+      response flatMap { r =>
+        sendCTRegSubmissionEvent(buildCTRegSubmissionEvent(ctRegSubmissionFromJson(journeyId, r.json.as[JsObject])))
+        r.status match {
+          case OK =>
+            Logger.info(s"Successful Des submission for ackRef $ackRef to $url")
+            Future.successful(SuccessDesResponse(r.json.as[JsObject]))
+          case ACCEPTED =>
+            Logger.info(s"Accepted Des submission for ackRef $ackRef to $url")
+            Future.successful(SuccessDesResponse(r.json.as[JsObject]))
+          case CONFLICT =>
+            Logger.warn(s"ETMP reported a duplicate submission for ack ref $ackRef")
+            Future.successful(SuccessDesResponse(r.json.as[JsObject]))
+          case BAD_REQUEST =>
+            val message = (r.json \ "reason").as[String]
+            Logger.warn(s"ETMP reported an error with the request $message")
+            val event = new DesSubmissionEventFailure(journeyId, submission)
+            auditConnector.sendEvent(event) map {
+              _ => InvalidDesRequest(message)
+            }
         }
-        case BAD_REQUEST => {
-          val message = (r.json \ "reason").as[String]
-          Logger.warn(s"ETMP reported an error with the request ${message}")
-          val event = new DesSubmissionEventFailure(journeyId, submission)
-          auditConnector.sendEvent(event) map {
-            _ => InvalidDesRequest(message)
-          }
-        }
+      } recover {
+        case ex: NotFoundException =>
+          Logger.warn(s"ETMP reported a not found for ack ref $ackRef")
+          NotFoundDesResponse
+        case ex: InternalServerException =>
+          Logger.warn(s"ETMP reported an internal server error status for ack ref $ackRef")
+          DesErrorResponse
+        case ex: BadGatewayException =>
+          Logger.warn(s"ETMP reported a bad gateway status for ack ref $ackRef")
+          DesErrorResponse
+        case ex: Exception =>
+          Logger.warn(s"ETMP reported a ${ex.toString} for ack ref $ackRef")
+          DesErrorResponse
       }
-    } recover {
-      case ex: NotFoundException =>
-        Logger.warn(s"ETMP reported a not found for ack ref ${ackRef}")
-        NotFoundDesResponse
-      case ex: InternalServerException =>
-        Logger.warn(s"ETMP reported an internal server error status for ack ref ${ackRef}")
-        DesErrorResponse
-      case ex: BadGatewayException =>
-        Logger.warn(s"ETMP reported a bad gateway status for ack ref ${ackRef}")
-        DesErrorResponse
-      case ex: Exception =>
-        Logger.warn(s"ETMP reported a ${ex.toString} for ack ref ${ackRef}")
-        DesErrorResponse
     }
   }
 
@@ -123,5 +123,7 @@ object DesConnector extends DesConnector {
   val urlHeaderEnvironment: String = getConfString("des-service.environment", throw new Exception("could not find config value for des-service.environment"))
   val urlHeaderAuthorization: String = s"Bearer ${getConfString("des-service.authorization-token",
     throw new Exception("could not find config value for des-service.authorization-token"))}"
+
+  val metricsService = Play.current.injector.instanceOf[MetricsService]
   // $COVERAGE-ON$
 }

@@ -20,7 +20,7 @@ import auth._
 import connectors.AuthConnector
 import play.api.Logger
 import play.api.libs.json.Json
-import play.api.mvc.{Action, Result}
+import play.api.mvc.Action
 import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmissionMongoRepository, Repositories}
 import services.RegistrationHoldingPenService
 import uk.gov.hmrc.play.microservice.controller.BaseController

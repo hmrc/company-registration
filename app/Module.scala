@@ -55,5 +55,4 @@ class Module extends AbstractModule {
     bind(classOf[TradingDetailsService]) to classOf[TradingDetailsServiceImp]
     bind(classOf[UserAccessService]) to classOf[UserAccessServiceImp]
   }
-
 }
