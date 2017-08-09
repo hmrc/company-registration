@@ -433,7 +433,6 @@ class InterimDesRegistrationSpec extends UnitSpec {
 
       val result = Json.toJson[InterimDesRegistration](testModel1)
       result.getClass shouldBe classOf[JsObject]
-      print("The result is:" + result)
       result shouldBe Json.parse(expectedJson)
       }
   }
