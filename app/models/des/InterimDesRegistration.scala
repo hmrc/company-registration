@@ -19,6 +19,7 @@ package models.des
 import java.text.Normalizer
 import java.text.Normalizer.Form
 
+import models.CompanyDetailsValidator
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import play.api.Logger
@@ -214,21 +215,8 @@ case class InterimCorporationTax(
                                   businessContactDetails: BusinessContactDetails
                                 )
 
-object InterimCorporationTax {
+object InterimCorporationTax extends CompanyDetailsValidator {
 
-  private def cleanseCompanyName(companyName: String): String = {
-    val forbiddenPunctuation = List('[', ']', '{', '}', '#', '«', '»')
-    Normalizer.normalize(
-      companyName
-        .replaceAll("æ", "ae")
-        .replaceAll("Æ", "AE")
-        .replaceAll("œ", "oe")
-        .replaceAll("Œ", "OE")
-        .replaceAll("ß", "ss")
-        .replaceAll("ø", "o")
-        .replaceAll("Ø", "O"), Form.NFD)
-      .replaceAll("[^\\p{ASCII}]", "").filterNot(forbiddenPunctuation.contains)
-  }
   implicit val writes = new Writes[InterimCorporationTax] {
     def writes(m: InterimCorporationTax) = {
       val address = m.businessAddress map {Json.toJson(_).as[JsObject]}
@@ -238,7 +226,7 @@ object InterimCorporationTax {
         "companyOfficeNumber" -> "623",
         "hasCompanyTakenOverBusiness" -> false,
         "companyMemberOfGroup" -> false,
-        "companiesHouseCompanyName" -> cleanseCompanyName(m.companyName),
+        "companiesHouseCompanyName" -> cleanseCompanyName(m.companyName,illegalCharacters),
         "returnsOnCT61" -> m.returnsOnCT61,
         "companyACharity" -> false
       ) ++

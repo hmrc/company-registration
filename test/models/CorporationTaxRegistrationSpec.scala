@@ -17,11 +17,12 @@
 package models
 
 import fixtures.CorporationTaxRegistrationFixture
-import org.joda.time.{DateTimeZone, DateTime}
-import play.api.libs.json.Json
+import org.joda.time.{DateTime, DateTimeZone}
+import play.api.data.validation.ValidationError
+import play.api.libs.json.{JsPath, JsSuccess, Json}
 import uk.gov.hmrc.play.test.UnitSpec
 
-class CorporationTaxRegistrationSpec extends UnitSpec with CorporationTaxRegistrationFixture {
+class CorporationTaxRegistrationSpec extends UnitSpec with JsonFormatValidation with CorporationTaxRegistrationFixture {
 
   def now = DateTime.now(DateTimeZone.UTC)
 
@@ -61,5 +62,80 @@ class CorporationTaxRegistrationSpec extends UnitSpec with CorporationTaxRegistr
       val ct = Json.fromJson[CorporationTaxRegistration](fullHeldJson)(CorporationTaxRegistration.cTReads(CorporationTaxRegistration.formatAck))
       validHeldCorporationTaxRegistration.copy(createdTime = ct.get.createdTime, lastSignedIn = ct.get.lastSignedIn) shouldBe ct.get
     }
+  }
+
+  "CompanyDetails Model - names" should {
+    def tstJson(cName: String) = Json.parse(
+      s"""
+         |{
+         |  "companyName":"$cName",
+         |  "pPOBAddress": {
+         |    "addressType":"MANUAL",
+         |    "address": {
+         |      "addressLine1":"15 St Walk",
+         |      "addressLine2":"Testley",
+         |      "addressLine3":"Testford",
+         |      "addressLine4":"Testshire",
+         |      "postCode": "ZZ1 1ZZ",
+         |      "country":"UK",
+         |      "txid":"txid"
+         |    }
+         |  },
+         |   "cHROAddress": {
+         |   "premises":"p",
+         |    "address_line_1":"14 St Test Walk",
+         |    "address_line_2":"Test",
+         |    "country":"c",
+         |    "locality":"l",
+         |    "po_box":"pb",
+         |    "postal_code":"TE1 1ST",
+         |     "region" : "r"
+         |  },
+         |  "jurisdiction": "test"
+         |}
+        """.stripMargin)
+
+    "fail on company name" when {
+
+
+      "it is too long" in {
+        val longName = List.fill(161)('a').mkString
+        val json = tstJson(longName)
+
+        val result = Json.fromJson[CompanyDetails](json)
+
+        shouldHaveErrors(result, JsPath() \ "companyName", Seq(ValidationError("Invalid company name")))
+      }
+      "it is too short" in {
+        val json = tstJson("")
+
+        val result = Json.fromJson[CompanyDetails](json)
+
+        shouldHaveErrors(result, JsPath() \ "companyName", Seq(ValidationError("Invalid company name")))
+      }
+      "it contains invalid character " in {
+        val json = tstJson("étest|company")
+
+        val result = Json.fromJson[CompanyDetails](json)
+
+        shouldHaveErrors(result, JsPath() \ "companyName", Seq(ValidationError("Invalid company name")))
+      }
+    }
+
+    "Be able to be parsed from JSON" when {
+
+      "with valid company name" in {
+        val chROAddress = CHROAddress("p","14 St Test Walk",Some("Test"),"c","l",Some("pb"),Some("TE1 1ST"),Some("r"))
+        val ppobAddress = PPOBAddress("15 St Walk", "Testley", Some("Testford"), Some("Testshire"), Some("ZZ1 1ZZ"), Some("UK"), None, "txid")
+
+        val json = tstJson("ß Ǭscar ég ànt")
+        val expected = CompanyDetails("ß Ǭscar ég ànt", chROAddress, PPOB(PPOB.MANUAL, Some(ppobAddress)), "test")
+
+        val result = Json.fromJson[CompanyDetails](json)
+
+        result shouldBe JsSuccess(expected)
+      }
+    }
+
   }
 }
