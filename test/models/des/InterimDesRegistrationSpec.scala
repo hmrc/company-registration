@@ -315,7 +315,7 @@ class InterimDesRegistrationSpec extends UnitSpec {
       result shouldBe Json.parse(expectedJson)
     }
 
-    "should replace diacritics with equivalent alpha characters for company name" in {
+    "replace diacritics with equivalent alpha characters for company name" in {
       val expectedJson : String = s"""{  "acknowledgementReference" : "ackRef1",
                                      |  "registration" : {
                                      |  "metadata" : {
@@ -332,7 +332,7 @@ class InterimDesRegistrationSpec extends UnitSpec {
                                      |  "companyOfficeNumber" : "623",
                                      |  "hasCompanyTakenOverBusiness" : false,
                                      |  "companyMemberOfGroup" : false,
-                                     |  "companiesHouseCompanyName" : "ß tђє Ŧค๓เℓy »",
+                                     |  "companiesHouseCompanyName" : "ss Oscar eg ant",
                                      |  "returnsOnCT61" : false,
                                      |  "companyACharity" : false,
                                      |  "businessContactName" : {
@@ -357,11 +357,11 @@ class InterimDesRegistrationSpec extends UnitSpec {
       val desBusinessContactContactDetails = BusinessContactDetails(
         None,
         None,
-        None
+        Some("d@ddd.com")
       )
 
       val testInterimCorporationTax = InterimCorporationTax(
-        "ss the Family",
+        "ß Ǭscar ég ànt",
         false,
         None,
         desBusinessContactName,
@@ -375,7 +375,7 @@ class InterimDesRegistrationSpec extends UnitSpec {
       result shouldBe Json.parse(expectedJson)
     }
 
-    "should strip  punctuation characters for company name" in {
+    "strip  punctuation characters for company name" in {
       val expectedJson: String =
         s"""{  "acknowledgementReference" : "ackRef1",
                                      |  "registration" : {
@@ -393,7 +393,7 @@ class InterimDesRegistrationSpec extends UnitSpec {
                                      |  "companyOfficeNumber" : "623",
                                      |  "hasCompanyTakenOverBusiness" : false,
                                      |  "companyMemberOfGroup" : false,
-                                     |  "companiesHouseCompanyName" : "Test Company' »",
+                                     |  "companiesHouseCompanyName" : "Test Company",
                                      |  "returnsOnCT61" : false,
                                      |  "companyACharity" : false,
                                      |  "businessContactName" : {
@@ -418,11 +418,11 @@ class InterimDesRegistrationSpec extends UnitSpec {
       val desBusinessContactContactDetails = BusinessContactDetails(
         None,
         None,
-        None
+        Some("d@ddd.com")
       )
 
       val testInterimCorporationTax = InterimCorporationTax(
-        "Test Company",
+        "[Test Company]»",
         false,
         None,
         desBusinessContactName,
@@ -433,6 +433,7 @@ class InterimDesRegistrationSpec extends UnitSpec {
 
       val result = Json.toJson[InterimDesRegistration](testModel1)
       result.getClass shouldBe classOf[JsObject]
+      print("The result is:" + result)
       result shouldBe Json.parse(expectedJson)
       }
   }
