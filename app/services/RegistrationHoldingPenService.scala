@@ -124,8 +124,8 @@ trait RegistrationHoldingPenService extends DateHelper {
     item.status match {
       case "accepted" =>
         for {
-          ctReg <- fetchRegistrationByTxId(item.transactionId)
-          emailResult <- sendEmailService.sendVATEmail(ctReg.verifiedEmail.get.address)
+          ctReg  <- fetchRegistrationByTxId(item.transactionId)
+          _      <- ctReg.verifiedEmail.fold(Future.successful(false)){ case email => sendEmailService.sendVATEmail(email.address) }
           result <- updateSubmissionWithIncorporation(item, ctReg, isAdmin)
         } yield {
           if(result) result else throw FailedToUpdateSubmissionWithAcceptedIncorp
