@@ -37,17 +37,20 @@ trait CheckSubmissionJob extends ExclusiveScheduledJob with JobConfig {
   override def executeInMutex(implicit ec: ExecutionContext): Future[Result] = {
     SCRSFeatureSwitches.scheduler.enabled match {
       case true => lock.tryLock {
-        Logger.info(s"Triggered $name")
+        Logger.info(s"[CheckSubmissionJob] Triggered $name")
         regHoldingPenService.updateNextSubmissionByTimepoint(HeaderCarrier())
       } map {
         case Some(x) =>
-          Logger.info(s"successfully acquired lock for $name")
+          Logger.info(s"[CheckSubmissionJob] successfully acquired lock for $name")
           Result(s"$name")
         case None =>
-          Logger.info(s"failed to acquire lock for $name")
+          Logger.info(s"[CheckSubmissionJob] failed to acquire lock for $name")
           Result(s"$name failed")
       } recover {
-        case _: Exception => Result(s"$name failed")
+        case e: Exception => {
+          Logger.error(s"[CheckSubmissionJob] Failed to process ${e.getMessage}", e)
+          Result(s"$name failed")
+        }
       }
       case false => Future.successful(Result(s"Feature is turned off"))
     }
