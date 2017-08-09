@@ -314,5 +314,126 @@ class InterimDesRegistrationSpec extends UnitSpec {
       result.getClass shouldBe classOf[JsObject]
       result shouldBe Json.parse(expectedJson)
     }
+
+    "should replace diacritics with equivalent alpha characters for company name" in {
+      val expectedJson : String = s"""{  "acknowledgementReference" : "ackRef1",
+                                     |  "registration" : {
+                                     |  "metadata" : {
+                                     |  "businessType" : "Limited company",
+                                     |  "sessionId" : "session-123",
+                                     |  "credentialId" : "cred-123",
+                                     |  "formCreationTimestamp": "1970-01-01T00:00:00.000Z",
+                                     |  "submissionFromAgent": false,
+                                     |  "language" : "ENG",
+                                     |  "completionCapacity" : "Director",
+                                     |  "declareAccurateAndComplete": true
+                                     |  },
+                                     |  "corporationTax" : {
+                                     |  "companyOfficeNumber" : "623",
+                                     |  "hasCompanyTakenOverBusiness" : false,
+                                     |  "companyMemberOfGroup" : false,
+                                     |  "companiesHouseCompanyName" : "ß tђє Ŧค๓เℓy »",
+                                     |  "returnsOnCT61" : false,
+                                     |  "companyACharity" : false,
+                                     |  "businessContactName" : {
+                                     |                           "firstName" : "Adam",
+                                     |                           "middleNames" : "the",
+                                     |                           "lastName" : "ant"
+                                     |                           },
+                                     |  "businessContactDetails" : {
+                                     |                             "email" : "d@ddd.com"
+                                     |                             }
+                                     |                           }
+                                     |  }
+                                     |}""".stripMargin
+
+      val testMetadata = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), Director )
+
+      val desBusinessContactName = BusinessContactName(
+        "Adam",
+        Some("the"),
+        "ant"
+      )
+      val desBusinessContactContactDetails = BusinessContactDetails(
+        None,
+        None,
+        None
+      )
+
+      val testInterimCorporationTax = InterimCorporationTax(
+        "ss the Family",
+        false,
+        None,
+        desBusinessContactName,
+        desBusinessContactContactDetails
+      )
+
+      val testModel1 = InterimDesRegistration( "ackRef1", testMetadata, testInterimCorporationTax)
+
+      val result = Json.toJson[InterimDesRegistration](testModel1)
+      result.getClass shouldBe classOf[JsObject]
+      result shouldBe Json.parse(expectedJson)
+    }
+
+    "should strip  punctuation characters for company name" in {
+      val expectedJson: String =
+        s"""{  "acknowledgementReference" : "ackRef1",
+                                     |  "registration" : {
+                                     |  "metadata" : {
+                                     |  "businessType" : "Limited company",
+                                     |  "sessionId" : "session-123",
+                                     |  "credentialId" : "cred-123",
+                                     |  "formCreationTimestamp": "1970-01-01T00:00:00.000Z",
+                                     |  "submissionFromAgent": false,
+                                     |  "language" : "ENG",
+                                     |  "completionCapacity" : "Director",
+                                     |  "declareAccurateAndComplete": true
+                                     |  },
+                                     |  "corporationTax" : {
+                                     |  "companyOfficeNumber" : "623",
+                                     |  "hasCompanyTakenOverBusiness" : false,
+                                     |  "companyMemberOfGroup" : false,
+                                     |  "companiesHouseCompanyName" : "Test Company' »",
+                                     |  "returnsOnCT61" : false,
+                                     |  "companyACharity" : false,
+                                     |  "businessContactName" : {
+                                     |                           "firstName" : "Adam",
+                                     |                           "middleNames" : "the",
+                                     |                           "lastName" : "ant"
+                                     |                           },
+                                     |  "businessContactDetails" : {
+                                     |                             "email" : "d@ddd.com"
+                                     |                             }
+                                     |                           }
+                                     |  }
+                                     |}""".stripMargin
+
+      val testMetadata = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), Director )
+
+      val desBusinessContactName = BusinessContactName(
+        "Adam",
+        Some("the"),
+        "ant"
+      )
+      val desBusinessContactContactDetails = BusinessContactDetails(
+        None,
+        None,
+        None
+      )
+
+      val testInterimCorporationTax = InterimCorporationTax(
+        "Test Company",
+        false,
+        None,
+        desBusinessContactName,
+        desBusinessContactContactDetails
+      )
+
+      val testModel1 = InterimDesRegistration( "ackRef1", testMetadata, testInterimCorporationTax)
+
+      val result = Json.toJson[InterimDesRegistration](testModel1)
+      result.getClass shouldBe classOf[JsObject]
+      result shouldBe Json.parse(expectedJson)
+      }
   }
 }
