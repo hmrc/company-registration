@@ -31,7 +31,7 @@ import repositories._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http.HeaderCarrier
-import utils.{DateCalculators, SCRSFeatureSwitches}
+import utils.DateCalculators
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -49,7 +49,6 @@ object RegistrationHoldingPenService
   override val auditConnector = MicroserviceAuditConnector
   override val microserviceAuthConnector = AuthConnector
   val sendEmailService = SendEmailService
-  val featureSwitch = SCRSFeatureSwitches
 
   val addressLine4FixRegID = getConfString("address-line-4-fix.regId", throw new Exception("could not find config key address-line-4-fix.regId"))
   val amendedAddressLine4 = getConfString("address-line-4-fix.address-line-4", throw new Exception("could not find config key address-line-4-fix.address-line-4"))
@@ -83,7 +82,6 @@ trait RegistrationHoldingPenService extends DateHelper {
   val amendedAddressLine4: String
   val blockageLoggingDay : String
   val blockageLoggingTime : String
-  val featureSwitch : SCRSFeatureSwitches
 
 //  case class FailedToRetrieveByTxId(transId: String) extends NoStackTrace
   class FailedToRetrieveByTxId(val transId: String) extends NoStackTrace
@@ -95,13 +93,7 @@ trait RegistrationHoldingPenService extends DateHelper {
     fetchIncorpUpdate flatMap { items =>
       val results = items map { item =>
         //TODO see SCRS-3766
-        processIncorporationUpdate(item) recover {
-          case e: FailedToRetrieveByTxId =>
-            if(handleBlockage) {
-              Logger.info(s"[RegistrationHoldingPenService] [updateNextSubmissionByTimepoint] SKIPPING BLOCKAGE - Transaction ID: ${e.transId}")
-              false
-            } else { e }
-        }
+        processIncorporationUpdate(item)
       }
       Future.sequence(results) flatMap { _ =>
         //TODO For day one, take the first timepoint - see SCRS-3766
@@ -363,9 +355,5 @@ trait RegistrationHoldingPenService extends DateHelper {
   private[services] def postSubmissionToDes(ackRef: String, submission: JsObject, journeyId : String, isAdmin: Boolean = false) = {
     val hc = new HeaderCarrier()
     desConnector.ctSubmission(ackRef, submission, journeyId, isAdmin)(hc)
-  }
-
-  private def handleBlockage: Boolean = {
-    featureSwitch.timedSkip.enabled
   }
 }
