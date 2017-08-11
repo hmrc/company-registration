@@ -19,6 +19,7 @@ package repositories
 import java.util.UUID
 
 import com.fasterxml.jackson.core.JsonParseException
+import org.joda.time.DateTime
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatest.concurrent.ScalaFutures
 import play.api.libs.json.Json
@@ -185,5 +186,43 @@ class HeldSubmissionMongoRepositoryISpec extends UnitSpec with ScalaFutures with
 
       await(repository.count) shouldBe startCount
     }
+
+    "be able to store 5 JSON documents" in new Setup {
+//      val randomRegid = newId
+//      val randomAckid = newId
+//      val data = Json.obj("bar" -> "foo")
+//
+//      val beforeCount: Int = await(repository.count)
+//
+//      val oResult = await(repository.storePartialSubmission(randomRegid, randomAckid, data))
+//
+//      await(repository.count) shouldBe (beforeCount + 1)
+//
+//      oResult shouldBe defined
+//
+//      val result = oResult.get
+//      result.registrationID shouldBe randomRegid
+//      result.acknowledgementReference shouldBe randomAckid
+//      Json.parse(result.partialSubmission) shouldBe data
+
+      //=================================================================================================================
+
+      val beforeCount: Int = await(repository.count)
+
+      val data1 = HeldSubmissionData("60", "BRCT00000000003", "{}", DateTime.parse("2017-08-01T12:00:00.000"))
+      val data2 = HeldSubmissionData("61", "BRCT00000000004", "{}", DateTime.parse("2017-08-02T00:00:00.000"))
+
+      var result = await(repository.collection.insert(data1))
+      result = await(repository.collection.insert(data2))
+
+      await(repository.count) shouldBe (beforeCount + 2)
+
+      val testResult = await(repository.retrieveHeldSubmissionElapsedTimes(DateTime.parse("2017-08-07T12:00:00.000")))
+
+      testResult shouldBe "6.0, 5.5"
+
+
+    }
+
   }
 }
