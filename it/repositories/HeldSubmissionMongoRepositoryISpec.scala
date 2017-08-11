@@ -187,25 +187,7 @@ class HeldSubmissionMongoRepositoryISpec extends UnitSpec with ScalaFutures with
       await(repository.count) shouldBe startCount
     }
 
-    "be able to store 5 JSON documents" in new Setup {
-//      val randomRegid = newId
-//      val randomAckid = newId
-//      val data = Json.obj("bar" -> "foo")
-//
-//      val beforeCount: Int = await(repository.count)
-//
-//      val oResult = await(repository.storePartialSubmission(randomRegid, randomAckid, data))
-//
-//      await(repository.count) shouldBe (beforeCount + 1)
-//
-//      oResult shouldBe defined
-//
-//      val result = oResult.get
-//      result.registrationID shouldBe randomRegid
-//      result.acknowledgementReference shouldBe randomAckid
-//      Json.parse(result.partialSubmission) shouldBe data
-
-      //=================================================================================================================
+    "get the elapsed submission times in the held repo" in new Setup {
 
       val beforeCount: Int = await(repository.count)
 
