@@ -19,15 +19,18 @@ package connectors
 import config.WSHttp
 import fixtures.BusinessRegistrationFixture
 import helpers.SCRSSpec
+import mocks.SCRSMocks
 import models.BusinessRegistration
 import org.mockito.Matchers
 import org.mockito.Mockito._
-import play.api.libs.json.{Json, JsValue}
+import org.scalatest.mock.MockitoSugar
+import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.play.http.{ForbiddenException, HeaderCarrier, NotFoundException}
+import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 
-class BusinessRegistrationConnectorSpec extends SCRSSpec with BusinessRegistrationFixture {
+class BusinessRegistrationConnectorSpec extends UnitSpec with MockitoSugar with SCRSMocks with BusinessRegistrationFixture {
 
   val busRegBaseUrl = "testBusinessRegUrl"
 

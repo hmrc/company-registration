@@ -31,7 +31,7 @@ import uk.gov.hmrc.play.http._
 import scala.concurrent.Future
 
 
-class SubmissionCheckAPIConnectorSpec extends UnitSpec with MockitoSugar with WithFakeApplication {
+class SubmissionCheckAPIConnectorSpec extends UnitSpec with MockitoSugar  {
 
   val testProxyUrl = "testBusinessRegUrl"
   implicit val hc = HeaderCarrier()

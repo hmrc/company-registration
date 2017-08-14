@@ -18,6 +18,7 @@ package connectors
 
 import java.util.UUID
 
+import mocks.SCRSMocks
 import org.mockito.Mockito._
 import org.mockito.Matchers
 import org.scalatest.{BeforeAndAfter, ShouldMatchers, WordSpecLike}
@@ -27,14 +28,14 @@ import play.api.test.FakeApplication
 import play.api.test.Helpers._
 import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse, _}
 import uk.gov.hmrc.play.http.logging.SessionId
-import uk.gov.hmrc.play.test.WithFakeApplication
+import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.Future
 
 /**
   * Created by crispy on 03/08/16.
   */
-class AuthConnectorSpec extends WordSpecLike with WithFakeApplication with ShouldMatchers with MockitoSugar with BeforeAndAfter {
+class AuthConnectorSpec extends WordSpecLike with UnitSpec with SCRSMocks with ShouldMatchers with MockitoSugar with BeforeAndAfter {
 
   implicit val hc = HeaderCarrier()
 

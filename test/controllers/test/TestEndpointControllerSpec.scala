@@ -32,7 +32,7 @@ import play.api.test.Helpers._
 
 import scala.concurrent.Future
 
-class TestEndpointControllerSpec extends UnitSpec with MockitoSugar with WithFakeApplication{
+class TestEndpointControllerSpec extends UnitSpec with MockitoSugar {
 
   implicit val system = ActorSystem("CR")
   implicit val materializer = ActorMaterializer()

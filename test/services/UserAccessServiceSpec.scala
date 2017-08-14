@@ -35,7 +35,7 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class UserAccessServiceSpec
-  extends UnitSpec with MockitoSugar with WithFakeApplication with BusinessRegistrationFixture with CorporationTaxRegistrationFixture
+  extends UnitSpec with MockitoSugar with BusinessRegistrationFixture with CorporationTaxRegistrationFixture
   with BeforeAndAfterEach with MockHelper {
 
   val mockBRConnector = mock[BusinessRegistrationConnector]

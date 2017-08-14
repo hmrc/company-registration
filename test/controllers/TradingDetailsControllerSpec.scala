@@ -30,11 +30,13 @@ import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import services.{CorporationTaxRegistrationService, MetricsService, TradingDetailsService}
-import mocks.MockMetricsService
+import mocks.{MockMetricsService, SCRSMocks}
+import org.scalatest.mock.MockitoSugar
+import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 
-class TradingDetailsControllerSpec extends SCRSSpec with AuthFixture {
+class TradingDetailsControllerSpec extends UnitSpec with MockitoSugar with SCRSMocks with AuthFixture {
 
   implicit val system = ActorSystem("CR")
   implicit val materializer = ActorMaterializer()

@@ -44,7 +44,7 @@ trait ContactDetailsController extends BaseController with Authenticated with Au
   val contactDetailsService: ContactDetailsService
   val metricsService: MetricsService
 
-  private def mapToResponse(registrationID: String, res: ContactDetails)= {
+  private[controllers] def mapToResponse(registrationID: String, res: ContactDetails)= {
     Json.toJson(res).as[JsObject] ++
       Json.obj(
         "links" -> Json.obj(

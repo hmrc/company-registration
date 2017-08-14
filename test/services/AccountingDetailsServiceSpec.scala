@@ -18,10 +18,13 @@ package services
 
 import fixtures.AccountingDetailsFixture
 import helpers.SCRSSpec
+import mocks.SCRSMocks
 import models.SubmissionDates
 import org.joda.time.DateTime
+import org.scalatest.mock.MockitoSugar
+import uk.gov.hmrc.play.test.UnitSpec
 
-class AccountingDetailsServiceSpec extends SCRSSpec with AccountingDetailsFixture {
+class AccountingDetailsServiceSpec extends UnitSpec with MockitoSugar with SCRSMocks with AccountingDetailsFixture {
 
   trait Setup {
     val service = new AccountingDetailsService {

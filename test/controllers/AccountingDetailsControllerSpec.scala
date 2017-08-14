@@ -21,18 +21,21 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import fixtures.{AccountingDetailsFixture, AuthFixture}
 import helpers.SCRSSpec
-import mocks.MockMetricsService
+import mocks.{MockMetricsService, SCRSMocks}
 import models.{AccountPrepDetails, ErrorResponse}
 import org.mockito.Matchers
 import org.mockito.Mockito._
+import org.scalatest.mock.MockitoSugar
+import org.scalatestplus.play.{OneAppPerSuite, OneAppPerTest}
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import services.PrepareAccountService
+import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 
-class AccountingDetailsControllerSpec extends SCRSSpec with AuthFixture with AccountingDetailsFixture {
+class AccountingDetailsControllerSpec extends UnitSpec with MockitoSugar with SCRSMocks with  AuthFixture with AccountingDetailsFixture {
 
   implicit val system = ActorSystem("CR")
   implicit val materializer = ActorMaterializer()

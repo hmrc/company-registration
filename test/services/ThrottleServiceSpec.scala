@@ -25,7 +25,7 @@ import org.mockito.Mockito._
 
 import scala.concurrent.Future
 
-class ThrottleServiceSpec extends UnitSpec with MockitoSugar with WithFakeApplication {
+class ThrottleServiceSpec extends UnitSpec with MockitoSugar {
 
   val mockThrottleMongoRepository = mock[ThrottleMongoRepository]
 

@@ -21,6 +21,7 @@ import akka.stream.ActorMaterializer
 import controllers.test.EmailController
 import fixtures.AuthFixture
 import helpers.SCRSSpec
+import mocks.SCRSMocks
 import models.Email
 import org.mockito.Matchers
 import org.scalatest.mock.MockitoSugar
@@ -29,10 +30,11 @@ import play.api.test.FakeRequest
 import services.EmailService
 import org.mockito.Mockito._
 import play.api.test.Helpers._
+import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 
-class EmailControllerSpec extends SCRSSpec with MockitoSugar with AuthFixture{
+class EmailControllerSpec extends UnitSpec with SCRSMocks with MockitoSugar with AuthFixture{
 
   implicit val system = ActorSystem("CR")
   implicit val materializer = ActorMaterializer()

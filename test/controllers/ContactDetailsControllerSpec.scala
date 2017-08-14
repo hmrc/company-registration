@@ -21,24 +21,41 @@ import akka.stream.ActorMaterializer
 import connectors.AuthConnector
 import fixtures.{AuthFixture, ContactDetailsFixture, ContactDetailsResponse}
 import helpers.SCRSSpec
-import models.ErrorResponse
-import play.api.libs.json.Json
+import models.{ContactDetails, ErrorResponse}
+import play.api.libs.json._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import services.{ContactDetailsService, CorporationTaxRegistrationService, MetricsService}
-import mocks.MockMetricsService
+import mocks.{MockMetricsService, SCRSMocks}
+import org.mockito.Mockito.reset
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.mock.MockitoSugar
+import uk.gov.hmrc.play.test.UnitSpec
 
-class ContactDetailsControllerSpec extends SCRSSpec with ContactDetailsFixture with AuthFixture {
+class ContactDetailsControllerSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEach with SCRSMocks with ContactDetailsFixture with AuthFixture {
 
   implicit val system = ActorSystem("CR")
   implicit val materializer = ActorMaterializer()
-
+  override def beforeEach(): Unit = reset(mockCTDataService)
   trait Setup {
     val controller = new ContactDetailsController {
       override val contactDetailsService = mockContactDetailsService
       override val resourceConn = mockCTDataRepository
       override val auth = mockAuthConnector
       override val metricsService = MockMetricsService
+
+      def links(a:String,b:ContactDetails) = {Json.obj("links" ->
+        mapToResponse(a, b).value("links").as[JsObject].value.
+          map { s =>
+            Json.obj(s._1 -> {
+              if (s._2.as[String].startsWith("""/corporation-tax-registration"""))
+                (s._2.as[String].replace("corporation-tax-registration",
+                  """company-registration/corporation-tax-registration"""))
+              else
+                s._2
+            })
+          }.reduce((a, b) => a ++ b))
+      }
     }
   }
 
@@ -51,9 +68,13 @@ class ContactDetailsControllerSpec extends SCRSSpec with ContactDetailsFixture w
       AuthorisationMocks.getInternalId("testID", Some(registrationID -> validAuthority.ids.internalId))
       ContactDetailsServiceMocks.retrieveContactDetails(registrationID, Some(contactDetails))
 
+      val links = controller.links(registrationID,contactDetails)
+
       val result = controller.retrieveContactDetails(registrationID)(FakeRequest())
       status(result) shouldBe OK
-      await(jsonBodyOf(result)) shouldBe Json.toJson(contactDetailsResponse)
+
+      val json = await(jsonBodyOf(result))
+      json.as[JsObject] - "links" ++ links shouldBe Json.toJson(contactDetailsResponse).as[JsObject]
     }
 
     "return a 404 when the user is authorised but contact details cannot be found" in new Setup {
@@ -98,12 +119,13 @@ class ContactDetailsControllerSpec extends SCRSSpec with ContactDetailsFixture w
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       AuthorisationMocks.getInternalId("testID", Some(registrationID -> validAuthority.ids.internalId))
       ContactDetailsServiceMocks.updateContactDetails(registrationID, Some(contactDetails))
-
+      val links = controller.links(registrationID,contactDetails)
       val response = FakeRequest().withBody(Json.toJson(contactDetails))
 
       val result = call(controller.updateContactDetails(registrationID), response)
       status(result) shouldBe OK
-      await(jsonBodyOf(result)) shouldBe Json.toJson(contactDetailsResponse)
+      val json = await(jsonBodyOf(result))
+      json.as[JsObject] - "links" ++ links shouldBe Json.toJson(contactDetailsResponse)
     }
 
     "return a 404 when the user is authorised but contact details cannot be found" in new Setup {
