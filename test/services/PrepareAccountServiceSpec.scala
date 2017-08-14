@@ -17,14 +17,17 @@
 package services
 
 import helpers.SCRSSpec
+import mocks.SCRSMocks
 import models.AccountPrepDetails
 import org.joda.time.DateTime
 import org.mockito.Matchers
 import org.mockito.Mockito._
+import org.scalatest.mock.MockitoSugar
+import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 
-class PrepareAccountServiceSpec extends SCRSSpec {
+class PrepareAccountServiceSpec extends UnitSpec with MockitoSugar with SCRSMocks {
 
   class Setup {
     val prepareAccountService = new PrepareAccountService {

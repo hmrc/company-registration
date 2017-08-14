@@ -20,14 +20,17 @@ import java.util.UUID
 
 import fixtures.{CorporationTaxRegistrationFixture, MongoFixture}
 import helpers.SCRSSpec
+import mocks.SCRSMocks
 import models.TradingDetails
 import repositories.Repositories
 import org.mockito.Mockito._
 import org.mockito.Matchers
+import org.scalatest.mock.MockitoSugar
+import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 
-class TradingDetailsServiceSpec extends SCRSSpec with CorporationTaxRegistrationFixture with MongoFixture {
+class TradingDetailsServiceSpec extends UnitSpec with MockitoSugar with SCRSMocks with CorporationTaxRegistrationFixture with MongoFixture {
 
   implicit val mongo = mongoDB
 

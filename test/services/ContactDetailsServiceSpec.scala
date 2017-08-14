@@ -18,9 +18,12 @@ package services
 
 import fixtures.ContactDetailsFixture
 import helpers.SCRSSpec
+import mocks.SCRSMocks
+import org.scalatest.mock.MockitoSugar
 import repositories.Repositories
+import uk.gov.hmrc.play.test.UnitSpec
 
-class ContactDetailsServiceSpec extends SCRSSpec with ContactDetailsFixture {
+class ContactDetailsServiceSpec extends UnitSpec with SCRSMocks with MockitoSugar with ContactDetailsFixture {
 
   trait Setup {
     val service = new ContactDetailsService {

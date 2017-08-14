@@ -16,13 +16,9 @@
 
 package models
 
-import java.text.Normalizer
-import java.text.Normalizer.Form
-
 import play.api.data.validation.ValidationError
 import play.api.libs.json._
 import Reads.{maxLength, minLength, pattern}
-import models.des.InterimCorporationTax
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import play.api.libs.functional.syntax._
@@ -39,8 +35,6 @@ object Validation {
   def yyyymmddValidator = pattern("^[0-9]{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$".r)
 
   def yyyymmddValidatorFmt = readToFmt(yyyymmddValidator)
-
-  val companyNameRegex = """^[A-Za-z 0-9\-,.()/'&\"!%*_+:@<>?=;]{1,160}$"""
 
   def withFilter[A](fmt: Format[A], error: ValidationError)(f: (A) => Boolean): Format[A] = {
     Format(fmt.filter(error)(f), fmt)
@@ -68,19 +62,10 @@ trait HMRCAddressValidator {
 }
 
 trait CompanyDetailsValidator {
+
   import Validation._
-  val forbiddenPunctuation = Set('[', ']', '{', '}', '#', '«', '»')
-  val illegalCharacters = Map('æ' -> "ae", 'Æ' -> "AE", 'œ' -> "oe", 'Œ' -> "OE", 'ß' -> "ss", 'ø' -> "o", 'Ø' -> "O")
 
-  def cleanseCompanyName(companyName: String, m: Map[Char, String]): String = {
-    Normalizer.normalize(
-      companyName.map(c => if(m.contains(c)) m(c) else c).mkString, Form.NFD)
-      .replaceAll("[^\\p{ASCII}]", "").filterNot(forbiddenPunctuation)
-  }
-
-
-  val companyNameValidator: Format[String] = readToFmt(Reads.StringReads.filter(ValidationError("Invalid company name"))(companyName => cleanseCompanyName(companyName,illegalCharacters).matches(companyNameRegex)))
-
+  val companyNameValidator = readToFmt(pattern("^[A-Za-z 0-9\\-,.()/'&\"!%*_+:@<>?=;]{1,160}$".r))
 }
 
 trait ContactDetailsValidator {

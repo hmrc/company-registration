@@ -17,6 +17,7 @@
 package connectors
 
 import helpers.SCRSSpec
+import mocks.SCRSMocks
 import models.SendEmailRequest
 import org.mockito.Matchers
 import org.mockito.Mockito._
@@ -29,10 +30,7 @@ import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.Future
 
-class SendEmailConnectorSpec extends SCRSSpec with UnitSpec with WithFakeApplication with MockitoSugar with BeforeAndAfter {
-
-  val mockSendEmailConnector = mock[SendEmailConnector]
-
+class SendEmailConnectorSpec  extends UnitSpec with MockitoSugar with SCRSMocks with BeforeAndAfter {
 
   trait Setup {
     val connector = new SendEmailConnector {
@@ -52,13 +50,6 @@ class SendEmailConnectorSpec extends SCRSSpec with UnitSpec with WithFakeApplica
     true
   )
 
-  "Send Email Connector" should {
-
-    "use the correct sendEmailURL" in {
-      SendEmailConnector.sendEmailURL shouldBe "http://localhost:8300/hmrc/email"
-    }
-
-  }
 
 
 

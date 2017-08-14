@@ -21,20 +21,23 @@ import akka.stream.ActorMaterializer
 import connectors.AuthConnector
 import fixtures.AuthFixture
 import helpers.SCRSSpec
+import mocks.SCRSMocks
 import org.joda.time.DateTime
 import org.mockito.Matchers
 import org.mockito.Mockito._
+import org.scalatest.mock.MockitoSugar
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import repositories.HeldSubmissionMongoRepository
 import services.RegistrationHoldingPenService
 import uk.gov.hmrc.play.http.HeaderCarrier
+import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 
 
-class HeldControllerSpec extends SCRSSpec with AuthFixture {
+class HeldControllerSpec extends UnitSpec with SCRSMocks with MockitoSugar with AuthFixture {
 
   implicit val system = ActorSystem("CR")
   implicit val materializer = ActorMaterializer()

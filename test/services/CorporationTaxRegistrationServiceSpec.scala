@@ -21,6 +21,7 @@ import java.util.UUID
 import connectors._
 import fixtures.{AuthFixture, CorporationTaxRegistrationFixture, MongoFixture}
 import helpers.{MongoMocks, SCRSSpec}
+import mocks.SCRSMocks
 import models.RegistrationStatus._
 import models._
 import models.des._
@@ -35,11 +36,11 @@ import repositories.{HeldSubmission, HeldSubmissionData, HeldSubmissionMongoRepo
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.http.logging.SessionId
-import uk.gov.hmrc.play.test.LogCapturing
+import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
 
 import scala.concurrent.Future
 
-class CorporationTaxRegistrationServiceSpec extends SCRSSpec with CorporationTaxRegistrationFixture with MongoFixture with AuthFixture with MongoMocks with LogCapturing with Eventually {
+class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with CorporationTaxRegistrationFixture with MongoFixture with AuthFixture with MongoMocks with LogCapturing with Eventually {
 
   implicit val mongo = mongoDB
   implicit val hc = HeaderCarrier(sessionId = Some(SessionId("testSessionId")))

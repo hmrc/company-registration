@@ -31,11 +31,11 @@ import services.{CorporationTaxRegistrationService, MetricsService, UserAccessSe
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 import play.api.test.Helpers._
 import uk.gov.hmrc.play.http.HeaderCarrier
-import mocks.MockMetricsService
+import mocks.{MockMetricsService, SCRSMocks}
 
 import scala.concurrent.Future
 
-class UserAccessControllerSpec extends UnitSpec with MockitoSugar with WithFakeApplication with SCRSSpec with AuthFixture{
+class UserAccessControllerSpec extends UnitSpec with MockitoSugar with SCRSMocks with AuthFixture{
 
   implicit val system = ActorSystem("CR")
   implicit val materializer = ActorMaterializer()

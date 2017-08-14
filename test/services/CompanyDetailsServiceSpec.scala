@@ -20,9 +20,12 @@ import java.util.UUID
 
 import fixtures.CompanyDetailsFixture
 import helpers.SCRSSpec
+import mocks.SCRSMocks
+import org.scalatest.mock.MockitoSugar
 import repositories.Repositories
+import uk.gov.hmrc.play.test.UnitSpec
 
-class CompanyDetailsServiceSpec extends SCRSSpec with CompanyDetailsFixture {
+class CompanyDetailsServiceSpec extends UnitSpec with MockitoSugar with SCRSMocks with CompanyDetailsFixture {
 
   trait Setup {
     val service = new CompanyDetailsService {

@@ -17,9 +17,9 @@
 package services
 
 import connectors._
-
 import models._
 import connectors.SendEmailConnector
+import mocks.SCRSMocks
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
@@ -29,7 +29,7 @@ import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 
-class SendEmailServiceSpec extends UnitSpec with MockitoSugar with WithFakeApplication with BeforeAndAfterEach  {
+class SendEmailServiceSpec extends UnitSpec with MockitoSugar with SCRSMocks with BeforeAndAfterEach  {
 
   implicit val hc = HeaderCarrier()
   implicit val req = FakeRequest("GET", "/test-path")
@@ -38,7 +38,6 @@ class SendEmailServiceSpec extends UnitSpec with MockitoSugar with WithFakeAppli
     resetMocks()
   }
 
-  val mockAuthConnector = mock[AuthConnector]
   val mockSendEmailConnector = mock[SendEmailConnector]
 
   def resetMocks() = {
@@ -55,17 +54,6 @@ class SendEmailServiceSpec extends UnitSpec with MockitoSugar with WithFakeAppli
 
     }
   }
-
-  "SendEmailService" should {
-    "use the correct Auth connector" in {
-      SendEmailService.microserviceAuthConnector shouldBe AuthConnector
-    }
-    "use the correct Email connector" in {
-      SendEmailService.emailConnector shouldBe SendEmailConnector
-    }
-
-  }
-
 
     "generateEmailRequest" should {
 
