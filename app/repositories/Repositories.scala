@@ -26,10 +26,10 @@ object Repositories {
   private implicit val mongo = new MongoDbConnection {}.db
 
   lazy val cTRepository = new CorporationTaxRegistrationMongoRepository(mongo)
-  lazy val sequenceRepository = new SequenceMongoRepository()
+  lazy val sequenceRepository = new SequenceMongoRepository(mongo)
   lazy val throttleRepository = new ThrottleMongoRepository()
   lazy val stateDataRepository = new StateDataMongoRepository()
-  lazy val heldSubmissionRepository = new HeldSubmissionMongoRepository
+  lazy val heldSubmissionRepository = new HeldSubmissionMongoRepository(mongo)
   lazy val lockRepository = new LockRepository()
 }
 

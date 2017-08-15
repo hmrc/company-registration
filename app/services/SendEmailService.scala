@@ -48,10 +48,7 @@ object SendEmailService extends SendEmailService with ServicesConfig {
         )
     }
 
-    def sendVATEmail(emailAddress :String)
-                        (implicit hc: HeaderCarrier): Future[Boolean] = {
-
+    def sendVATEmail(emailAddress :String)(implicit hc: HeaderCarrier): Future[Boolean] = {
       SendEmailConnector.requestEmail(generateVATEmailRequest(Seq(emailAddress)))
-          }
-
+    }
   }

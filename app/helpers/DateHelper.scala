@@ -17,16 +17,28 @@
 package helpers
 
 import java.text.SimpleDateFormat
+import java.time.format.DateTimeFormatter
+import java.time.{ZoneId, ZonedDateTime}
 import java.util.Date
 
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.{DateTime, DateTimeZone}
+import play.api.libs.json.{JsString, Json, Writes}
+
+trait DateFormatter extends DateHelper {
+  val zonedDateTimeWrites: Writes[ZonedDateTime] = new Writes[ZonedDateTime] {
+    def writes(z:ZonedDateTime) = JsString(formatTimestamp(z))
+  }
+}
 
 trait DateHelper {
+  val dtFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXX")
 
   def now: DateTime = {
     DateTime.now(DateTimeZone.UTC)
   }
+
+  def nowAsZonedDateTime: ZonedDateTime = ZonedDateTime.now(ZoneId.of("UTC"))
 
   def getCurrentDay: String = {
     now.toString("yyyy-MM-dd")
@@ -48,6 +60,11 @@ trait DateHelper {
     val timeStampFormat = "yyyy-MM-dd'T'HH:mm:ssXXX"
     val format: SimpleDateFormat = new SimpleDateFormat(timeStampFormat)
     format.format(new Date(timeStamp.getMillis))
+  }
+
+  def formatTimestamp(timeStamp: ZonedDateTime) : String = {
+    val utcTimeStamp = timeStamp.withZoneSameInstant(ZoneId.of("Z"))
+    dtFormat.format(utcTimeStamp)
   }
 }
 

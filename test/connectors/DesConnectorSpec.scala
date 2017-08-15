@@ -21,10 +21,7 @@ import java.util.UUID
 import mocks.MockMetricsService
 import org.mockito.Matchers
 import org.mockito.Mockito._
-import org.scalatest.BeforeAndAfter
 import org.scalatest.mock.MockitoSugar
-import org.scalatestplus.play.OneServerPerSuite
-import play.api.Play
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.play.audit.http.HttpAuditing
 import uk.gov.hmrc.play.audit.http.config.LoadAuditingConfig
@@ -37,7 +34,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 
-class DesConnectorSpec extends UnitSpec with OneServerPerSuite with MockitoSugar with BeforeAndAfter {
+class DesConnectorSpec extends UnitSpec with MockitoSugar {
 
   object TestAuditConnector extends AuditConnector with AppName with RunMode {
     override lazy val auditingConfig = LoadAuditingConfig("auditing")
@@ -46,7 +43,7 @@ class DesConnectorSpec extends UnitSpec with OneServerPerSuite with MockitoSugar
   class MockHttp extends WSGet with WSPost with WSPut with HttpAuditing {
     override val hooks = Seq(AuditingHook)
     override def auditConnector: AuditConnector = TestAuditConnector
-    override def appName = Play.configuration.getString("appName").getOrElse("company-registration")
+    override def appName = "company-registration"
   }
 
   val mockWSHttp = mock[MockHttp]
@@ -63,20 +60,16 @@ class DesConnectorSpec extends UnitSpec with OneServerPerSuite with MockitoSugar
     }
   }
 
-  before {
-    reset(mockWSHttp)
-  }
-
   "httpRds" should {
 
-    "return the http response when a 200 status code is read from the http response" in {
+    "return the http response when a 200 status code is read from the http response" in new Setup {
       val response = HttpResponse(200)
-      DesConnector.httpRds.read("http://", "testUrl", response) shouldBe response
+      connector.httpRds.read("http://", "testUrl", response) shouldBe response
     }
 
-    "return a not found exception when it reads a 404 status code from the http response" in {
+    "return a not found exception when it reads a 404 status code from the http response" in new Setup {
       intercept[NotFoundException]{
-        DesConnector.httpRds.read("http://", "testUrl", HttpResponse(404))
+        connector.httpRds.read("http://", "testUrl", HttpResponse(404))
       }
     }
   }

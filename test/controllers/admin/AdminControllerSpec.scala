@@ -26,6 +26,7 @@ import services.admin.AdminService
 import uk.gov.hmrc.play.test.UnitSpec
 import org.mockito.Matchers.{any, eq => eqTo}
 import org.mockito.Mockito._
+import services.CorporationTaxRegistrationService
 
 import scala.concurrent.Future
 
@@ -34,11 +35,13 @@ class AdminControllerSpec extends UnitSpec with MockitoSugar {
   implicit val act = ActorSystem()
   implicit val mat = ActorMaterializer()
 
-  val mockAdminService = mock[AdminService]
+  val mockAdminService: AdminService = mock[AdminService]
+  val mockCTService: CorporationTaxRegistrationService = mock[CorporationTaxRegistrationService]
 
   trait Setup {
     val controller = new AdminController {
-      override val adminService = mockAdminService
+      override val adminService: AdminService = mockAdminService
+      override val ctService: CorporationTaxRegistrationService = mockCTService
     }
   }
 

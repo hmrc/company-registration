@@ -28,7 +28,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object BusinessRegistrationConnector extends BusinessRegistrationConnector with ServicesConfig {
-  val businessRegUrl = baseUrl("business-registration")
+  lazy val businessRegUrl = baseUrl("business-registration")
   val http = WSHttp
 }
 
@@ -48,21 +48,37 @@ trait BusinessRegistrationConnector {
     http.POST[JsValue, BusinessRegistration](s"$businessRegUrl/business-registration/business-tax-registration", json)
   }
 
+  def retrieveMetadata(regId: String)(implicit hc: HeaderCarrier, rds: HttpReads[BusinessRegistration]): Future[BusinessRegistrationResponse] = {
+    http.GET[BusinessRegistration](s"$businessRegUrl/business-registration/business-tax-registration/$regId") map {
+      metaData =>
+        BusinessRegistrationSuccessResponse(metaData)
+    } recover handleMetadataResponse
+  }
+
   def retrieveMetadata(implicit hc: HeaderCarrier, rds: HttpReads[BusinessRegistration]): Future[BusinessRegistrationResponse] = {
     http.GET[BusinessRegistration](s"$businessRegUrl/business-registration/business-tax-registration") map {
       metaData =>
         BusinessRegistrationSuccessResponse(metaData)
-    } recover {
-      case e: NotFoundException =>
-        Logger.error(s"[BusinessRegistrationConnector] [retrieveMetadata] - Received a NotFound status code when expecting metadata from Business-Registration")
-        BusinessRegistrationNotFoundResponse
-      case e: ForbiddenException =>
-        Logger.error(s"[BusinessRegistrationConnector] [retrieveMetadata] - Received a Forbidden status code when expecting metadata from Business-Registration")
-        BusinessRegistrationForbiddenResponse
-      case e: Exception =>
-        Logger.error(s"[BusinessRegistrationConnector] [retrieveMetadata] - Received error when expecting metadata from Business-Registration - Error ${e.getMessage}")
-        BusinessRegistrationErrorResponse(e)
-    }
+    } recover handleMetadataResponse
+  }
+
+  def adminRetrieveMetadata(regId: String)(implicit hc: HeaderCarrier): Future[BusinessRegistrationResponse] = {
+    http.GET[BusinessRegistration](s"$businessRegUrl/business-registration/admin/business-tax-registration/$regId") map {
+      metaData =>
+        BusinessRegistrationSuccessResponse(metaData)
+    } recover handleMetadataResponse
+  }
+
+  private def handleMetadataResponse: PartialFunction[Throwable, BusinessRegistrationResponse] = {
+    case _: NotFoundException =>
+      Logger.error(s"[BusinessRegistrationConnector] [retrieveMetadata] - Received a NotFound status code when expecting metadata from Business-Registration")
+      BusinessRegistrationNotFoundResponse
+    case _: ForbiddenException =>
+      Logger.error(s"[BusinessRegistrationConnector] [retrieveMetadata] - Received a Forbidden status code when expecting metadata from Business-Registration")
+      BusinessRegistrationForbiddenResponse
+    case e: Exception =>
+      Logger.error(s"[BusinessRegistrationConnector] [retrieveMetadata] - Received error when expecting metadata from Business-Registration - Error ${e.getMessage}")
+      BusinessRegistrationErrorResponse(e)
   }
 
   def removeMetadata(registrationId: String)(implicit hc: HeaderCarrier): Future[Boolean] = {

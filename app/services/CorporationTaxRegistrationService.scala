@@ -16,9 +16,8 @@
 
 package services
 
-import javax.inject.{Inject, Singleton}
-
 import audit.{SubmissionEventDetail, UserRegistrationSubmissionEvent}
+import cats.data.OptionT
 import config.MicroserviceAuditConnector
 import connectors.{AuthConnector, BusinessRegistrationConnector, BusinessRegistrationSuccessResponse}
 import models.des._
@@ -30,11 +29,13 @@ import helpers.DateHelper
 import models.{ConfirmationReferences, CorporationTaxRegistration}
 import repositories.{CorporationTaxRegistrationRepository, Repositories, SequenceRepository, StateDataRepository}
 import models._
+import models.admin.Admin
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.http.HeaderCarrier
+import cats.implicits._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -116,37 +117,40 @@ trait CorporationTaxRegistrationService extends DateHelper {
     }
   }
 
-  def updateConfirmationReferences(rID: String, refs: ConfirmationReferences)(implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[Option[ConfirmationReferences]] = {
+  def updateConfirmationReferences(rID: String, refs: ConfirmationReferences, admin: Option[Admin] = None)
+                                  (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[Option[ConfirmationReferences]] = {
     corporationTaxRegistrationRepository.retrieveConfirmationReference(rID) flatMap {
-      case existingRefs @ Some(confRefs) =>
+      case existingRefs @ Some(_) =>
         Logger.info(s"[CorporationTaxRegistrationService] [updateConfirmationReferences] - Confirmation refs for Reg ID: $rID already exist")
         Future.successful(existingRefs)
       case None =>
         for {
-          ackRef <- generateAcknowledgementReference
-          updatedRef <- corporationTaxRegistrationRepository.updateConfirmationReferences(rID, refs.copy(acknowledgementReference = ackRef))
-          heldSubmission <- buildPartialDesSubmission(rID, ackRef)
-          submissionStatus <- storeAndUpdateSubmission(rID, ackRef, heldSubmission)
-          _ <- removeTaxRegistrationInformation(rID)
+          ackRef         <- generateAcknowledgementReference
+          heldSubmission <- buildPartialDesSubmission(rID, ackRef, admin)
+          _              <- storeAndUpdateSubmission(rID, ackRef, heldSubmission, admin)
+          updatedRef     <- corporationTaxRegistrationRepository.updateConfirmationReferences(rID, refs.copy(acknowledgementReference = ackRef))
+          _              <- removeTaxRegistrationInformation(rID)
         } yield {
           updatedRef
         }
     }
   }
 
-  private[services] def storeAndUpdateSubmission(rID: String, ackRef: String, heldSubmission: InterimDesRegistration)
+  def fetchStatus(regId: String): OptionT[Future, String] = corporationTaxRegistrationRepository.fetchDocumentStatus(regId)
+
+  private[services] def storeAndUpdateSubmission(rID: String, ackRef: String, heldSubmission: InterimDesRegistration, admin: Option[Admin] = None)
                                                 (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[String] = {
     val submissionAsJson = Json.toJson(heldSubmission).as[JsObject]
     for {
-      heldSubmissionData <- heldSubmissionRepository.storePartialSubmission(rID, ackRef, submissionAsJson)
-      submissionStatus <- updateSubmissionStatus(rID, RegistrationStatus.HELD)
-      ctRegistration <- corporationTaxRegistrationRepository.retrieveCompanyDetails(rID)
-      userDetails <- microserviceAuthConnector.getUserDetails
-      authProviderId = userDetails.get.authProviderId
-      ppob = ctRegistration.get.ppob
-      _ <- auditUserSubmission(rID, ppob, authProviderId, submissionAsJson)
+      _                  <- heldSubmissionRepository.storePartialSubmission(rID, ackRef, submissionAsJson)
+      submissionStatus   <- updateSubmissionStatus(rID, RegistrationStatus.HELD)
+      ctRegistration     <- corporationTaxRegistrationRepository.retrieveCompanyDetails(rID)
+      credId             <- admin.fold(retrieveAuthProviderId)(_.credId.pure[Future])
+      _                  <- auditUserSubmission(rID, ctRegistration.get.ppob, credId, submissionAsJson)
     } yield submissionStatus
   }
+
+  private[services] def retrieveAuthProviderId(implicit hc: HeaderCarrier) = microserviceAuthConnector.getUserDetails map (_.get.authProviderId)
 
   private[services] def auditUserSubmission(rID: String, ppob: PPOB, authProviderId: String, jsSubmission: JsObject)(implicit hc: HeaderCarrier, req: Request[AnyContent]) = {
     import PPOB.RO
@@ -182,14 +186,14 @@ trait CorporationTaxRegistrationService extends DateHelper {
       .map(ref => f"BRCT$ref%011d")
   }
 
-  private[services] def buildPartialDesSubmission(regId: String, ackRef: String)(implicit hc: HeaderCarrier): Future[InterimDesRegistration] = {
+  private[services] def buildPartialDesSubmission(regId: String, ackRef: String, admin: Option[Admin] = None)(implicit hc: HeaderCarrier): Future[InterimDesRegistration] = {
 
     // TODO - check behaviour if session header is missing
     val sessionId = hc.headers.collect { case ("X-Session-ID", x) => x }.head
 
     for {
-      credId <- retrieveCredId
-      brMetadata <- retrieveBRMetadata(regId)
+      credId <- admin.fold(retrieveCredId)(a => Future.successful(a.credId))
+      brMetadata <- retrieveBRMetadata(regId, admin.isDefined)
       ctData <- retrieveCTData(regId)
     } yield {
       buildInterimSubmission(ackRef, sessionId, credId, brMetadata, ctData, currentDateTime)
@@ -207,14 +211,14 @@ trait CorporationTaxRegistrationService extends DateHelper {
 
   private[services] class FailedToGetBRMetadata extends NoStackTrace
 
-  private[services] def retrieveBRMetadata(regId: String)(implicit hc: HeaderCarrier): Future[BusinessRegistration] = {
-    brConnector.retrieveMetadata flatMap {
+  private[services] def retrieveBRMetadata(regId: String, isAdmin: Boolean = false)(implicit hc: HeaderCarrier): Future[BusinessRegistration] = {
+    (if(isAdmin) brConnector.adminRetrieveMetadata(regId) else brConnector.retrieveMetadata(regId)) flatMap {
       case BusinessRegistrationSuccessResponse(metadata) if metadata.registrationID == regId => Future.successful(metadata)
       case _ => Future.failed(new FailedToGetBRMetadata)
     }
   }
 
-  private[services] class FailedToGetCTData extends NoStackTrace
+  final class FailedToGetCTData extends NoStackTrace
 
   private[services] def retrieveCTData(regId: String): Future[CorporationTaxRegistration] = {
     corporationTaxRegistrationRepository.retrieveCorporationTaxRegistration(regId) flatMap {

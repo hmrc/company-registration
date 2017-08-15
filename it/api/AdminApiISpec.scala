@@ -16,16 +16,20 @@
 
 package api
 
+import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import itutil.IntegrationSpecBase
 import models._
 import models.RegistrationStatus._
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.Json
-import play.api.libs.ws.WS
+import play.api.libs.json.{JsValue, Json}
+import play.api.libs.ws.{WS, WSClient, WSRequest, WSResponse}
 import play.modules.reactivemongo.MongoDbConnection
-import repositories.CorporationTaxRegistrationMongoRepository
+import reactivemongo.api.commands.WriteResult
+import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmissionMongoRepository, SequenceMongoRepository}
 import uk.gov.hmrc.mongo.MongoSpecSupport
+
+import scala.concurrent.ExecutionContext
 
 class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport {
 
@@ -33,26 +37,44 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport {
     .configure(fakeConfig())
     .build
 
-  implicit val ec = app.actorSystem.dispatcher.prepare()
+  implicit val ec: ExecutionContext = app.actorSystem.dispatcher.prepare()
 
   val regId = "reg-id-12345"
   val internalId = "int-id-12345"
+  val sessionId = "session-id-12345"
+  val credId = "cred-id-12345"
+  val transId = "trans-id-2345"
+  val payRef = "pay-ref-2345"
+  val ackRef = "BRCT00000000001"
+  val strideUser = "stride-12345"
 
   class Setup extends MongoDbConnection {
     val repository = new CorporationTaxRegistrationMongoRepository(db)
+    val heldRepo = new HeldSubmissionMongoRepository(db)
+    val seqRepo = new SequenceMongoRepository(db)
+
     await(repository.drop)
+    await(heldRepo.drop)
+    await(seqRepo.drop)
+
     await(repository.ensureIndexes)
+    await(heldRepo.ensureIndexes)
+    await(seqRepo.ensureIndexes)
 
-    def count = await(repository.count)
-    def insert(doc: CorporationTaxRegistration) = await(repository.insert(doc))
+    def ctRegCount: Int = await(repository.count)
+    def heldCount: Int = await(heldRepo.count)
 
-    count shouldBe 0
+    def insert(doc: CorporationTaxRegistration): WriteResult = await(repository.insert(doc))
+
+    ctRegCount shouldBe 0
   }
 
-  def client(path: String) = WS.url(s"http://localhost:$port/company-registration/admin$path").
+  val ws: WSClient = app.injector.instanceOf(classOf[WSClient])
+
+  def client(path: String): WSRequest = ws.url(s"http://localhost:$port/company-registration/admin$path").
     withFollowRedirects(false)
 
-  def setupSimpleAuthMocks() = {
+  def setupSimpleAuthMocks(): StubMapping = {
     stubPost("/write/audit", 200, """{"x":2}""")
     stubGet("/auth/authority", 200, """{"uri":"xxx","credentials":{"gatewayId":"xxx2"},"userDetailsLink":"xxx3","ids":"/auth/ids"}""")
     stubGet("/auth/ids", 200, s"""{"internalId":"$internalId","externalId":"Ext-xxx"}""")
@@ -85,7 +107,43 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport {
       mobile = Some("07567293726"),
       email = Some("test@email.co.uk")
     )),
-    verifiedEmail = None,
+    verifiedEmail = Some(Email(
+      address = "testEmail@address.com",
+      emailType = "testType",
+      linkSent = true,
+      verified = true,
+      returnLinkEmailSent = true
+    )),
+    registrationProgress = Some("ho5"),
+    acknowledgementReferences = None,
+    accountsPreparation = None
+  )
+
+  val heldRegistration = CorporationTaxRegistration(
+    internalId = internalId,
+    registrationID = regId,
+    status = HELD,
+    formCreationTimestamp = "2001-12-31T12:00:00Z",
+    language = "en",
+    confirmationReferences = Some(ConfirmationReferences(
+      acknowledgementReference = ackRef,
+      transactionId = transId,
+      paymentReference = payRef,
+      paymentAmount = "12"
+    )),
+    companyDetails =  None,
+    accountingDetails = Some(AccountingDetails(
+      status = AccountingDetails.FUTURE_DATE,
+      activeDate = Some("2019-12-31"))),
+    tradingDetails = None,
+    contactDetails = None,
+    verifiedEmail = Some(Email(
+      address = "testEmail@address.com",
+      emailType = "testType",
+      linkSent = true,
+      verified = true,
+      returnLinkEmailSent = true
+    )),
     registrationProgress = Some("ho5"),
     acknowledgementReferences = None,
     accountsPreparation = None
@@ -97,7 +155,7 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport {
 
     "return a 200 and ho6 registration information as json" in new Setup {
 
-      val expected = Json.parse(
+      val expected: JsValue = Json.parse(
         """
           |{
           |  "status":"draft",
@@ -110,9 +168,9 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport {
 
       insert(draftRegistration)
 
-      count shouldBe 1
+      ctRegCount shouldBe 1
 
-      val result = await(client(s"$url/$regId").get())
+      val result: WSResponse  = await(client(s"$url/$regId").get())
 
       result.status shouldBe 200
       result.json shouldBe expected
@@ -122,9 +180,133 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport {
 
       setupSimpleAuthMocks()
 
-      count shouldBe 0
+      ctRegCount shouldBe 0
 
-      val result = await(client(s"$url/$regId").get())
+      val result: WSResponse = await(client(s"$url/$regId").get())
+
+      result.status shouldBe 404
+    }
+  }
+
+  "POST /admin/update-confirmation-references" should {
+
+    val url = "/update-confirmation-references"
+
+    val businessRegistrationResponse = Json.parse(
+      s"""
+        |{
+        |  "registrationID":"$regId",
+        |  "formCreationTimestamp":"2017-08-09T11:48:20+01:00",
+        |  "language":"en",
+        |  "completionCapacity":"director"
+        |}
+      """.stripMargin)
+
+    "update the confirmation refs for the record matching the supplied reg Id and create a held submission and return a 200" in new Setup {
+
+      setupSimpleAuthMocks()
+
+      stubGet(s"/business-registration/admin/business-tax-registration/$regId", 200, businessRegistrationResponse.toString())
+
+      insert(draftRegistration)
+
+      ctRegCount shouldBe 1
+      heldCount shouldBe 0
+
+      val jsonBody: JsValue = Json.parse(
+        s"""
+           |{
+           |  "strideUser":"$strideUser",
+           |  "sessionId":"$sessionId",
+           |  "credId":"$credId",
+           |  "registrationId":"$regId",
+           |  "transactionId":"$transId",
+           |  "paymentReference":"$payRef",
+           |  "paymentAmount":"12"
+           |}
+        """.stripMargin)
+
+      val result: WSResponse = await(client(s"$url").post(jsonBody))
+
+      val expected: JsValue = Json.parse(
+        s"""
+          |{
+          |  "success":true,
+          |  "statusBefore":"draft",
+          |  "statusAfter":"held"
+          |}
+        """.stripMargin)
+
+      result.status shouldBe 200
+      result.json shouldBe expected
+
+      heldCount shouldBe 1
+    }
+
+    "do not update the record matching the supplied reg Id when the record status is already held and do not create a held record and return a 200" in new Setup {
+
+      setupSimpleAuthMocks()
+
+      stubGet(s"/business-registration/admin/business-tax-registration/$regId", 200, businessRegistrationResponse.toString())
+
+      insert(heldRegistration)
+
+      ctRegCount shouldBe 1
+      heldCount shouldBe 0
+
+      val jsonBody: JsValue = Json.parse(
+        s"""
+           |{
+           |  "strideUser":"$strideUser",
+           |  "sessionId":"$sessionId",
+           |  "credId":"$credId",
+           |  "registrationId":"$regId",
+           |  "transactionId":"$transId",
+           |  "paymentReference":"$payRef",
+           |  "paymentAmount":"12"
+           |}
+        """.stripMargin)
+
+      val result: WSResponse = await(client(s"$url").post(jsonBody))
+
+      val expected: JsValue = Json.parse(
+        s"""
+           |{
+           |  "success":true,
+           |  "statusBefore":"held",
+           |  "statusAfter":"held"
+           |}
+        """.stripMargin)
+
+      result.status shouldBe 200
+      result.json shouldBe expected
+
+      heldCount shouldBe 0
+    }
+
+    "return a 404 when a CT registration does not exist" in new Setup {
+
+      setupSimpleAuthMocks()
+
+      stubGet(s"/business-registration/admin/business-tax-registration/$regId", 200, businessRegistrationResponse.toString())
+
+      ctRegCount shouldBe 0
+      heldCount shouldBe 0
+
+      val jsonBody: JsValue = Json.parse(
+        s"""
+           |{
+           |  "strideUser":"$strideUser",
+           |  "sessionId":"$sessionId",
+           |  "credId":"$credId",
+           |  "registrationId":"$regId",
+           |  "transactionId":"$transId",
+           |  "paymentReference":"$payRef",
+           |  "paymentAmount":"12"
+           |}
+        """.stripMargin)
+
+      val result: WSResponse = await(client(s"$url").post(jsonBody))
 
       result.status shouldBe 404
     }

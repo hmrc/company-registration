@@ -35,7 +35,7 @@ import scala.concurrent.Future
 class TestEndpointControllerSpec extends UnitSpec with MockitoSugar {
 
   implicit val system = ActorSystem("CR")
-  implicit val materializer = ActorMaterializer()
+  implicit val mat = ActorMaterializer()
 
   val mockThrottleRepository = mock[ThrottleMongoRepository]
   val mockCTRepository = mock[CorporationTaxRegistrationMongoRepository]
@@ -54,7 +54,6 @@ class TestEndpointControllerSpec extends UnitSpec with MockitoSugar {
       val stateRepo = mockStateRepository
     }
   }
-
 
   "modifyThrottledUsers" should {
 
@@ -151,7 +150,7 @@ class TestEndpointControllerSpec extends UnitSpec with MockitoSugar {
     val confirmationRefs = ConfirmationReferences("", "testTransID", "testPaymentRef", "12")
 
     "return a 200 if the document was successfully updated with a set of confirmation refs" in new Setup {
-      when(mockCTService.updateConfirmationReferences(Matchers.eq(registrationId), Matchers.any())(Matchers.any(), Matchers.any()))
+      when(mockCTService.updateConfirmationReferences(Matchers.eq(registrationId), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any()))
         .thenReturn(Future.successful(Some(confirmationRefs)))
 
       val result = await(controller.updateConfirmationRefs(registrationId)(FakeRequest()))
@@ -159,7 +158,7 @@ class TestEndpointControllerSpec extends UnitSpec with MockitoSugar {
     }
 
     "return a 404 if the document could not be updated / found" in new Setup {
-      when(mockCTService.updateConfirmationReferences(Matchers.eq(registrationId), Matchers.any())(Matchers.any(), Matchers.any()))
+      when(mockCTService.updateConfirmationReferences(Matchers.eq(registrationId), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any()))
         .thenReturn(Future.successful(None))
 
       val result = await(controller.updateConfirmationRefs(registrationId)(FakeRequest()))

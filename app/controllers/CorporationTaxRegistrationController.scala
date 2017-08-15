@@ -31,9 +31,7 @@ import uk.gov.hmrc.play.microservice.controller.BaseController
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class CorporationTaxRegistrationControllerImp @Inject() (metricsService: MetricsService
-                                                        )
-  extends CorporationTaxRegistrationController {
+class CorporationTaxRegistrationControllerImp @Inject() (metricsService: MetricsService) extends CorporationTaxRegistrationController {
   val ctService = CorporationTaxRegistrationService
   val resourceConn = Repositories.cTRepository
   val auth = AuthConnector
@@ -118,6 +116,7 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
       }
   }
 
+  //HO6
   def updateReferences(registrationID : String) = Action.async[JsValue](parse.json) {
     implicit request =>
       authorised(registrationID) {

@@ -16,9 +16,10 @@
 
 package repositories
 
-import javax.inject.{Singleton, Inject}
+import javax.inject.{Inject, Singleton}
 
 import auth.{AuthorisationResource, Crypto}
+import cats.data.OptionT
 import models._
 import org.joda.time.DateTime
 import play.api.libs.json._
@@ -30,6 +31,7 @@ import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson._
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
+import cats.implicits._
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -87,6 +89,7 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def updateRegistrationProgress(regId: String, progress: String): Future[Option[String]]
   def getRegistrationStats(): Future[Map[String, Int]]
   def fetchHO6Information(regId: String): Future[Option[HO6RegistrationInformation]]
+  def fetchDocumentStatus(regId: String): OptionT[Future, String]
 }
 
 private[repositories] class MissingCTDocument(regId: String) extends NoStackTrace
@@ -160,7 +163,6 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
     val selector = registrationIDSelector(registrationID)
     collection.find(selector).one[CorporationTaxRegistration]
   }
-
 
   override def updateCompanyDetails(registrationID: String, companyDetails: CompanyDetails): Future[Option[CompanyDetails]] = {
     retrieveCorporationTaxRegistration(registrationID).flatMap {
@@ -363,6 +365,10 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
     retrieveCorporationTaxRegistration(regId) map (_.map{ reg =>
       HO6RegistrationInformation(reg.status, reg.companyDetails.map(_.companyName), reg.registrationProgress)
     })
+  }
+
+  override def fetchDocumentStatus(regId: String): OptionT[Future, String] = {
+    OptionT(retrieveCorporationTaxRegistration(regId)) map (_.status)
   }
 
   def dropCollection = collection.drop()

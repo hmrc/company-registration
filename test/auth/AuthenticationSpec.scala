@@ -25,11 +25,11 @@ import play.api.mvc.Results
 import play.api.test.FakeApplication
 import play.api.test.Helpers._
 import uk.gov.hmrc.play.http.HeaderCarrier
-import uk.gov.hmrc.play.test.WithFakeApplication
+import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 
-class AuthenticationSpec extends WordSpecLike with WithFakeApplication with ShouldMatchers with MockitoSugar with BeforeAndAfter {
+class AuthenticationSpec extends UnitSpec with MockitoSugar {
 
     implicit val hc = HeaderCarrier()
 
@@ -37,10 +37,6 @@ class AuthenticationSpec extends WordSpecLike with WithFakeApplication with Shou
 
     object Authenticated extends Authenticated {
         val auth = mockAuth
-    }
-
-    before {
-        reset(mockAuth)
     }
 
     "The authentication helper" should {

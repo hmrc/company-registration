@@ -48,6 +48,8 @@ trait FakeAppConfig {
     "Test.auditing.consumer.baseUri.host" -> s"$wiremockHost",
     "Test.auditing.consumer.baseUri.port" -> s"$wiremockPort",
     "microservice.services.auth.host" -> s"$wiremockHost",
-    "microservice.services.auth.port" -> s"$wiremockPort"
+    "microservice.services.auth.port" -> s"$wiremockPort",
+    "microservice.services.business-registration.host" -> s"$wiremockHost",
+    "microservice.services.business-registration.port" -> s"$wiremockPort"
   ) ++ additionalConfig
 }
