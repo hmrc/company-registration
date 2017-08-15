@@ -20,7 +20,7 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import connectors.AuthConnector
 import fixtures.{AuthFixture, CorporationTaxRegistrationFixture}
-import helpers.SCRSSpec
+import helpers.{ControllerHelper, SCRSSpec}
 import mocks.{MockMetricsService, SCRSMocks}
 import models.{AcknowledgementReferences, ConfirmationReferences}
 import org.mockito.{ArgumentCaptor, Matchers}
@@ -37,7 +37,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 
-class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSugar with SCRSMocks with BeforeAndAfterEach with CorporationTaxRegistrationFixture with AuthFixture {
+class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSugar with SCRSMocks with BeforeAndAfterEach with CorporationTaxRegistrationFixture with AuthFixture with ControllerHelper {
 
   implicit val system = ActorSystem("CR")
   implicit val materializer = ActorMaterializer()
@@ -50,17 +50,7 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
       val resourceConn = mockCTDataRepository
       val auth = mockAuthConnector
       val metrics = MockMetricsService
-      def links(a:JsObject) = {Json.obj("links" ->
-        a.value.map { s =>
-            Json.obj(s._1 -> {
-              if (s._2.as[String].startsWith("""/corporation-tax-registration"""))
-                (s._2.as[String].replace("corporation-tax-registration",
-                  """company-registration/corporation-tax-registration"""))
-              else
-                s._2
-            })
-          }.reduce((a, b) => a ++ b))
-      }
+
     }
   }
 
@@ -82,8 +72,8 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
 
       val result = call(controller.createCorporationTaxRegistration(regId), request)
       val json = await(jsonBodyOf(result)).as[JsObject]
-      val links = controller.links(json.value("links").as[JsObject])
-      json - "links" ++ links shouldBe Json.toJson(response)
+      val links2 = links(json.value("links").as[JsObject])
+      json - "links" ++ links2 shouldBe Json.toJson(response)
       status(result) shouldBe CREATED
     }
 
@@ -112,8 +102,8 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
       val result = call(controller.retrieveCorporationTaxRegistration(regId), FakeRequest())
       status(result) shouldBe OK
      val json =  await(jsonBodyOf(result)).as[JsObject]
-      val links = controller.links(json.value("links").as[JsObject])
-      json.as[JsObject] - "links" ++ links shouldBe Json.toJson(Some(validCorporationTaxRegistrationResponse))
+      val links2 = links(json.value("links").as[JsObject])
+      json.as[JsObject] - "links" ++ links2 shouldBe Json.toJson(Some(validCorporationTaxRegistrationResponse))
     }
 
     "return a 404 if a CT registration record cannot be found" in new Setup {

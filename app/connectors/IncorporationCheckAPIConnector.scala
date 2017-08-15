@@ -27,8 +27,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.control.NoStackTrace
 
 object IncorporationCheckAPIConnector extends IncorporationCheckAPIConnector with ServicesConfig {
-  override val proxyUrl = baseUrl("company-registration-frontend")
-  override val http = WSHttp
+  override lazy val proxyUrl = baseUrl("company-registration-frontend")
+  override lazy val http = WSHttp
 }
 
 class SubmissionAPIFailure extends NoStackTrace

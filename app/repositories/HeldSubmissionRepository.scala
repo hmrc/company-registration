@@ -56,20 +56,12 @@ object HeldSubmissionData {
 
 private class DeletionFailure(val message: String) extends NoStackTrace
 
-
-@Singleton
-class HeldSubmissionRepositoryImpl @Inject()(mongo: ReactiveMongoComponent) {
-  implicit val db = mongo.mongoConnector.db
-  val store = new HeldSubmissionMongoRepository()
-}
-
 trait HeldSubmissionRepository extends Repository[HeldSubmissionData, BSONObjectID]{
   def storePartialSubmission(regId: String, ackRef:String, partialSubmission: JsObject): Future[Option[HeldSubmissionData]]
   def retrieveSubmissionByRegId(regId: String): Future[Option[HeldSubmission]]
   def retrieveSubmissionByAckRef(ackRef: String): Future[Option[HeldSubmission]]
   def removeHeldDocument(regId: String): Future[Boolean]
   def retrieveHeldSubmissionTime(regId: String): Future[Option[DateTime]]
-  def retrieveHeldSubmissionElapsedTimes(now: DateTime): Future[String]
 }
 
 class HeldSubmissionMongoRepository(implicit mongo: () => DB)
@@ -125,18 +117,6 @@ class HeldSubmissionMongoRepository(implicit mongo: () => DB)
       _ map { mapHeldSubmission( _ ) }
     }
   }
-
-  def retrieveHeldSubmissionElapsedTimes(now: DateTime): Future[String] = {
-    collection.find(BSONDocument.empty).cursor[HeldSubmissionData]().collect[List]().map{
-      case Nil =>
-        Logger.info("No held submissions found")
-        ""
-      case a =>
-        a.tail.foldLeft(dateDiffToDays(now, a.head.heldTime).toString)((a, b) => a.concat(", " + dateDiffToDays(now, b.heldTime)))
-    }
-  }
-
-  private def dateDiffToDays(a: DateTime, b: DateTime): Double = (a.getMillis - b.getMillis) / 86400000.0
 
   def removeHeldDocument(regId: String): Future[Boolean] = {
     val logPrefix = "[HeldSubmissionRepository] [removeHeldDocument]"

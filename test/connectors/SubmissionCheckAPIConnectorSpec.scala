@@ -56,14 +56,14 @@ class SubmissionCheckAPIConnectorSpec extends UnitSpec with MockitoSugar  {
                                   ),
                                   "testNextLink")
 
-  "IncorporationCheckAPIConnector" should {
-    "use the correct http" in {
-      IncorporationCheckAPIConnector.http shouldBe WSHttp
-    }
-    "use the correct proxyUrl" in {
-      IncorporationCheckAPIConnector.proxyUrl shouldBe "http://localhost:9970"
-    }
-  }
+//  "IncorporationCheckAPIConnector" should {
+//    "use the correct http" in {
+//      IncorporationCheckAPIConnector.http shouldBe WSHttp
+//    }
+//    "use the correct proxyUrl" in {
+//      IncorporationCheckAPIConnector.proxyUrl shouldBe "http://localhost:9970"
+//    }
+//  }
 
   "checkSubmission" should {
 

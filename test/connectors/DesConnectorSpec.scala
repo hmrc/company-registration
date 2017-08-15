@@ -67,12 +67,12 @@ class DesConnectorSpec extends UnitSpec with OneServerPerSuite with MockitoSugar
     reset(mockWSHttp)
   }
 
-  "DesConnector" should {
-
-    "use the correct serviceURL" in {
-      DesConnector.serviceURL shouldBe "http://localhost:9642"
-    }
-  }
+//  "DesConnector" should {
+//
+//    "use the correct serviceURL" in {
+//      DesConnector.serviceURL shouldBe "http://localhost:9642"
+//    }
+//  }
 
   "httpRds" should {
 
