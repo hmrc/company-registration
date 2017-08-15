@@ -43,14 +43,6 @@ class BusinessRegistrationConnectorSpec extends UnitSpec with MockitoSugar with 
 
   implicit val hc = HeaderCarrier()
 
-//  "BusinessRegistrationConnector" should {
-//    "use the correct businessRegUrl" in {
-//      BusinessRegistrationConnector.businessRegUrl shouldBe "http://localhost:9660"
-//    }
-//    "use the correct http" in {
-//      BusinessRegistrationConnector.http shouldBe WSHttp
-//    }
-//  }
 
   "createMetadataEntry" should {
     "make a http POST request to business registration micro-service to create a metadata entry" in new Setup {
