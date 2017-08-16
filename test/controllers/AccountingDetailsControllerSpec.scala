@@ -20,7 +20,7 @@ package controllers
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import fixtures.{AccountingDetailsFixture, AuthFixture}
-import helpers.{ControllerHelper, SCRSSpec}
+import helpers.SCRSSpec
 import mocks.{MockMetricsService, SCRSMocks}
 import models.{AccountPrepDetails, ErrorResponse}
 import org.mockito.Matchers
@@ -35,7 +35,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 
-class AccountingDetailsControllerSpec extends UnitSpec with MockitoSugar with SCRSMocks with  AuthFixture with AccountingDetailsFixture with ControllerHelper{
+class AccountingDetailsControllerSpec extends UnitSpec with MockitoSugar with SCRSMocks with  AuthFixture with AccountingDetailsFixture {
 
   implicit val system = ActorSystem("CR")
   implicit val materializer = ActorMaterializer()
@@ -68,8 +68,7 @@ class AccountingDetailsControllerSpec extends UnitSpec with MockitoSugar with SC
       status(result) shouldBe OK
 
       val json =  await(jsonBodyOf(result)).as[JsObject]
-      val links2 = links(json.value("links").as[JsObject])
-      json.as[JsObject] - "links" ++ links2 shouldBe Json.toJson(Some(validAccountingDetailsResponse))
+      json shouldBe Json.toJson(Some(validAccountingDetailsResponse))
     }
 
 
@@ -131,8 +130,7 @@ class AccountingDetailsControllerSpec extends UnitSpec with MockitoSugar with SC
       status(result) shouldBe OK
 
       val json =  await(jsonBodyOf(result)).as[JsObject]
-      val links2 = links(json.value("links").as[JsObject])
-      json.as[JsObject] - "links" ++ links2 shouldBe Json.toJson(Some(validAccountingDetailsResponse))
+      json shouldBe Json.toJson(Some(validAccountingDetailsResponse))
     }
   }
 

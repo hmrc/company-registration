@@ -16,6 +16,7 @@
 
 package fixtures
 
+import controllers.routes
 import models._
 import play.api.libs.json.Json
 
@@ -31,8 +32,8 @@ object CompanyDetailsResponse {
 
   def buildLinks(registrationID: String): Links = {
     Links(
-      self = Some(s"/company-registration/corporation-tax-registration/$registrationID/company-details"),
-      registration = Some(s"/company-registration/corporation-tax-registration/$registrationID")
+      self = Some(routes.CompanyDetailsController.retrieveCompanyDetails(registrationID).url),
+      registration = Some(routes.CorporationTaxRegistrationController.retrieveCorporationTaxRegistration(registrationID).url)
     )
   }
 }

@@ -20,7 +20,7 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import connectors.AuthConnector
 import fixtures.{AuthFixture, CompanyDetailsFixture}
-import helpers.{ControllerHelper, SCRSSpec}
+import helpers.SCRSSpec
 import org.mockito.Matchers
 import org.mockito.Mockito._
 import play.api.libs.json.{JsObject, Json}
@@ -33,7 +33,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 
-class CompanyDetailsControllerSpec extends UnitSpec with MockitoSugar with SCRSMocks with AuthFixture with CompanyDetailsFixture with ControllerHelper{
+class CompanyDetailsControllerSpec extends UnitSpec with MockitoSugar with SCRSMocks with AuthFixture with CompanyDetailsFixture{
 
   implicit val system = ActorSystem("CR")
   implicit val materializer = ActorMaterializer()
@@ -62,8 +62,7 @@ class CompanyDetailsControllerSpec extends UnitSpec with MockitoSugar with SCRSM
       status(result) shouldBe OK
 
       val json =  await(jsonBodyOf(result)).as[JsObject]
-      val links2 = links(json.value("links").as[JsObject])
-      json.as[JsObject] - "links" ++ links2 shouldBe Json.toJson(Some(validCompanyDetailsResponse))
+      json shouldBe Json.toJson(Some(validCompanyDetailsResponse))
 
     }
 
@@ -118,8 +117,7 @@ class CompanyDetailsControllerSpec extends UnitSpec with MockitoSugar with SCRSM
       val result = call(controller.updateCompanyDetails(registrationID), request)
 
       val json =  await(jsonBodyOf(result)).as[JsObject]
-      val links2 = links(json.value("links").as[JsObject])
-      json.as[JsObject] - "links" ++ links2 shouldBe Json.toJson(Some(validCompanyDetailsResponse))
+      json shouldBe Json.toJson(Some(validCompanyDetailsResponse))
 
       status(result) shouldBe OK}
 

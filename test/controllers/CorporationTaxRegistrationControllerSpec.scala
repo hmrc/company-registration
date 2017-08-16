@@ -20,7 +20,7 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import connectors.AuthConnector
 import fixtures.{AuthFixture, CorporationTaxRegistrationFixture}
-import helpers.{ControllerHelper, SCRSSpec}
+import helpers.SCRSSpec
 import mocks.{MockMetricsService, SCRSMocks}
 import models.{AcknowledgementReferences, ConfirmationReferences}
 import org.mockito.{ArgumentCaptor, Matchers}
@@ -37,7 +37,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 
-class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSugar with SCRSMocks with BeforeAndAfterEach with CorporationTaxRegistrationFixture with AuthFixture with ControllerHelper {
+class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSugar with SCRSMocks with BeforeAndAfterEach with CorporationTaxRegistrationFixture with AuthFixture {
 
   implicit val system = ActorSystem("CR")
   implicit val materializer = ActorMaterializer()
@@ -72,8 +72,7 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
 
       val result = call(controller.createCorporationTaxRegistration(regId), request)
       val json = await(jsonBodyOf(result)).as[JsObject]
-      val links2 = links(json.value("links").as[JsObject])
-      json - "links" ++ links2 shouldBe Json.toJson(response)
+      json shouldBe Json.toJson(response)
       status(result) shouldBe CREATED
     }
 
@@ -102,8 +101,7 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
       val result = call(controller.retrieveCorporationTaxRegistration(regId), FakeRequest())
       status(result) shouldBe OK
      val json =  await(jsonBodyOf(result)).as[JsObject]
-      val links2 = links(json.value("links").as[JsObject])
-      json.as[JsObject] - "links" ++ links2 shouldBe Json.toJson(Some(validCorporationTaxRegistrationResponse))
+      json shouldBe Json.toJson(Some(validCorporationTaxRegistrationResponse))
     }
 
     "return a 404 if a CT registration record cannot be found" in new Setup {
