@@ -16,6 +16,7 @@
 
 package fixtures
 
+import controllers.routes
 import models.{ContactDetails, Links}
 import play.api.libs.json.Json
 
@@ -34,7 +35,7 @@ object ContactDetailsResponse {
 
 trait ContactDetailsFixture {
 
-  lazy val contactDetails = ContactDetails(
+   val contactDetails = ContactDetails(
     "testContactFirstName",
     Some("testContactMiddleName"),
     "testContactLastName",
@@ -43,14 +44,16 @@ trait ContactDetailsFixture {
     Some("test@email.co.uk")
   )
 
-  lazy val contactDetailsResponse = ContactDetailsResponse(
+
+
+   val contactDetailsResponse = ContactDetailsResponse(
     contactDetails.firstName,
     contactDetails.middleName,
     contactDetails.surname,
     contactDetails.phone,
     contactDetails.mobile,
     contactDetails.email,
-    Links(Some(s"/company-registration/corporation-tax-registration/12345/contact-details"),
-      Some(s"/company-registration/corporation-tax-registration/12345"))
+    Links(Some(routes.ContactDetailsController.retrieveContactDetails("12345").url),
+      Some(routes.CorporationTaxRegistrationController.retrieveCorporationTaxRegistration("12345").url))
   )
 }

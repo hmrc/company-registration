@@ -187,24 +187,5 @@ class HeldSubmissionMongoRepositoryISpec extends UnitSpec with ScalaFutures with
       await(repository.count) shouldBe startCount
     }
 
-    "get the elapsed submission times in the held repo" in new Setup {
-
-      val beforeCount: Int = await(repository.count)
-
-      val data1 = HeldSubmissionData("60", "BRCT00000000003", "{}", DateTime.parse("2017-08-01T12:00:00.000"))
-      val data2 = HeldSubmissionData("61", "BRCT00000000004", "{}", DateTime.parse("2017-08-02T00:00:00.000"))
-
-      var result = await(repository.collection.insert(data1))
-      result = await(repository.collection.insert(data2))
-
-      await(repository.count) shouldBe (beforeCount + 2)
-
-      val testResult = await(repository.retrieveHeldSubmissionElapsedTimes(DateTime.parse("2017-08-07T12:00:00.000")))
-
-      testResult shouldBe "6.0, 5.5"
-
-
-    }
-
   }
 }

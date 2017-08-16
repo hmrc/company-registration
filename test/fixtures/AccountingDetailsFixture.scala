@@ -16,6 +16,7 @@
 
 package fixtures
 
+import controllers.routes
 import models._
 import play.api.libs.json.Json
 
@@ -28,8 +29,8 @@ object AccountingDetailsResponse {
   implicit val formats = Json.format[AccountingDetailsResponse]
   def buildLinks(registrationID: String): Links = {
     Links(
-      self = Some(s"/company-registration/corporation-tax-registration/$registrationID/accounting-details"),
-      registration = Some(s"/company-registration/corporation-tax-registration/$registrationID")
+      self = Some(routes.AccountingDetailsController.retrieveAccountingDetails(registrationID).url),
+      registration = Some(routes.CorporationTaxRegistrationController.retrieveCorporationTaxRegistration(registrationID).url)
     )
   }
 }

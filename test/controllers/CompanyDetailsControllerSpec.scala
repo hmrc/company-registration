@@ -23,7 +23,7 @@ import fixtures.{AuthFixture, CompanyDetailsFixture}
 import helpers.SCRSSpec
 import org.mockito.Matchers
 import org.mockito.Mockito._
-import play.api.libs.json.Json
+import play.api.libs.json.{JsObject, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.{FORBIDDEN, NOT_FOUND, OK, call}
 import services.{CompanyDetailsService, MetricsService}
@@ -33,7 +33,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 
-class CompanyDetailsControllerSpec extends UnitSpec with MockitoSugar with SCRSMocks with AuthFixture with CompanyDetailsFixture {
+class CompanyDetailsControllerSpec extends UnitSpec with MockitoSugar with SCRSMocks with AuthFixture with CompanyDetailsFixture{
 
   implicit val system = ActorSystem("CR")
   implicit val materializer = ActorMaterializer()
@@ -60,7 +60,10 @@ class CompanyDetailsControllerSpec extends UnitSpec with MockitoSugar with SCRSM
 
       val result = controller.retrieveCompanyDetails(registrationID)(FakeRequest())
       status(result) shouldBe OK
-      await(jsonBodyOf(result)) shouldBe Json.toJson(validCompanyDetailsResponse)
+
+      val json =  await(jsonBodyOf(result)).as[JsObject]
+      json shouldBe Json.toJson(Some(validCompanyDetailsResponse))
+
     }
 
     "return a 404 - Not Found if the record does not exist" in new Setup {
@@ -112,9 +115,11 @@ class CompanyDetailsControllerSpec extends UnitSpec with MockitoSugar with SCRSM
 
       val request = FakeRequest().withBody(Json.toJson(validCompanyDetails))
       val result = call(controller.updateCompanyDetails(registrationID), request)
-      status(result) shouldBe OK
-      await(jsonBodyOf(result)) shouldBe Json.toJson(validCompanyDetailsResponse)
-    }
+
+      val json =  await(jsonBodyOf(result)).as[JsObject]
+      json shouldBe Json.toJson(Some(validCompanyDetailsResponse))
+
+      status(result) shouldBe OK}
 
     "return a 404 - Not Found if the recorde to update does not exist" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))

@@ -27,7 +27,7 @@ import org.mockito.Matchers
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneAppPerSuite, OneAppPerTest}
-import play.api.libs.json.Json
+import play.api.libs.json.{JsObject, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import services.PrepareAccountService
@@ -66,7 +66,9 @@ class AccountingDetailsControllerSpec extends UnitSpec with MockitoSugar with SC
 
       val result = controller.retrieveAccountingDetails(registrationID)(FakeRequest())
       status(result) shouldBe OK
-      await(jsonBodyOf(result)) shouldBe Json.toJson(validAccountingDetailsResponse)
+
+      val json =  await(jsonBodyOf(result)).as[JsObject]
+      json shouldBe Json.toJson(Some(validAccountingDetailsResponse))
     }
 
 
@@ -126,7 +128,9 @@ class AccountingDetailsControllerSpec extends UnitSpec with MockitoSugar with SC
 
       val result = call(controller.updateAccountingDetails(registrationID), response)
       status(result) shouldBe OK
-      await(jsonBodyOf(result)) shouldBe Json.toJson(validAccountingDetailsResponse)
+
+      val json =  await(jsonBodyOf(result)).as[JsObject]
+      json shouldBe Json.toJson(Some(validAccountingDetailsResponse))
     }
   }
 

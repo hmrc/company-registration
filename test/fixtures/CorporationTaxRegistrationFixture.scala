@@ -16,6 +16,7 @@
 
 package fixtures
 
+import controllers.routes
 import models._
 import play.api.libs.json.{JsObject, Json}
 
@@ -82,7 +83,7 @@ trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with Accou
     registrationID = "0123456789",
     status = DRAFT,
     formCreationTimestamp = "2001-12-31T12:00:00Z",
-    Links(Some("/company-registration/corporation-tax-registration/0123456789"))
+    Links(Some(routes.CorporationTaxRegistrationController.retrieveCorporationTaxRegistration("0123456789").url))
   )
 
   def buildCTRegistrationResponse(regId: String = "0123456789",
@@ -92,7 +93,7 @@ trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with Accou
       registrationID = regId,
       status = status,
       formCreationTimestamp = timeStamp,
-      Links(Some(s"/company-registration/corporation-tax-registration/$regId"))
+      Links(Some(routes.CorporationTaxRegistrationController.retrieveCorporationTaxRegistration(regId).url))
     )
   }
 
