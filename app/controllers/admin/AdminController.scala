@@ -37,7 +37,7 @@ import scala.concurrent.Future
 
 @Singleton
 class AdminControllerImpl @Inject()(val adminService: AdminService) extends AdminController {
-  val ctService = CorporationTaxRegistrationService
+  lazy val ctService = CorporationTaxRegistrationService
 }
 
 trait AdminController extends BaseController with FutureInstances with ApplicativeSyntax with FlatMapSyntax {
