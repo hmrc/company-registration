@@ -50,7 +50,8 @@ private object AppDependencies {
     "uk.gov.hmrc" %% "play-scheduling" % playSchedulingVersion,
     "uk.gov.hmrc" %% "mongo-lock" % mongoLockVersion,
     "uk.gov.hmrc" %% "crypto" % cryptoVersion,
-    "uk.gov.hmrc" %% "play-reactivemongo" % reactiveMongoVersion
+    "uk.gov.hmrc" %% "play-reactivemongo" % reactiveMongoVersion,
+    "org.typelevel" %% "cats" % "0.9.0"
   )
 
   trait TestDependencies {

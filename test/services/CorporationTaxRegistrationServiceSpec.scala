@@ -42,7 +42,6 @@ import scala.concurrent.Future
 
 class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with CorporationTaxRegistrationFixture with MongoFixture with AuthFixture with MongoMocks with LogCapturing with Eventually {
 
-  implicit val mongo = mongoDB
   implicit val hc = HeaderCarrier(sessionId = Some(SessionId("testSessionId")))
   implicit val req = FakeRequest("GET", "/test-path")
 
@@ -187,7 +186,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
 
       when(mockCTDataRepository.retrieveConfirmationReference(registrationId))
         .thenReturn(Future.successful(None))
-      when(mockBusinessRegistrationConnector.retrieveMetadata(Matchers.any(), Matchers.any()))
+      when(mockBusinessRegistrationConnector.retrieveMetadata(Matchers.any())(Matchers.any(), Matchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
       when(mockCTDataRepository.updateConfirmationReferences(Matchers.any(), Matchers.any()))
         .thenReturn(Future.successful(Some(expected)))
@@ -289,7 +288,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
     )
 
     "return a business registration" in new Setup {
-      when(mockBusinessRegistrationConnector.retrieveMetadata(Matchers.any(), Matchers.any()))
+      when(mockBusinessRegistrationConnector.retrieveMetadata(Matchers.any())(Matchers.any(), Matchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
 
       val result = service.retrieveBRMetadata(registrationId)
@@ -472,7 +471,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
         )
       )
 
-      when(mockBusinessRegistrationConnector.retrieveMetadata(Matchers.any(), Matchers.any()))
+      when(mockBusinessRegistrationConnector.retrieveMetadata(Matchers.any())(Matchers.any(), Matchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
       when(mockAuthConnector.getCurrentAuthority()(Matchers.any()))
         .thenReturn(Future.successful(Some(authority)))

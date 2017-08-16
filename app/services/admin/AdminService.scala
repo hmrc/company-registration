@@ -16,18 +16,40 @@
 
 package services.admin
 
-import javax.inject.{Singleton, Inject}
+import java.time.{LocalDate, ZoneId, ZonedDateTime}
+import javax.inject.{Inject, Singleton}
 
-import repositories.{CorporationTaxRegistrationMongoRepository, CorpTaxRegistrationRepo}
+import audit.AdminReleaseAuditEvent
+import config.MicroserviceAuditConnector
+import helpers.{DateFormatter, DateHelper}
+import models.HO6RegistrationInformation
+import models.admin.{HO6Identifiers, HO6Response}
+import play.api.libs.json.{JsObject, Json}
+import repositories.{CorpTaxRegistrationRepo, CorporationTaxRegistrationMongoRepository}
+import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
+import uk.gov.hmrc.play.http.HeaderCarrier
+
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 @Singleton
 class AdminServiceImpl @Inject()(corpTaxRepo: CorpTaxRegistrationRepo) extends AdminService {
-  val repo = corpTaxRepo.repo
+  val repo: CorporationTaxRegistrationMongoRepository = corpTaxRepo.repo
+  val auditConnector = MicroserviceAuditConnector
 }
 
-trait AdminService {
+trait AdminService extends DateFormatter {
 
   val repo: CorporationTaxRegistrationMongoRepository
+  val auditConnector: AuditConnector
 
-  def fetchHO6RegistrationInformation(regId: String) = repo.fetchHO6Information(regId)
+  def fetchHO6RegistrationInformation(regId: String): Future[Option[HO6RegistrationInformation]] = repo.fetchHO6Information(regId)
+
+  def auditAdminEvent(strideUser: String, identifiers: HO6Identifiers, response: HO6Response)(implicit hc: HeaderCarrier): Future[AuditResult] = {
+    val identifiersJson = Json.toJson(identifiers)(HO6Identifiers.adminAuditWrites).as[JsObject]
+    val responseJson = Json.toJson(response)(HO6Response.adminAuditWrites).as[JsObject]
+    val timestamp = Json.obj("timestamp" -> Json.toJson(nowAsZonedDateTime)(zonedDateTimeWrites))
+    val auditEvent = new AdminReleaseAuditEvent(timestamp, strideUser, identifiersJson, responseJson)
+    auditConnector.sendEvent(auditEvent)
+  }
 }

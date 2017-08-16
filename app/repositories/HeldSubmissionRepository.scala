@@ -56,6 +56,12 @@ object HeldSubmissionData {
 
 private class DeletionFailure(val message: String) extends NoStackTrace
 
+@Singleton
+class HeldSubmissionRepositoryImpl @Inject()(mongo: ReactiveMongoComponent) {
+  val db = mongo.mongoConnector.db
+  val store = new HeldSubmissionMongoRepository(db)
+}
+
 trait HeldSubmissionRepository extends Repository[HeldSubmissionData, BSONObjectID]{
   def storePartialSubmission(regId: String, ackRef:String, partialSubmission: JsObject): Future[Option[HeldSubmissionData]]
   def retrieveSubmissionByRegId(regId: String): Future[Option[HeldSubmission]]
@@ -64,7 +70,7 @@ trait HeldSubmissionRepository extends Repository[HeldSubmissionData, BSONObject
   def retrieveHeldSubmissionTime(regId: String): Future[Option[DateTime]]
 }
 
-class HeldSubmissionMongoRepository(implicit mongo: () => DB)
+class HeldSubmissionMongoRepository(mongo: () => DB)
   extends ReactiveRepository[HeldSubmissionData, BSONObjectID]("held-submission", mongo, HeldSubmissionData.formats, ReactiveMongoFormats.objectIdFormats)
   with HeldSubmissionRepository{
 

@@ -43,6 +43,7 @@ class BusinessRegistrationConnectorSpec extends UnitSpec with MockitoSugar with 
 
   implicit val hc = HeaderCarrier()
 
+  val regId = "reg-id-12345"
 
   "createMetadataEntry" should {
     "make a http POST request to business registration micro-service to create a metadata entry" in new Setup {
@@ -53,6 +54,13 @@ class BusinessRegistrationConnectorSpec extends UnitSpec with MockitoSugar with 
   }
 
   "retrieveMetadata" should {
+
+    "return a a metadata response if one is found in business registration using the supplied RegId" in new Setup {
+      mockHttpGet[BusinessRegistration]("testUrl", validBusinessRegistrationResponse)
+
+      await(connector.retrieveMetadata(regId)) shouldBe BusinessRegistrationSuccessResponse(validBusinessRegistrationResponse)
+    }
+
     "return a a metadata response if one is found in business registration micro-service" in new Setup {
       mockHttpGet[BusinessRegistration]("testUrl", validBusinessRegistrationResponse)
 
