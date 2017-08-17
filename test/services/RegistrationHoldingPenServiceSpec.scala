@@ -239,16 +239,21 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
   "activeDates" should {
     "return DoNotIntendToTrade if that was selected" in new Setup {
       import AccountingDetails.NOT_PLANNING_TO_YET
-      service.activeDate(AccountingDetails(NOT_PLANNING_TO_YET, None)) shouldBe DoNotIntendToTrade
+      service.activeDate(AccountingDetails(NOT_PLANNING_TO_YET, None), incorpSuccess.incorpDate.get) shouldBe DoNotIntendToTrade
     }
     "return ActiveOnIncorporation if that was selected" in new Setup {
       import AccountingDetails.WHEN_REGISTERED
-      service.activeDate(AccountingDetails(WHEN_REGISTERED, None)) shouldBe ActiveOnIncorporation
+      service.activeDate(AccountingDetails(WHEN_REGISTERED, None), incorpSuccess.incorpDate.get) shouldBe ActiveOnIncorporation
+    }
+    "return ActiveOnIncorporation if the active date is before the incorporation date" in new Setup {
+      import AccountingDetails.FUTURE_DATE
+      val tradeDate = "2016-08-09"
+      service.activeDate(AccountingDetails(FUTURE_DATE, Some(tradeDate)), incorpSuccess.incorpDate.get) shouldBe ActiveOnIncorporation
     }
     "return ActiveInFuture with a date if that was selected" in new Setup {
       import AccountingDetails.FUTURE_DATE
       val tradeDate = "2017-01-01"
-      service.activeDate(AccountingDetails(FUTURE_DATE, Some(tradeDate))) shouldBe ActiveInFuture(date(tradeDate))
+      service.activeDate(AccountingDetails(FUTURE_DATE, Some(tradeDate)), incorpSuccess.incorpDate.get) shouldBe ActiveInFuture(date(tradeDate))
     }
   }
 
