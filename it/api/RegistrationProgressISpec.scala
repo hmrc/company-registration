@@ -62,13 +62,6 @@ class RegistrationProgressISpec extends IntegrationSpecBase {
     val registrationId = UUID.randomUUID().toString
     val internalId = UUID.randomUUID().toString
 
-    def setupSimpleAuthMocks() = {
-      stubPost("/write/audit", 200, """{"x":2}""")
-      stubGet("/auth/authority", 200, """{"uri":"xxx","credentials":{"gatewayId":"xxx2"},"userDetailsLink":"xxx3","ids":"/auth/ids"}""")
-      stubGet("/auth/ids", 200, s"""{"internalId":"${internalId}","externalId":"Ext-xxx"}""")
-    }
-
-
     import reactivemongo.json._
 
     val jsonDoc = Json.parse(
@@ -80,7 +73,7 @@ class RegistrationProgressISpec extends IntegrationSpecBase {
       """.stripMargin).as[JsObject]
 
     "Update the CR doc successfully with the progress info" in new Setup {
-      setupSimpleAuthMocks()
+      setupSimpleAuthMocks(internalId)
 
       await(repository.collection.insert(jsonDoc))
 

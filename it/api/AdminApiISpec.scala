@@ -74,12 +74,6 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport {
   def client(path: String): WSRequest = ws.url(s"http://localhost:$port/company-registration/admin$path").
     withFollowRedirects(false)
 
-  def setupSimpleAuthMocks(): StubMapping = {
-    stubPost("/write/audit", 200, """{"x":2}""")
-    stubGet("/auth/authority", 200, """{"uri":"xxx","credentials":{"gatewayId":"xxx2"},"userDetailsLink":"xxx3","ids":"/auth/ids"}""")
-    stubGet("/auth/ids", 200, s"""{"internalId":"$internalId","externalId":"Ext-xxx"}""")
-  }
-
   val draftRegistration = CorporationTaxRegistration(
     internalId = internalId,
     registrationID = regId,

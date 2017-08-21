@@ -290,11 +290,13 @@ trait RegistrationHoldingPenService extends DateHelper {
       DateCalculators.loggingTime(blockageLoggingTime, LocalTime.now)
   }
 
-  private[services] def activeDate(date: AccountingDetails) = {
+  private[services] def activeDate(date: AccountingDetails, incorpDate: DateTime) = {
     import AccountingDetails.WHEN_REGISTERED
+
     (date.status, date.activeDate) match {
-      case (_, Some(givenDate))  => ActiveInFuture(asDate(givenDate))
-      case (status, _) if status == WHEN_REGISTERED => ActiveOnIncorporation
+      case (_, Some(givenDate)) if asDate(givenDate).isBefore(incorpDate) => ActiveOnIncorporation
+      case (_, Some(givenDate))                                           => ActiveInFuture(asDate(givenDate))
+      case (status, _) if status == WHEN_REGISTERED                       => ActiveOnIncorporation
       case _ => DoNotIntendToTrade
     }
   }
@@ -329,7 +331,7 @@ trait RegistrationHoldingPenService extends DateHelper {
 
     accountingDetails map { details =>
       val prepDate = accountsPreparation flatMap (_.endDate)
-      accountingService.calculateSubmissionDates(item.incorpDate.get, activeDate(details), prepDate)
+      accountingService.calculateSubmissionDates(item.incorpDate.get, activeDate(details, item.incorpDate.get), prepDate)
     } match {
       case Some(dates) => Future.successful(dates)
       case None => Future.failed(new MissingAccountingDates)
