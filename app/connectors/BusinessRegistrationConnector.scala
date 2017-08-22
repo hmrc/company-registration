@@ -71,7 +71,7 @@ trait BusinessRegistrationConnector {
 
   private def handleMetadataResponse: PartialFunction[Throwable, BusinessRegistrationResponse] = {
     case _: NotFoundException =>
-      Logger.error(s"[BusinessRegistrationConnector] [retrieveMetadata] - Received a NotFound status code when expecting metadata from Business-Registration")
+      Logger.info(s"[BusinessRegistrationConnector] [retrieveMetadata] - Received a NotFound status code when expecting metadata from Business-Registration")
       BusinessRegistrationNotFoundResponse
     case _: ForbiddenException =>
       Logger.error(s"[BusinessRegistrationConnector] [retrieveMetadata] - Received a Forbidden status code when expecting metadata from Business-Registration")
@@ -88,7 +88,7 @@ trait BusinessRegistrationConnector {
       }
     } recover {
       case ex: NotFoundException =>
-        Logger.error(s"[BusinessRegistrationConnector] [removeMetadata] - Received a NotFound status code when attempting to remove a metadata document for regId - $registrationId")
+        Logger.info(s"[BusinessRegistrationConnector] [removeMetadata] - Received a NotFound status code when attempting to remove a metadata document for regId - $registrationId")
         false
     }
   }
