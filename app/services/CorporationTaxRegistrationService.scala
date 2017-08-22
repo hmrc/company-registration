@@ -19,12 +19,11 @@ package services
 import audit.{SubmissionEventDetail, UserRegistrationSubmissionEvent}
 import cats.data.OptionT
 import config.MicroserviceAuditConnector
-import connectors.{AuthConnector, BusinessRegistrationConnector, BusinessRegistrationSuccessResponse}
+import connectors._
 import models.des._
 import models.{BusinessRegistration, RegistrationStatus}
 import play.api.mvc.{AnyContent, Request}
 import repositories.HeldSubmissionRepository
-import connectors.IncorporationCheckAPIConnector
 import helpers.DateHelper
 import models.{ConfirmationReferences, CorporationTaxRegistration}
 import repositories.{CorporationTaxRegistrationRepository, Repositories, SequenceRepository, StateDataRepository}
@@ -36,6 +35,7 @@ import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.http.HeaderCarrier
 import cats.implicits._
+import utils.SCRSFeatureSwitches
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -49,6 +49,7 @@ object CorporationTaxRegistrationService extends CorporationTaxRegistrationServi
   override val brConnector = BusinessRegistrationConnector
   val heldSubmissionRepository = Repositories.heldSubmissionRepository
   val auditConnector = MicroserviceAuditConnector
+  lazy val incorpInfoConnector = IncorporationInformationConnector
 
   def currentDateTime = DateTime.now(DateTimeZone.UTC)
 
@@ -68,6 +69,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
   val brConnector: BusinessRegistrationConnector
   val heldSubmissionRepository: HeldSubmissionRepository
   val auditConnector: AuditConnector
+  val incorpInfoConnector :IncorporationInformationConnector
 
   def currentDateTime: DateTime
 
@@ -129,6 +131,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
           heldSubmission <- buildPartialDesSubmission(rID, ackRef, admin)
           _              <- storeAndUpdateSubmission(rID, ackRef, heldSubmission, admin)
           updatedRef     <- corporationTaxRegistrationRepository.updateConfirmationReferences(rID, refs.copy(acknowledgementReference = ackRef))
+          _              <- if(registerInterestRequired()) incorpInfoConnector.registerInterest(rID, refs.transactionId) else Future.successful(None)
           _              <- removeTaxRegistrationInformation(rID)
         } yield {
           updatedRef
@@ -251,17 +254,8 @@ trait CorporationTaxRegistrationService extends DateHelper {
       case None => None
     }
 
-    val businessContactName = BusinessContactName(
-      firstName = contactDetails.firstName,
-      middleNames = contactDetails.middleName,
-      lastName = contactDetails.surname
-    )
-
-    val businessContactDetails = BusinessContactDetails(
-      phoneNumber = contactDetails.phone,
-      mobileNumber = contactDetails.mobile,
-      email = contactDetails.email
-    )
+    val businessContactName = BusinessContactName(contactDetails.firstName, contactDetails.middleName, contactDetails.surname)
+    val businessContactDetails = BusinessContactDetails(contactDetails.phone, contactDetails.mobile, contactDetails.email)
 
     InterimDesRegistration(
       ackRef = ackRef,
@@ -308,4 +302,6 @@ trait CorporationTaxRegistrationService extends DateHelper {
     }
     Future.sequence(regIds.map(check))
   }
+
+  private[services] def registerInterestRequired(): Boolean = SCRSFeatureSwitches.registerInterest.enabled
 }

@@ -48,6 +48,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
   val mockBusinessRegistrationConnector = mock[BusinessRegistrationConnector]
   val mockHeldSubmissionRepository = mock[HeldSubmissionMongoRepository]
   val mockAuditConnector = mock[AuditConnector]
+  val mockIncorpInfoConnector = mock[IncorporationInformationConnector]
 
   val dateTime = DateTime.parse("2016-10-27T16:28:59.000")
 
@@ -62,6 +63,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
       val currentDateTime = dateTime
       override val submissionCheckAPIConnector = mockIncorporationCheckAPIConnector
       val auditConnector = mockAuditConnector
+      val incorpInfoConnector = mockIncorpInfoConnector
     }
   }
 
@@ -205,6 +207,8 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
       when(mockAuthConnector.getUserDetails(Matchers.any())).thenReturn(Future.successful(Some(userDetails)))
       when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any()))
         .thenReturn(Future.successful(AuditResult.Success))
+      when(mockIncorpInfoConnector.registerInterest(Matchers.anyString(), Matchers.anyString())(Matchers.any()))
+        .thenReturn(Future.successful(None))
 
       SequenceRepositoryMocks.getNext("testSeqID", 3)
 
