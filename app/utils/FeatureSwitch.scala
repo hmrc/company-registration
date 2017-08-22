@@ -94,9 +94,11 @@ object SCRSFeatureSwitches extends SCRSFeatureSwitches
 trait SCRSFeatureSwitches {
 
   def scheduler = FeatureSwitch.getProperty("submissionCheck")
+  def registerInterest = FeatureSwitch.getProperty("registerInterest")
 
   def apply(name: String): Option[FeatureSwitch] = name match {
     case "submissionCheck" => Some(scheduler)
+    case "registerInterest" => Some(registerInterest)
     case _ => None
   }
 }

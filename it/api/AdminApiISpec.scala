@@ -16,14 +16,15 @@
 
 package api
 
-import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import itutil.IntegrationSpecBase
+import itutil.WiremockHelper._
 import models._
 import models.RegistrationStatus._
+import org.joda.time.DateTime
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{JsValue, Json}
-import play.api.libs.ws.{WS, WSClient, WSRequest, WSResponse}
+import play.api.libs.json._
+import play.api.libs.ws.{WSClient, WSRequest, WSResponse}
 import play.modules.reactivemongo.MongoDbConnection
 import reactivemongo.api.commands.WriteResult
 import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmissionMongoRepository, SequenceMongoRepository}
@@ -33,9 +34,18 @@ import scala.concurrent.ExecutionContext
 
 class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport {
 
+  val regime = "testRegime"
+  val subscriber = "testSubcriber"
+
   override implicit lazy val app: Application = new GuiceApplicationBuilder()
-    .configure(fakeConfig())
-    .build
+    .configure(
+      fakeConfig(
+        Map("microservice.services.incorporation-information.host" -> s"$wiremockHost",
+            "microservice.services.incorporation-information.port" -> s"$wiremockPort",
+            "microservice.services.regime" -> s"$regime",
+            "microservice.services.subscriber" -> s"$subscriber")
+      )
+    ).build
 
   implicit val ec: ExecutionContext = app.actorSystem.dispatcher.prepare()
 
@@ -196,11 +206,37 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport {
         |}
       """.stripMargin)
 
+    val incorpInfoResponse = s"""
+         |{
+         |  "SCRSIncorpStatus":{
+         |    "IncorpSubscriptionKey":{
+         |      "subscriber":"SCRS",
+         |      "discriminator":"CT",
+         |      "transactionId":"$transId"
+         |    },
+         |    "SCRSIncorpSubscription":{
+         |      "callbackUrl":"/callBackUrl"
+         |    },
+         |    "IncorpStatusEvent":{
+         |      "status":"accepted",
+         |      "crn":"123456789",
+         |      "incorporationDate":"2017-04-25",
+         |      "description":"Some description",
+         |      "timestamp":"${DateTime.parse("2017-04-25").getMillis}"
+         |    }
+         |  }
+         |}
+      """.stripMargin
+
     "update the confirmation refs for the record matching the supplied reg Id and create a held submission and return a 200" in new Setup {
+
+      System.setProperty("feature.registerInterest", "true")
 
       setupSimpleAuthMocks()
 
       stubGet(s"/business-registration/admin/business-tax-registration/$regId", 200, businessRegistrationResponse.toString())
+
+      stubPost(s"/incorporation-information/subscribe/$transId/regime/$regime/subscriber/$subscriber\\?force=true", 202, incorpInfoResponse)
 
       insert(draftRegistration)
 
