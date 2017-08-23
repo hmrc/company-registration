@@ -208,7 +208,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
       when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any()))
         .thenReturn(Future.successful(AuditResult.Success))
       when(mockIncorpInfoConnector.registerInterest(Matchers.anyString(), Matchers.anyString())(Matchers.any()))
-        .thenReturn(Future.successful(None))
+        .thenReturn(Future.successful(true))
 
       SequenceRepositoryMocks.getNext("testSeqID", 3)
 

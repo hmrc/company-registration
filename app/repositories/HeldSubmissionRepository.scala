@@ -19,19 +19,18 @@ package repositories
 import javax.inject.{Inject, Singleton}
 
 import org.joda.time.{DateTime, DateTimeZone}
-import play.api.libs.json.{JsObject, JsValue, Json}
+import play.api.libs.json.{JsObject, Json}
 import reactivemongo.api.DB
 import reactivemongo.api.commands.DefaultWriteResult
-import reactivemongo.bson.{BSONDocument, BSONObjectID, BSONString, BSONValue, DefaultBSONHandlers}
+import reactivemongo.bson.{BSONDocument, BSONObjectID, BSONString}
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
-
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
 import play.api.Logger
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.indexes.{Index, IndexType}
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.collection.Seq
 import scala.util.control.NoStackTrace
 
@@ -57,7 +56,7 @@ object HeldSubmissionData {
 private class DeletionFailure(val message: String) extends NoStackTrace
 
 @Singleton
-class HeldSubmissionRepositoryImpl @Inject()(mongo: ReactiveMongoComponent) {
+class HeldSubmissionRepo @Inject()(mongo: ReactiveMongoComponent) {
   val db = mongo.mongoConnector.db
   val store = new HeldSubmissionMongoRepository(db)
 }
@@ -72,7 +71,7 @@ trait HeldSubmissionRepository extends Repository[HeldSubmissionData, BSONObject
 
 class HeldSubmissionMongoRepository(mongo: () => DB)
   extends ReactiveRepository[HeldSubmissionData, BSONObjectID]("held-submission", mongo, HeldSubmissionData.formats, ReactiveMongoFormats.objectIdFormats)
-  with HeldSubmissionRepository{
+  with HeldSubmissionRepository {
 
   override def indexes: Seq[Index] = Seq(
     Index(
@@ -138,7 +137,6 @@ class HeldSubmissionMongoRepository(mongo: () => DB)
         Logger.error(s"${logPrefix} Unexpected error trying to - ${unknown}")
         Future.failed(new DeletionFailure(unknown.toString))
         //$COVERAGE-ON$
-
       }
     }
   }

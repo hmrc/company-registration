@@ -17,18 +17,26 @@
 package config
 
 import com.google.inject.AbstractModule
-import controllers.admin.{AdminControllerImpl, AdminController}
-import services.admin.{AdminServiceImpl, AdminService}
+import connectors.{IncorporationInformationConnector, IncorporationInformationConnectorImpl}
+import controllers.admin.{AdminController, AdminControllerImpl}
+import services.admin.{AdminService, AdminServiceImpl}
 import uk.gov.hmrc.play.config.inject.{DefaultServicesConfig, ServicesConfig}
 
 class Module extends AbstractModule {
 
   override def configure(): Unit = {
 
+    //config
+    bind(classOf[MicroserviceAppConfig]).to(classOf[MicroserviceAppConfigImpl])
+    bind(classOf[ServicesConfig]).to(classOf[DefaultServicesConfig])
+
     // controllers
     bind(classOf[AdminController]).to(classOf[AdminControllerImpl])
 
     // services
     bind(classOf[AdminService]).to(classOf[AdminServiceImpl])
+
+    //connectors
+    bind(classOf[IncorporationInformationConnector]).to(classOf[IncorporationInformationConnectorImpl])
   }
 }

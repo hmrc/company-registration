@@ -21,7 +21,7 @@ import javax.inject.{Inject, Singleton}
 import models.{ConfirmationReferences, HO6RegistrationInformation}
 import models.admin.{Admin, HO6Identifiers, HO6Response}
 import play.api.Logger
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc._
 import services.CorporationTaxRegistrationService
 import services.admin.AdminService
@@ -50,6 +50,13 @@ trait AdminController extends BaseController with FutureInstances with Applicati
       adminService.fetchHO6RegistrationInformation(regId) map {
         case Some(ho6RegInfo) => Ok(Json.toJson(ho6RegInfo)(HO6RegistrationInformation.writes))
         case None => NotFound
+      }
+  }
+
+  def migrateHeldSubmissions: Action[AnyContent] = Action.async {
+    implicit request =>
+      adminService.migrateHeldSubmissions map { migrationList =>
+        Ok(migrationJsonResponse(migrationList))
       }
   }
 
@@ -92,6 +99,13 @@ trait AdminController extends BaseController with FutureInstances with Applicati
           result
       }
     }
+  }
+
+  private def migrationJsonResponse(migrations: List[Boolean]): JsObject = {
+    Json.obj(
+      "total-attempted-migrations" -> migrations.size,
+      "total-success" -> migrations.count(_ == true)
+    )
   }
 
   private def auditAdminEvent(strideUser: String, identifiers: HO6Identifiers, response: HO6Response)(implicit hc: HeaderCarrier): Future[AuditResult] = {

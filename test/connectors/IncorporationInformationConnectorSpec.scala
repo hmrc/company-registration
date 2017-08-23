@@ -79,25 +79,25 @@ class IncorporationInformationConnectorSpec extends UnitSpec with MockitoSugar w
       when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.anyString(), Matchers.any[JsValue](), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any[HeaderCarrier]()))
         .thenReturn(HttpResponse(202))
 
-      await(connector.registerInterest(regId, txId)) shouldBe None
+      await(connector.registerInterest(regId, txId)) shouldBe true
     }
     "not make a http POST request to Incorporation Information micro-service to register an interest and return any other 2xx" in new Setup {
       when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.anyString(), Matchers.any[JsValue](), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any[HeaderCarrier]()))
         .thenReturn(HttpResponse(200))
 
-      intercept[SubscriptionFailure](await(connector.registerInterest(regId, txId)))
+      await(connector.registerInterest(regId, txId)) shouldBe false
     }
     "not make a http POST request to Incorporation Information micro-service to register an interest and return any 4xx" in new Setup {
       when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.anyString(), Matchers.any[JsValue](), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any[HeaderCarrier]()))
         .thenReturn(HttpResponse(400))
 
-      intercept[SubscriptionFailure](await(connector.registerInterest(regId, txId)))
+      await(connector.registerInterest(regId, txId)) shouldBe false
     }
     "not make a http POST request to Incorporation Information micro-service to register an interest and return any 5xx" in new Setup {
       when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.anyString(), Matchers.any[JsValue](), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any[HeaderCarrier]()))
         .thenReturn(HttpResponse(500))
 
-      intercept[SubscriptionFailure](await(connector.registerInterest(regId, txId)))
+      await(connector.registerInterest(regId, txId)) shouldBe false
     }
   }
 

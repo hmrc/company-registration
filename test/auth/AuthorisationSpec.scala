@@ -20,34 +20,32 @@ import connectors.{AuthConnector, Authority, UserIds}
 import org.mockito.Matchers
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
-import org.scalatest.{BeforeAndAfter, ShouldMatchers, WordSpecLike}
 import play.api.mvc.Results
 import play.api.test.Helpers._
 import uk.gov.hmrc.play.http.HeaderCarrier
-import uk.gov.hmrc.play.test.WithFakeApplication
+import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 
-class AuthorisationSpec extends WordSpecLike with WithFakeApplication with ShouldMatchers with MockitoSugar with BeforeAndAfter {
+class AuthorisationSpec extends UnitSpec with MockitoSugar {
 
   implicit val hc = HeaderCarrier()
 
   val mockAuth = mock[AuthConnector]
   val mockResource = mock[AuthorisationResource[String]]
 
-  object Authorisation extends Authorisation[String] {
-    val auth = mockAuth
-    val resourceConn = mockResource
-  }
+  trait Setup {
+    val Authorisation = new Authorisation[String] {
+      val auth = mockAuth
+      val resourceConn = mockResource
 
-  before {
-    reset(mockAuth)
-    reset(mockResource)
+      reset(mockAuth, mockResource)
+    }
   }
 
   "The authorisation helper" should {
 
-    "indicate there's no logged in user where there isn't a valid bearer token" in {
+    "indicate there's no logged in user where there isn't a valid bearer token" in new Setup {
 
       when(mockAuth.getCurrentAuthority()(Matchers.any())).thenReturn(Future.successful(None))
       when(mockResource.getInternalId(Matchers.any())).thenReturn(Future.successful(None))
@@ -61,7 +59,7 @@ class AuthorisationSpec extends WordSpecLike with WithFakeApplication with Shoul
       response.header.status shouldBe FORBIDDEN
     }
 
-    "provided an authorised result when logged in and a consistent resource" in {
+    "provided an authorised result when logged in and a consistent resource" in new Setup {
 
       val regId = "xxx"
       val userIDs = UserIds("foo", "bar")
@@ -78,7 +76,7 @@ class AuthorisationSpec extends WordSpecLike with WithFakeApplication with Shoul
       val response = await(result)
     }
 
-    "provided a not-authorised result when logged in and an inconsistent resource" in {
+    "provided a not-authorised result when logged in and an inconsistent resource" in new Setup {
 
       val regId = "xxx"
       val userIDs = UserIds("foo", "bar")
@@ -96,7 +94,7 @@ class AuthorisationSpec extends WordSpecLike with WithFakeApplication with Shoul
       response.header.status shouldBe OK
     }
 
-    "provided a not-found result when logged in and no resource for the identifier" in {
+    "provided a not-found result when logged in and no resource for the identifier" in new Setup {
 
       val userIDs = UserIds("foo", "bar")
       val a = Authority("x", "", "z", userIDs)
