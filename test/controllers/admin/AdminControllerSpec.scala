@@ -20,12 +20,13 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import models.HO6RegistrationInformation
 import org.scalatest.mock.MockitoSugar
-import play.api.libs.json.Json
+import play.api.libs.json.{JsObject, Json}
 import play.api.test.FakeRequest
 import services.admin.AdminService
 import uk.gov.hmrc.play.test.UnitSpec
 import org.mockito.Matchers.{any, eq => eqTo}
 import org.mockito.Mockito._
+import play.api.mvc.Result
 import services.CorporationTaxRegistrationService
 
 import scala.concurrent.Future
@@ -80,6 +81,66 @@ class AdminControllerSpec extends UnitSpec with MockitoSugar {
       val result = await(controller.fetchHO6RegistrationInformation(regId)(FakeRequest()))
 
       status(result) shouldBe 404
+    }
+  }
+
+  "migrateHeldSubmissions" should {
+
+    "return a 200 and an accurate json response when all held submissions migrated successfully" in new Setup {
+
+      when(mockAdminService.migrateHeldSubmissions(any()))
+        .thenReturn(Future.successful(List(true, true, true)))
+
+      val result: Result = await(controller.migrateHeldSubmissions(FakeRequest()))
+
+      val expected: JsObject = Json.parse(
+        """
+          |{
+          |  "total-attempted-migrations":3,
+          |  "total-success":3
+          |}
+        """.stripMargin).as[JsObject]
+
+      status(result) shouldBe 200
+      jsonBodyOf(result) shouldBe expected
+    }
+
+    "return a 200 and an accurate json response when all held submissions migrated unsuccessfully" in new Setup {
+
+      when(mockAdminService.migrateHeldSubmissions(any()))
+        .thenReturn(Future.successful(List(false, false, false)))
+
+      val result: Result = await(controller.migrateHeldSubmissions(FakeRequest()))
+
+      val expected: JsObject = Json.parse(
+        """
+          |{
+          |  "total-attempted-migrations":3,
+          |  "total-success":0
+          |}
+        """.stripMargin).as[JsObject]
+
+      status(result) shouldBe 200
+      jsonBodyOf(result) shouldBe expected
+    }
+
+    "return a 200 and an accurate json response when some held submissions migrated successfully" in new Setup {
+
+      when(mockAdminService.migrateHeldSubmissions(any()))
+        .thenReturn(Future.successful(List(true, false, true)))
+
+      val result: Result = await(controller.migrateHeldSubmissions(FakeRequest()))
+
+      val expected: JsObject = Json.parse(
+        """
+          |{
+          |  "total-attempted-migrations":3,
+          |  "total-success":2
+          |}
+        """.stripMargin).as[JsObject]
+
+      status(result) shouldBe 200
+      jsonBodyOf(result) shouldBe expected
     }
   }
 }
