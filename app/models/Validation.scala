@@ -32,6 +32,21 @@ object Validation {
 
   def readToFmt(rds: Reads[String])(implicit wts: Writes[String]): Format[String] = Format(rds, wts)
 
+  def digitLength(minLength: Int, maxLength: Int)(implicit wts: Writes[String]):Format[String] = {
+    val reads: Reads[String] = new Reads[String] {
+      override def reads(json: JsValue) = {
+        val str = json.as[String]
+        if(str.replaceAll(" ", "").matches(s"[0-9]{$minLength,$maxLength}")) {
+          JsSuccess(str)
+        } else {
+          JsError(s"field must contain between $minLength and $maxLength numbers")
+        }
+      }
+    }
+
+    Format(reads, wts)
+  }
+
   def lengthFmt(maxLen: Int, minLen: Int = 1): Format[String] = readToFmt(length(maxLen, minLen))
 
   def yyyymmddValidator = pattern("^[0-9]{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$".r)
@@ -86,7 +101,7 @@ trait ContactDetailsValidator {
   import Validation._
 
   val nameValidator = readToFmt(length(100) keepAnd pattern("^[A-Za-z 0-9'\\\\-]{1,100}$".r))
-  val phoneValidator = readToFmt(length(20) keepAnd pattern("^[0-9 ]{1,20}$".r))
+  val phoneValidator = readToFmt(length(20) keepAnd pattern("^[0-9 ]{1,20}$".r) keepAnd digitLength(10, 20))
   val emailValidator = readToFmt(length(70) keepAnd pattern("^[A-Za-z0-9\\-_.@]{1,70}$".r))
 }
 

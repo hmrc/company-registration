@@ -71,7 +71,7 @@ object CorporationTaxRegistration {
   implicit val formatAccountsPrepDate = AccountPrepDetails.format
   implicit val formatEmail = Email.formats
 
-  def cTReads(rdsAck: Reads[AcknowledgementReferences]) = {
+  def cTReads(rdsAck: Reads[AcknowledgementReferences], rdsContactDetails: Reads[ContactDetails]) = {
     (
       (__ \ "internalId").read[String] and
         (__ \ "registrationID").read[String] and
@@ -84,7 +84,7 @@ object CorporationTaxRegistration {
         (__ \ "companyDetails").readNullable[CompanyDetails](formatCompanyDetails) and
         (__ \ "accountingDetails").readNullable[AccountingDetails] and
         (__ \ "tradingDetails").readNullable[TradingDetails] and
-        (__ \ "contactDetails").readNullable[ContactDetails] and
+        (__ \ "contactDetails").readNullable[ContactDetails](rdsContactDetails) and
         (__ \ "accountsPreparation").readNullable[AccountPrepDetails] and
         (__ \ "crn").readNullable[String] and
         (__ \ "submissionTimestamp").readNullable[String] and
@@ -115,7 +115,10 @@ object CorporationTaxRegistration {
       (__ \ "lastSignedIn").write[DateTime]
     )(unlift(CorporationTaxRegistration.unapply))
 
-  implicit val format: Format[CorporationTaxRegistration] = Format(cTReads(formatAck), cTWrites(formatAck))
+  implicit val format: Format[CorporationTaxRegistration] = Format(cTReads(formatAck, ContactDetails.format), cTWrites(formatAck))
+
+  val mongoFormat: Format[CorporationTaxRegistration] = Format(cTReads(formatAck, ContactDetails.mongoFormat), cTWrites(formatAck))
+
 }
 
 case class AcknowledgementReferences(ctUtr: String,
@@ -245,18 +248,22 @@ case class ContactDetails(firstName: String,
 
 object ContactDetails extends ContactDetailsValidator {
 
-  implicit val format = withFilter(
+  private def cdFormat(phoneFormat: Format[String]) = withFilter(
     ((__ \ "contactFirstName").format[String](nameValidator) and
       (__ \ "contactMiddleName").formatNullable[String](nameValidator) and
       (__ \ "contactSurname").format[String](nameValidator) and
-      (__ \ "contactDaytimeTelephoneNumber").formatNullable[String](phoneValidator) and
-      (__ \ "contactMobileNumber").formatNullable[String](phoneValidator) and
+      (__ \ "contactDaytimeTelephoneNumber").formatNullable[String](phoneFormat) and
+      (__ \ "contactMobileNumber").formatNullable[String](phoneFormat) and
       (__ \ "contactEmail").formatNullable[String](emailValidator)
-    )(ContactDetails.apply, unlift(ContactDetails.unapply)),
+      )(ContactDetails.apply, unlift(ContactDetails.unapply)),
     ValidationError("Must have at least one email, phone or mobile specified")
   )(
     cD => cD.mobile.isDefined || cD.phone.isDefined || cD.email.isDefined
   )
+
+  implicit val format = cdFormat(phoneValidator)
+
+  val mongoFormat = cdFormat(Format(Reads.StringReads, Writes.StringWrites))
 }
 
 case class TradingDetails(regularPayments: String = "")
