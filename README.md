@@ -56,3 +56,4 @@ The error scenarios will return an error document, for example :
     "message":"An existing Corporation Tax Registration record was not found"
 }
 ```
+
