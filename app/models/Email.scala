@@ -16,9 +16,9 @@
 
 package models
 
+import models.validation.{APIValidation, BaseJsonFormatting}
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
-import play.api.libs.functional._
 
 case class Email(address: String,
                  emailType: String,
@@ -27,22 +27,13 @@ case class Email(address: String,
                  returnLinkEmailSent : Boolean)
 
 object Email {
+  def formatter(formatter: BaseJsonFormatting) = (
+    (__ \ "address").format[String] and
+      (__ \ "type").format[String] and
+      (__ \ "link-sent").format[Boolean] and
+      (__ \ "verified").format[Boolean] and
+      (__ \ "return-link-email-sent").format[Boolean].orElse(formatter.emailBooleanRead)
+    )(Email.apply, unlift(Email.unapply))
 
-  val reads = (
-  (__ \ "address").read[String] and
-  (__ \ "type").read[String] and
-  (__ \ "link-sent").read[Boolean] and
-  (__ \ "verified").read[Boolean] and
-  (__ \ "return-link-email-sent").read[Boolean].orElse(Reads.pure(true))
-  )(Email.apply _)
-
-  val writes = (
-  (__ \ "address").write[String] and
-  (__ \ "type").write[String] and
-  (__ \ "link-sent").write[Boolean] and
-  (__ \ "verified").write[Boolean] and
-  (__ \ "return-link-email-sent").write[Boolean]
-
-  )(unlift(Email.unapply))
-  implicit val formats = Format(reads, writes)
+  implicit val apiFormat = formatter(APIValidation)
 }

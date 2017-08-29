@@ -32,6 +32,7 @@ import reactivemongo.bson._
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
 import cats.implicits._
+import models.validation.MongoValidation
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -48,16 +49,15 @@ object CorporationTaxRegistrationMongo extends ReactiveMongoFormats {
   implicit val formatTD = TradingDetails.format
   implicit val formatCompanyDetails = CompanyDetails.format
   implicit val formatAccountingDetails = AccountingDetails.formats
-  implicit val mongoFormatContactDetails = ContactDetails.mongoFormat
-  implicit val formatAck = AcknowledgementReferences.mongoFormat(Crypto.rds,Crypto.wts)
+  implicit val formatAck = AcknowledgementReferences.formatter(MongoValidation)
   implicit val formatConfirmationReferences = ConfirmationReferences.format
   implicit val formatAccountsPrepDate = AccountPrepDetails.format
-  implicit val formatEmail = Email.formats
+  implicit val formatEmail = Email.formatter(MongoValidation)
   //  implicit val format = CorporationTaxRegistration.format
-  implicit val format2 = Json.format[CorporationTaxRegistration]
+  //implicit val format2 = Json.format[CorporationTaxRegistration]
 
-  implicit val format = Format(CorporationTaxRegistration.cTReads(formatAck, mongoFormatContactDetails), CorporationTaxRegistration.cTWrites(formatAck))
-  implicit val oFormat = OFormat(CorporationTaxRegistration.cTReads(formatAck, mongoFormatContactDetails), CorporationTaxRegistration.cTWrites(formatAck))
+  implicit val format = CorporationTaxRegistration.formatter(MongoValidation)
+  implicit val oFormat = CorporationTaxRegistration.oFormat(format)
 
   //val store = new CorporationTaxRegistrationMongoRepository(db)
 }
@@ -97,7 +97,7 @@ private[repositories] class MissingCTDocument(regId: String) extends NoStackTrac
 class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
   extends ReactiveRepository[CorporationTaxRegistration, BSONObjectID]("corporation-tax-registration-information",
     mongo,
-    CorporationTaxRegistrationMongo.oFormat,
+    CorporationTaxRegistrationMongo.format,
     ReactiveMongoFormats.objectIdFormats)
   with CorporationTaxRegistrationRepository
   with AuthorisationResource[String] {

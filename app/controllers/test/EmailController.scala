@@ -21,6 +21,7 @@ import javax.inject.{Inject, Singleton}
 import auth.Authorisation
 import connectors.AuthConnector
 import models.Email
+import models.validation.APIValidation
 import play.api.libs.json.Json
 import play.api.mvc.Action
 import repositories.Repositories
@@ -42,9 +43,9 @@ trait EmailController extends BaseController with Authorisation[String]{
   def updateEmail(registrationId: String) = Action.async(parse.json) {
     implicit request =>
       authorisedFor(registrationId){ _ =>
-        withJsonBody[Email]{
+        withJsonBody[Email] {
           emailService.updateEmail(registrationId, _).map {
-            case Some(email) => Ok(Json.toJson(email)(Email.writes))
+            case Some(email) => Ok(Json.toJson(email)(Email.formatter(APIValidation)))
             case None => NotFound
           }
         }
@@ -55,7 +56,7 @@ trait EmailController extends BaseController with Authorisation[String]{
     implicit request =>
       authorisedFor(registrationId){ _ =>
         emailService.retrieveEmail(registrationId).map{
-          case Some(email) => Ok(Json.toJson(email)(Email.writes))
+          case Some(email) => Ok(Json.toJson(email)(Email.formatter(APIValidation)))
           case None => NotFound
 
         }

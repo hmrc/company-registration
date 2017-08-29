@@ -16,7 +16,7 @@
 
 package models
 
-import org.joda.time.{DateTimeZone, DateTime}
+import org.joda.time.{DateTime, DateTimeZone}
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.DateTime
 import play.api.data.validation.ValidationError
@@ -25,6 +25,7 @@ import play.api.libs.json.Reads.maxLength
 import play.api.libs.json._
 import Validation.withFilter
 import auth.Crypto
+import models.validation.{APIValidation, BaseJsonFormatting, MongoValidation}
 
 import scala.language.implicitConversions
 
@@ -69,9 +70,40 @@ object CorporationTaxRegistration {
   val formatAck = AcknowledgementReferences.apiFormat
   implicit val formatConfirmationReferences = ConfirmationReferences.format
   implicit val formatAccountsPrepDate = AccountPrepDetails.format
-  implicit val formatEmail = Email.formats
+  implicit val formatEmail = Email.formatter(APIValidation)
 
-  def cTReads(rdsAck: Reads[AcknowledgementReferences], rdsContactDetails: Reads[ContactDetails]) = {
+  def formatter(formatter: BaseJsonFormatting) = {
+    (
+      (__ \ "internalId").format[String] and
+        (__ \ "registrationID").format[String] and
+        (__ \ "status").format[String] and
+        (__ \ "formCreationTimestamp").format[String] and
+        (__ \ "language").format[String] and
+        (__ \ "registrationProgress").formatNullable[String] and
+        (__ \ "acknowledgementReferences").formatNullable[AcknowledgementReferences](AcknowledgementReferences.formatter(formatter)) and
+        (__ \ "confirmationReferences").formatNullable[ConfirmationReferences] and
+        (__ \ "companyDetails").formatNullable[CompanyDetails](formatCompanyDetails) and
+        (__ \ "accountingDetails").formatNullable[AccountingDetails] and
+        (__ \ "tradingDetails").formatNullable[TradingDetails] and
+        (__ \ "contactDetails").formatNullable[ContactDetails](ContactDetails.formatter(formatter)) and
+        (__ \ "accountsPreparation").formatNullable[AccountPrepDetails] and
+        (__ \ "crn").formatNullable[String] and
+        (__ \ "submissionTimestamp").formatNullable[String] and
+        (__ \ "verifiedEmail").formatNullable[Email](Email.formatter(formatter)) and
+        (__ \ "createdTime").format[DateTime] and
+        (__ \ "lastSignedIn").format[DateTime](formatter.lastSignedInDateTimeFormat)
+      ) (CorporationTaxRegistration.apply, unlift(CorporationTaxRegistration.unapply))
+  }
+
+  def oFormat(format: Format[CorporationTaxRegistration]): OFormat[CorporationTaxRegistration] = {
+    new OFormat[CorporationTaxRegistration] {
+      override def writes(o: CorporationTaxRegistration): JsObject = format.writes(o).as[JsObject]
+
+      override def reads(json: JsValue): JsResult[CorporationTaxRegistration] = format.reads(json)
+    }
+  }
+
+  def cTReads(formatter: BaseJsonFormatting) = {
     (
       (__ \ "internalId").read[String] and
         (__ \ "registrationID").read[String] and
@@ -79,16 +111,16 @@ object CorporationTaxRegistration {
         (__ \ "formCreationTimestamp").read[String] and
         (__ \ "language").read[String] and
         (__ \ "registrationProgress").readNullable[String] and
-        (__ \ "acknowledgementReferences").readNullable[AcknowledgementReferences](rdsAck) and
+        (__ \ "acknowledgementReferences").readNullable[AcknowledgementReferences](AcknowledgementReferences.formatter(formatter)) and
         (__ \ "confirmationReferences").readNullable[ConfirmationReferences] and
         (__ \ "companyDetails").readNullable[CompanyDetails](formatCompanyDetails) and
         (__ \ "accountingDetails").readNullable[AccountingDetails] and
         (__ \ "tradingDetails").readNullable[TradingDetails] and
-        (__ \ "contactDetails").readNullable[ContactDetails](rdsContactDetails) and
+        (__ \ "contactDetails").readNullable[ContactDetails](ContactDetails.formatter(formatter)) and
         (__ \ "accountsPreparation").readNullable[AccountPrepDetails] and
         (__ \ "crn").readNullable[String] and
         (__ \ "submissionTimestamp").readNullable[String] and
-        (__ \ "verifiedEmail").readNullable[Email] and
+        (__ \ "verifiedEmail").readNullable[Email](Email.formatter(formatter)) and
         (__ \ "createdTime").read[DateTime] and
         (__ \ "lastSignedIn").read[DateTime].orElse(Reads.pure(CorporationTaxRegistration.now))
       ) (CorporationTaxRegistration.apply _)
@@ -115,10 +147,7 @@ object CorporationTaxRegistration {
       (__ \ "lastSignedIn").write[DateTime]
     )(unlift(CorporationTaxRegistration.unapply))
 
-  implicit val format: Format[CorporationTaxRegistration] = Format(cTReads(formatAck, ContactDetails.format), cTWrites(formatAck))
-
-  val mongoFormat: Format[CorporationTaxRegistration] = Format(cTReads(formatAck, ContactDetails.mongoFormat), cTWrites(formatAck))
-
+  implicit val format: Format[CorporationTaxRegistration] = formatter(APIValidation)
 }
 
 case class AcknowledgementReferences(ctUtr: String,
@@ -126,19 +155,20 @@ case class AcknowledgementReferences(ctUtr: String,
                                      status: String)
 
 object AcknowledgementReferences {
+  def formatter(formatter: BaseJsonFormatting) = {
+    val pathCTUtr = formatter match {
+      case APIValidation => "ctUtr"
+      case MongoValidation => "ct-utr"
+    }
 
-  val apiFormat = (
-    (__ \ "ctUtr").format[String] and
+    (
+      (__ \ pathCTUtr).format[String](formatter.cryptoFormat) and
       (__ \ "timestamp").format[String] and
       (__ \ "status").format[String]
     ) (AcknowledgementReferences.apply _, unlift(AcknowledgementReferences.unapply _))
+  }
 
-  def mongoFormat(cryptoRds: Reads[String], cryptoWts: Writes[String]) = (
-    (__ \ "ct-utr").format[String](cryptoRds)(cryptoWts) and
-      (__ \ "timestamp").format[String] and
-      (__ \ "status").format[String]
-    ) (AcknowledgementReferences.apply _, unlift(AcknowledgementReferences.unapply _))
-
+  val apiFormat = formatter(APIValidation)
 }
 
 case class ConfirmationReferences(acknowledgementReference: String = "",
@@ -246,24 +276,23 @@ case class ContactDetails(firstName: String,
                           email: Option[String]) {
 }
 
-object ContactDetails extends ContactDetailsValidator {
-
-  private def cdFormat(phoneFormat: Format[String]) = withFilter(
-    ((__ \ "contactFirstName").format[String](nameValidator) and
-      (__ \ "contactMiddleName").formatNullable[String](nameValidator) and
-      (__ \ "contactSurname").format[String](nameValidator) and
-      (__ \ "contactDaytimeTelephoneNumber").formatNullable[String](phoneFormat) and
-      (__ \ "contactMobileNumber").formatNullable[String](phoneFormat) and
-      (__ \ "contactEmail").formatNullable[String](emailValidator)
+object ContactDetails {
+  def formatter(formatter: BaseJsonFormatting) = withFilter(
+    ((__ \ "contactFirstName").format[String](formatter.nameValidator) and
+      (__ \ "contactMiddleName").formatNullable[String](formatter.nameValidator) and
+      (__ \ "contactSurname").format[String](formatter.nameValidator) and
+      (__ \ "contactDaytimeTelephoneNumber").formatNullable[String](formatter.phoneValidator) and
+      (__ \ "contactMobileNumber").formatNullable[String](formatter.phoneValidator) and
+      (__ \ "contactEmail").formatNullable[String](formatter.emailValidator)
       )(ContactDetails.apply, unlift(ContactDetails.unapply)),
     ValidationError("Must have at least one email, phone or mobile specified")
   )(
     cD => cD.mobile.isDefined || cD.phone.isDefined || cD.email.isDefined
   )
 
-  implicit val format = cdFormat(phoneValidator)
+  implicit val format = formatter(APIValidation)
 
-  val mongoFormat = cdFormat(Format(Reads.StringReads, Writes.StringWrites))
+  val mongoFormat = formatter(MongoValidation)
 }
 
 case class TradingDetails(regularPayments: String = "")

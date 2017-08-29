@@ -23,7 +23,7 @@ import play.api.libs.json._
 import Reads.{maxLength, minLength, pattern}
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
-import play.api.libs.functional.syntax._
+  import play.api.libs.functional.syntax._
 
 
 object Validation {

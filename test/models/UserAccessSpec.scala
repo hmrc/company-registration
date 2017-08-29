@@ -70,5 +70,20 @@ class UserAccessSpec extends UnitSpec {
       result.getClass shouldBe classOf[JsObject]
       result shouldBe Json.parse(json)
     }
+
+    "With email, be able to be parsed from JSON" in {
+
+      val json = Json.parse(
+        s"""
+           |{
+           |  "address": "a@a.a", "type": "GG", "link-sent": true, "verified": false
+           |}
+       """.stripMargin)
+
+      val testModel = Email("a@a.a", "GG", true, false, true)
+
+      val result = Json.fromJson[Email](json)
+      result shouldBe testModel
+    }
   }
 }
