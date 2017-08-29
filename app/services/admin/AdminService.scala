@@ -53,7 +53,13 @@ trait AdminService extends DateFormatter {
     fetchAllRegIdsFromHeldSubmissions flatMap { regIdList =>
       Future.sequence(regIdList map { regId =>
         fetchTransactionId(regId) flatMap { opt =>
-          opt.fold(Future.successful(false))(transId => forceSubscription(regId, transId))
+          opt.fold(Future.successful(false))(transId =>
+            forceSubscription(regId, transId) recover {
+              case ex: RuntimeException =>
+                Logger.error(s"[Admin] [migrateHeldSubmissions] - force subscription for regId : $regId failed", ex)
+                false
+            }
+          )
         }
       })
     }
