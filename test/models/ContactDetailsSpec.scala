@@ -49,6 +49,41 @@ class ContactDetailsSpec extends UnitSpec with JsonFormatValidation {
      """.stripMargin
   }
 
+  "ContactDetails Model - phone number" should {
+    "build from JSON" when {
+      "valid phone numbers are supplied" in {
+        val json = j(mn = Some("M"), p = Some("1234567890"), m = Some("1234567890"), e = None)
+        val expected = ContactDetails("F", Some("M"), "S", Some("1234567890"), Some("1234567890"), None)
+        val result = Json.parse(json).validate[ContactDetails]
+        shouldBeSuccess(expected, result)
+      }
+      "valid phone numbers with spaces are supplied" in {
+        val json = j(mn = Some("M"), p = Some("12345   67890"), m = Some("1234567890"), e = None)
+        val expected = ContactDetails("F", Some("M"), "S", Some("12345   67890"), Some("1234567890"), None)
+        val result = Json.parse(json).validate[ContactDetails]
+        shouldBeSuccess(expected, result)
+      }
+      "invalid phone number is read from mongo" in {
+        val json = j(mn = Some("M"), p = Some("12345"), m = Some("1234567890"), e = None)
+        val expected = ContactDetails("F", Some("M"), "S", Some("12345"), Some("1234567890"), None)
+        val result = Json.parse(json).validate[ContactDetails](ContactDetails.mongoFormat)
+        shouldBeSuccess(expected, result)
+      }
+    }
+    "fail from JSON" when {
+      "invalid phone numbers are supplied" in {
+        val json = j(mn = Some("M"), p = Some("123456"), m = Some("1234567890"))
+        val result = Json.parse(json).validate[ContactDetails]
+        shouldHaveErrors(result, JsPath() \ "contactDaytimeTelephoneNumber", Seq(ValidationError("field must contain between 10 and 20 numbers")))
+      }
+      "invalid phone numbers are supplied with spaces" in {
+        val json = j(mn = Some("M"), p = Some("1234567890"), m = Some("12345   678"))
+        val result = Json.parse(json).validate[ContactDetails]
+        shouldHaveErrors(result, JsPath() \ "contactMobileNumber", Seq(ValidationError("field must contain between 10 and 20 numbers")))
+      }
+    }
+  }
+
   "ContactDetails Model - names" should {
     "build from JSON - minimal" in {
       val json = j()
@@ -58,8 +93,8 @@ class ContactDetailsSpec extends UnitSpec with JsonFormatValidation {
     }
 
     "build from JSON - full" in {
-      val json = j(mn = Some("M"), p = Some("1"), m = Some("2"))
-      val expected = ContactDetails("F", Some("M"), "S", Some("1"), Some("2"), Some("a@b.c"))
+      val json = j(mn = Some("M"), p = Some("1234567890"), m = Some("1234567890"))
+      val expected = ContactDetails("F", Some("M"), "S", Some("1234567890"), Some("1234567890"), Some("a@b.c"))
       val result = Json.parse(json).validate[ContactDetails]
       shouldBeSuccess(expected, result)
     }
@@ -80,8 +115,8 @@ class ContactDetailsSpec extends UnitSpec with JsonFormatValidation {
   "ContactDetails Model - names" should {
 
     "build from JSON - phone" in {
-      val json = j(p = Some("1"), e = None)
-      val expected = ContactDetails("F", None, "S", Some("1"), None, None)
+      val json = j(p = Some("1234567890"), e = None)
+      val expected = ContactDetails("F", None, "S", Some("1234567890"), None, None)
       val result = Json.parse(json).validate[ContactDetails]
       shouldBeSuccess(expected, result)
     }

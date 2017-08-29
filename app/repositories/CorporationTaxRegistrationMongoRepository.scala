@@ -48,7 +48,7 @@ object CorporationTaxRegistrationMongo extends ReactiveMongoFormats {
   implicit val formatTD = TradingDetails.format
   implicit val formatCompanyDetails = CompanyDetails.format
   implicit val formatAccountingDetails = AccountingDetails.formats
-  implicit val formatContactDetails = ContactDetails.format
+  implicit val mongoFormatContactDetails = ContactDetails.mongoFormat
   implicit val formatAck = AcknowledgementReferences.mongoFormat(Crypto.rds,Crypto.wts)
   implicit val formatConfirmationReferences = ConfirmationReferences.format
   implicit val formatAccountsPrepDate = AccountPrepDetails.format
@@ -56,8 +56,8 @@ object CorporationTaxRegistrationMongo extends ReactiveMongoFormats {
   //  implicit val format = CorporationTaxRegistration.format
   implicit val format2 = Json.format[CorporationTaxRegistration]
 
-  implicit val format = Format(CorporationTaxRegistration.cTReads(formatAck), CorporationTaxRegistration.cTWrites(formatAck))
-  implicit val oFormat = OFormat(CorporationTaxRegistration.cTReads(formatAck), CorporationTaxRegistration.cTWrites(formatAck))
+  implicit val format = Format(CorporationTaxRegistration.cTReads(formatAck, mongoFormatContactDetails), CorporationTaxRegistration.cTWrites(formatAck))
+  implicit val oFormat = OFormat(CorporationTaxRegistration.cTReads(formatAck, mongoFormatContactDetails), CorporationTaxRegistration.cTWrites(formatAck))
 
   //val store = new CorporationTaxRegistrationMongoRepository(db)
 }

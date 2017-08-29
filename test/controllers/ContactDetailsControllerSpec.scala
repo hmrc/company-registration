@@ -103,8 +103,8 @@ class ContactDetailsControllerSpec extends UnitSpec with MockitoSugar with Befor
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       AuthorisationMocks.getInternalId("testID", Some(registrationID -> validAuthority.ids.internalId))
       ContactDetailsServiceMocks.updateContactDetails(registrationID, Some(contactDetails))
-      val response = FakeRequest().withBody(Json.toJson(contactDetails))
-      val result = call(controller.updateContactDetails(registrationID), response)
+      val request = FakeRequest().withBody(Json.toJson(contactDetails))
+      val result = call(controller.updateContactDetails(registrationID), request)
       status(result) shouldBe OK
       val json = await(jsonBodyOf(result))
       json.as[JsObject] shouldBe Json.toJson(contactDetailsResponse)

@@ -47,6 +47,30 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     repo.insert(ctRegistration)
   }
 
+  "retrieveCorporationTaxRegistration" should {
+    "retrieve a registration with an invalid phone number" in new Setup {
+      val registrationId = "testRegId"
+
+      val corporationTaxRegistration = CorporationTaxRegistration(
+        internalId = "testID",
+        registrationID = registrationId,
+        formCreationTimestamp = "testDateTime",
+        language = "en",
+        contactDetails = Some(ContactDetails(
+          firstName = "First",
+          middleName = Some("Middle"),
+          surname = "Sur",
+          phone = Some("12345"),
+          mobile = Some("1234567890"),
+          email = None))
+      )
+
+      await(setupCollection(repository, corporationTaxRegistration))
+      val response = repository.retrieveCorporationTaxRegistration(registrationId)
+      await(response).flatMap(_.contactDetails) shouldBe corporationTaxRegistration.contactDetails
+    }
+  }
+
   "updateSubmissionStatus" should {
 
     val registrationId = "testRegId"
