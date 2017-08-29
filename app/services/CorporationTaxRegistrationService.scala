@@ -130,8 +130,8 @@ trait CorporationTaxRegistrationService extends DateHelper {
           ackRef         <- generateAcknowledgementReference
           heldSubmission <- buildPartialDesSubmission(rID, ackRef, admin)
           _              <- storeAndUpdateSubmission(rID, ackRef, heldSubmission, admin)
-          updatedRef     <- corporationTaxRegistrationRepository.updateConfirmationReferences(rID, refs.copy(acknowledgementReference = ackRef))
           _              <- if(registerInterestRequired()) incorpInfoConnector.registerInterest(rID, refs.transactionId) else Future.successful(None)
+          updatedRef     <- corporationTaxRegistrationRepository.updateConfirmationReferences(rID, refs.copy(acknowledgementReference = ackRef))
           _              <- removeTaxRegistrationInformation(rID)
         } yield {
           updatedRef

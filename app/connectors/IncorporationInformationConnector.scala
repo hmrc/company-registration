@@ -63,7 +63,7 @@ trait IncorporationInformationConnector {
   }
 
   def registerInterest(regId: String, transactionId: String)(implicit hc: HeaderCarrier): Future[Boolean] = {
-    val json = Json.obj("SCRSIncorpSubscription" -> Json.obj("callbackUrl" -> s"${controllers.routes.ProcessIncorporationsController.processIncorp()} "))
+    val json = Json.obj("SCRSIncorpSubscription" -> Json.obj("callbackUrl" -> s"${controllers.routes.ProcessIncorporationsController.processIncorp()}"))
     http.POST[JsObject, HttpResponse](s"$url${buildUri(transactionId)}", json) map { res =>
       res.status match {
         case ACCEPTED =>
@@ -71,12 +71,12 @@ trait IncorporationInformationConnector {
           true
         case other    =>
           Logger.error(s"[IncorporationInformationConnector] [registerInterest] returned a $other response for regId: $regId txId: $transactionId")
-          false
+          throw new RuntimeException(s"forced registration of interest for regId : $regId - transactionId : $transactionId failed - reason : status code was $other instead of 202")
       }
     } recover {
       case e =>
         Logger.error(s"[IncorporationInformationConnector] [registerInterest] failure registering interest for regId: $regId txId: $transactionId", e)
-        false
+        throw new RuntimeException(s"forced registration of interest for regId : $regId - transactionId : $transactionId failed - reason : ", e)
     }
   }
 }
