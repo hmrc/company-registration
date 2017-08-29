@@ -88,7 +88,7 @@ class AdminControllerSpec extends UnitSpec with MockitoSugar {
 
     "return a 200 and an accurate json response when all held submissions migrated successfully" in new Setup {
 
-      when(mockAdminService.migrateHeldSubmissions(any()))
+      when(mockAdminService.migrateHeldSubmissions(any(), any()))
         .thenReturn(Future.successful(List(true, true, true)))
 
       val result: Result = await(controller.migrateHeldSubmissions(FakeRequest()))
@@ -107,7 +107,7 @@ class AdminControllerSpec extends UnitSpec with MockitoSugar {
 
     "return a 200 and an accurate json response when all held submissions migrated unsuccessfully" in new Setup {
 
-      when(mockAdminService.migrateHeldSubmissions(any()))
+      when(mockAdminService.migrateHeldSubmissions(any(), any()))
         .thenReturn(Future.successful(List(false, false, false)))
 
       val result: Result = await(controller.migrateHeldSubmissions(FakeRequest()))
@@ -126,7 +126,7 @@ class AdminControllerSpec extends UnitSpec with MockitoSugar {
 
     "return a 200 and an accurate json response when some held submissions migrated successfully" in new Setup {
 
-      when(mockAdminService.migrateHeldSubmissions(any()))
+      when(mockAdminService.migrateHeldSubmissions(any(), any()))
         .thenReturn(Future.successful(List(true, false, true)))
 
       val result: Result = await(controller.migrateHeldSubmissions(FakeRequest()))

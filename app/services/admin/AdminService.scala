@@ -26,6 +26,7 @@ import models.{HO6RegistrationInformation, IncorpStatus}
 import models.admin.{HO6Identifiers, HO6Response}
 import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
+import play.api.mvc.Request
 import repositories.{CorpTaxRegistrationRepo, CorporationTaxRegistrationMongoRepository, HeldSubmissionMongoRepository, HeldSubmissionRepo}
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.http.HeaderCarrier
@@ -49,7 +50,7 @@ trait AdminService extends DateFormatter {
 
   def fetchHO6RegistrationInformation(regId: String): Future[Option[HO6RegistrationInformation]] = corpTaxRegRepo.fetchHO6Information(regId)
 
-  def migrateHeldSubmissions(implicit hc: HeaderCarrier): Future[List[Boolean]] = {
+  def migrateHeldSubmissions(implicit hc: HeaderCarrier, req: Request[_]): Future[List[Boolean]] = {
     fetchAllRegIdsFromHeldSubmissions flatMap { regIdList =>
       Future.sequence(regIdList map { regId =>
         fetchTransactionId(regId) flatMap { opt =>
@@ -65,7 +66,7 @@ trait AdminService extends DateFormatter {
     }
   }
 
-  private[services] def forceSubscription(regId: String, transactionId: String)(implicit hc: HeaderCarrier): Future[Boolean] = {
+  private[services] def forceSubscription(regId: String, transactionId: String)(implicit hc: HeaderCarrier, req: Request[_]): Future[Boolean] = {
     incorpInfoConnector.registerInterest(regId, transactionId)
   }
 

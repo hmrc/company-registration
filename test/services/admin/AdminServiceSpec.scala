@@ -25,6 +25,8 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.test.UnitSpec
 import org.mockito.Matchers.any
 import org.mockito.Mockito._
+import play.api.mvc.{AnyContent, Request}
+import play.api.test.FakeRequest
 import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.Future
@@ -50,6 +52,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar {
   val transId = "trans-12345"
 
   implicit val hc = HeaderCarrier()
+  implicit val req: Request[AnyContent] = FakeRequest()
 
   "migrateHeldSubmissions" should {
 
@@ -65,7 +68,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar {
       when(mockCorpTaxRegistrationRepo.retrieveConfirmationReference(any()))
         .thenReturn(Future.successful(Some(ConfirmationReferences("", transId, "payRef", "12"))))
 
-      when(mockIncorpInfoConnector.registerInterest(any(), any())(any()))
+      when(mockIncorpInfoConnector.registerInterest(any(), any())(any(), any()))
         .thenReturn(Future.successful(true))
 
       val result: List[Boolean] = await(service.migrateHeldSubmissions)
@@ -83,7 +86,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar {
       when(mockCorpTaxRegistrationRepo.retrieveConfirmationReference(any()))
         .thenReturn(Future.successful(None))
 
-      when(mockIncorpInfoConnector.registerInterest(any(), any())(any()))
+      when(mockIncorpInfoConnector.registerInterest(any(), any())(any(), any()))
         .thenReturn(Future.successful(true))
 
       val result: List[Boolean] = await(service.migrateHeldSubmissions)
@@ -101,7 +104,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar {
       when(mockCorpTaxRegistrationRepo.retrieveConfirmationReference(any()))
         .thenReturn(Future.successful(Some(ConfirmationReferences("", transId, "payRef", "12"))))
 
-      when(mockIncorpInfoConnector.registerInterest(any(), any())(any()))
+      when(mockIncorpInfoConnector.registerInterest(any(), any())(any(), any()))
         .thenReturn(Future.successful(false))
 
       val result: List[Boolean] = await(service.migrateHeldSubmissions)
