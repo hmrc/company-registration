@@ -26,6 +26,7 @@ import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.http.ws.{WSGet, WSPost}
 import play.api.http.Status.{ACCEPTED, OK}
+import play.api.mvc.Request
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -62,8 +63,8 @@ trait IncorporationInformationConnector {
     s"/incorporation-information/subscribe/$transactionId/regime/$regime/subscriber/$subscriber?force=true"
   }
 
-  def registerInterest(regId: String, transactionId: String)(implicit hc: HeaderCarrier): Future[Boolean] = {
-    val json = Json.obj("SCRSIncorpSubscription" -> Json.obj("callbackUrl" -> s"${controllers.routes.ProcessIncorporationsController.processIncorp()}"))
+  def registerInterest(regId: String, transactionId: String)(implicit hc: HeaderCarrier, req: Request[_]): Future[Boolean] = {
+    val json = Json.obj("SCRSIncorpSubscription" -> Json.obj("callbackUrl" -> s"${controllers.routes.ProcessIncorporationsController.processIncorp().absoluteURL()}"))
     http.POST[JsObject, HttpResponse](s"$url${buildUri(transactionId)}", json) map { res =>
       res.status match {
         case ACCEPTED =>

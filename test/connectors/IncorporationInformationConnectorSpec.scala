@@ -24,6 +24,8 @@ import org.mockito.Matchers
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import play.api.libs.json.{JsValue, Json}
+import play.api.mvc.{AnyContent, Request}
+import play.api.test.FakeRequest
 import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.test.UnitSpec
 
@@ -42,6 +44,7 @@ class IncorporationInformationConnectorSpec extends UnitSpec with MockitoSugar w
   }
 
   implicit val hc = HeaderCarrier()
+  implicit val req: Request[AnyContent] = FakeRequest()
 
   val regId = "reg-id-12345"
   val txId  = "tx-id-12345"
