@@ -1,8 +1,8 @@
 # microservice specific routes
 GET        /throttle/check-user-access                                                      @controllers.UserAccessController.checkUserAccess
 
-PUT        /corporation-tax-registration/process-admin-incorp                               @controllers.ProcessIncorporationsController.processAdminIncorp
-PUT        /corporation-tax-registration/process-incorp                                     @controllers.ProcessIncorporationsController.processIncorp
+POST       /corporation-tax-registration/process-admin-incorp                               @controllers.ProcessIncorporationsController.processAdminIncorp
+POST       /corporation-tax-registration/process-incorp                                     @controllers.ProcessIncorporationsController.processIncorp
 
 POST       /corporation-tax-registration/acknowledgement-confirmation                       @controllers.CorporationTaxRegistrationController.acknowledgementConfirmation(ackref : String)
 

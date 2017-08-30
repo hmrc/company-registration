@@ -203,7 +203,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase {
         val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
         stubPost("/business-registration/corporation-tax", 200, ctSubmission)
 
-        val response = await(client("/process-incorp").put(jsonIncorpStatus(incorpDate)))
+        val response = await(client("/process-incorp").post(jsonIncorpStatus(incorpDate)))
         response.status shouldBe 200
 
         val crPosts = findAll(postRequestedFor(urlMatching(s"/business-registration/corporation-tax")))
@@ -223,7 +223,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase {
         val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(activeDate)).toString
         stubPost("/business-registration/corporation-tax", 200, ctSubmission)
 
-        val response = await(client("/process-incorp").put(jsonIncorpStatus(incorpDate)))
+        val response = await(client("/process-incorp").post(jsonIncorpStatus(incorpDate)))
         response.status shouldBe 200
 
         val crPosts = findAll(postRequestedFor(urlMatching(s"/business-registration/corporation-tax")))
@@ -248,7 +248,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase {
         val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
         stubPost("/business-registration/corporation-tax", 200, ctSubmission)
 
-        val response = await(client("/process-incorp").put(jsonIncorpStatus(incorpDate)))
+        val response = await(client("/process-incorp").post(jsonIncorpStatus(incorpDate)))
         response.status shouldBe 200
 
         val crPosts = findAll(postRequestedFor(urlMatching(s"/business-registration/corporation-tax")))
@@ -274,7 +274,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase {
         val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
         stubPost("/business-registration/corporation-tax", 200, ctSubmission)
 
-        val response = await(client("/process-incorp").put(jsonIncorpStatus(incorpDate)))
+        val response = await(client("/process-incorp").post(jsonIncorpStatus(incorpDate)))
         response.status shouldBe 200
 
         val crPosts = findAll(postRequestedFor(urlMatching(s"/business-registration/corporation-tax")))
