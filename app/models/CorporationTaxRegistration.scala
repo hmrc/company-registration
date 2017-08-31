@@ -54,7 +54,7 @@ case class CorporationTaxRegistration(internalId: String,
 object CorporationTaxRegistration {
   def now: DateTime = DateTime.now(DateTimeZone.UTC)
 
-  def formatter(formatter: BaseJsonFormatting): Format[CorporationTaxRegistration] = {
+  def format(formatter: BaseJsonFormatting): Format[CorporationTaxRegistration] = {
     val reads = (
       (__ \ "internalId").read[String] and
       (__ \ "registrationID").read[String] and
@@ -62,16 +62,16 @@ object CorporationTaxRegistration {
       (__ \ "formCreationTimestamp").read[String] and
       (__ \ "language").read[String] and
       (__ \ "registrationProgress").readNullable[String] and
-      (__ \ "acknowledgementReferences").readNullable[AcknowledgementReferences](AcknowledgementReferences.formatter(formatter)) and
-      (__ \ "confirmationReferences").readNullable[ConfirmationReferences](ConfirmationReferences.formatter(formatter)) and
-      (__ \ "companyDetails").readNullable[CompanyDetails](CompanyDetails.formatter(formatter)) and
-      (__ \ "accountingDetails").readNullable[AccountingDetails](AccountingDetails.formatter(formatter)) and
-      (__ \ "tradingDetails").readNullable[TradingDetails](TradingDetails.formatter(formatter)) and
-      (__ \ "contactDetails").readNullable[ContactDetails](ContactDetails.formatter(formatter)) and
-      (__ \ "accountsPreparation").readNullable[AccountPrepDetails](AccountPrepDetails.formatter(formatter)) and
+      (__ \ "acknowledgementReferences").readNullable[AcknowledgementReferences](AcknowledgementReferences.format(formatter)) and
+      (__ \ "confirmationReferences").readNullable[ConfirmationReferences](ConfirmationReferences.format(formatter)) and
+      (__ \ "companyDetails").readNullable[CompanyDetails](CompanyDetails.format(formatter)) and
+      (__ \ "accountingDetails").readNullable[AccountingDetails](AccountingDetails.format(formatter)) and
+      (__ \ "tradingDetails").readNullable[TradingDetails](TradingDetails.format(formatter)) and
+      (__ \ "contactDetails").readNullable[ContactDetails](ContactDetails.format(formatter)) and
+      (__ \ "accountsPreparation").readNullable[AccountPrepDetails](AccountPrepDetails.format(formatter)) and
       (__ \ "crn").readNullable[String] and
       (__ \ "submissionTimestamp").readNullable[String] and
-      (__ \ "verifiedEmail").readNullable[Email](Email.formatter(formatter)) and
+      (__ \ "verifiedEmail").readNullable[Email](Email.format(formatter)) and
       (__ \ "createdTime").read[DateTime] and
       (__ \ "lastSignedIn").read[DateTime].orElse(formatter.lastSignedInDateTimeRead)
     )(CorporationTaxRegistration.apply _)
@@ -83,16 +83,16 @@ object CorporationTaxRegistration {
       (__ \ "formCreationTimestamp").write[String] and
       (__ \ "language").write[String] and
       (__ \ "registrationProgress").writeNullable[String] and
-      (__ \ "acknowledgementReferences").writeNullable[AcknowledgementReferences](AcknowledgementReferences.formatter(formatter)) and
-      (__ \ "confirmationReferences").writeNullable[ConfirmationReferences](ConfirmationReferences.formatter(formatter)) and
-      (__ \ "companyDetails").writeNullable[CompanyDetails](CompanyDetails.formatter(formatter)) and
-      (__ \ "accountingDetails").writeNullable[AccountingDetails](AccountingDetails.formatter(formatter)) and
-      (__ \ "tradingDetails").writeNullable[TradingDetails](TradingDetails.formatter(formatter)) and
-      (__ \ "contactDetails").writeNullable[ContactDetails](ContactDetails.formatter(formatter)) and
-      (__ \ "accountsPreparation").writeNullable[AccountPrepDetails](AccountPrepDetails.formatter(formatter)) and
+      (__ \ "acknowledgementReferences").writeNullable[AcknowledgementReferences](AcknowledgementReferences.format(formatter)) and
+      (__ \ "confirmationReferences").writeNullable[ConfirmationReferences](ConfirmationReferences.format(formatter)) and
+      (__ \ "companyDetails").writeNullable[CompanyDetails](CompanyDetails.format(formatter)) and
+      (__ \ "accountingDetails").writeNullable[AccountingDetails](AccountingDetails.format(formatter)) and
+      (__ \ "tradingDetails").writeNullable[TradingDetails](TradingDetails.format(formatter)) and
+      (__ \ "contactDetails").writeNullable[ContactDetails](ContactDetails.format(formatter)) and
+      (__ \ "accountsPreparation").writeNullable[AccountPrepDetails](AccountPrepDetails.format(formatter)) and
       (__ \ "crn").writeNullable[String] and
       (__ \ "submissionTimestamp").writeNullable[String] and
-      (__ \ "verifiedEmail").writeNullable[Email](Email.formatter(formatter)) and
+      (__ \ "verifiedEmail").writeNullable[Email](Email.format(formatter)) and
       (__ \ "createdTime").write[DateTime] and
       (__ \ "lastSignedIn").write[DateTime]
     )(unlift(CorporationTaxRegistration.unapply))
@@ -108,7 +108,7 @@ object CorporationTaxRegistration {
     }
   }
 
-  implicit val format: Format[CorporationTaxRegistration] = formatter(APIValidation)
+  implicit val apiFormat = format(APIValidation)
 }
 
 case class AcknowledgementReferences(ctUtr: String,
@@ -116,7 +116,7 @@ case class AcknowledgementReferences(ctUtr: String,
                                      status: String)
 
 object AcknowledgementReferences {
-  def formatter(formatter: BaseJsonFormatting) = {
+  def format(formatter: BaseJsonFormatting) = {
     val pathCTUtr = formatter match {
       case APIValidation => "ctUtr"
       case MongoValidation => "ct-utr"
@@ -129,7 +129,7 @@ object AcknowledgementReferences {
     )(AcknowledgementReferences.apply, unlift(AcknowledgementReferences.unapply))
   }
 
-  implicit val format = formatter(APIValidation)
+  implicit val apiFormat = format(APIValidation)
 }
 
 case class ConfirmationReferences(acknowledgementReference: String = "",
@@ -138,14 +138,14 @@ case class ConfirmationReferences(acknowledgementReference: String = "",
                                   paymentAmount: String)
 
 object ConfirmationReferences {
-  def formatter(formatter: BaseJsonFormatting): Format[ConfirmationReferences] = (
+  def format(formatter: BaseJsonFormatting): Format[ConfirmationReferences] = (
     (__ \ "acknowledgement-reference").format[String](formatter.ackRefValidator) and
     (__ \ "transaction-id").format[String] and
     (__ \ "payment-reference").format[String] and
     (__ \ "payment-amount").format[String]
   )(ConfirmationReferences.apply, unlift(ConfirmationReferences.unapply))
 
-  implicit val format = formatter(APIValidation)
+  implicit val apiFormat = format(APIValidation)
 }
 
 case class CompanyDetails(companyName: String,
@@ -154,14 +154,14 @@ case class CompanyDetails(companyName: String,
                           jurisdiction: String)
 
 object CompanyDetails {
-  def formatter(formatter: BaseJsonFormatting): Format[CompanyDetails] = (
+  def format(formatter: BaseJsonFormatting): Format[CompanyDetails] = (
     (__ \ "companyName").format[String](formatter.companyNameValidator) and
-    (__ \ "cHROAddress").format[CHROAddress](CHROAddress.formatter(formatter)) and
-    (__ \ "pPOBAddress").format[PPOB](PPOB.formatter(formatter)) and
+    (__ \ "cHROAddress").format[CHROAddress](CHROAddress.format(formatter)) and
+    (__ \ "pPOBAddress").format[PPOB](PPOB.format(formatter)) and
     (__ \ "jurisdiction").format[String]
   )(CompanyDetails.apply, unlift(CompanyDetails.unapply))
 
-  implicit val format = formatter(APIValidation)
+  implicit val apiFormat = format(APIValidation)
 }
 
 case class CHROAddress(premises: String,
@@ -174,7 +174,7 @@ case class CHROAddress(premises: String,
                        region: Option[String])
 
 object CHROAddress {
-  def formatter(formatter: BaseJsonFormatting): Format[CHROAddress] = (
+  def format(formatter: BaseJsonFormatting): Format[CHROAddress] = (
     (__ \ "premises").format[String](formatter.chPremisesValidator) and
     (__ \ "address_line_1").format[String](formatter.chLineValidator) and
     (__ \ "address_line_2").formatNullable[String](formatter.chLineValidator) and
@@ -185,7 +185,7 @@ object CHROAddress {
     (__ \ "region").formatNullable[String](formatter.chRegionValidator)
   )(CHROAddress.apply, unlift(CHROAddress.unapply))
 
-  implicit val format = formatter(APIValidation)
+  implicit val apiFormat = format(APIValidation)
 }
 
 case class PPOBAddress(line1: String,
@@ -198,7 +198,7 @@ case class PPOBAddress(line1: String,
                        txid: String)
 
 object PPOBAddress {
-  def formatter(formatter: BaseJsonFormatting): Format[PPOBAddress] = {
+  def format(formatter: BaseJsonFormatting): Format[PPOBAddress] = {
     val formatDef = (
       (__ \ "addressLine1").format[String](formatter.lineValidator) and
       (__ \ "addressLine2").format[String](formatter.lineValidator) and
@@ -213,19 +213,19 @@ object PPOBAddress {
     formatter.ppobAddressFormatWithFilter(formatDef)
   }
 
-  implicit val format = formatter(APIValidation)
+  implicit val apiFormat = format(APIValidation)
 }
 
 case class PPOB(addressType: String,
                 address: Option[PPOBAddress])
 
 object PPOB {
-  def formatter(formatter: BaseJsonFormatting): Format[PPOB] = {
-    implicit val formatPPOBAddress: Format[PPOBAddress] = PPOBAddress.formatter(formatter)
+  def format(formatter: BaseJsonFormatting): Format[PPOB] = {
+    implicit val formatPPOBAddress: Format[PPOBAddress] = PPOBAddress.format(formatter)
     Json.format[PPOB]
   }
 
-  implicit val format = formatter(APIValidation)
+  implicit val apiFormat = format(APIValidation)
 
   lazy val RO = "RO"
   lazy val LOOKUP = "LOOKUP"
@@ -247,7 +247,7 @@ case class ContactDetails(firstName: String,
 }
 
 object ContactDetails {
-  def formatter(formatter: BaseJsonFormatting): Format[ContactDetails] = {
+  def format(formatter: BaseJsonFormatting): Format[ContactDetails] = {
     val formatDef = (
       (__ \ "contactFirstName").format[String](formatter.nameValidator) and
       (__ \ "contactMiddleName").formatNullable[String](formatter.nameValidator) and
@@ -260,13 +260,13 @@ object ContactDetails {
     formatter.contactDetailsFormatWithFilter(formatDef)
   }
 
-  implicit val format = formatter(APIValidation)
+  implicit val apiFormat = format(APIValidation)
 }
 
 case class TradingDetails(regularPayments: String = "")
 
 object TradingDetails {
-  def formatter(formatter: BaseJsonFormatting): Format[TradingDetails] = {
+  def format(formatter: BaseJsonFormatting): Format[TradingDetails] = {
     val boolToStringReads: Reads[String] = new Reads[String] {
       def reads(json: JsValue): JsResult[String] = {
         json match {
@@ -283,7 +283,7 @@ object TradingDetails {
     Format(reads, writes)
   }
 
-  implicit val format = formatter(APIValidation)
+  implicit val apiFormat = format(APIValidation)
 }
 
 
@@ -294,7 +294,7 @@ object AccountingDetails {
   val FUTURE_DATE = "FUTURE_DATE"
   val NOT_PLANNING_TO_YET = "NOT_PLANNING_TO_YET"
 
-  def formatter(formatter: BaseJsonFormatting): Format[AccountingDetails] = {
+  def format(formatter: BaseJsonFormatting): Format[AccountingDetails] = {
     val formatDef = (
       (__ \ "accountingDateStatus").format[String](formatter.acctStatusValidator) and
       (__ \ "startDateOfBusiness").formatNullable[String](formatter.startDateValidator)
@@ -303,7 +303,7 @@ object AccountingDetails {
     formatter.accountingDetailsFormatWithFilter(formatDef)
   }
 
-  implicit val format = formatter(APIValidation)
+  implicit val apiFormat = format(APIValidation)
 }
 
 case class AccountPrepDetails(status: String = AccountPrepDetails.HMRC_DEFINED,
@@ -313,7 +313,7 @@ object AccountPrepDetails {
   val HMRC_DEFINED = "HMRC_DEFINED"
   val COMPANY_DEFINED = "COMPANY_DEFINED"
 
-  def formatter(formatter: BaseJsonFormatting): Format[AccountPrepDetails] = {
+  def format(formatter: BaseJsonFormatting): Format[AccountPrepDetails] = {
     val formatDef = (
       (__ \ "businessEndDateChoice").format[String](formatter.acctPrepStatusValidator) and
       (__ \ "businessEndDate").formatNullable[DateTime](formatter.dateFormat)
@@ -322,7 +322,7 @@ object AccountPrepDetails {
     formatter.accountPrepDetailsFormatWithFilter(formatDef)
   }
 
-  implicit val format = formatter(APIValidation)
+  implicit val apiFormat = format(APIValidation)
 }
 
 case class HO6RegistrationInformation(status: String,

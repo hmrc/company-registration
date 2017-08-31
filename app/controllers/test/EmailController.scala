@@ -45,7 +45,7 @@ trait EmailController extends BaseController with Authorisation[String]{
       authorisedFor(registrationId){ _ =>
         withJsonBody[Email] {
           emailService.updateEmail(registrationId, _).map {
-            case Some(email) => Ok(Json.toJson(email)(Email.formatter(APIValidation)))
+            case Some(email) => Ok(Json.toJson(email)(Email.format(APIValidation)))
             case None => NotFound
           }
         }
@@ -56,7 +56,7 @@ trait EmailController extends BaseController with Authorisation[String]{
     implicit request =>
       authorisedFor(registrationId){ _ =>
         emailService.retrieveEmail(registrationId).map{
-          case Some(email) => Ok(Json.toJson(email)(Email.formatter(APIValidation)))
+          case Some(email) => Ok(Json.toJson(email)(Email.format(APIValidation)))
           case None => NotFound
 
         }

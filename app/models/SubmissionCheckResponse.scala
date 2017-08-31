@@ -16,8 +16,8 @@
 
 package models
 
+import models.validation.{APIValidation, BaseJsonFormatting}
 import org.joda.time.DateTime
-import org.joda.time.format.DateTimeFormat
 import play.api.libs.json._
 import play.api.libs.json.Reads._
 import play.api.libs.functional.syntax._
@@ -35,24 +35,25 @@ case class IncorpUpdate(transactionId : String,
                         statusDescription : Option[String] = None)
 
 object SubmissionCheckResponse {
-  val dateReads = Reads[DateTime]( js =>
-    js.validate[String].map[DateTime](
-      DateTime.parse(_, DateTimeFormat.forPattern("yyyy-MM-dd"))
-    )
-  )
+  def format(formatter: BaseJsonFormatting): Reads[SubmissionCheckResponse] = (
+    ( __ \ "items" ).read[Seq[IncorpUpdate]](IncorpUpdate.incorpUpdateSequenceReader(formatter)) and
+    (__ \ "links" \ "next").read[String]
+  )(SubmissionCheckResponse.apply _)
 
-  implicit val incorpReads : Reads[IncorpUpdate] = (
-      ( __ \ "transaction_id" ).read[String] and
-      ( __ \ "transaction_status" ).read[String] and
-      ( __ \ "company_number" ).readNullable[String] and
-      ( __ \ "incorporated_on" ).readNullable[DateTime](dateReads) and
-      ( __ \ "timepoint" ).read[String] and
-      ( __ \ "transaction_status_description" ).readNullable[String]
-    )(IncorpUpdate.apply _)
+  implicit val reads : Reads[SubmissionCheckResponse] = format(APIValidation)
+}
 
-  implicit val reads : Reads[SubmissionCheckResponse] = (
-      ( __ \ "items" ).read[Seq[IncorpUpdate]] and
-      (__ \ "links" \ "next").read[String]
-    )(SubmissionCheckResponse.apply _)
+object IncorpUpdate {
+  def format(formatter: BaseJsonFormatting): Reads[IncorpUpdate] = (
+    ( __ \ "transaction_id" ).read[String] and
+    ( __ \ "transaction_status" ).read[String] and
+    ( __ \ "company_number" ).readNullable[String] and
+    ( __ \ "incorporated_on" ).readNullable[DateTime](formatter.dateFormat) and
+    ( __ \ "timepoint" ).read[String] and
+    ( __ \ "transaction_status_description" ).readNullable[String]
+  )(IncorpUpdate.apply _)
 
+  def incorpUpdateSequenceReader(formatter: BaseJsonFormatting): Reads[Seq[IncorpUpdate]] = Reads.seq[IncorpUpdate](IncorpUpdate.format(formatter))
+
+  implicit val incorpReads : Reads[IncorpUpdate] = format(APIValidation)
 }

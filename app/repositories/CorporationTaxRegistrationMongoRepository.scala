@@ -44,7 +44,7 @@ class CorpTaxRegistrationRepo @Inject()(mongo: ReactiveMongoComponent) {
 }
 
 object CorporationTaxRegistrationMongo extends ReactiveMongoFormats {
-  implicit val format = CorporationTaxRegistration.formatter(MongoValidation)
+  implicit val format = CorporationTaxRegistration.format(MongoValidation)
   implicit val oFormat = CorporationTaxRegistration.oFormat(format)
 }
 

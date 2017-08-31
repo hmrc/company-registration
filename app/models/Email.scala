@@ -27,7 +27,7 @@ case class Email(address: String,
                  returnLinkEmailSent : Boolean)
 
 object Email {
-  def formatter(formatter: BaseJsonFormatting): Format[Email] = {
+  def format(formatter: BaseJsonFormatting): Format[Email] = {
     val reads = (
       (__ \ "address").read[String] and
       (__ \ "type").read[String] and
@@ -47,5 +47,5 @@ object Email {
     Format(reads, writes)
   }
 
-  implicit val apiFormat = formatter(APIValidation)
+  implicit val apiFormat = format(APIValidation)
 }

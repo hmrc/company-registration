@@ -67,7 +67,7 @@ class ContactDetailsSpec extends UnitSpec with JsonFormatValidation {
       "invalid phone number is read from mongo" in {
         val json = j(mn = Some("M"), p = Some("12345"), m = Some("1234567890"), e = None)
         val expected = ContactDetails("F", Some("M"), "S", Some("12345"), Some("1234567890"), None)
-        val result = Json.parse(json).validate[ContactDetails](ContactDetails.formatter(MongoValidation))
+        val result = Json.parse(json).validate[ContactDetails](ContactDetails.format(MongoValidation))
         shouldBeSuccess(expected, result)
       }
     }
