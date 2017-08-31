@@ -167,7 +167,6 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
   def acknowledgementConfirmation(ackRef : String) = Action.async[JsValue](parse.json) {
     Logger.debug(s"[CorporationTaxRegistrationController] [acknowledgementConfirmation] confirming for ack ${ackRef}")
     implicit request =>
-      implicit val format = AcknowledgementReferences.apiFormat
       withJsonBody[AcknowledgementReferences] {
         ackRefsPayload =>
           val timer = metrics.acknowledgementConfirmationCRTimer.time()

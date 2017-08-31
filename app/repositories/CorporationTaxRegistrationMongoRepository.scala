@@ -44,22 +44,8 @@ class CorpTaxRegistrationRepo @Inject()(mongo: ReactiveMongoComponent) {
 }
 
 object CorporationTaxRegistrationMongo extends ReactiveMongoFormats {
-  implicit val formatCH = CHROAddress.format
-  implicit val formatPPOB = PPOBAddress.format
-  implicit val formatTD = TradingDetails.format
-  implicit val formatCompanyDetails = CompanyDetails.format
-  implicit val formatAccountingDetails = AccountingDetails.formats
-  implicit val formatAck = AcknowledgementReferences.formatter(MongoValidation)
-  implicit val formatConfirmationReferences = ConfirmationReferences.format
-  implicit val formatAccountsPrepDate = AccountPrepDetails.format
-  implicit val formatEmail = Email.formatter(MongoValidation)
-  //  implicit val format = CorporationTaxRegistration.format
-  //implicit val format2 = Json.format[CorporationTaxRegistration]
-
   implicit val format = CorporationTaxRegistration.formatter(MongoValidation)
   implicit val oFormat = CorporationTaxRegistration.oFormat(format)
-
-  //val store = new CorporationTaxRegistrationMongoRepository(db)
 }
 
 trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegistration, BSONObjectID]{
@@ -102,7 +88,6 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
   with CorporationTaxRegistrationRepository
   with AuthorisationResource[String] {
 
-  private val crypto = Crypto
   val cTRMongo = CorporationTaxRegistrationMongo
   implicit val format = cTRMongo.oFormat
   super.indexes

@@ -16,7 +16,7 @@
 
 package models.des
 
-import models.CompanyDetailsValidator
+import models.validation.APIValidation
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import play.api.libs.json._
@@ -211,7 +211,7 @@ case class InterimCorporationTax(
                                   businessContactDetails: BusinessContactDetails
                                 )
 
-object InterimCorporationTax extends CompanyDetailsValidator {
+object InterimCorporationTax {
   implicit val writes = new Writes[InterimCorporationTax] {
     def writes(m: InterimCorporationTax) = {
       val address = m.businessAddress map {Json.toJson(_).as[JsObject]}
@@ -221,7 +221,7 @@ object InterimCorporationTax extends CompanyDetailsValidator {
         "companyOfficeNumber" -> "623",
         "hasCompanyTakenOverBusiness" -> false,
         "companyMemberOfGroup" -> false,
-        "companiesHouseCompanyName" -> cleanseCompanyName(m.companyName,illegalCharacters),
+        "companiesHouseCompanyName" -> APIValidation.cleanseCompanyName(m.companyName),
         "returnsOnCT61" -> m.returnsOnCT61,
         "companyACharity" -> false
       ) ++
