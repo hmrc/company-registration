@@ -40,7 +40,8 @@ import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
 
 import scala.concurrent.Future
 
-class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with CorporationTaxRegistrationFixture with MongoFixture with AuthFixture with MongoMocks with LogCapturing with Eventually {
+class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with CorporationTaxRegistrationFixture
+  with MongoFixture with AuthFixture with MongoMocks with LogCapturing with Eventually {
 
   implicit val hc = HeaderCarrier(sessionId = Some(SessionId("testSessionId")))
   implicit val req = FakeRequest("GET", "/test-path")
@@ -49,6 +50,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
   val mockHeldSubmissionRepository = mock[HeldSubmissionMongoRepository]
   val mockAuditConnector = mock[AuditConnector]
   val mockIncorpInfoConnector = mock[IncorporationInformationConnector]
+  val mockDesConnector = mock[DesConnector]
 
   val dateTime = DateTime.parse("2016-10-27T16:28:59.000")
 
@@ -64,6 +66,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
       override val submissionCheckAPIConnector = mockIncorporationCheckAPIConnector
       val auditConnector = mockAuditConnector
       val incorpInfoConnector = mockIncorpInfoConnector
+      override val desConnector: DesConnector = mockDesConnector
     }
   }
 
