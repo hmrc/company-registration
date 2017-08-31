@@ -83,20 +83,16 @@ trait RegistrationHoldingPenService extends DateHelper {
   val blockageLoggingDay : String
   val blockageLoggingTime : String
 
-//  case class FailedToRetrieveByTxId(transId: String) extends NoStackTrace
   class FailedToRetrieveByTxId(val transId: String) extends NoStackTrace
   private[services] class FailedToRetrieveByAckRef extends NoStackTrace
   private[services] class MissingAccountingDates extends NoStackTrace
 
-
   def updateNextSubmissionByTimepoint(implicit hc: HeaderCarrier): Future[String] = {
     fetchIncorpUpdate flatMap { items =>
       val results = items map { item =>
-        //TODO see SCRS-3766
         processIncorporationUpdate(item)
       }
       Future.sequence(results) flatMap { _ =>
-        //TODO For day one, take the first timepoint - see SCRS-3766
         items.headOption match {
           case Some(head) => stateDataRepository.updateTimepoint(head.timepoint).map(tp => s"Incorporation ${head.status} - Timepoint updated to $tp")
           case None => Future.successful("No Incorporation updates were fetched")

@@ -16,6 +16,7 @@
 
 package api
 
+import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import itutil.IntegrationSpecBase
 import itutil.WiremockHelper._
 import models._
@@ -42,6 +43,8 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport {
       fakeConfig(
         Map("microservice.services.incorporation-information.host" -> s"$wiremockHost",
             "microservice.services.incorporation-information.port" -> s"$wiremockPort",
+            "microservice.services.des-service.host" -> s"$wiremockHost",
+            "microservice.services.des-service.port" -> s"$wiremockPort",
             "microservice.services.regime" -> s"$regime",
             "microservice.services.subscriber" -> s"$subscriber")
       )
@@ -80,6 +83,9 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport {
     def heldSub(regIds: String*): Seq[HeldSubmissionData] = (0 until regIds.size).map(i => HeldSubmissionData(regIds(i), s"trans-$i", "testPartial"))
 
     ctRegCount shouldBe 0
+
+    System.clearProperty("feature.registerInterest")
+    System.clearProperty("feature.etmpHoldingPen")
   }
 
   val ws: WSClient = app.injector.instanceOf(classOf[WSClient])
@@ -156,6 +162,10 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport {
     accountsPreparation = None
   )
 
+  def stubIISubscribe(status: Int, response: JsObject): StubMapping = {
+    stubPost(s"/incorporation-information/subscribe/$transId/regime/$regime/subscriber/$subscriber\\?force=true", status, response.toString())
+  }
+
   "GET /admin/fetch-ho6-registration-information" should {
 
     val url = "/fetch-ho6-registration-information"
@@ -209,7 +219,7 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport {
         |}
       """.stripMargin)
 
-    val incorpInfoResponse = s"""
+    val incorpInfoResponse = Json.parse(s"""
          |{
          |  "SCRSIncorpStatus":{
          |    "IncorpSubscriptionKey":{
@@ -229,7 +239,20 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport {
          |    }
          |  }
          |}
-      """.stripMargin
+      """.stripMargin).as[JsObject]
+
+    val adminJsonBody: JsValue = Json.parse(
+      s"""
+         |{
+         |  "strideUser":"$strideUser",
+         |  "sessionId":"$sessionId",
+         |  "credId":"$credId",
+         |  "registrationId":"$regId",
+         |  "transactionId":"$transId",
+         |  "paymentReference":"$payRef",
+         |  "paymentAmount":"12"
+         |}
+        """.stripMargin)
 
     "update the confirmation refs for the record matching the supplied reg Id and create a held submission and return a 200" in new Setup {
 
@@ -239,27 +262,14 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport {
 
       stubGet(s"/business-registration/admin/business-tax-registration/$regId", 200, businessRegistrationResponse.toString())
 
-      stubPost(s"/incorporation-information/subscribe/$transId/regime/$regime/subscriber/$subscriber\\?force=true", 202, incorpInfoResponse)
+      stubIISubscribe(202, incorpInfoResponse)
 
       insertCorpTax(draftRegistration)
 
       ctRegCount shouldBe 1
       heldCount shouldBe 0
 
-      val jsonBody: JsValue = Json.parse(
-        s"""
-           |{
-           |  "strideUser":"$strideUser",
-           |  "sessionId":"$sessionId",
-           |  "credId":"$credId",
-           |  "registrationId":"$regId",
-           |  "transactionId":"$transId",
-           |  "paymentReference":"$payRef",
-           |  "paymentAmount":"12"
-           |}
-        """.stripMargin)
-
-      val result: WSResponse = await(client(s"$url").post(jsonBody))
+      val result: WSResponse = await(client(s"$url").post(adminJsonBody))
 
       val expected: JsValue = Json.parse(
         s"""
@@ -287,20 +297,7 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport {
       ctRegCount shouldBe 1
       heldCount shouldBe 0
 
-      val jsonBody: JsValue = Json.parse(
-        s"""
-           |{
-           |  "strideUser":"$strideUser",
-           |  "sessionId":"$sessionId",
-           |  "credId":"$credId",
-           |  "registrationId":"$regId",
-           |  "transactionId":"$transId",
-           |  "paymentReference":"$payRef",
-           |  "paymentAmount":"12"
-           |}
-        """.stripMargin)
-
-      val result: WSResponse = await(client(s"$url").post(jsonBody))
+      val result: WSResponse = await(client(s"$url").post(adminJsonBody))
 
       val expected: JsValue = Json.parse(
         s"""
@@ -326,22 +323,30 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport {
       ctRegCount shouldBe 0
       heldCount shouldBe 0
 
-      val jsonBody: JsValue = Json.parse(
-        s"""
-           |{
-           |  "strideUser":"$strideUser",
-           |  "sessionId":"$sessionId",
-           |  "credId":"$credId",
-           |  "registrationId":"$regId",
-           |  "transactionId":"$transId",
-           |  "paymentReference":"$payRef",
-           |  "paymentAmount":"12"
-           |}
-        """.stripMargin)
-
-      val result: WSResponse = await(client(s"$url").post(jsonBody))
+      val result: WSResponse = await(client(s"$url").post(adminJsonBody))
 
       result.status shouldBe 404
+    }
+
+    "update confirmation ref, register an interest to incorporation-information and send the partial submission to ETMP" in new Setup {
+      System.setProperty("feature.registerInterest", "true")
+      System.setProperty("feature.etmpHoldingPen", "true")
+
+      setupSimpleAuthMocks()
+
+      stubIISubscribe(202, incorpInfoResponse)
+      stubGet(s"/business-registration/admin/business-tax-registration/$regId", 200, businessRegistrationResponse.toString())
+      stubPost("/business-registration/corporation-tax", 202, """{"x":"y"}""")
+
+      insertCorpTax(draftRegistration)
+
+      ctRegCount shouldBe 1
+
+      val result: WSResponse = await(client(s"$url").post(adminJsonBody))
+
+      heldCount shouldBe 0
+
+      result.status shouldBe 200
     }
   }
 

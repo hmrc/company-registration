@@ -23,10 +23,9 @@ import connectors._
 import models.des._
 import models.{BusinessRegistration, RegistrationStatus}
 import play.api.mvc.{AnyContent, Request}
-import repositories.HeldSubmissionRepository
+import repositories._
 import helpers.DateHelper
 import models.{ConfirmationReferences, CorporationTaxRegistration}
-import repositories.{CorporationTaxRegistrationRepository, Repositories, SequenceRepository, StateDataRepository}
 import models._
 import models.admin.Admin
 import org.joda.time.{DateTime, DateTimeZone}
@@ -54,6 +53,7 @@ object CorporationTaxRegistrationService extends CorporationTaxRegistrationServi
   def currentDateTime = DateTime.now(DateTimeZone.UTC)
 
   override val submissionCheckAPIConnector = IncorporationCheckAPIConnector
+  val desConnector = DesConnector
 }
 
 sealed trait RegistrationProgress
@@ -70,6 +70,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
   val heldSubmissionRepository: HeldSubmissionRepository
   val auditConnector: AuditConnector
   val incorpInfoConnector :IncorporationInformationConnector
+  val desConnector: DesConnector
 
   def currentDateTime: DateTime
 
@@ -121,36 +122,66 @@ trait CorporationTaxRegistrationService extends DateHelper {
 
   def updateConfirmationReferences(rID: String, refs: ConfirmationReferences, admin: Option[Admin] = None)
                                   (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[Option[ConfirmationReferences]] = {
+    //todo: check if held instead of existence of conf refs
     corporationTaxRegistrationRepository.retrieveConfirmationReference(rID) flatMap {
       case existingRefs @ Some(_) =>
         Logger.info(s"[CorporationTaxRegistrationService] [updateConfirmationReferences] - Confirmation refs for Reg ID: $rID already exist")
         Future.successful(existingRefs)
       case None =>
         for {
-          ackRef         <- generateAcknowledgementReference
-          heldSubmission <- buildPartialDesSubmission(rID, ackRef, admin)
-          _              <- storeAndUpdateSubmission(rID, ackRef, heldSubmission, admin)
-          _              <- if(registerInterestRequired()) incorpInfoConnector.registerInterest(rID, refs.transactionId) else Future.successful(None)
-          updatedRef     <- corporationTaxRegistrationRepository.updateConfirmationReferences(rID, refs.copy(acknowledgementReference = ackRef))
-          _              <- removeTaxRegistrationInformation(rID)
+          ackRef             <- generateAcknowledgementReference
+          updatedRef         <- updateConfirmationRefs(rID, refs.copy(acknowledgementReference = ackRef))
+          _                  <- sendPartialSubmission(rID, ackRef, refs.transactionId, admin)
         } yield {
           updatedRef
         }
     }
   }
 
-  def fetchStatus(regId: String): OptionT[Future, String] = corporationTaxRegistrationRepository.fetchDocumentStatus(regId)
+  def sendPartialSubmission(regId: String, ackRef: String, transId: String, admin: Option[Admin] = None)
+                           (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[Boolean] = {
+    for{
+      partialSubmission  <- buildPartialDesSubmission(regId, ackRef, admin)
+      _                  <- registerInterest(regId, transId)
+      _                  <- storeAndUpdateSubmission(regId, ackRef, partialSubmission, admin)
+      success            <- removeTaxRegistrationInformation(regId)
+    } yield success
+  }
+
+  private[services] def updateConfirmationRefs(regId: String, refs: ConfirmationReferences) = {
+    corporationTaxRegistrationRepository.updateConfirmationReferences(regId, refs)
+  }
+
+  private[services] def registerInterest(regId: String, transactionId: String)
+                                        (implicit hc: HeaderCarrier, req: Request[_]): Future[Boolean] = {
+    if(registerInterestRequired()) incorpInfoConnector.registerInterest(regId, transactionId) else Future.successful(false)
+  }
 
   private[services] def storeAndUpdateSubmission(rID: String, ackRef: String, heldSubmission: InterimDesRegistration, admin: Option[Admin] = None)
                                                 (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[String] = {
     val submissionAsJson = Json.toJson(heldSubmission).as[JsObject]
     for {
-      _                  <- heldSubmissionRepository.storePartialSubmission(rID, ackRef, submissionAsJson)
+      _                  <- storePartialSubmission(rID, ackRef, submissionAsJson)
       submissionStatus   <- updateSubmissionStatus(rID, RegistrationStatus.HELD)
       ctRegistration     <- corporationTaxRegistrationRepository.retrieveCompanyDetails(rID)
       credId             <- admin.fold(retrieveAuthProviderId)(_.credId.pure[Future])
       _                  <- auditUserSubmission(rID, ctRegistration.get.ppob, credId, submissionAsJson)
     } yield submissionStatus
+  }
+
+  private[services] def storePartialSubmission(regId: String, ackRef: String, partialSubmission: JsObject)
+                                              (implicit hc: HeaderCarrier): Future[HeldSubmissionData] = {
+    if(toETMPHoldingPen){
+      desConnector.ctSubmission(ackRef, partialSubmission, regId) map {
+        case SuccessDesResponse(_) => HeldSubmissionData(regId, ackRef, partialSubmission.toString())
+        case _ => throw new RuntimeException("")//todo change as part of handling error scenarios
+      }
+    } else {
+      heldSubmissionRepository.storePartialSubmission(regId, ackRef, partialSubmission) map {
+        case Some(heldSubmission) => heldSubmission
+        case None => throw new RuntimeException("held submission failed to store")
+      }
+    }
   }
 
   private[services] def retrieveAuthProviderId(implicit hc: HeaderCarrier) = microserviceAuthConnector.getUserDetails map (_.get.authProviderId)
@@ -174,6 +205,8 @@ trait CorporationTaxRegistrationService extends DateHelper {
       case false => Future.failed(new FailedToRemoveTaxRegistrationInformation)
     }
   }
+
+  def fetchStatus(regId: String): OptionT[Future, String] = corporationTaxRegistrationRepository.fetchDocumentStatus(regId)
 
   def updateSubmissionStatus(rID: String, status: String): Future[String] = {
     corporationTaxRegistrationRepository.updateSubmissionStatus(rID, status)
@@ -304,4 +337,6 @@ trait CorporationTaxRegistrationService extends DateHelper {
   }
 
   private[services] def registerInterestRequired(): Boolean = SCRSFeatureSwitches.registerInterest.enabled
+
+  private[services] def toETMPHoldingPen: Boolean = SCRSFeatureSwitches.etmpHoldingPen.enabled
 }
