@@ -67,7 +67,7 @@ trait AdminService extends DateFormatter {
   }
 
   private[services] def forceSubscription(regId: String, transactionId: String)(implicit hc: HeaderCarrier, req: Request[_]): Future[Boolean] = {
-    incorpInfoConnector.registerInterest(regId, transactionId)
+    incorpInfoConnector.registerInterest(regId, transactionId, true)
   }
 
   def auditAdminEvent(strideUser: String, identifiers: HO6Identifiers, response: HO6Response)(implicit hc: HeaderCarrier): Future[AuditResult] = {

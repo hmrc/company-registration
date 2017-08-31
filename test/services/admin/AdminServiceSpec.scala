@@ -68,7 +68,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar {
       when(mockCorpTaxRegistrationRepo.retrieveConfirmationReference(any()))
         .thenReturn(Future.successful(Some(ConfirmationReferences("", transId, "payRef", "12"))))
 
-      when(mockIncorpInfoConnector.registerInterest(any(), any())(any(), any()))
+      when(mockIncorpInfoConnector.registerInterest(any(), any(), any())(any(), any()))
         .thenReturn(Future.successful(true))
 
       val result: List[Boolean] = await(service.migrateHeldSubmissions)
@@ -86,7 +86,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar {
       when(mockCorpTaxRegistrationRepo.retrieveConfirmationReference(any()))
         .thenReturn(Future.successful(None))
 
-      when(mockIncorpInfoConnector.registerInterest(any(), any())(any(), any()))
+      when(mockIncorpInfoConnector.registerInterest(any(), any(), any())(any(), any()))
         .thenReturn(Future.successful(true))
 
       val result: List[Boolean] = await(service.migrateHeldSubmissions)
@@ -104,7 +104,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar {
       when(mockCorpTaxRegistrationRepo.retrieveConfirmationReference(any()))
         .thenReturn(Future.successful(Some(ConfirmationReferences("", transId, "payRef", "12"))))
 
-      when(mockIncorpInfoConnector.registerInterest(any(), any())(any(), any()))
+      when(mockIncorpInfoConnector.registerInterest(any(), any(), any())(any(), any()))
         .thenReturn(Future.successful(false))
 
       val result: List[Boolean] = await(service.migrateHeldSubmissions)
