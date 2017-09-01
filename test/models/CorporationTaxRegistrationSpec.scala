@@ -53,7 +53,6 @@ class CorporationTaxRegistrationSpec extends UnitSpec with JsonFormatValidation 
 
     "using a custom read on the held json document without a lastSignedIn value will default it to the current time" in {
       val before = now.getMillis
-      println(Json.fromJson[CorporationTaxRegistration](fullHeldJson)(CorporationTaxRegistration.format(APIValidation)))
       val ct = Json.fromJson[CorporationTaxRegistration](fullHeldJson)(CorporationTaxRegistration.format(APIValidation)).get
       val after = now.getMillis
 

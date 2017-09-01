@@ -30,10 +30,6 @@ object APIValidation extends BaseJsonFormatting {
 
   def yyyymmddValidator: Reads[String] = pattern("^[0-9]{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$".r)
 
-  val emailBooleanRead: Reads[Boolean] = Reads.pure(true)
-
-  val lastSignedInDateTimeRead: Reads[DateTime] = Reads.pure(now)
-
   def contactDetailsFormatWithFilter(formatDef: OFormat[ContactDetails]): Format[ContactDetails] = {
     withFilter(formatDef, ValidationError("Must have at least one email, phone or mobile specified")) {
       cD => cD.mobile.isDefined || cD.phone.isDefined || cD.email.isDefined

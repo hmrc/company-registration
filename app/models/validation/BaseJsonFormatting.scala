@@ -65,10 +65,6 @@ trait BaseJsonFormatting {
     Form.NFD
   ).replaceAll("[^\\p{ASCII}]", "").filterNot(forbiddenPunctuation)
 
-  val emailBooleanRead: Reads[Boolean]
-
-  val lastSignedInDateTimeRead: Reads[DateTime]
-
   //Acknowledgement Reference
   val cryptoFormat: Format[String] = Format(Reads.StringReads, Writes.StringWrites)
 

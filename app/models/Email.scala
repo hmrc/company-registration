@@ -33,7 +33,7 @@ object Email {
       (__ \ "type").read[String] and
       (__ \ "link-sent").read[Boolean] and
       (__ \ "verified").read[Boolean] and
-      (__ \ "return-link-email-sent").read[Boolean].orElse(formatter.emailBooleanRead)
+      (__ \ "return-link-email-sent").read[Boolean].orElse(Reads.pure(true))
     )(Email.apply _)
 
     val writes = (

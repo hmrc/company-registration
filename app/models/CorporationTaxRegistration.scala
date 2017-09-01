@@ -73,7 +73,7 @@ object CorporationTaxRegistration {
       (__ \ "submissionTimestamp").readNullable[String] and
       (__ \ "verifiedEmail").readNullable[Email](Email.format(formatter)) and
       (__ \ "createdTime").read[DateTime] and
-      (__ \ "lastSignedIn").read[DateTime].orElse(formatter.lastSignedInDateTimeRead)
+      (__ \ "lastSignedIn").read[DateTime].orElse(Reads.pure(CorporationTaxRegistration.now))
     )(CorporationTaxRegistration.apply _)
 
     val writes = (

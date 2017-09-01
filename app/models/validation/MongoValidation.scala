@@ -23,10 +23,6 @@ import play.api.libs.json.{Format, OFormat, Reads, Writes}
 object MongoValidation extends BaseJsonFormatting {
   val defaultStringFormat = Format(Reads.StringReads, Writes.StringWrites)
 
-  val emailBooleanRead: Reads[Boolean] = Reads.BooleanReads
-
-  val lastSignedInDateTimeRead: Reads[DateTime] = Reads.DefaultJodaDateReads
-
   override val cryptoFormat: Format[String] = Format(Crypto.rds, Crypto.wts)
 
   //ContactDetails
