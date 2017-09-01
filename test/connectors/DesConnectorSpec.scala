@@ -25,6 +25,7 @@ import org.scalatest.mock.MockitoSugar
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.play.audit.http.HttpAuditing
 import uk.gov.hmrc.play.audit.http.config.LoadAuditingConfig
+import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.config.{AppName, RunMode}
 import uk.gov.hmrc.play.http.logging.SessionId
@@ -33,6 +34,7 @@ import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class DesConnectorSpec extends UnitSpec with MockitoSugar {
 
@@ -68,7 +70,7 @@ class DesConnectorSpec extends UnitSpec with MockitoSugar {
     }
 
     "return a not found exception when it reads a 404 status code from the http response" in new Setup {
-      intercept[NotFoundException]{
+      intercept[Upstream4xxResponse]{
         connector.httpRds.read("http://", "testUrl", HttpResponse(404))
       }
     }
@@ -78,132 +80,68 @@ class DesConnectorSpec extends UnitSpec with MockitoSugar {
     val submission = Json.obj("x" -> "y")
     implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
 
-    "for a successful submission, return success" in new Setup {
-      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
-        thenReturn(Future.successful(HttpResponse(200, responseJson = Some(Json.obj("x"->"y")))))
-
-      val result = await(connector.ctSubmission("",submission, "testJID"))
-
-      result shouldBe SuccessDesResponse(Json.obj("x"->"y"))
-    }
-
     "for accepted submission, return success" in new Setup {
       when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
         thenReturn(Future.successful(HttpResponse(202, responseJson = Some(Json.obj("x"->"y")))))
 
+      when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any()))
+        .thenReturn(Future.successful(Success))
+
       val result = await(connector.ctSubmission("",submission, "testJID"))
 
-      result shouldBe SuccessDesResponse(Json.obj("x"->"y"))
+      result.status shouldBe 202
     }
 
-    "for a conflicted submission, return success" in new Setup {
+    "for a forbidden request, return a bad request" in new Setup {
       when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
-        thenReturn(Future.successful(HttpResponse(409, responseJson = Some(Json.obj("x"->"y")))))
-
-      val result = await(connector.ctSubmission("",submission,"testJID"))
-
-      result shouldBe SuccessDesResponse(Json.obj("x"->"y"))
-    }
-
-    "for an invalid request, return the reason" in new Setup {
-      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
-        thenReturn(Future.successful(HttpResponse(400, responseJson = Some(Json.obj("reason" -> "wibble")))))
+        thenReturn(Future.failed(Upstream4xxResponse("", 403, 400)))
 
       when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any()))
-        .thenReturn(Future.successful(AuditResult.Success))
+        .thenReturn(Future.successful(Success))
 
-      val result = await(connector.ctSubmission("",submission,"testJID"))
-
-      result shouldBe InvalidDesRequest("wibble")
+      intercept[Upstream4xxResponse] {
+        await(connector.ctSubmission("", submission, "testJID"))
+      }
     }
 
-    "return a NotFoundDesResponse" in new Setup {
+    "for a client request timedout, return unavailable" in new Setup {
       when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
-        thenReturn(Future.failed(new NotFoundException("")))
+        thenReturn(Future.failed(Upstream4xxResponse("", 499, 502)))
 
-      val result = await(connector.ctSubmission("",submission,"testJID"))
+      when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any()))
+        .thenReturn(Future.successful(Success))
 
-      result shouldBe NotFoundDesResponse
-    }
-
-    "return a DesErrorResponse when an InternalServerException occurs" in new Setup {
-      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
-        thenReturn(Future.failed(new InternalServerException("")))
-
-      val result = await(connector.ctSubmission("",submission,"testJID"))
-
-      result shouldBe DesErrorResponse
-    }
-
-    "return a DesErrorResponse when a BadGatewayException occurs" in new Setup {
-      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
-        thenReturn(Future.failed(new BadGatewayException("")))
-
-      val result = await(connector.ctSubmission("",submission,"testJID"))
-
-      result shouldBe DesErrorResponse
-    }
-
-    "return a DesErrorResponse when an uncaught exception occurs" in new Setup {
-      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
-        thenReturn(Future.failed(new Exception("")))
-
-      val result = await(connector.ctSubmission("",submission,"testJID"))
-
-      result shouldBe DesErrorResponse
+      intercept[Upstream4xxResponse] {
+        await(connector.ctSubmission("", submission, "testJID"))
+      }
     }
   }
 
   "customDESRead" should {
 
-    "return the HttpResponse on a bad request" in new Setup {
+    "return the response on an acceptable request" in new Setup {
+      val response = HttpResponse(202)
+      await(connector.customDESRead("", "", response)) shouldBe response
+    }
+
+    "return a Upstream4xxResponse on a bad request" in new Setup {
       val response = HttpResponse(400)
-      await(connector.customDESRead("", "", response)) shouldBe response
-    }
-
-    "throw a NotFoundException" in new Setup {
-      val response = HttpResponse(404)
-      val ex = intercept[NotFoundException]{
+      intercept[Upstream4xxResponse] {
         await(connector.customDESRead("", "", response))
       }
-      ex.getMessage shouldBe "ETMP returned a Not Found status"
     }
 
-    "return the HttpResponse on a conflict" in new Setup {
+    "return the HttpResponse as a 200 on a conflict" in new Setup {
       val response = HttpResponse(409)
-      await(connector.customDESRead("", "", response)) shouldBe response
+      await(connector.customDESRead("", "", response)).status shouldBe 200
     }
 
-    "throw an InternalServerException" in new Setup {
-      val response = HttpResponse(500)
-      val ex = intercept[InternalServerException]{
+    "return a Upstream4xxResponse on a timeout" in new Setup {
+      val response = HttpResponse(499)
+      val ex = intercept[Upstream4xxResponse] {
         await(connector.customDESRead("", "", response))
       }
-      ex.getMessage shouldBe "ETMP returned an internal server error"
-    }
-
-    "throw an BadGatewayException" in new Setup {
-      val response = HttpResponse(502)
-      val ex = intercept[BadGatewayException]{
-        await(connector.customDESRead("", "", response))
-      }
-      ex.getMessage shouldBe "ETMP returned an upstream error"
-    }
-
-    "return an Upstream4xxResponse when an uncaught 4xx Http response status is found" in new Setup {
-      val response = HttpResponse(405)
-      val ex = intercept[Upstream4xxResponse]{
-        await(connector.customDESRead("http://", "testUrl", response))
-      }
-      ex.getMessage shouldBe "http:// of 'testUrl' returned 405. Response body: 'null'"
-    }
-
-    "return an Upstream5xxResponse when an uncaught 5xx Http response status is found" in new Setup {
-      val response = HttpResponse(505)
-      val ex = intercept[Upstream5xxResponse]{
-        await(connector.customDESRead("http://", "testUrl", response))
-      }
-      ex.getMessage shouldBe "http:// of 'testUrl' returned 505. Response body: 'null'"
+      ex.reportAs shouldBe 502
     }
   }
 }
