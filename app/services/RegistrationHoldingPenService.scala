@@ -154,7 +154,7 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
       case Some(ackRef) =>
         val fResponse = for {
           submission <- constructFullSubmission(item, ctReg, ackRef)
-          response <- postSubmissionToDes(ackRef, submission, journeyId, isAdmin)
+          _ <- postSubmissionToDes(ackRef, submission, journeyId, isAdmin)
           _ <- auditSuccessfulIncorporation(item, ctReg)
         } yield {
           submission
@@ -210,29 +210,6 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
       )
 
     auditConnector.sendEvent(event)
-  }
-
-
-  private def processInvalidDesRequest(ackRef: String, message: String) = {
-    val errMsg = s"""Submission to DES failed for ack ref ${ackRef} - Reason: "${message}"."""
-    Logger.error(errMsg)
-    Future.failed(new InvalidSubmission(errMsg))
-  }
-
-  private def processNotFoundDesResponse(ackRef: String) = {
-    val errMsg = s"""Request sent to DES for ack ref ${ackRef} not found" """
-    Logger.error(errMsg)
-    Future.failed(new InvalidSubmission(errMsg))
-  }
-
-  private def processDesErrorResponse(ackRef: String) = {
-    val errMsg = s"Submission to DES returned an error for ack ref $ackRef"
-    Logger.error(errMsg)
-    Future.failed(new DesError(errMsg))
-  }
-
-  private def processSubmissionFailedResponse(exception: Throwable, ackRef: String) = {
-
   }
 
   private def processMissingAckRefForTxID(txID: String) = {
