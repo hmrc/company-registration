@@ -328,7 +328,6 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
 
       val refs = AcknowledgementReferences("aaa", "bbb", "ccc")
 
-      implicit val format = AcknowledgementReferences.apiFormat
       val jsonBody = Json.toJson(refs)
 
       val request = FakeRequest().withBody(jsonBody)
@@ -348,7 +347,6 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
 
       val refs = AcknowledgementReferences("aaa", "bbb", "ccc")
 
-      implicit val format = AcknowledgementReferences.apiFormat
       val jsonBody = Json.toJson(refs)
 
       val request = FakeRequest().withBody(jsonBody)

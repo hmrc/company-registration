@@ -16,8 +16,8 @@
 
 package models
 
+import models.validation.{APIValidation, BaseJsonFormatting}
 import org.joda.time.DateTime
-import org.joda.time.format.DateTimeFormat
 import play.api.libs.json._
 import play.api.libs.json.Reads._
 import play.api.libs.functional.syntax._
@@ -56,25 +56,22 @@ object IncorpStatus {
       ( __ \ "SCRSIncorpStatus" \ "IncorpStatusEvent" \ "status").read[String] and
       ( __ \ "SCRSIncorpStatus" \ "IncorpStatusEvent" \ "crn").readNullable[String] and
       ( __ \ "SCRSIncorpStatus" \ "IncorpStatusEvent" \ "description").readNullable[String] and
-      ( __ \ "SCRSIncorpStatus" \ "IncorpStatusEvent" \ "incorporationDate").readNullable[DateTime](DefaultJodaDateReads)
+      ( __ \ "SCRSIncorpStatus" \ "IncorpStatusEvent" \ "incorporationDate").readNullable[DateTime]
     )(IncorpStatus.apply _)
 }
 
 
 object SCRSIncorpStatus {
-  val dateReads = Reads[DateTime]( js =>
-    js.validate[String].map[DateTime](
-      DateTime.parse(_, DateTimeFormat.forPattern("yyyy-MM-dd"))
-    )
-  )
-
-  implicit val IIReads : Reads[IncorpUpdate] = (
+  def format(formatter: BaseJsonFormatting): Reads[IncorpUpdate] = {
+    (
       ( __ \ "SCRSIncorpStatus" \ "IncorpSubscriptionKey" \ "transactionId").read[String] and
       ( __ \ "SCRSIncorpStatus" \ "IncorpStatusEvent" \ "status").read[String] and
       ( __ \ "SCRSIncorpStatus" \ "IncorpStatusEvent" \ "crn").readNullable[String] and
-      ( __ \ "SCRSIncorpStatus" \ "IncorpStatusEvent" \ "incorporationDate").readNullable[DateTime](dateReads) and
+      ( __ \ "SCRSIncorpStatus" \ "IncorpStatusEvent" \ "incorporationDate").readNullable[DateTime](formatter.dateFormat) and
       ( __ \ "timepoint").read[String] and
       ( __ \ "SCRSIncorpStatus" \ "IncorpStatusEvent" \ "description").readNullable[String]
-           )(IncorpUpdate.apply _)
+    )(IncorpUpdate.apply _)
+  }
 
+  implicit val IIReads : Reads[IncorpUpdate] = format(APIValidation)
 }
