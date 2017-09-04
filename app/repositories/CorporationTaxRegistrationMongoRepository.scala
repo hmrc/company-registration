@@ -32,6 +32,7 @@ import reactivemongo.bson._
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
 import cats.implicits._
+import models.validation.MongoValidation
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -43,23 +44,8 @@ class CorpTaxRegistrationRepo @Inject()(mongo: ReactiveMongoComponent) {
 }
 
 object CorporationTaxRegistrationMongo extends ReactiveMongoFormats {
-  implicit val formatCH = CHROAddress.format
-  implicit val formatPPOB = PPOBAddress.format
-  implicit val formatTD = TradingDetails.format
-  implicit val formatCompanyDetails = CompanyDetails.format
-  implicit val formatAccountingDetails = AccountingDetails.formats
-  implicit val mongoFormatContactDetails = ContactDetails.mongoFormat
-  implicit val formatAck = AcknowledgementReferences.mongoFormat(Crypto.rds,Crypto.wts)
-  implicit val formatConfirmationReferences = ConfirmationReferences.format
-  implicit val formatAccountsPrepDate = AccountPrepDetails.format
-  implicit val formatEmail = Email.formats
-  //  implicit val format = CorporationTaxRegistration.format
-  implicit val format2 = Json.format[CorporationTaxRegistration]
-
-  implicit val format = Format(CorporationTaxRegistration.cTReads(formatAck, mongoFormatContactDetails), CorporationTaxRegistration.cTWrites(formatAck))
-  implicit val oFormat = OFormat(CorporationTaxRegistration.cTReads(formatAck, mongoFormatContactDetails), CorporationTaxRegistration.cTWrites(formatAck))
-
-  //val store = new CorporationTaxRegistrationMongoRepository(db)
+  implicit val format = CorporationTaxRegistration.format(MongoValidation)
+  implicit val oFormat = CorporationTaxRegistration.oFormat(format)
 }
 
 trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegistration, BSONObjectID]{
@@ -97,12 +83,11 @@ private[repositories] class MissingCTDocument(regId: String) extends NoStackTrac
 class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
   extends ReactiveRepository[CorporationTaxRegistration, BSONObjectID]("corporation-tax-registration-information",
     mongo,
-    CorporationTaxRegistrationMongo.oFormat,
+    CorporationTaxRegistrationMongo.format,
     ReactiveMongoFormats.objectIdFormats)
   with CorporationTaxRegistrationRepository
   with AuthorisationResource[String] {
 
-  private val crypto = Crypto
   val cTRMongo = CorporationTaxRegistrationMongo
   implicit val format = cTRMongo.oFormat
   super.indexes
