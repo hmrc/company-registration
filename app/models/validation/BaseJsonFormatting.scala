@@ -98,7 +98,6 @@ trait BaseJsonFormatting {
   val startDateValidator: Format[String]
 
   //TradingDetails
-  val boolToStringReads: Reads[String]
   val tradingDetailsValidator: Reads[String]
 
   //AccountPrepDetails

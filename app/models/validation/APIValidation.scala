@@ -66,17 +66,6 @@ object APIValidation extends BaseJsonFormatting {
   val acctStatusValidator: Format[String] = readToFmt(pattern(s"^$WR|$FD|$NP2Y$$".r))
   val startDateValidator: Format[String] = readToFmt(yyyymmddValidator)
 
-  val boolToStringReads: Reads[String] = new Reads[String] {
-    def reads(json: JsValue): JsResult[String] = {
-      println(json)
-      json match {
-        case JsBoolean(true) => JsSuccess("true")
-        case JsBoolean(false) => JsSuccess("false")
-        case _ => JsError()
-      }
-    }
-  }
-
   val tradingDetailsValidator: Reads[String] = readToFmt(pattern("""^(true|false)$""".r, "expected either 'true' or 'false' but neither was found"))
 
   def accountPrepDetailsFormatWithFilter(formatDef: OFormat[AccountPrepDetails]): Format[AccountPrepDetails] = {

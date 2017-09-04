@@ -52,7 +52,6 @@ object MongoValidation extends BaseJsonFormatting {
   val acctStatusValidator: Format[String] = defaultStringFormat
   val startDateValidator: Format[String] = defaultStringFormat
 
-  val boolToStringReads: Reads[String] = defaultStringFormat
   val tradingDetailsValidator: Reads[String] = defaultStringFormat
 
   def accountPrepDetailsFormatWithFilter(formatDef: OFormat[AccountPrepDetails]): Format[AccountPrepDetails] = formatDef
