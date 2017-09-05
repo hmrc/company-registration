@@ -30,7 +30,7 @@ import play.api.libs.json.{JsObject, Json}
 import repositories._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.play.http.HeaderCarrier
+import uk.gov.hmrc.play.http.{HeaderCarrier, HttpErrorFunctions}
 import utils.DateCalculators
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -65,7 +65,7 @@ private[services] object FailedToUpdateSubmissionWithAcceptedIncorp extends NoSt
 private[services] object FailedToUpdateSubmissionWithRejectedIncorp extends NoStackTrace
 private[services] object FailedToDeleteSubmissionData extends NoStackTrace
 
-trait RegistrationHoldingPenService extends DateHelper {
+trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
 
   val desConnector : DesConnector
   val stateDataRepository: StateDataRepository
@@ -154,16 +154,17 @@ trait RegistrationHoldingPenService extends DateHelper {
       case Some(ackRef) =>
         val fResponse = for {
           submission <- constructFullSubmission(item, ctReg, ackRef)
-          response <- postSubmissionToDes(ackRef, submission, journeyId, isAdmin)
-          _ <- auditSuccessfulIncorporation(item, ctReg)
+          _ <- postSubmissionToDes(ackRef, submission, journeyId, isAdmin)
         } yield {
-          (response, submission)
+          auditSuccessfulIncorporation(item, ctReg)
+          submission
         }
-        fResponse flatMap {
-          case (SuccessDesResponse(response), auditDetail) => processSuccessDesResponse(item, ctReg, auditDetail,isAdmin)
-          case (InvalidDesRequest(message), _) => processInvalidDesRequest(ackRef, message)
-          case (NotFoundDesResponse, _) => processNotFoundDesResponse(ackRef)
-          case (DesErrorResponse, _) => processDesErrorResponse(ackRef)
+        fResponse flatMap { auditDetail =>
+          processSuccessDesResponse(item, ctReg, auditDetail, isAdmin)
+        } recover {
+          case e =>
+            Logger.error(s"""Submission to DES failed for ack ref ${ackRef}.""")
+            throw e
         }
       case None => processMissingAckRefForTxID(item.transactionId)
     }
@@ -209,25 +210,6 @@ trait RegistrationHoldingPenService extends DateHelper {
       )
 
     auditConnector.sendEvent(event)
-  }
-
-
-  private def processInvalidDesRequest(ackRef: String, message: String) = {
-    val errMsg = s"""Submission to DES failed for ack ref ${ackRef} - Reason: "${message}"."""
-    Logger.error(errMsg)
-    Future.failed(new InvalidSubmission(errMsg))
-  }
-
-  private def processNotFoundDesResponse(ackRef: String) = {
-    val errMsg = s"""Request sent to DES for ack ref ${ackRef} not found" """
-    Logger.error(errMsg)
-    Future.failed(new InvalidSubmission(errMsg))
-  }
-
-  private def processDesErrorResponse(ackRef: String) = {
-    val errMsg = s"Submission to DES returned an error for ack ref $ackRef"
-    Logger.error(errMsg)
-    Future.failed(new DesError(errMsg))
   }
 
   private def processMissingAckRefForTxID(txID: String) = {

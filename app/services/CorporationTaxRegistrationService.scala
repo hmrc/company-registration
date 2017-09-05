@@ -173,8 +173,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
                                               (implicit hc: HeaderCarrier): Future[HeldSubmissionData] = {
     if(toETMPHoldingPen){
       desConnector.ctSubmission(ackRef, partialSubmission, regId) map {
-        case SuccessDesResponse(_) => HeldSubmissionData(regId, ackRef, partialSubmission.toString())
-        case _ => throw new RuntimeException("")//todo change as part of handling error scenarios
+        _ => HeldSubmissionData(regId, ackRef, partialSubmission.toString())
       }
     } else {
       heldSubmissionRepository.storePartialSubmission(regId, ackRef, partialSubmission) map {

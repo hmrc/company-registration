@@ -19,7 +19,6 @@ package connectors
 import audit.DesSubmissionEventFailure
 import config.{MicroserviceAuditConnector, WSHttp}
 import play.api.{Logger, Play}
-import play.api.http.Status._
 import play.api.libs.json.{JsObject, Writes}
 import services.{AuditService, MetricsService}
 import uk.gov.hmrc.play.config.ServicesConfig
@@ -28,12 +27,6 @@ import uk.gov.hmrc.play.http.logging.Authorization
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-
-sealed trait DesResponse
-case class SuccessDesResponse(response: JsObject) extends DesResponse
-case object NotFoundDesResponse extends DesResponse
-case object DesErrorResponse extends DesResponse
-case class InvalidDesRequest(message: String) extends DesResponse
 
 trait DesConnector extends ServicesConfig with AuditService with RawResponseReads with HttpErrorFunctions {
 
@@ -50,11 +43,14 @@ trait DesConnector extends ServicesConfig with AuditService with RawResponseRead
 
   private[connectors] def customDESRead(http: String, url: String, response: HttpResponse) = {
     response.status match {
-      case 400 => response
-      case 404 => throw new NotFoundException("ETMP returned a Not Found status")
-      case 409 => response
-      case 500 => throw new InternalServerException("ETMP returned an internal server error")
-      case 502 => throw new BadGatewayException("ETMP returned an upstream error")
+      case 409 =>
+        Logger.warn("[DesConnector] [customDESRead] Received 409 from DES - converting to 202")
+        HttpResponse(202, Some(response.json), response.allHeaders, Option(response.body))
+      case 499 =>
+        Logger.warn("[DesConnector] [customDESRead] Received 499 from DES - converting to 502")
+        throw Upstream4xxResponse("Timeout received from DES submission", 499, 502)
+      case status if is4xx(status) =>
+        throw Upstream4xxResponse(upstreamResponseMessage(http, url, status, response.body), status, reportAs = 400, response.allHeaders)
       case _ => handleResponse(http, url)(response)
     }
   }
@@ -63,47 +59,20 @@ trait DesConnector extends ServicesConfig with AuditService with RawResponseRead
     def read(http: String, url: String, res: HttpResponse) = customDESRead(http, url, res)
   }
 
-  def ctSubmission(ackRef:String, submission: JsObject, journeyId : String, isAdmin: Boolean = false)(implicit headerCarrier: HeaderCarrier): Future[DesResponse] = {
+  def ctSubmission(ackRef:String, submission: JsObject, journeyId : String, isAdmin: Boolean = false)(implicit headerCarrier: HeaderCarrier): Future[HttpResponse] = {
     val url: String = s"""${serviceURL}${baseURI}${ctRegistrationURI}"""
-    metricsService.processDataResponseWithMetrics[DesResponse](metricsService.desSubmissionCRTimer.time()) {
-      val response = cPOST(url, submission)
-      response flatMap { r =>
-        sendCTRegSubmissionEvent(buildCTRegSubmissionEvent(ctRegSubmissionFromJson(journeyId, r.json.as[JsObject])))
-        r.status match {
-          case OK =>
-            Logger.info(s"Successful Des submission for ackRef $ackRef to $url")
-            Future.successful(SuccessDesResponse(r.json.as[JsObject]))
-          case ACCEPTED =>
-            Logger.info(s"Accepted Des submission for ackRef $ackRef to $url")
-            Future.successful(SuccessDesResponse(r.json.as[JsObject]))
-          case CONFLICT =>
-            Logger.warn(s"ETMP reported a duplicate submission for ack ref $ackRef")
-            Future.successful(SuccessDesResponse(r.json.as[JsObject]))
-          case BAD_REQUEST =>
-            val message = (r.json \ "reason").as[String]
-            Logger.warn(s"ETMP reported an error with the request $message")
-            val event = new DesSubmissionEventFailure(journeyId, submission)
-            auditConnector.sendEvent(event) map {
-              _ => InvalidDesRequest(message)
-            }
-        }
-      } recover {
-        case ex: NotFoundException =>
-          Logger.warn(s"ETMP reported a not found for ack ref $ackRef")
-          NotFoundDesResponse
-        case ex: InternalServerException =>
-          Logger.warn(s"ETMP reported an internal server error status for ack ref $ackRef")
-          DesErrorResponse
-        case ex: BadGatewayException =>
-          Logger.warn(s"ETMP reported a bad gateway status for ack ref $ackRef")
-          DesErrorResponse
-        case ex: Exception =>
-          Logger.warn(s"ETMP reported a ${ex.toString} for ack ref $ackRef")
-          DesErrorResponse
+    metricsService.processDataResponseWithMetrics[HttpResponse](metricsService.desSubmissionCRTimer.time()) {
+      cPOST(url, submission) map { response =>
+        sendCTRegSubmissionEvent(buildCTRegSubmissionEvent(ctRegSubmissionFromJson(journeyId, response.json.as[JsObject])))
+        response
+      } recoverWith {
+        case ex: Upstream4xxResponse =>
+          val event = new DesSubmissionEventFailure(journeyId, submission)
+          auditConnector.sendEvent(event)
+          throw ex
       }
     }
   }
-
 
   private def createHeaderCarrier(headerCarrier: HeaderCarrier): HeaderCarrier = {
     headerCarrier.

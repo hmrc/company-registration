@@ -21,14 +21,15 @@ import java.util.{Base64, UUID}
 import audit.{DesSubmissionEvent, RegistrationAuditEvent, SuccessfulIncorporationAuditEvent}
 import connectors._
 import fixtures.CorporationTaxRegistrationFixture
-import models._
+import models.{AccountPrepDetails, CorporationTaxRegistration, Email, IncorpUpdate, SubmissionCheckResponse, AccountingDetails, SubmissionDates}
 import org.jboss.netty.handler.codec.base64.Base64Decoder
 import org.joda.time.DateTime
 import org.mockito.{ArgumentCaptor, Matchers}
 import org.scalatest.mock.MockitoSugar
-import play.api.libs.json.{JsString, JsPath, JsObject, Json}
+import play.api.libs.json.{JsObject, JsPath, JsString, Json}
 import repositories.{CorporationTaxRegistrationRepository, HeldSubmission, HeldSubmissionRepository, StateDataRepository}
 import uk.gov.hmrc.play.http.HeaderCarrier
+import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.play.test.UnitSpec
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
@@ -112,7 +113,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
   val validCR = validHeldCTRegWithData(ackRef=Some(testAckRef)).copy(
     accountsPreparation = Some(AccountPrepDetails(AccountPrepDetails.COMPANY_DEFINED,Some(date("2017-01-01")))), verifiedEmail = Some(Email("testemail.com","",true,true,true))
   )
-  import RegistrationStatus._
+  import models.RegistrationStatus._
   val submittedCR = validCR.copy(status = SUBMITTED)
   val failCaseCR = validCR.copy(status = DRAFT)
   val incorpSuccess = IncorpUpdate(transId, "accepted", Some("012345"), Some(new DateTime(2016, 8, 10, 0, 0)), timepoint)
@@ -322,7 +323,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
         .thenReturn(dates)
 
       when(mockDesConnector.ctSubmission(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any()))
-        .thenReturn(Future.successful(SuccessDesResponse(Json.obj("x"->"y"))))
+        .thenReturn(Future.successful(HttpResponse(200)))
 
       await(service.updateHeldSubmission(incorpSuccess, validCR, validCR.registrationID)) shouldBe true
 
@@ -339,31 +340,6 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
     }
 
-    "fail if DES states invalid" in new Setup {
-      when(mockHeldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
-        .thenReturn(Future.successful(Some(validHeld)))
-
-      when(mockAccountService.calculateSubmissionDates(Matchers.any(), Matchers.any(), Matchers.any()))
-        .thenReturn(dates)
-
-      when(mockDesConnector.ctSubmission(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any()))
-        .thenReturn(Future.successful(InvalidDesRequest("wibble")))
-
-      when(mockAuditConnector.sendEvent(Matchers.any[RegistrationAuditEvent]())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]()))
-        .thenReturn(Future.successful(Success))
-
-      val captor = ArgumentCaptor.forClass(classOf[RegistrationAuditEvent])
-
-      intercept[InvalidSubmission] {
-        await(service.updateHeldSubmission(incorpSuccess, validCR, validCR.registrationID))
-      }.message should endWith ("""- Reason: "wibble".""")
-
-      verify(mockAuditConnector, times(1)).sendEvent(captor.capture())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]())
-
-      val audit = captor.getValue
-      audit.auditType shouldBe "successIncorpInformation"
-    }
-
     "fail if DES states not found" in new Setup {
       when(mockHeldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
         .thenReturn(Future.successful(Some(validHeld)))
@@ -372,21 +348,26 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
         .thenReturn(dates)
 
       when(mockDesConnector.ctSubmission(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any()))
-        .thenReturn(Future.successful(NotFoundDesResponse))
+        .thenReturn(Future.failed(Upstream4xxResponse("", 404, 400)))
 
-      when(mockAuditConnector.sendEvent(Matchers.any[RegistrationAuditEvent]())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]()))
-        .thenReturn(Future.successful(Success))
-
-      val captor = ArgumentCaptor.forClass(classOf[RegistrationAuditEvent])
-
-      intercept[InvalidSubmission] {
+      intercept[Upstream4xxResponse] {
         await(service.updateHeldSubmission(incorpSuccess, validCR, validCR.registrationID))
       }
+    }
 
-      verify(mockAuditConnector, times(1)).sendEvent(captor.capture())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]())
+    "fail if DES states the client request failed" in new Setup {
+      when(mockHeldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
+        .thenReturn(Future.successful(Some(validHeld)))
 
-      val audit = captor.getValue
-      audit.auditType shouldBe "successIncorpInformation"
+      when(mockAccountService.calculateSubmissionDates(Matchers.any(), Matchers.any(), Matchers.any()))
+        .thenReturn(dates)
+
+      when(mockDesConnector.ctSubmission(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any()))
+        .thenReturn(Future.failed(Upstream4xxResponse("", 499, 502)))
+
+      intercept[Upstream4xxResponse] {
+        await(service.updateHeldSubmission(incorpSuccess, validCR, validCR.registrationID))
+      }
     }
 
     "fail if missing ackref" in new Setup {
