@@ -155,8 +155,8 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
         val fResponse = for {
           submission <- constructFullSubmission(item, ctReg, ackRef)
           _ <- postSubmissionToDes(ackRef, submission, journeyId, isAdmin)
-          _ <- auditSuccessfulIncorporation(item, ctReg)
         } yield {
+          auditSuccessfulIncorporation(item, ctReg)
           submission
         }
         fResponse flatMap { auditDetail =>

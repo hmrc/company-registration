@@ -44,8 +44,8 @@ trait DesConnector extends ServicesConfig with AuditService with RawResponseRead
   private[connectors] def customDESRead(http: String, url: String, response: HttpResponse) = {
     response.status match {
       case 409 =>
-        Logger.warn("[DesConnector] [customDESRead] Received 409 from DES - converting to 200")
-        HttpResponse(200, Some(response.json), response.allHeaders, Option(response.body))
+        Logger.warn("[DesConnector] [customDESRead] Received 409 from DES - converting to 202")
+        HttpResponse(202, Some(response.json), response.allHeaders, Option(response.body))
       case 499 =>
         Logger.warn("[DesConnector] [customDESRead] Received 499 from DES - converting to 502")
         throw Upstream4xxResponse("Timeout received from DES submission", 499, 502)
@@ -62,16 +62,14 @@ trait DesConnector extends ServicesConfig with AuditService with RawResponseRead
   def ctSubmission(ackRef:String, submission: JsObject, journeyId : String, isAdmin: Boolean = false)(implicit headerCarrier: HeaderCarrier): Future[HttpResponse] = {
     val url: String = s"""${serviceURL}${baseURI}${ctRegistrationURI}"""
     metricsService.processDataResponseWithMetrics[HttpResponse](metricsService.desSubmissionCRTimer.time()) {
-      cPOST(url, submission) flatMap { response =>
-        sendCTRegSubmissionEvent(buildCTRegSubmissionEvent(ctRegSubmissionFromJson(journeyId, response.json.as[JsObject]))) map { _ =>
-          response
-        }
+      cPOST(url, submission) map { response =>
+        sendCTRegSubmissionEvent(buildCTRegSubmissionEvent(ctRegSubmissionFromJson(journeyId, response.json.as[JsObject])))
+        response
       } recoverWith {
         case ex: Upstream4xxResponse =>
           val event = new DesSubmissionEventFailure(journeyId, submission)
-          auditConnector.sendEvent(event) map {
-            _ => throw ex
-          }
+          auditConnector.sendEvent(event)
+          throw ex
       }
     }
   }

@@ -131,9 +131,9 @@ class DesConnectorSpec extends UnitSpec with MockitoSugar {
       }
     }
 
-    "return the HttpResponse as a 200 on a conflict" in new Setup {
+    "return the HttpResponse as a 202 on a conflict" in new Setup {
       val response = HttpResponse(409)
-      await(connector.customDESRead("", "", response)).status shouldBe 200
+      await(connector.customDESRead("", "", response)).status shouldBe 202
     }
 
     "return a Upstream4xxResponse on a timeout" in new Setup {

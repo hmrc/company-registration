@@ -283,5 +283,63 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase {
         (json \ "registration" \ "corporationTax" \ "companyActiveDate").as[String] shouldBe activeDateToDES
       }
     }
+    "handle an error response" when {
+      "it is a 400" in new Setup {
+        val incorpDate = "2017-07-24"
+
+        await(repository.insert(heldRegistration))
+        await(heldRepository.storePartialSubmission(regId, ackRef, heldJson))
+
+        setupSimpleAuthMocks()
+        stubPost("/hmrc/email", 202, "")
+        val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
+        stubPost("/business-registration/corporation-tax", 400, "")
+
+        val response = await(client("/process-incorp").post(jsonIncorpStatus(incorpDate)))
+        response.status shouldBe 400
+      }
+      "it is a 409" in new Setup {
+        val incorpDate = "2017-07-24"
+
+        await(repository.insert(heldRegistration))
+        await(heldRepository.storePartialSubmission(regId, ackRef, heldJson))
+
+        setupSimpleAuthMocks()
+        stubPost("/hmrc/email", 202, "")
+        val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
+        stubPost("/business-registration/corporation-tax", 409, """{"wibble" : "bar"}""")
+
+        val response = await(client("/process-incorp").post(jsonIncorpStatus(incorpDate)))
+        response.status shouldBe 200
+      }
+      "it is a 499" in new Setup {
+        val incorpDate = "2017-07-24"
+
+        await(repository.insert(heldRegistration))
+        await(heldRepository.storePartialSubmission(regId, ackRef, heldJson))
+
+        setupSimpleAuthMocks()
+        stubPost("/hmrc/email", 202, "")
+        val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
+        stubPost("/business-registration/corporation-tax", 499, """{"wibble" : "bar"}""")
+
+        val response = await(client("/process-incorp").post(jsonIncorpStatus(incorpDate)))
+        response.status shouldBe 502
+      }
+      "it is a 501" in new Setup {
+        val incorpDate = "2017-07-24"
+
+        await(repository.insert(heldRegistration))
+        await(heldRepository.storePartialSubmission(regId, ackRef, heldJson))
+
+        setupSimpleAuthMocks()
+        stubPost("/hmrc/email", 202, "")
+        val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
+        stubPost("/business-registration/corporation-tax", 501, """{"wibble" : "bar"}""")
+
+        val response = await(client("/process-incorp").post(jsonIncorpStatus(incorpDate)))
+        response.status shouldBe 502
+      }
+    }
   }
 }
