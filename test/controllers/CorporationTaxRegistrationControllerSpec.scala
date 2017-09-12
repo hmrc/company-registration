@@ -208,7 +208,7 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
 
     "return a 200 and an acknowledgement ref is one exists" in new Setup {
       val expected = ConfirmationReferences("BRCT00000000123", "tx", "py", "12.00")
-      when(mockCTDataService.retrieveConfirmationReference(Matchers.eq(regId)))
+      when(mockCTDataService.retrieveConfirmationReferences(Matchers.eq(regId)))
         .thenReturn(Future.successful(Some(expected)))
 
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
@@ -220,7 +220,7 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
     }
 
     "return a 404 if a record cannot be found" in new Setup {
-      when(mockCTDataService.retrieveConfirmationReference(Matchers.eq(regId)))
+      when(mockCTDataService.retrieveConfirmationReferences(Matchers.eq(regId)))
         .thenReturn(None)
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       AuthorisationMocks.getInternalId(validAuthority.ids.internalId, Some((regId, validAuthority.ids.internalId)))
@@ -261,38 +261,25 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
 
     "return a 200 and an acknowledgement ref is one exists" in new Setup {
       val expectedRefs = ConfirmationReferences("BRCT00000000123", "tx", "py", "12.00")
-      when(mockCTDataService.updateConfirmationReferences(Matchers.contains(regId), Matchers.any(), Matchers.any())(Matchers.any[HeaderCarrier], Matchers.any()))
-        .thenReturn(Future.successful(Some(expectedRefs)))
+      when(mockCTDataService.handleSubmission(Matchers.contains(regId), Matchers.any(), Matchers.any())(Matchers.any[HeaderCarrier], Matchers.any()))
+        .thenReturn(Future.successful(expectedRefs))
 
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       AuthorisationMocks.getInternalId(validAuthority.ids.internalId, Some((regId, validAuthority.ids.internalId)))
 
-      when(mockCTDataService.retrieveConfirmationReference(Matchers.eq(regId)))
+      when(mockCTDataService.retrieveConfirmationReferences(Matchers.eq(regId)))
         .thenReturn(Future.successful(Some(expectedRefs)))
 
-      val result = controller.updateReferences(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId", "testPaymentRef", "testPaymentAmount", ""))))
+      val result = controller.handleSubmission(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId", "testPaymentRef", "testPaymentAmount", ""))))
       status(result) shouldBe OK
       await(jsonBodyOf(result)) shouldBe Json.toJson(expectedRefs)
-    }
-
-    "return a 404 if a record cannot be found" in new Setup {
-      when(mockCTDataService.updateConfirmationReferences(Matchers.contains(regId), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any()))
-        .thenReturn(Future.successful(None))
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      AuthorisationMocks.getInternalId(validAuthority.ids.internalId, Some((regId, validAuthority.ids.internalId)))
-
-      when(mockCTDataService.retrieveConfirmationReference(Matchers.eq(regId)))
-        .thenReturn(Future.successful(None))
-
-      val result = controller.updateReferences(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId", "testPaymentRef", "testPaymentAmount", ""))))
-      status(result) shouldBe NOT_FOUND
     }
 
     "return a 403 when the user is not authenticated" in new Setup {
       AuthenticationMocks.getCurrentAuthority(None)
       AuthorisationMocks.getInternalId(validAuthority.ids.internalId, None)
 
-      val result = controller.updateReferences(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId", "testPaymentRef", "testPaymentAmount", ""))))
+      val result = controller.handleSubmission(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId", "testPaymentRef", "testPaymentAmount", ""))))
       status(result) shouldBe FORBIDDEN
     }
 
@@ -300,7 +287,7 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       AuthorisationMocks.getInternalId(validAuthority.ids.internalId, Some((regId, "xxx")))
 
-      val result = controller.updateReferences(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId", "testPaymentRef", "testPaymentAmount", ""))))
+      val result = controller.handleSubmission(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId", "testPaymentRef", "testPaymentAmount", ""))))
       status(result) shouldBe FORBIDDEN
     }
 
@@ -308,7 +295,7 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       AuthorisationMocks.getInternalId(validAuthority.ids.internalId, None)
 
-      val result = controller.updateReferences(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId", "testPaymentRef", "testPaymentAmount", ""))))
+      val result = controller.handleSubmission(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId", "testPaymentRef", "testPaymentAmount", ""))))
       status(result) shouldBe NOT_FOUND
     }
   }

@@ -20,7 +20,7 @@ import java.util.UUID
 
 import models.RegistrationStatus._
 import models._
-import org.joda.time.DateTime
+import org.joda.time.{DateTime, DateTimeZone}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import reactivemongo.api.commands.WriteResult
@@ -303,6 +303,62 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       await(repository.updateRegistrationProgress(registrationId, progress))
 
       retrieve.get.registrationProgress shouldBe Some(progress)
+    }
+  }
+
+  "updateRegistrationToHeld" should {
+
+    val regId = "reg-12345"
+    val dateTime = DateTime.parse("2017-09-04T14:49:48.261")
+
+    val validConfirmationReferences = ConfirmationReferences(
+      acknowledgementReference = "BRCT12345678910",
+      transactionId = "TX1",
+      paymentReference = "PY1",
+      paymentAmount = "12.00"
+    )
+
+    val corporationTaxRegistration = CorporationTaxRegistration(
+      internalId = "testID",
+      registrationID = regId,
+      formCreationTimestamp = "testDateTime",
+      language = "en",
+      companyDetails = Some(CompanyDetails(
+        "testCompanyName",
+        CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
+        PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"), None, "txid"))),
+        "testJurisdiction"
+      )),
+      contactDetails = Some(ContactDetails(
+        "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+      )),
+      tradingDetails = Some(TradingDetails("true")),
+      status = RegistrationStatus.DRAFT,
+      createdTime = dateTime,
+      lastSignedIn = dateTime
+    )
+
+    "update registration status to held, set confirmation refs and remove trading details, contact details and company details" in new Setup {
+
+      await(setupCollection(repository, corporationTaxRegistration))
+
+      val result: Option[CorporationTaxRegistration] = await(repository.updateRegistrationToHeld(regId, validConfirmationReferences))
+
+      val expected: Option[CorporationTaxRegistration] = Some(CorporationTaxRegistration(
+        internalId = "testID",
+        registrationID = regId,
+        formCreationTimestamp = "testDateTime",
+        language = "en",
+        companyDetails = None,
+        contactDetails = None,
+        tradingDetails = None,
+        status = RegistrationStatus.HELD,
+        confirmationReferences = Some(validConfirmationReferences),
+        createdTime = dateTime,
+        lastSignedIn = dateTime
+      ))
+
+      result shouldBe expected
     }
   }
 }

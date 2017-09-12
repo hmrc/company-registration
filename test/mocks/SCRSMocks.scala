@@ -57,8 +57,8 @@ trait SCRSMocks
         .thenReturn(Future.successful(result))
     }
 
-    def updateConfirmationReferences(regID: String, returns: Option[ConfirmationReferences])(implicit hc: HeaderCarrier) = {
-      when(mockCTDataService.updateConfirmationReferences(Matchers.contains(regID), Matchers.eq(ConfirmationReferences("transactID", "payRef", "payAmount", "")))
+    def updateConfirmationReferences(regID: String, returns: ConfirmationReferences)(implicit hc: HeaderCarrier) = {
+      when(mockCTDataService.handleSubmission(Matchers.contains(regID), Matchers.eq(ConfirmationReferences("transactID", "payRef", "payAmount", "")))
       (Matchers.any(), Matchers.any()))
         .thenReturn(Future.successful(returns))
     }

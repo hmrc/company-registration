@@ -150,19 +150,11 @@ class TestEndpointControllerSpec extends UnitSpec with MockitoSugar {
     val confirmationRefs = ConfirmationReferences("", "testTransID", "testPaymentRef", "12")
 
     "return a 200 if the document was successfully updated with a set of confirmation refs" in new Setup {
-      when(mockCTService.updateConfirmationReferences(Matchers.eq(registrationId), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any()))
-        .thenReturn(Future.successful(Some(confirmationRefs)))
+      when(mockCTService.handleSubmission(Matchers.eq(registrationId), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any()))
+        .thenReturn(Future.successful(confirmationRefs))
 
       val result = await(controller.updateConfirmationRefs(registrationId)(FakeRequest()))
       status(result) shouldBe OK
-    }
-
-    "return a 404 if the document could not be updated / found" in new Setup {
-      when(mockCTService.updateConfirmationReferences(Matchers.eq(registrationId), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any()))
-        .thenReturn(Future.successful(None))
-
-      val result = await(controller.updateConfirmationRefs(registrationId)(FakeRequest()))
-      status(result) shouldBe NOT_FOUND
     }
   }
 

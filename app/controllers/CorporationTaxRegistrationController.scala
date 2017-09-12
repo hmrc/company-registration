@@ -117,22 +117,19 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
   }
 
   //HO6
-  def updateReferences(registrationID : String) = Action.async[JsValue](parse.json) {
+  def handleSubmission(registrationID : String) = Action.async[JsValue](parse.json) {
     implicit request =>
       authorised(registrationID) {
         case Authorised(_) =>
           withJsonBody[ConfirmationReferences] {
             refs =>
               val timer = metrics.updateReferencesCRTimer.time()
-              ctService.updateConfirmationReferences(registrationID, refs)(hc, request.map(js => AnyContentAsJson(js))) map {
-                case Some(references) =>
+              ctService.handleSubmission(registrationID, refs)(hc, request.map(js => AnyContentAsJson(js))) map {
+                references =>
                   timer.stop()
                   Logger.info(s"[Confirmation Refs] Acknowledgement ref:${references.acknowledgementReference} " +
                     s"- Transaction id:${references.transactionId} - Payment ref:${references.paymentReference}")
                   Ok(Json.toJson[ConfirmationReferences](references))
-                case None =>
-                  timer.stop()
-                  NotFound
               }
           }
         case NotLoggedInOrAuthorised =>
@@ -149,7 +146,7 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
     implicit request =>
       authorised(registrationID) {
         case Authorised(_) => val timer = metrics.retrieveConfirmationReferenceCRTimer.time()
-                              ctService.retrieveConfirmationReference(registrationID) map {
+                              ctService.retrieveConfirmationReferences(registrationID) map {
           case Some(ref) => timer.stop()
                             Ok(Json.toJson(ref))
           case None => NotFound

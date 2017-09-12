@@ -166,6 +166,8 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport {
     stubPost(s"/incorporation-information/subscribe/$transId/regime/$regime/subscriber/$subscriber\\?force=true", status, response.toString())
   }
 
+  def stubDESSubmission(status: Int): StubMapping = stubPost("/business-registration/corporation-tax", status, """{"x":"y"}""")
+
   "GET /admin/fetch-ho6-registration-information" should {
 
     val url = "/fetch-ho6-registration-information"
@@ -347,6 +349,70 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport {
       heldCount shouldBe 0
 
       result.status shouldBe 200
+    }
+
+    "use existing conf refs when called again after registration of interest fails" in new Setup {
+      System.setProperty("feature.registerInterest", "true")
+      System.setProperty("feature.etmpHoldingPen", "false")
+
+      setupSimpleAuthMocks()
+      stubIISubscribe(500, Json.obj())
+
+      stubGet(s"/business-registration/admin/business-tax-registration/$regId", 200, businessRegistrationResponse.toString())
+      stubDESSubmission(202)
+
+      insertCorpTax(draftRegistration)
+
+      val expectedConfRefs = ConfirmationReferences("BRCT00000000001", transId, payRef, "12")
+
+      val firstCall: WSResponse = await(client(s"$url").post(adminJsonBody))
+      firstCall.status shouldBe 404
+
+      heldCount shouldBe 0
+      await(corpTaxRepo.findAll()).head.confirmationReferences shouldBe Some(expectedConfRefs)
+
+      stubIISubscribe(202, incorpInfoResponse)
+
+      val otherJsonBody: JsValue = Json.parse(
+        s"""
+           |{
+           |  "strideUser":"$strideUser",
+           |  "sessionId":"$sessionId",
+           |  "credId":"$credId",
+           |  "registrationId":"$regId",
+           |  "transactionId":"otherTransId",
+           |  "paymentReference":"otherPayRef",
+           |  "paymentAmount":"12"
+           |}
+        """.stripMargin)
+
+      val secondCall: WSResponse = await(client(s"$url").post(otherJsonBody))
+      secondCall.status shouldBe 200
+
+      heldCount shouldBe 1
+
+      await(corpTaxRepo.findAll()).head.confirmationReferences shouldBe Some(expectedConfRefs)
+    }
+
+    "be able to retry a submission when the submission to DES fails" in new Setup {
+      System.setProperty("feature.registerInterest", "true")
+      System.setProperty("feature.etmpHoldingPen", "true")
+
+      setupSimpleAuthMocks()
+      stubIISubscribe(202, Json.obj())
+
+      stubGet(s"/business-registration/admin/business-tax-registration/$regId", 200, businessRegistrationResponse.toString())
+      stubDESSubmission(500)
+
+      insertCorpTax(draftRegistration)
+
+      val firstCall: WSResponse = await(client(s"$url").post(adminJsonBody))
+      firstCall.status shouldBe 404
+
+      stubDESSubmission(202)
+
+      val secondCall: WSResponse = await(client(s"$url").post(adminJsonBody))
+      secondCall.status shouldBe 200
     }
   }
 
