@@ -80,7 +80,7 @@ trait AdminService extends DateFormatter {
 
   private[services] def fetchAllRegIdsFromHeldSubmissions: Future[List[String]] = heldSubRepo.findAll() map { list => list.map(_.registrationID)}
 
-  private[services] def fetchTransactionId(regId: String): Future[Option[String]] = corpTaxRegRepo.retrieveConfirmationReference(regId).map(_.fold[Option[String]]{
+  private[services] def fetchTransactionId(regId: String): Future[Option[String]] = corpTaxRegRepo.retrieveConfirmationReferences(regId).map(_.fold[Option[String]]{
     Logger.error(s"[Admin] [fetchTransactionId] - Held submission found but transaction Id missing for regId $regId")
     None
   }(refs => Option(refs.transactionId)))

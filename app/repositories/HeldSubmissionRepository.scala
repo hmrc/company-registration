@@ -107,7 +107,7 @@ class HeldSubmissionMongoRepository(mongo: () => DB)
   def retrieveSubmissionByRegId(regId: String): Future[Option[HeldSubmission]] = {
     val selector = BSONDocument("_id" -> BSONString(regId))
     collection.find(selector).one[HeldSubmissionData] map {
-      _ map { mapHeldSubmission( _ ) }
+      _ map { mapHeldSubmission }
     }
   }
 
@@ -119,7 +119,7 @@ class HeldSubmissionMongoRepository(mongo: () => DB)
   def retrieveSubmissionByAckRef(ackRef: String): Future[Option[HeldSubmission]] = {
     val selector = BSONDocument("acknowledgementReference" -> BSONString(ackRef))
     collection.find(selector).one[HeldSubmissionData] map {
-      _ map { mapHeldSubmission( _ ) }
+      _ map { mapHeldSubmission }
     }
   }
 

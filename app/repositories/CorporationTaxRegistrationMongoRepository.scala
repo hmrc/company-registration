@@ -59,7 +59,7 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def retrieveTradingDetails(registrationID : String) : Future[Option[TradingDetails]]
   def updateTradingDetails(registrationID : String, tradingDetails: TradingDetails) : Future[Option[TradingDetails]]
   def updateContactDetails(registrationID: String, contactDetails: ContactDetails): Future[Option[ContactDetails]]
-  def retrieveConfirmationReference(registrationID: String) : Future[Option[ConfirmationReferences]]
+  def retrieveConfirmationReferences(registrationID: String) : Future[Option[ConfirmationReferences]]
   def updateConfirmationReferences(registrationID: String, confirmationReferences: ConfirmationReferences) : Future[Option[ConfirmationReferences]]
   def retrieveContactDetails(registrationID: String): Future[Option[ContactDetails]]
   def updateCompanyEndDate(registrationID: String, model: AccountPrepDetails): Future[Option[AccountPrepDetails]]
@@ -76,6 +76,7 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def getRegistrationStats(): Future[Map[String, Int]]
   def fetchHO6Information(regId: String): Future[Option[HO6RegistrationInformation]]
   def fetchDocumentStatus(regId: String): OptionT[Future, String]
+  def updateRegistrationToHeld(regId: String, confRefs: ConfirmationReferences): Future[Option[CorporationTaxRegistration]]
 }
 
 private[repositories] class MissingCTDocument(regId: String) extends NoStackTrace
@@ -212,7 +213,7 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
     }
   }
 
-  override def retrieveConfirmationReference(registrationID: String) : Future[Option[ConfirmationReferences]] = {
+  override def retrieveConfirmationReferences(registrationID: String) : Future[Option[ConfirmationReferences]] = {
     retrieveCorporationTaxRegistration(registrationID) map { oreg => { oreg flatMap { _.confirmationReferences } } }
   }
 
@@ -354,6 +355,26 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
 
   override def fetchDocumentStatus(regId: String): OptionT[Future, String] = {
     OptionT(retrieveCorporationTaxRegistration(regId)) map (_.status)
+  }
+
+  override def updateRegistrationToHeld(regId: String, confRefs: ConfirmationReferences): Future[Option[CorporationTaxRegistration]] = {
+
+    val modifier = BSONDocument(
+      "$set" -> BSONDocument(
+        "status" -> RegistrationStatus.HELD,
+        "confirmationReferences" -> Json.toJson(confRefs)),
+      "$unset" -> BSONDocument("tradingDetails" -> 1, "contactDetails" -> 1, "companyDetails" -> 1)
+    )
+
+    collection.findAndUpdate[BSONDocument, BSONDocument](registrationIDSelector(regId), modifier, fetchNewObject = true, upsert = false) map {
+      _.result[CorporationTaxRegistration] flatMap {
+        reg =>
+          (reg.status, reg.confirmationReferences, reg.tradingDetails, reg.contactDetails, reg.companyDetails) match {
+            case (RegistrationStatus.HELD, Some(cRefs), None, None, None) if cRefs == confRefs => Some(reg)
+            case _ => None
+          }
+      }
+    }
   }
 
   def dropCollection = collection.drop()

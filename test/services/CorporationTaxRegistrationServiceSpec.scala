@@ -18,25 +18,31 @@ package services
 
 import java.util.UUID
 
+import cats.data.OptionT
 import connectors._
 import fixtures.{AuthFixture, CorporationTaxRegistrationFixture, MongoFixture}
-import helpers.{MongoMocks, SCRSSpec}
+import helpers.MongoMocks
 import mocks.SCRSMocks
 import models.RegistrationStatus._
 import models._
+import models.admin.Admin
 import models.des._
 import org.joda.time.DateTime
 import org.mockito.Matchers
+import org.mockito.Matchers.{any, eq => eqTo}
 import org.mockito.Mockito._
+import org.mockito.stubbing.OngoingStubbing
 import org.scalatest.concurrent.Eventually
 import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
+import play.api.mvc.{AnyContent, Request}
 import play.api.test.FakeRequest
-import repositories.{HeldSubmission, HeldSubmissionData, HeldSubmissionMongoRepository}
+import repositories._
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.http.logging.SessionId
 import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
+import uk.gov.hmrc.play.http.{HttpResponse => HmrcHttpResponse}
 
 import scala.concurrent.Future
 
@@ -46,32 +52,138 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
   implicit val hc = HeaderCarrier(sessionId = Some(SessionId("testSessionId")))
   implicit val req = FakeRequest("GET", "/test-path")
 
-  val mockBusinessRegistrationConnector = mock[BusinessRegistrationConnector]
-  val mockHeldSubmissionRepository = mock[HeldSubmissionMongoRepository]
-  val mockAuditConnector = mock[AuditConnector]
-  val mockIncorpInfoConnector = mock[IncorporationInformationConnector]
-  val mockDesConnector = mock[DesConnector]
+  val mockBRConnector: BusinessRegistrationConnector = mock[BusinessRegistrationConnector]
+  val mockHeldSubmissionRepository: HeldSubmissionMongoRepository = mock[HeldSubmissionMongoRepository]
+  val mockAuditConnector: AuditConnector = mock[AuditConnector]
+  val mockIIConnector: IncorporationInformationConnector = mock[IncorporationInformationConnector]
+  val mockDesConnector: DesConnector = mock[DesConnector]
 
-  val dateTime = DateTime.parse("2016-10-27T16:28:59.000")
+  val dateTime: DateTime = DateTime.parse("2016-10-27T16:28:59.000")
+
+  val regId = "reg-id-12345"
+  val transId = "trans-id-12345"
+  val timestamp = "2016-10-27T17:06:23.000Z"
 
   class Setup {
     val service = new CorporationTaxRegistrationService {
-      override val corporationTaxRegistrationRepository = mockCTDataRepository
-      override val sequenceRepository = mockSequenceRepository
-      override val stateDataRepository = mockStateDataRepository
-      override val microserviceAuthConnector = mockAuthConnector
-      override val brConnector = mockBusinessRegistrationConnector
-      override val heldSubmissionRepository = mockHeldSubmissionRepository
-      val currentDateTime = dateTime
-      override val submissionCheckAPIConnector = mockIncorporationCheckAPIConnector
-      val auditConnector = mockAuditConnector
-      val incorpInfoConnector = mockIncorpInfoConnector
-      override val desConnector: DesConnector = mockDesConnector
+      val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository = mockCTDataRepository
+      val sequenceRepository: SequenceRepository = mockSequenceRepository
+      val stateDataRepository: StateDataRepository = mockStateDataRepository
+      val microserviceAuthConnector: AuthConnector = mockAuthConnector
+      val brConnector: BusinessRegistrationConnector = mockBRConnector
+      val heldSubmissionRepository: HeldSubmissionRepository = mockHeldSubmissionRepository
+      val submissionCheckAPIConnector: IncorporationCheckAPIConnector = mockIncorporationCheckAPIConnector
+      val auditConnector: AuditConnector = mockAuditConnector
+      val incorpInfoConnector: IncorporationInformationConnector = mockIIConnector
+      val desConnector: DesConnector = mockDesConnector
+      val currentDateTime: DateTime = dateTime
+    }
+
+    System.clearProperty("feature.etmpHoldingPen")
+    System.clearProperty("feature.registerInterest")
+
+    reset(
+      mockCTDataRepository, mockSequenceRepository, mockStateDataRepository, mockAuthConnector, mockBRConnector,
+      mockHeldSubmissionRepository, mockIncorporationCheckAPIConnector, mockAuditConnector, mockIIConnector, mockDesConnector
+    )
+
+    protected def mockGenerateAckRef(ackRef: Int): OngoingStubbing[_] = SequenceRepositoryMocks.getNext("AcknowledgementID", ackRef)
+
+    val stubbedService = new CorporationTaxRegistrationService {
+      val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository = mockCTDataRepository
+      val sequenceRepository: SequenceRepository = mockSequenceRepository
+      val stateDataRepository: StateDataRepository = mockStateDataRepository
+      val microserviceAuthConnector: AuthConnector = mockAuthConnector
+      val brConnector: BusinessRegistrationConnector = mockBRConnector
+      val heldSubmissionRepository: HeldSubmissionRepository = mockHeldSubmissionRepository
+      val submissionCheckAPIConnector: IncorporationCheckAPIConnector = mockIncorporationCheckAPIConnector
+      val auditConnector: AuditConnector = mockAuditConnector
+      val incorpInfoConnector: IncorporationInformationConnector = mockIIConnector
+      val desConnector: DesConnector = mockDesConnector
+      val currentDateTime: DateTime = dateTime
+
+      override def isRegistrationHeld(regId: String) = Future.successful(false)
+      override def submitPartial(rID: String, refs: ConfirmationReferences, admin: Option[Admin] = None)
+                                (implicit hc: HeaderCarrier, req: Request[AnyContent]) = Future.successful(refs)
     }
   }
 
+  def corporationTaxRegistration(regId: String = regId,
+                                 status: String = DRAFT,
+                                 confRefs: Option[ConfirmationReferences] = None): CorporationTaxRegistration = {
+    CorporationTaxRegistration(
+      internalId = "testID",
+      registrationID = regId,
+      formCreationTimestamp = dateTime.toString,
+      language = "en",
+      companyDetails = Some(CompanyDetails(
+        "testCompanyName",
+        CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
+        PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), None, None, "txid"))),
+        "testJurisdiction"
+      )),
+      contactDetails = Some(ContactDetails(
+        "testFirstName",
+        Some("testMiddleName"),
+        "testSurname",
+        Some("0123456789"),
+        Some("0123456789"),
+        Some("test@email.co.uk")
+      )),
+      tradingDetails = Some(TradingDetails("false")),
+      status = status,
+      confirmationReferences = confRefs
+    )
+  }
+
+  def partialDesSubmission(ackRef: String, timestamp: String = "2016-10-27T17:06:23.000Z"): JsObject = Json.parse(
+    s"""
+       |{
+       | "acknowledgementReference":"$ackRef",
+       | "registration":{
+       |   "metadata":{
+       |     "businessType":"Limited company",
+       |     "submissionFromAgent":false,
+       |     "declareAccurateAndComplete":true,
+       |     "sessionId":"session-40fdf8c0-e2b1-437c-83b5-8689c2e1bc43",
+       |     "credentialId":"cred-id-543212311772",
+       |     "language":"en",
+       |     "formCreationTimestamp":"$timestamp",
+       |     "completionCapacity":"Other",
+       |     "completionCapacityOther":"director"
+       |   },
+       |   "corporationTax":{
+       |     "companyOfficeNumber":"001",
+       |     "hasCompanyTakenOverBusiness":false,
+       |     "companyMemberOfGroup":false,
+       |     "companiesHouseCompanyName":"testCompanyName",
+       |     "returnsOnCT61":false,
+       |     "companyACharity":false,
+       |     "businessAddress":{
+       |       "line1":"",
+       |       "line2":"",
+       |       "line3":null,
+       |       "line4":null,
+       |       "postcode":null,
+       |       "country":null
+       |     },
+       |     "businessContactName":{
+       |       "firstName":"Jenifer",
+       |       "middleNames":null,
+       |       "lastName":null
+       |     },
+       |     "businessContactDetails":{
+       |       "telephoneNumber":"123",
+       |       "mobileNumber":"123",
+       |       "emailAddress":"6email@whatever.com"
+       |     }
+       |   }
+       | }
+       |}
+      """.stripMargin).as[JsObject]
 
   "createCorporationTaxRegistrationRecord" should {
+
     "create a new ctData record and return a 201 - Created response" in new Setup {
       CTDataRepositoryMocks.createCorporationTaxRegistration(validDraftCorporationTaxRegistration)
 
@@ -81,6 +193,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
   }
 
   "retrieveCorporationTaxRegistrationRecord" should {
+
     "return Corporation Tax registration response Json and a 200 - Ok when a record is retrieved" in new Setup {
       CTDataRepositoryMocks.retrieveCorporationTaxRegistration(Some(validDraftCorporationTaxRegistration))
 
@@ -96,13 +209,15 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
     }
   }
 
-  "updateConfirmationReferences" should {
-    val registrationId = "testRegId"
+  "handleSubmission" should {
+
+    val ho6RequestBody = ConfirmationReferences("", "testPayRef", "testPayAmount", "12")
+
     val ackRef = "testAckRef"
     val timestamp = "2016-10-27T17:06:23.000Z"
 
     val businessRegistration = BusinessRegistration(
-      registrationId,
+      regId,
       timestamp,
       "en",
       Some("Director")
@@ -110,7 +225,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
 
     val corporationTaxRegistration = CorporationTaxRegistration(
       internalId = "testID",
-      registrationID = registrationId,
+      registrationID = regId,
       formCreationTimestamp = dateTime.toString,
       language = "en",
       companyDetails = Some(CompanyDetails(
@@ -177,179 +292,252 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
       """.stripMargin).as[JsObject]
 
     val heldSubmission = HeldSubmissionData(
-      registrationId,
+      regId,
       ackRef,
       partialDesSubmission.toString()
     )
 
-    "return the updated reference acknowledgement number if there are no existing conf refs for the supplied reg ID" in new Setup {
 
-      val heldStatus = "held"
-      val expected = ConfirmationReferences("testTransaction", "testPayRef", "testPayAmount", "")
+    "handle the partial submission when there is no held document" in new Setup {
 
-      val userDetails = UserDetailsModel("testName", "testEmail", "testAffinityGroup", None, None, None, None, "testAuthProviderId", "testAuthProviderType")
+      val confRefs = ho6RequestBody
 
-      when(mockCTDataRepository.retrieveConfirmationReference(registrationId))
-        .thenReturn(Future.successful(None))
-      when(mockBusinessRegistrationConnector.retrieveMetadata(Matchers.any())(Matchers.any(), Matchers.any()))
-        .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
-      when(mockCTDataRepository.updateConfirmationReferences(Matchers.any(), Matchers.any()))
-        .thenReturn(Future.successful(Some(expected)))
-      when(mockAuthConnector.getCurrentAuthority()(Matchers.any()))
-        .thenReturn(Future.successful(Some(validAuthority)))
-      when(mockCTDataRepository.retrieveCorporationTaxRegistration(Matchers.eq(registrationId)))
-        .thenReturn(Future.successful(Some(corporationTaxRegistration)))
-      when(mockHeldSubmissionRepository.storePartialSubmission(Matchers.eq(registrationId), Matchers.any(), Matchers.any()))
-        .thenReturn(Future.successful(Some(heldSubmission)))
-      when(mockCTDataRepository.updateSubmissionStatus(Matchers.any(), Matchers.any()))
-        .thenReturn(Future.successful(heldStatus))
-      when(mockCTDataRepository.removeTaxRegistrationInformation(registrationId))
-        .thenReturn(Future.successful(true))
-      when(mockCTDataRepository.retrieveCompanyDetails(Matchers.any()))
-        .thenReturn(Future.successful(Some(validCompanyDetails)))
-      when(mockAuthConnector.getUserDetails(Matchers.any())).thenReturn(Future.successful(Some(userDetails)))
-      when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any()))
-        .thenReturn(Future.successful(AuditResult.Success))
-      when(mockIncorpInfoConnector.registerInterest(Matchers.anyString(), Matchers.anyString(), Matchers.any())(Matchers.any(), Matchers.any()))
-        .thenReturn(Future.successful(true))
-
-      SequenceRepositoryMocks.getNext("testSeqID", 3)
-
-      val result = service.updateConfirmationReferences(registrationId, ConfirmationReferences("testTransaction", "testPayRef", "testPayAmount", ""))
-      await(result) shouldBe Some(expected)
+      val result: ConfirmationReferences = await(stubbedService.handleSubmission(regId, ho6RequestBody))
+      result shouldBe confRefs
     }
 
-    "return confirmation references if they already exist for the supplied regID in CR collection" in new Setup {
+    "return the confirmation references when document is already Held" in new Setup {
 
-      val heldStatus = "held"
-      val fromCoho = ConfirmationReferences("testTransaction", "testPayRef", "testPayAmount", "")
-      val existing = ConfirmationReferences("testTransExist", "testPayRefExist", "testPayAmountExist", "")
+      val confRefs = ConfirmationReferences("BRCT00000000123", "testPayRef", "testPayAmount", "12")
 
-      val userDetails = UserDetailsModel("testName", "testEmail", "testAffinityGroup", None, None, None, None, "testAuthProviderId", "testAuthProviderType")
+      when(mockCTDataRepository.fetchDocumentStatus(eqTo(regId)))
+        .thenReturn(OptionT(Future.successful(Option(HELD))))
 
-      when(mockCTDataRepository.retrieveConfirmationReference(registrationId))
-        .thenReturn(Future.successful(Some(existing)))
+      when(mockCTDataRepository.retrieveConfirmationReferences(eqTo(regId)))
+        .thenReturn(Future.successful(Some(confRefs)))
 
-      val result = service.updateConfirmationReferences(registrationId, fromCoho)
-      await(result) shouldBe Some(existing)
+      val result = await(service.handleSubmission(regId, ho6RequestBody))
+      result shouldBe confRefs
+    }
+
+    "throw an exception when document is in Held but has no confirmation references" in new Setup {
+      when(mockCTDataRepository.fetchDocumentStatus(eqTo(regId)))
+        .thenReturn(OptionT(Future.successful(Option(HELD))))
+      when(mockCTDataRepository.retrieveConfirmationReferences(eqTo(regId)))
+        .thenReturn(Future.successful(None))
+
+      intercept[RuntimeException](await(service.handleSubmission(regId, ho6RequestBody)))
     }
   }
 
   "retrieveConfirmationReference" should {
-    val regID: String = "testRegID"
-    "return an refs if found" in new Setup {
-      val expected = ConfirmationReferences("testTransaction", "testPayRef", "testPayAmount", "")
 
-      when(mockCTDataRepository.retrieveConfirmationReference(Matchers.contains(regID)))
+    "return an refs if found" in new Setup {
+      val expected = ConfirmationReferences("testTransaction", "testPayRef", "testPayAmount", "12")
+
+      when(mockCTDataRepository.retrieveConfirmationReferences(eqTo(regId)))
         .thenReturn(Future.successful(Some(expected)))
 
-      val result = service.retrieveConfirmationReference(regID)
-      await(result) shouldBe Some(expected)
+      val result: Option[ConfirmationReferences] = await(service.retrieveConfirmationReferences(regId))
+      result shouldBe Some(expected)
     }
 
     "return an empty option if an Ack ref is not found" in new Setup {
-      when(mockCTDataRepository.retrieveConfirmationReference(Matchers.contains(regID)))
+      when(mockCTDataRepository.retrieveConfirmationReferences(eqTo(regId)))
         .thenReturn(Future.successful(None))
 
-      val result = service.retrieveConfirmationReference(regID)
-      await(result) shouldBe None
+      val result: Option[ConfirmationReferences] = await(service.retrieveConfirmationReferences(regId))
+      result shouldBe None
+    }
+  }
+
+  "isRegistrationHeld" should {
+
+    "return a true when the document status fetched is held" in new Setup {
+
+      when(mockCTDataRepository.fetchDocumentStatus(eqTo(regId)))
+        .thenReturn(OptionT(Future.successful(Option(HELD))))
+
+      val result: Boolean = await(service.isRegistrationHeld(regId))
+      result shouldBe true
+    }
+
+    "return a false when the document status fetched is not held" in new Setup {
+
+      when(mockCTDataRepository.fetchDocumentStatus(eqTo(regId)))
+        .thenReturn(OptionT(Future.successful(Option("otherStatus"))))
+
+      val result: Boolean = await(service.isRegistrationHeld(regId))
+      result shouldBe false
+    }
+
+    "throw a RuntimeException when a registration document can't be found" in new Setup {
+
+      when(mockCTDataRepository.fetchDocumentStatus(eqTo(regId)))
+        .thenReturn(OptionT(Future.successful(None: Option[String])))
+
+      val ex: Exception = intercept[RuntimeException](await(service.isRegistrationHeld(regId)))
+      ex.getMessage shouldBe s"Registration status not found for regId : $regId"
+    }
+  }
+
+  "storeConfirmationReferences" should {
+
+    val confRefs = ConfirmationReferences("testAckRef", "testPayRef", "testPayAmount", "12")
+
+    "return the same confirmation refs that were supplied on a successful store" in new Setup {
+
+      when(mockCTDataRepository.updateConfirmationReferences(eqTo(regId), eqTo(confRefs)))
+        .thenReturn(Future.successful(Some(confRefs)))
+
+      val result: ConfirmationReferences = await(service.storeConfirmationReferences(regId, confRefs))
+      result shouldBe confRefs
+    }
+
+    "throw a RuntimeException when the repository returns a None on an unsuccessful store" in new Setup {
+
+      when(mockCTDataRepository.updateConfirmationReferences(eqTo(regId), eqTo(confRefs)))
+        .thenReturn(Future.successful(None))
+
+      val ex: Exception = intercept[RuntimeException](await(service.storeConfirmationReferences(regId, confRefs)))
+      ex.getMessage shouldBe s"[HO6] Could not update confirmation refs for regId: $regId - registration document not found"
+    }
+  }
+
+  "registerInterest" should {
+
+    "return true when the register interest feature flag is enabled and the IIConnector returned true" in new Setup {
+      System.setProperty("feature.registerInterest", "true")
+
+      when(mockIIConnector.registerInterest(eqTo(regId), eqTo(transId), any())(any(), any()))
+        .thenReturn(Future.successful(true))
+
+      val result: Boolean = await(service.registerInterest(regId, transId))
+      result shouldBe true
+
+      verify(mockIIConnector, times(1)).registerInterest(eqTo(regId), eqTo(transId), any())(any(), any())
+    }
+
+    "return false when the register interest feature flag is disabled" in new Setup {
+      System.setProperty("feature.registerInterest", "false")
+
+      val result: Boolean = await(service.registerInterest(regId, transId))
+      result shouldBe false
+
+      verify(mockIIConnector, times(0)).registerInterest(eqTo(regId), eqTo(transId), any())(any(), any())
+    }
+  }
+
+  "storePartialSubmission" should {
+
+    val ackRef = "ack-ref-12345"
+
+    val partialSubmission = partialDesSubmission(ackRef)
+
+    val dateTime = DateTime.now()
+
+    val heldSubmissionData = HeldSubmissionData(regId, ackRef, partialSubmission.toString, dateTime)
+
+    "send a partial submission to DES when the ETMP feature flag is enabled and return a HeldSubmissionData object when the connector returns a 200 HttpResponse" in new Setup {
+      System.setProperty("feature.etmpHoldingPen", "true")
+
+      when(mockDesConnector.ctSubmission(eqTo(ackRef), eqTo(partialSubmission), eqTo(regId), any())(any()))
+        .thenReturn(Future.successful(HmrcHttpResponse(200)))
+
+      val result: HeldSubmissionData = await(service.storePartialSubmission(regId, ackRef, partialSubmission))
+      val heldSubmissionWithSameSubmissionTime: HeldSubmissionData = heldSubmissionData.copy(heldTime = result.heldTime)
+
+      result shouldBe heldSubmissionWithSameSubmissionTime
+
+      verify(mockDesConnector, times(1)).ctSubmission(eqTo(ackRef), eqTo(partialSubmission), eqTo(regId), any())(any())
+    }
+
+    "send a partial submission to the Held repository when the ETMP feature flag is disabled and return a HeldSubmissionData object when the repository returns a held submission" in new Setup {
+      System.setProperty("feature.etmpHoldingPen", "false")
+
+      when(mockHeldSubmissionRepository.retrieveSubmissionByAckRef(eqTo(ackRef)))
+        .thenReturn(Future.successful(None))
+      when(mockHeldSubmissionRepository.storePartialSubmission(eqTo(regId), eqTo(ackRef), eqTo(partialSubmission)))
+        .thenReturn(Future.successful(Some(heldSubmissionData)))
+
+      await(service.storePartialSubmission(regId, ackRef, partialSubmission)) shouldBe heldSubmissionData
+
+      verify(mockDesConnector, times(0)).ctSubmission(eqTo(ackRef), eqTo(partialSubmission), eqTo(regId), any())(any())
+    }
+
+    "throw a Runtime exception when the ETMP feature flag is disabled and the repository returns a None" in new Setup {
+      System.setProperty("feature.etmpHoldingPen", "false")
+
+      when(mockHeldSubmissionRepository.retrieveSubmissionByAckRef(eqTo(ackRef)))
+        .thenReturn(Future.successful(None))
+      when(mockHeldSubmissionRepository.storePartialSubmission(eqTo(regId), eqTo(ackRef), eqTo(partialSubmission)))
+        .thenReturn(Future.successful(None))
+
+      intercept[RuntimeException](await(service.storePartialSubmission(regId, ackRef, partialSubmission)))
+
+      verify(mockDesConnector, times(0)).ctSubmission(eqTo(ackRef), eqTo(partialSubmission), eqTo(regId), any())(any())
     }
   }
 
   "retrieveCredId" should {
 
-    implicit val hc = HeaderCarrier(sessionId = Some(SessionId("testSessionId")))
-
+    val gatewayId = "testGatewayID"
     val userIDs = UserIds("foo", "bar")
-    val authority = Authority("testURI", "testGatewayID", "testUserDetailsLink", userIDs)
+    val authority = Authority("testURI", gatewayId, "testUserDetailsLink", userIDs)
 
     "return the credential id" in new Setup {
-      when(mockAuthConnector.getCurrentAuthority()(Matchers.any()))
+      when(mockAuthConnector.getCurrentAuthority()(any()))
         .thenReturn(Future.successful(Some(authority)))
 
-      val result = service.retrieveCredId
-      await(result) shouldBe "testGatewayID"
+      val result: String = await(service.retrieveCredId)
+      result shouldBe gatewayId
     }
-
-//    "return a FailedToGetCredId if an authority cannot be found for the logged in user" in new Setup {
-//      when(mockAuthConnector.getCurrentAuthority()(Matchers.any()))
-//        .thenReturn(Future.successful(None))
-//
-//      val result = service.retrieveCredId
-//
-//      intercept[FailedToGetCredId](await(result))
-//    }
   }
 
   "retrieveBRMetadata" should {
 
-    val registrationId = "testRegId"
-
-    implicit val hc = HeaderCarrier()
-
     val businessRegistration = BusinessRegistration(
-      registrationId,
+      regId,
       "testTimeStamp",
       "en",
       Some("Director")
     )
 
     "return a business registration" in new Setup {
-      when(mockBusinessRegistrationConnector.retrieveMetadata(Matchers.any())(Matchers.any(), Matchers.any()))
+      when(mockBRConnector.retrieveMetadata(Matchers.any())(Matchers.any(), Matchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
 
-      val result = service.retrieveBRMetadata(registrationId)
-      await(result) shouldBe businessRegistration
+      val result: BusinessRegistration = await(service.retrieveBRMetadata(regId))
+      result shouldBe businessRegistration
     }
-
-//    "return a FailedToGetBRMetadata if a record cannot be found" in new Setup {
-//      when(mockBusinessRegistrationConnector.retrieveMetadata(Matchers.any(), Matchers.any()))
-//        .thenReturn(Future.successful(BusinessRegistrationNotFoundResponse))
-//
-//      val result = service.retrieveBRMetadata(registrationId)
-//
-//      intercept[FailedToGetBRMetadata](await(result))
-//
-//    }
   }
 
   "retrieveCTData" should {
 
-    val registrationId = "testRegId"
-
     val corporationTaxRegistration = CorporationTaxRegistration(
       internalId = "testID",
-      registrationID = registrationId,
+      registrationID = regId,
       formCreationTimestamp = "testTimeStamp",
       language = "en"
     )
 
     "return a CorporationTaxRegistration" in new Setup {
-      when(mockCTDataRepository.retrieveCorporationTaxRegistration(Matchers.eq(registrationId)))
+      when(mockCTDataRepository.retrieveCorporationTaxRegistration(eqTo(regId)))
         .thenReturn(Future.successful(Some(corporationTaxRegistration)))
 
-      val result = service.retrieveCTData(registrationId)
-      await(result) shouldBe corporationTaxRegistration
+      val result: CorporationTaxRegistration = await(service.retrieveCTData(regId))
+      result shouldBe corporationTaxRegistration
     }
-
-//    "return a FailedToGetCTData when a record cannot be retrieved" in new Setup {
-//      when(mockCTDataRepository.retrieveCorporationTaxRegistration(Matchers.eq(registrationId)))
-//        .thenReturn(Future.successful(None))
-//
-//      val result = service.retrieveCTData(registrationId)
-//      intercept[FailedToGetCTData](await(result))
-//    }
   }
 
   "buildInterimSubmission" should {
 
-    val registrationId = "testRegId"
     val ackRef = "testAckRef"
     val sessionId = "testSessionId"
     val credId = "testCredId"
 
     val businessRegistration = BusinessRegistration(
-      registrationId,
+      regId,
       dateTime.toString,
       "en",
       Some("Director")
@@ -385,7 +573,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
 
     "return a valid InterimDesRegistration with full contact details" in new Setup {
 
-      val ctReg = getCTReg(registrationId, Some(companyDetails1), Some(contactDetails1))
+      val ctReg = getCTReg(regId, Some(companyDetails1), Some(contactDetails1))
       val result = service.buildInterimSubmission(ackRef, sessionId, credId, businessRegistration, ctReg, dateTime)
 
       await(result) shouldBe InterimDesRegistration(
@@ -403,7 +591,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
 
     "return a valid InterimDesRegistration with minimal deatils" in new Setup {
 
-      val ctReg = getCTReg(registrationId, Some(companyDetails2), Some(contactDetails2))
+      val ctReg = getCTReg(regId, Some(companyDetails2), Some(contactDetails2))
       val result = service.buildInterimSubmission(ackRef, sessionId, credId, businessRegistration, ctReg, dateTime)
 
       await(result) shouldBe InterimDesRegistration(
@@ -478,18 +666,17 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
         )
       )
 
-      when(mockBusinessRegistrationConnector.retrieveMetadata(Matchers.any())(Matchers.any(), Matchers.any()))
+      when(mockBRConnector.retrieveMetadata(Matchers.any())(Matchers.any(), Matchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
       when(mockAuthConnector.getCurrentAuthority()(Matchers.any()))
         .thenReturn(Future.successful(Some(authority)))
-      when(mockCTDataRepository.retrieveCorporationTaxRegistration(Matchers.eq(registrationId)))
+      when(mockCTDataRepository.retrieveCorporationTaxRegistration(eqTo(registrationId)))
         .thenReturn(Future.successful(Some(corporationTaxRegistration)))
 
       val result = service.buildPartialDesSubmission(registrationId, ackRef)
       await(result).toString shouldBe interimDesRegistration.toString
     }
   }
-
 
   "updateCTRecordWithAckRefs" should {
 
@@ -503,7 +690,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
 
     "return None" when {
       "the given ack ref cant be matched against a CT record" in new Setup {
-        when(mockCTDataRepository.retrieveByAckRef(Matchers.eq(ackRef)))
+        when(mockCTDataRepository.retrieveByAckRef(eqTo(ackRef)))
           .thenReturn(Future.successful(None))
 
         val result = await(service.updateCTRecordWithAckRefs(ackRef, refs))
@@ -513,10 +700,10 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
 
     "return an optional ack ref payload" when {
       "the ct record has been found and subsequently updated" in new Setup {
-        when(mockCTDataRepository.retrieveByAckRef(Matchers.eq(ackRef)))
+        when(mockCTDataRepository.retrieveByAckRef(eqTo(ackRef)))
           .thenReturn(Future.successful(Some(validHeldCorporationTaxRegistration)))
 
-        when(mockCTDataRepository.updateCTRecordWithAcknowledgments(Matchers.eq(ackRef), Matchers.eq(updated)))
+        when(mockCTDataRepository.updateCTRecordWithAcknowledgments(eqTo(ackRef), eqTo(updated)))
           .thenReturn(Future.successful(successfulWrite))
 
         val result = await(service.updateCTRecordWithAckRefs(ackRef, refs))
@@ -524,7 +711,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
       }
 
       "the ct record has been found but has been already updated" in new Setup {
-        when(mockCTDataRepository.retrieveByAckRef(Matchers.eq(ackRef)))
+        when(mockCTDataRepository.retrieveByAckRef(eqTo(ackRef)))
           .thenReturn(Future.successful(Some(updated)))
 
         val result = await(service.updateCTRecordWithAckRefs(ackRef, refs))
@@ -535,15 +722,8 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
 
   "checkDocumentStatus" should {
 
-    def corporationTaxRegistration(regId: String, testStatus: String) = CorporationTaxRegistration(
-      internalId = "9876543210",
-      registrationID = regId,
-      status = testStatus,
-      formCreationTimestamp = "2001-12-31T12:00:00Z",
-      language = "en"
-    )
-
     val registrationIds = Seq.fill(5)(UUID.randomUUID.toString)
+
     val heldSubmission = HeldSubmission(
       "registrationId",
       "ackRef",
@@ -551,6 +731,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
     )
 
     "log the status of a list of RegIds" in new Setup {
+
       val res = {
         Seq(corporationTaxRegistration(registrationIds(0), DRAFT),
             corporationTaxRegistration(registrationIds(1), HELD),
@@ -578,5 +759,4 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
       }
     }
   }
-
 }

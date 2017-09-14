@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package controllers
+package api
 
 import com.github.tomakehurst.wiremock.client.WireMock._
 import itutil.{IntegrationSpecBase, WiremockHelper}
-import models.{AccountingDetails, ConfirmationReferences, CorporationTaxRegistration, Email}
 import models.RegistrationStatus.HELD
+import models.{AccountingDetails, ConfirmationReferences, CorporationTaxRegistration, Email}
 import org.joda.time.DateTime
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder

@@ -69,12 +69,11 @@ trait AdminController extends BaseController with FutureInstances with Applicati
         val updatedHc = updateHeaderCarrierWithSessionId(identifiers.sessionId)
         val admin = Admin(identifiers.credId)
         fetchStatus(identifiers.registrationId) { statusBefore =>
-          ctService.updateConfirmationReferences(identifiers.registrationId, confirmationReferences, Some(admin))(updatedHc, request.map(js => AnyContentAsJson(js))) flatMap {
-            case Some(references) =>
+          ctService.handleSubmission(identifiers.registrationId, confirmationReferences, Some(admin))(updatedHc, request.map(js => AnyContentAsJson(js))) flatMap {
+            references =>
               Logger.info(s"[Admin Confirmation Refs] Acknowledgement ref : ${references.acknowledgementReference} " +
                 s"- Transaction id : ${references.transactionId} - Payment ref : ${references.paymentReference}")
               buildResponse(strideUser, isSuccess = true, statusBefore, identifiers)
-            case None => buildResponse(strideUser, isSuccess = false, statusBefore, identifiers)
           } recoverWith {
             case _: CorporationTaxRegistrationService#FailedToGetCTData =>
               Logger.error(s"[Admin] [updateConfirmationReferences] No CT data found for regId : ${identifiers.registrationId}")

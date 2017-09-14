@@ -295,7 +295,7 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
       val selector = BSONDocument("registrationID" -> BSONString(registrationID))
       setupFindFor(repository.collection, selector, Some(validDraftCorporationTaxRegistration))
 
-      val result = await(repository.retrieveConfirmationReference(registrationID))
+      val result = await(repository.retrieveConfirmationReferences(registrationID))
       result shouldBe None
     }
 
@@ -303,7 +303,7 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
       val selector = BSONDocument("registrationID" -> BSONString(registrationID))
       setupFindFor(repository.collection, selector, Some(validHeldCorporationTaxRegistration))
 
-      val result = await(repository.retrieveConfirmationReference(registrationID))
+      val result = await(repository.retrieveConfirmationReferences(registrationID))
       result shouldBe Some(validConfirmationReferences)
     }
 
@@ -311,7 +311,7 @@ class CorporationTaxRegistrationRepositorySpec extends UnitSpec with MongoSpecSu
       val selector = BSONDocument("registrationID" -> BSONString(registrationID))
       setupFindFor(repository.collection, selector, None)
 
-      val result = await(repository.retrieveConfirmationReference(registrationID))
+      val result = await(repository.retrieveConfirmationReferences(registrationID))
       result shouldBe None
     }
   }

@@ -31,29 +31,30 @@ import models.admin.Admin
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
-import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.http.HeaderCarrier
 import cats.implicits._
 import utils.SCRSFeatureSwitches
+import RegistrationStatus._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.control.NoStackTrace
 
 object CorporationTaxRegistrationService extends CorporationTaxRegistrationService {
-  override val corporationTaxRegistrationRepository = Repositories.cTRepository
-  override val sequenceRepository = Repositories.sequenceRepository
-  override val stateDataRepository = Repositories.stateDataRepository
-  override val microserviceAuthConnector = AuthConnector
-  override val brConnector = BusinessRegistrationConnector
-  val heldSubmissionRepository = Repositories.heldSubmissionRepository
+  val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository = Repositories.cTRepository
+  val sequenceRepository: SequenceMongoRepository = Repositories.sequenceRepository
+  val stateDataRepository: StateDataMongoRepository = Repositories.stateDataRepository
+  val heldSubmissionRepository: HeldSubmissionMongoRepository = Repositories.heldSubmissionRepository
+
+  val microserviceAuthConnector = AuthConnector
+  val brConnector = BusinessRegistrationConnector
   val auditConnector = MicroserviceAuditConnector
+  val submissionCheckAPIConnector = IncorporationCheckAPIConnector
+  val desConnector = DesConnector
   lazy val incorpInfoConnector = IncorporationInformationConnector
 
-  def currentDateTime = DateTime.now(DateTimeZone.UTC)
-
-  override val submissionCheckAPIConnector = IncorporationCheckAPIConnector
-  val desConnector = DesConnector
+  def currentDateTime: DateTime = DateTime.now(DateTimeZone.UTC)
 }
 
 sealed trait RegistrationProgress
@@ -62,7 +63,7 @@ case object CompanyRegistrationDoesNotExist extends RegistrationProgress
 
 trait CorporationTaxRegistrationService extends DateHelper {
 
-  val corporationTaxRegistrationRepository: CorporationTaxRegistrationRepository
+  val cTRegistrationRepository: CorporationTaxRegistrationRepository
   val sequenceRepository: SequenceRepository
   val stateDataRepository: StateDataRepository
   val microserviceAuthConnector: AuthConnector
@@ -71,27 +72,28 @@ trait CorporationTaxRegistrationService extends DateHelper {
   val auditConnector: AuditConnector
   val incorpInfoConnector :IncorporationInformationConnector
   val desConnector: DesConnector
+  val submissionCheckAPIConnector: IncorporationCheckAPIConnector
 
   def currentDateTime: DateTime
 
-  val submissionCheckAPIConnector: IncorporationCheckAPIConnector
+  def fetchStatus(regId: String): OptionT[Future, String] = cTRegistrationRepository.fetchDocumentStatus(regId)
 
   def updateRegistrationProgress(regID: String, progress: String): Future[RegistrationProgress] = {
-    corporationTaxRegistrationRepository.updateRegistrationProgress(regID, progress).map{
+    cTRegistrationRepository.updateRegistrationProgress(regID, progress).map{
       case Some(_) => RegistrationProgressUpdated
       case None => CompanyRegistrationDoesNotExist
     }
   }
 
   def updateCTRecordWithAckRefs(ackRef: String, refPayload: AcknowledgementReferences): Future[Option[CorporationTaxRegistration]] = {
-    corporationTaxRegistrationRepository.retrieveByAckRef(ackRef) flatMap {
+    cTRegistrationRepository.retrieveByAckRef(ackRef) flatMap {
       case Some(record) =>
         record.acknowledgementReferences match {
-          case Some(refs) =>
+          case Some(_) =>
             Logger.info(s"[CorporationTaxRegistrationService] - [updateCTRecordWithAckRefs] : Record previously updated")
             Future.successful(Some(record))
           case None =>
-            corporationTaxRegistrationRepository.updateCTRecordWithAcknowledgments(ackRef, record.copy(acknowledgementReferences = Some(refPayload), status = "acknowledged")) map {
+            cTRegistrationRepository.updateCTRecordWithAcknowledgments(ackRef, record.copy(acknowledgementReferences = Some(refPayload), status = "acknowledged")) map {
               _ => Some(record)
             }
         }
@@ -108,11 +110,11 @@ trait CorporationTaxRegistrationService extends DateHelper {
       formCreationTimestamp = formatTimestamp(currentDateTime),
       language = language)
 
-    corporationTaxRegistrationRepository.createCorporationTaxRegistration(record)
+    cTRegistrationRepository.createCorporationTaxRegistration(record)
   }
 
   def retrieveCorporationTaxRegistrationRecord(rID: String, lastSignedIn: Option[DateTime] = None): Future[Option[CorporationTaxRegistration]] = {
-    val repo = corporationTaxRegistrationRepository
+    val repo = cTRegistrationRepository
     repo.retrieveCorporationTaxRegistration(rID) map {
       doc =>
         lastSignedIn map ( repo.updateLastSignedIn(rID, _))
@@ -120,36 +122,74 @@ trait CorporationTaxRegistrationService extends DateHelper {
     }
   }
 
-  def updateConfirmationReferences(rID: String, refs: ConfirmationReferences, admin: Option[Admin] = None)
-                                  (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[Option[ConfirmationReferences]] = {
-    //todo: check if held instead of existence of conf refs
-    corporationTaxRegistrationRepository.retrieveConfirmationReference(rID) flatMap {
-      case existingRefs @ Some(_) =>
-        Logger.info(s"[CorporationTaxRegistrationService] [updateConfirmationReferences] - Confirmation refs for Reg ID: $rID already exist")
-        Future.successful(existingRefs)
-      case None =>
+  def handleSubmission(rID: String, refs: ConfirmationReferences, admin: Option[Admin] = None)
+                      (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[ConfirmationReferences] = {
+    isRegistrationHeld(rID).ifM(
+      ifTrue = {
+          Logger.info(s"[CorporationTaxRegistrationService] [updateConfirmationReferences] - Confirmation refs for Reg ID: $rID already exist")
+          cTRegistrationRepository.retrieveConfirmationReferences(rID) flatMap {
+            case Some(existingRefs) =>
+              Future.successful(existingRefs)
+            case _ =>
+              Logger.error(s"[CorporationTaxRegistrationService] [updateConfirmationReferences] - Registration status is held for regId: $rID but confirmation refs not found")
+              throw new RuntimeException(s"Registration status is held for regId: $rID but confirmation refs not found")
+          }
+        },
+      ifFalse = submitPartial(rID, refs, admin)
+    )
+  }
+
+  def submitPartial(rID: String, refs: ConfirmationReferences, admin: Option[Admin] = None)
+                   (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[ConfirmationReferences] = {
+    cTRegistrationRepository.retrieveConfirmationReferences(rID) flatMap {
+      case Some(cr) => Future.successful(cr)
+      case _ =>
         for {
-          ackRef             <- generateAcknowledgementReference
-          updatedRef         <- updateConfirmationRefs(rID, refs.copy(acknowledgementReference = ackRef))
-          _                  <- sendPartialSubmission(rID, ackRef, refs.transactionId, admin)
+          ackRef             <- generateAcknowledgementReference(rID)
+          updatedRefs        <- storeConfirmationReferences(rID, refs.copy(acknowledgementReference = ackRef))
         } yield {
-          updatedRef
+          updatedRefs
         }
+    } flatMap { cr =>
+        sendPartialSubmission(rID, cr, admin) map {if(_) cr else throw new RuntimeException("Document did not update successfully")}
     }
   }
 
-  def sendPartialSubmission(regId: String, ackRef: String, transId: String, admin: Option[Admin] = None)
+  private def generateAcknowledgementReference(regId: String): Future[String] = {
+    val sequenceID = "AcknowledgementID"
+    sequenceRepository.getNext(sequenceID)
+      .map(ref => f"BRCT$ref%011d")
+  }
+
+  def retrieveConfirmationReferences(rID: String): Future[Option[ConfirmationReferences]] = {
+    cTRegistrationRepository.retrieveConfirmationReferences(rID)
+  }
+
+  private[services] def isRegistrationHeld(regId: String): Future[Boolean] = {
+    fetchStatus(regId).fold(
+      throw new RuntimeException(s"Registration status not found for regId : $regId")
+    )(_ == HELD)
+  }
+
+  private[services] def sendPartialSubmission(regId: String, confRefs: ConfirmationReferences, admin: Option[Admin] = None)
                            (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[Boolean] = {
     for{
-      partialSubmission  <- buildPartialDesSubmission(regId, ackRef, admin)
-      _                  <- registerInterest(regId, transId)
-      _                  <- storeAndUpdateSubmission(regId, ackRef, partialSubmission, admin)
-      success            <- removeTaxRegistrationInformation(regId)
+      partialSubmission         <- buildPartialDesSubmission(regId, confRefs.acknowledgementReference, admin)
+      _                         <- registerInterest(regId, confRefs.transactionId)
+      _                         <- storePartial(regId, confRefs.acknowledgementReference, partialSubmission, admin)
+      partialSubmissionAsJson    = Json.toJson(partialSubmission).as[JsObject]
+      _                         <- auditUserPartialSubmission(regId, partialSubmissionAsJson, admin)
+      success                   <- cTRegistrationRepository.updateRegistrationToHeld(regId, confRefs) map (_.isDefined)
     } yield success
   }
 
-  private[services] def updateConfirmationRefs(regId: String, refs: ConfirmationReferences) = {
-    corporationTaxRegistrationRepository.updateConfirmationReferences(regId, refs)
+  private[services] def storeConfirmationReferences(regId: String, refs: ConfirmationReferences): Future[ConfirmationReferences] = {
+    cTRegistrationRepository.updateConfirmationReferences(regId, refs) map {
+      case Some(_) => refs
+      case None =>
+        Logger.error(s"[CorporationTaxRegistrationService] [HO6] [updateConfirmationRefs] - Could not find a registration document for regId : $regId")
+        throw new RuntimeException(s"[HO6] Could not update confirmation refs for regId: $regId - registration document not found")
+    }
   }
 
   private[services] def registerInterest(regId: String, transactionId: String)
@@ -157,28 +197,40 @@ trait CorporationTaxRegistrationService extends DateHelper {
     if(registerInterestRequired()) incorpInfoConnector.registerInterest(regId, transactionId) else Future.successful(false)
   }
 
-  private[services] def storeAndUpdateSubmission(rID: String, ackRef: String, heldSubmission: InterimDesRegistration, admin: Option[Admin] = None)
-                                                (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[String] = {
+  private[services] def storePartial(rID: String, ackRef: String, heldSubmission: InterimDesRegistration, admin: Option[Admin] = None)
+                                    (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[String] = {
     val submissionAsJson = Json.toJson(heldSubmission).as[JsObject]
     for {
       _                  <- storePartialSubmission(rID, ackRef, submissionAsJson)
-      submissionStatus   <- updateSubmissionStatus(rID, RegistrationStatus.HELD)
-      ctRegistration     <- corporationTaxRegistrationRepository.retrieveCompanyDetails(rID)
+      submissionStatus   <- cTRegistrationRepository.updateSubmissionStatus(rID, RegistrationStatus.HELD)
+    } yield {
+      submissionStatus
+    }
+  }
+
+  private[services] def auditUserPartialSubmission(regId: String, partialSubmission: JsObject, admin: Option[Admin] = None)
+                                                  (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[AuditResult] = {
+    for{
+      ctRegistration     <- cTRegistrationRepository.retrieveCompanyDetails(regId)
       credId             <- admin.fold(retrieveAuthProviderId)(_.credId.pure[Future])
-      _                  <- auditUserSubmission(rID, ctRegistration.get.ppob, credId, submissionAsJson)
-    } yield submissionStatus
+      auditResult        <- auditUserSubmission(regId, ctRegistration.get.ppob, credId, partialSubmission)
+    } yield auditResult
   }
 
   private[services] def storePartialSubmission(regId: String, ackRef: String, partialSubmission: JsObject)
                                               (implicit hc: HeaderCarrier): Future[HeldSubmissionData] = {
     if(toETMPHoldingPen){
       desConnector.ctSubmission(ackRef, partialSubmission, regId) map {
-        _ => HeldSubmissionData(regId, ackRef, partialSubmission.toString())
+        _ => HeldSubmissionData(regId, ackRef, partialSubmission.toString)
       }
     } else {
-      heldSubmissionRepository.storePartialSubmission(regId, ackRef, partialSubmission) map {
-        case Some(heldSubmission) => heldSubmission
-        case None => throw new RuntimeException("held submission failed to store")
+      heldSubmissionRepository.retrieveSubmissionByAckRef(ackRef) flatMap {
+        case Some(hs) => HeldSubmissionData(hs.regId, hs.ackRef, hs.submission.toString).pure[Future]
+        case None =>
+          heldSubmissionRepository.storePartialSubmission(regId, ackRef, partialSubmission) map {
+            case Some(heldSubmission) => heldSubmission
+            case None => throw new RuntimeException(s"[HO6] [storePartialSubmission] Held submission failed to store for regId: $regId")
+          }
       }
     }
   }
@@ -194,31 +246,6 @@ trait CorporationTaxRegistrationService extends DateHelper {
     }
     val event = new UserRegistrationSubmissionEvent(SubmissionEventDetail(rID, authProviderId, txID, uprn, ppob.addressType, jsSubmission))(hc, req)
     auditConnector.sendEvent(event)
-  }
-
-  private[services] class FailedToRemoveTaxRegistrationInformation extends NoStackTrace
-
-  private[services] def removeTaxRegistrationInformation(registrationId: String): Future[Boolean] = {
-    corporationTaxRegistrationRepository.removeTaxRegistrationInformation(registrationId) flatMap {
-      case true => Future.successful(true)
-      case false => Future.failed(new FailedToRemoveTaxRegistrationInformation)
-    }
-  }
-
-  def fetchStatus(regId: String): OptionT[Future, String] = corporationTaxRegistrationRepository.fetchDocumentStatus(regId)
-
-  def updateSubmissionStatus(rID: String, status: String): Future[String] = {
-    corporationTaxRegistrationRepository.updateSubmissionStatus(rID, status)
-  }
-
-  def retrieveConfirmationReference(rID: String): Future[Option[ConfirmationReferences]] = {
-    corporationTaxRegistrationRepository.retrieveConfirmationReference(rID)
-  }
-
-  private def generateAcknowledgementReference: Future[String] = {
-    val sequenceID = "AcknowledgementID"
-    sequenceRepository.getNext(sequenceID)
-      .map(ref => f"BRCT$ref%011d")
   }
 
   private[services] def buildPartialDesSubmission(regId: String, ackRef: String, admin: Option[Admin] = None)(implicit hc: HeaderCarrier): Future[InterimDesRegistration] = {
@@ -256,7 +283,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
   final class FailedToGetCTData extends NoStackTrace
 
   private[services] def retrieveCTData(regId: String): Future[CorporationTaxRegistration] = {
-    corporationTaxRegistrationRepository.retrieveCorporationTaxRegistration(regId) flatMap {
+    cTRegistrationRepository.retrieveCorporationTaxRegistration(regId) flatMap {
       case Some(ct) => Future.successful(ct)
       case _ => Future.failed(new FailedToGetCTData)
     }
@@ -311,7 +338,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
 
   def checkDocumentStatus(regIds: Seq[String]): Future[Seq[Boolean]] = {
     def check(regId: String) = {
-      corporationTaxRegistrationRepository.retrieveCorporationTaxRegistration(regId) map {
+      cTRegistrationRepository.retrieveCorporationTaxRegistration(regId) map {
         document =>
           val doc = document.get
           val status = doc.status
