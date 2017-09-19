@@ -46,6 +46,7 @@ object CompletionCapacity {
 
   def apply(text: String): CompletionCapacity = text.toLowerCase match {
     case d if d == Director.text.toLowerCase => Director
+    case s if s == Secretary.text.toLowerCase => Secretary
     case a if a == Agent.text.toLowerCase => Agent
     case _ => Other(text)
   }
@@ -53,6 +54,10 @@ object CompletionCapacity {
 
 case object Director extends CompletionCapacity {
   val text = "Director"
+}
+
+case object Secretary extends CompletionCapacity {
+  val text = "Secretary"
 }
 
 case object Agent extends CompletionCapacity {
