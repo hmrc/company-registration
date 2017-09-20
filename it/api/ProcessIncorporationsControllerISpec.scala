@@ -17,20 +17,22 @@
 package api
 
 import com.github.tomakehurst.wiremock.client.WireMock._
-import itutil.{IntegrationSpecBase, WiremockHelper}
+import com.github.tomakehurst.wiremock.stubbing.StubMapping
+import itutil.{IntegrationSpecBase, MongoIntegrationSpec, WiremockHelper}
 import models.RegistrationStatus.HELD
 import models.{AccountingDetails, ConfirmationReferences, CorporationTaxRegistration, Email}
 import org.joda.time.DateTime
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, Json}
-import play.api.libs.ws.WS
+import play.api.libs.ws.{WS, WSResponse}
 import play.modules.reactivemongo.MongoDbConnection
-import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmissionMongoRepository}
+import reactivemongo.api.commands.WriteResult
+import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmissionData, HeldSubmissionMongoRepository}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class ProcessIncorporationsControllerISpec extends IntegrationSpecBase {
+class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with MongoIntegrationSpec {
   val mockHost = WiremockHelper.wiremockHost
   val mockPort = WiremockHelper.wiremockPort
   val mockUrl = s"http://$mockHost:$mockPort"
@@ -49,7 +51,9 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase {
     "microservice.services.des-service.port" -> s"$mockPort",
     "microservice.services.des-service.url" -> s"$mockUrl/business-registration/corporation-tax",
     "microservice.services.des-service.environment" -> "local",
-    "microservice.services.des-service.authorization-token" -> "testAuthToken"
+    "microservice.services.des-service.authorization-token" -> "testAuthToken",
+    "microservice.services.des-topup-service.host" -> mockHost,
+    "microservice.services.des-topup-service.port" -> mockPort
   )
 
   override implicit lazy val app: Application = new GuiceApplicationBuilder()
@@ -61,12 +65,16 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase {
     withHeaders("Content-Type"->"application/json")
 
   class Setup extends MongoDbConnection {
-    val repository = new CorporationTaxRegistrationMongoRepository(db)
+    val ctRepository = new CorporationTaxRegistrationMongoRepository(db)
     val heldRepository = new HeldSubmissionMongoRepository(db)
-    await(repository.drop)
-    await(repository.ensureIndexes)
+    await(ctRepository.drop)
+    await(ctRepository.ensureIndexes)
     await(heldRepository.drop)
     await(heldRepository.ensureIndexes)
+
+    def setupCTRegistration(reg: CorporationTaxRegistration): WriteResult = ctRepository.insert(reg)
+    def setupHeldSubmission(regId: String, ackRef: String, heldJson: JsObject): Option[HeldSubmissionData] =
+      heldRepository.storePartialSubmission(regId, ackRef, heldJson)
   }
 
   val regId = "reg-id-12345"
@@ -190,12 +198,21 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase {
        |}
        """.stripMargin).as[JsObject]
 
+  def stubDesPost(status: Int, submission: String): StubMapping = stubPost("/business-registration/corporation-tax", status, submission)
+  def stubEmailPost(status: Int): StubMapping = stubPost("/hmrc/email", status, "")
+  def stubDesTopUpPost(status: Int, submission: String): StubMapping = stubPost("/business-incorporation/corporation-tax", status, submission)
+
   "Process Incorporation" should {
+
+    val path = "/process-incorp"
+    val testIncorpDate = "2017-07-24"
+
     "send a full submission to DES with correct active date" when {
+
       "user has selected a Future Date for Accounting Dates before the incorporation date" in new Setup {
         val incorpDate = "2017-07-24"
 
-        await(repository.insert(heldRegistration))
+        await(ctRepository.insert(heldRegistration))
         await(heldRepository.storePartialSubmission(regId, ackRef, heldJson))
 
         setupSimpleAuthMocks()
@@ -215,7 +232,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase {
       "user has selected a Future Date for Accounting Dates after the incorporation date" in new Setup {
         val incorpDate = "2017-07-22"
 
-        await(repository.insert(heldRegistration))
+        await(ctRepository.insert(heldRegistration))
         await(heldRepository.storePartialSubmission(regId, ackRef, heldJson))
 
         setupSimpleAuthMocks()
@@ -240,7 +257,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase {
           accountingDetails = Some(heldRegistration.accountingDetails.get.copy(status = WHEN_REGISTERED, activeDate = None))
         )
 
-        await(repository.insert(heldRegistration2))
+        await(ctRepository.insert(heldRegistration2))
         await(heldRepository.storePartialSubmission(regId, ackRef, heldJson))
 
         setupSimpleAuthMocks()
@@ -266,7 +283,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase {
           accountingDetails = Some(heldRegistration.accountingDetails.get.copy(status = NOT_PLANNING_TO_YET, activeDate = None))
         )
 
-        await(repository.insert(heldRegistration2))
+        await(ctRepository.insert(heldRegistration2))
         await(heldRepository.storePartialSubmission(regId, ackRef, heldJson))
 
         setupSimpleAuthMocks()
@@ -283,11 +300,12 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase {
         (json \ "registration" \ "corporationTax" \ "companyActiveDate").as[String] shouldBe activeDateToDES
       }
     }
+
     "handle an error response" when {
       "it is a 400" in new Setup {
         val incorpDate = "2017-07-24"
 
-        await(repository.insert(heldRegistration))
+        await(ctRepository.insert(heldRegistration))
         await(heldRepository.storePartialSubmission(regId, ackRef, heldJson))
 
         setupSimpleAuthMocks()
@@ -301,7 +319,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase {
       "it is a 409" in new Setup {
         val incorpDate = "2017-07-24"
 
-        await(repository.insert(heldRegistration))
+        await(ctRepository.insert(heldRegistration))
         await(heldRepository.storePartialSubmission(regId, ackRef, heldJson))
 
         setupSimpleAuthMocks()
@@ -315,7 +333,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase {
       "it is a 499" in new Setup {
         val incorpDate = "2017-07-24"
 
-        await(repository.insert(heldRegistration))
+        await(ctRepository.insert(heldRegistration))
         await(heldRepository.storePartialSubmission(regId, ackRef, heldJson))
 
         setupSimpleAuthMocks()
@@ -329,7 +347,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase {
       "it is a 501" in new Setup {
         val incorpDate = "2017-07-24"
 
-        await(repository.insert(heldRegistration))
+        await(ctRepository.insert(heldRegistration))
         await(heldRepository.storePartialSubmission(regId, ackRef, heldJson))
 
         setupSimpleAuthMocks()
@@ -340,6 +358,79 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase {
         val response = await(client("/process-incorp").post(jsonIncorpStatus(incorpDate)))
         response.status shouldBe 502
       }
+    }
+
+    "send a top-up submission to DES if a matching held registration exists and a held submission does not exist" in new Setup {
+
+      val jsonBodyFromII: String = jsonIncorpStatus(testIncorpDate)
+
+      setupSimpleAuthMocks()
+      setupCTRegistration(heldRegistration)
+
+      stubDesTopUpPost(200, """{"test":"json"}""")
+      stubEmailPost(202)
+
+      heldRepository.awaitCount shouldBe 0
+
+      val response: WSResponse = client(path).post(jsonBodyFromII)
+
+      response.status shouldBe 200
+
+      val reg :: _ = await(ctRepository.findAll())
+
+      reg.status shouldBe "submitted"
+    }
+
+    "send a full submission to DES if a matching held registration exists and a held submission exists" in new Setup {
+
+      val jsonBodyFromII: String = jsonIncorpStatus(testIncorpDate)
+
+      setupSimpleAuthMocks()
+      setupCTRegistration(heldRegistration)
+      setupHeldSubmission(regId, ackRef, heldJson)
+
+      heldRepository.awaitCount shouldBe 1
+
+      stubDesPost(202, """{"test":"json"}""")
+      stubEmailPost(202)
+
+      val response: WSResponse = client(path).post(jsonBodyFromII)
+
+      response.status shouldBe 200
+
+      val reg :: _ = await(ctRepository.findAll())
+
+      reg.status shouldBe "submitted"
+      heldRepository.awaitCount shouldBe 0
+    }
+
+    "return a 502 if the top-up submission to DES fails, then return a 200 when retried and the submission to DES is successful" in new Setup {
+
+      val jsonBodyFromII: String = jsonIncorpStatus(testIncorpDate)
+
+      setupSimpleAuthMocks()
+      setupCTRegistration(heldRegistration)
+
+      stubDesTopUpPost(502, """{"test":"json for 502"}""")
+      stubEmailPost(202)
+
+      heldRepository.awaitCount shouldBe 0
+
+      val response1: WSResponse = client(path).post(jsonBodyFromII)
+
+      response1.status shouldBe 502
+
+      val reg1 :: _ = await(ctRepository.findAll())
+      reg1.status shouldBe "held"
+
+      stubDesTopUpPost(200, """{"test":"json for 200"}""")
+
+      val response2: WSResponse = client(path).post(jsonBodyFromII)
+
+      response2.status shouldBe 200
+
+      val reg2 :: _ = await(ctRepository.findAll())
+      reg2.status shouldBe "submitted"
     }
   }
 }

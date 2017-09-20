@@ -198,14 +198,9 @@ trait CorporationTaxRegistrationService extends DateHelper {
   }
 
   private[services] def storePartial(rID: String, ackRef: String, heldSubmission: InterimDesRegistration, admin: Option[Admin] = None)
-                                    (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[String] = {
+                                    (implicit hc: HeaderCarrier, req: Request[AnyContent]) = {
     val submissionAsJson = Json.toJson(heldSubmission).as[JsObject]
-    for {
-      _                  <- storePartialSubmission(rID, ackRef, submissionAsJson)
-      submissionStatus   <- cTRegistrationRepository.updateSubmissionStatus(rID, RegistrationStatus.HELD)
-    } yield {
-      submissionStatus
-    }
+    storePartialSubmission(rID, ackRef, submissionAsJson)
   }
 
   private[services] def auditUserPartialSubmission(regId: String, partialSubmission: JsObject, admin: Option[Admin] = None)

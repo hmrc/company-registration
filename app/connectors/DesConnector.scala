@@ -32,7 +32,9 @@ trait DesConnector extends ServicesConfig with AuditService with RawResponseRead
 
   lazy val serviceURL = baseUrl("des-service")
   val baseURI = "/business-registration"
+  val baseTopUpURI = "/business-incorporation"
   val ctRegistrationURI = "/corporation-tax"
+  val ctRegistrationTopUpURI = "/corporation-tax"
 
   val urlHeaderEnvironment: String
   val urlHeaderAuthorization: String
@@ -64,6 +66,21 @@ trait DesConnector extends ServicesConfig with AuditService with RawResponseRead
     metricsService.processDataResponseWithMetrics[HttpResponse](metricsService.desSubmissionCRTimer.time()) {
       cPOST(url, submission) map { response =>
         Logger.info(s"[DesConnector] [ctSubmission] Submission to DES successful for regId: $journeyId AckRef:$ackRef")
+        sendCTRegSubmissionEvent(buildCTRegSubmissionEvent(ctRegSubmissionFromJson(journeyId, response.json.as[JsObject])))
+        response
+      } recoverWith {
+        case ex: Upstream4xxResponse =>
+          val event = new DesSubmissionEventFailure(journeyId, submission)
+          auditConnector.sendEvent(event)
+          throw ex
+      }
+    }
+  }
+
+ def topUpCTSubmission(ackRef:String, submission: JsObject, journeyId : String, isAdmin: Boolean = false)(implicit headerCarrier: HeaderCarrier): Future[HttpResponse] = {
+    val url: String = s"$serviceURL$baseTopUpURI$ctRegistrationURI"
+    metricsService.processDataResponseWithMetrics[HttpResponse](metricsService.desSubmissionCRTimer.time()) {
+      cPOST(url, submission) map { response =>
         sendCTRegSubmissionEvent(buildCTRegSubmissionEvent(ctRegSubmissionFromJson(journeyId, response.json.as[JsObject])))
         response
       } recoverWith {

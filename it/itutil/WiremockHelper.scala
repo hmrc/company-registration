@@ -51,7 +51,8 @@ trait WiremockHelper {
       )
     )
 
-  def stubPost(url: String, status: Integer, responseBody: String) =
+  def stubPost(url: String, status: Integer, responseBody: String) = {
+    removeStub(post(urlMatching(url)))
     stubFor(post(urlMatching(url))
       .willReturn(
         aResponse().
@@ -59,6 +60,7 @@ trait WiremockHelper {
           withBody(responseBody)
       )
     )
+  }
 
   def stubPatch(url: String, status: Integer, responseBody: String) =
     stubFor(patch(urlMatching(url))

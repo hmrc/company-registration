@@ -18,10 +18,10 @@ package services
 
 import java.util.{Base64, UUID}
 
-import audit.{DesSubmissionEvent, RegistrationAuditEvent, SuccessfulIncorporationAuditEvent}
+import audit.{DesSubmissionEvent, DesTopUpSubmissionEvent, RegistrationAuditEvent, SuccessfulIncorporationAuditEvent}
 import connectors._
 import fixtures.CorporationTaxRegistrationFixture
-import models.{AccountPrepDetails, CorporationTaxRegistration, Email, IncorpUpdate, SubmissionCheckResponse, AccountingDetails, SubmissionDates}
+import models.{AccountPrepDetails, AccountingDetails, CorporationTaxRegistration, Email, IncorpUpdate, SubmissionCheckResponse, SubmissionDates}
 import org.jboss.netty.handler.codec.base64.Base64Decoder
 import org.joda.time.DateTime
 import org.mockito.{ArgumentCaptor, Matchers}
@@ -33,13 +33,14 @@ import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.play.test.UnitSpec
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
+import org.scalatest.concurrent.Eventually
 //import services.RegistrationHoldingPenService.MissingAccountingDates
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with CorporationTaxRegistrationFixture with BeforeAndAfterEach {
+class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with CorporationTaxRegistrationFixture with BeforeAndAfterEach with Eventually {
 
   val mockStateDataRepository = mock[StateDataRepository]
   val mockIncorporationCheckAPIConnector = mock[IncorporationCheckAPIConnector]
@@ -164,14 +165,41 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
         |}""".stripMargin
   }
 
+  def topUpSub(s: String, a:String, crn:String, active:String, firstPrep:String, intended:String) = {
+
+        s"""{
+           |  "status" : "${s}",
+           |  "acknowledgementReference" : "${a}",
+           |  "corporationTax" : {
+           |  "crn" : "${crn}",
+           |  "companyActiveDate": "${active}",
+           |  "startDateOfFirstAccountingPeriod": "${firstPrep}",
+           |  "intendedAccountsPreparationDate": "${intended}"
+           |  }
+           |  }
+           |""".stripMargin
+    }
+
+  def topUpRejSub(s: String, a:String) = {
+
+    s"""{
+        |  "status" : "${s}",
+        |  "acknowledgementReference" : "${a}"
+        |  }
+        |""".stripMargin
+  }
+
   val crn = "012345"
   val exampleDate = "2012-12-12"
   val exampleDate1 = "2020-05-10"
   val exampleDate2 = "2025-06-06"
   val dates = SubmissionDates(date(exampleDate), date(exampleDate1), date(exampleDate2))
-
+  val acceptedStatus = "Accepted"
+  val rejectedStatus = "Rejected"
   val interimSubmission = Json.parse(sub(testAckRef)).as[JsObject]
   val validDesSubmission = Json.parse(sub(testAckRef,Some((crn,exampleDate,exampleDate1,exampleDate2)))).as[JsObject]
+  val validTopUpDesSubmission = Json.parse(topUpSub(acceptedStatus,testAckRef,crn,exampleDate,exampleDate1,exampleDate2)).as[JsObject]
+  val validRejectedTopUpDesSubmission = Json.parse(topUpRejSub(rejectedStatus,testAckRef)).as[JsObject]
 
   val validHeld = HeldSubmission(testRegId, testAckRef, interimSubmission)
 
@@ -187,6 +215,22 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       val result = service.appendDataToSubmission(crn, dates, interimSubmission)
 
       result shouldBe validDesSubmission
+    }
+  }
+
+  "buildTopUp Accepted Submission" should {
+    "be able to create Json according to the Schema of API4" in new Setup {
+      val result = service.buildTopUpSubmission(crn, acceptedStatus, dates, testAckRef)
+
+      result shouldBe validTopUpDesSubmission
+    }
+  }
+
+  "buildTopUp Rejection Submission" should {
+    "be able to create rejected Json according to the Schema of API4" in new Setup {
+      val result = service.buildTopUpRejectionSubmission(rejectedStatus, testAckRef)
+
+      result shouldBe validRejectedTopUpDesSubmission
     }
   }
 
@@ -221,7 +265,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
         .thenReturn(Future.successful(Some(validHeld)))
 
       val result = service.fetchHeldData(testAckRef)
-      await(result) shouldBe validHeld
+      await(result.get) shouldBe validHeld
     }
 
     "return an amended address line 4 held record if the regId from config matces the documents" in new SetupWithAddressLine4Fix(regId, encodedAddressLine4) {
@@ -233,7 +277,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       val result = await(service.fetchHeldData(ackRef))
 
       result shouldNot be(held)
-      (result.submission \ "registration" \ "corporationTax" \ "businessAddress" \ "line4").toOption shouldBe Some(JsString(addressLine4))
+      (result.get.submission \ "registration" \ "corporationTax" \ "businessAddress" \ "line4").toOption shouldBe Some(JsString(addressLine4))
     }
   }
 
@@ -302,7 +346,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
     val testUserDetails = UserDetailsModel("bob", "a@b.c", "organisation", Some("description"), Some("lastName"), Some("1/1/1990"), Some("PO1 1ST"), "123", "456")
 
 
-    "return a true for a DES ready submission" in new Setup {
+    "return a true for a DES ready full submission" in new Setup {
 
       when(mockAuthConnector.getUserDetails(Matchers.any[HeaderCarrier]()))
         .thenReturn(Future.successful(Some(testUserDetails)))
@@ -340,7 +384,78 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
     }
 
-    "fail if DES states not found" in new Setup {
+    "return a true for a DES ready top up submission" in new Setup {
+
+      when(mockAuthConnector.getUserDetails(Matchers.any[HeaderCarrier]()))
+        .thenReturn(Future.successful(Some(testUserDetails)))
+
+      when(mockAuditConnector.sendEvent(Matchers.any[RegistrationAuditEvent]())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]()))
+        .thenReturn(Future.successful(Success))
+
+      when(mockHeldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
+        .thenReturn(Future.successful(None))
+
+      when(mockCTRepository.updateHeldToSubmitted(Matchers.eq(validCR.registrationID), Matchers.eq(incorpSuccess.crn.get), Matchers.any()))
+        .thenReturn(Future.successful(true))
+
+      when(mockAccountService.calculateSubmissionDates(Matchers.any(), Matchers.any(), Matchers.any()))
+        .thenReturn(dates)
+
+      when(mockDesConnector.topUpCTSubmission(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any()))
+        .thenReturn(Future.successful(HttpResponse(200)))
+
+      await(service.updateHeldSubmission(incorpSuccess, validCR, validCR.registrationID)) shouldBe true
+
+      val captor = ArgumentCaptor.forClass(classOf[RegistrationAuditEvent])
+
+      eventually {
+        verify(mockAuditConnector, times(1)).sendEvent(captor.capture())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]())
+      }
+      val audit = captor.getAllValues
+
+      audit.get(0).auditType shouldBe "ctRegistrationAdditionalData"
+//      (audit.get(0).detail \ "incorporationDate").as[String] shouldBe "2016-08-10"
+
+//      audit.get(1).auditType shouldBe "ctRegistrationSubmission"
+
+    }
+
+    "return a true for a DES ready top up submission when audit fails" in new Setup {
+
+      when(mockAuthConnector.getUserDetails(Matchers.any[HeaderCarrier]()))
+        .thenReturn(Future.successful(Some(testUserDetails)))
+
+      when(mockAuditConnector.sendEvent(Matchers.any[RegistrationAuditEvent]())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]()))
+        .thenReturn(Future.failed(new RuntimeException("Audit failed")))
+
+      when(mockHeldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
+        .thenReturn(Future.successful(None))
+
+      when(mockCTRepository.updateHeldToSubmitted(Matchers.eq(validCR.registrationID), Matchers.eq(incorpSuccess.crn.get), Matchers.any()))
+        .thenReturn(Future.successful(true))
+
+      when(mockAccountService.calculateSubmissionDates(Matchers.any(), Matchers.any(), Matchers.any()))
+        .thenReturn(dates)
+
+      when(mockDesConnector.topUpCTSubmission(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any()))
+        .thenReturn(Future.successful(HttpResponse(200)))
+
+      await(service.updateHeldSubmission(incorpSuccess, validCR, validCR.registrationID)) shouldBe true
+
+      val captor = ArgumentCaptor.forClass(classOf[RegistrationAuditEvent])
+
+      eventually {
+        verify(mockAuditConnector, times(1)).sendEvent(captor.capture())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]())
+      }
+      val audit = captor.getAllValues
+
+      audit.get(0).auditType shouldBe "ctRegistrationAdditionalData"
+
+    }
+
+
+
+    "fail if DES states not found on a full submission" in new Setup {
       when(mockHeldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
         .thenReturn(Future.successful(Some(validHeld)))
 
@@ -349,6 +464,27 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
       when(mockDesConnector.ctSubmission(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any()))
         .thenReturn(Future.failed(Upstream4xxResponse("", 404, 400)))
+
+      when(mockAuditConnector.sendEvent(Matchers.any[SuccessfulIncorporationAuditEvent]())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]()))
+        .thenReturn(Future.successful(Success))
+
+      intercept[Upstream4xxResponse] {
+        await(service.updateHeldSubmission(incorpSuccess, validCR, validCR.registrationID))
+      }
+    }
+
+    "fail if DES states not found on a top up submission" in new Setup {
+      when(mockHeldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
+        .thenReturn(Future.successful(None))
+
+      when(mockAccountService.calculateSubmissionDates(Matchers.any(), Matchers.any(), Matchers.any()))
+        .thenReturn(dates)
+
+      when(mockDesConnector.topUpCTSubmission(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any()))
+        .thenReturn(Future.failed(Upstream4xxResponse("", 404, 400)))
+
+      when(mockAuditConnector.sendEvent(Matchers.any[SuccessfulIncorporationAuditEvent]())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]()))
+        .thenReturn(Future.successful(Success))
 
       intercept[Upstream4xxResponse] {
         await(service.updateHeldSubmission(incorpSuccess, validCR, validCR.registrationID))
@@ -510,7 +646,11 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
 
     }
-    "return a future true when processing a rejected incorporation" in new Setup{
+    "return a future true when processing a rejected incorporation with held data" in new Setup{
+
+      when(mockHeldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
+        .thenReturn(Future.successful(Some(validHeld)))
+
       when(mockCTRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
         .thenReturn(Future.successful(Some(validCR)))
 
@@ -530,6 +670,59 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
       await(service.processIncorporationUpdate(incorpRejected)) shouldBe true
     }
+
+    "return a future true when processing a rejected incorporation without held data" in new Setup{
+
+      when(mockHeldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
+        .thenReturn(Future.successful(None))
+
+      when(mockCTRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
+        .thenReturn(Future.successful(Some(validCR)))
+
+      when(mockCTRepository.updateSubmissionStatus(Matchers.any(), Matchers.any())).thenReturn(Future.successful("rejected"))
+
+      when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any()))
+        .thenReturn(Future.successful(Success))
+
+      when(mockDesConnector.topUpCTSubmission(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any()))
+        .thenReturn(Future.successful(HttpResponse(200)))
+
+      when(mockCTRepository.removeTaxRegistrationById(Matchers.eq(validCR.registrationID)))
+        .thenReturn(Future.successful(true))
+
+      when(mockBRConnector.removeMetadata(Matchers.eq(validCR.registrationID))(Matchers.any()))
+        .thenReturn(Future.successful(true))
+
+      await(service.processIncorporationUpdate(incorpRejected)) shouldBe true
+    }
+
+    "return an exception when processing a rejected incorporation without held data and Des returns a 500" in new Setup{
+
+      when(mockHeldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
+        .thenReturn(Future.successful(None))
+
+      when(mockCTRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
+        .thenReturn(Future.successful(Some(validCR)))
+
+      when(mockCTRepository.updateSubmissionStatus(Matchers.any(), Matchers.any())).thenReturn(Future.successful("rejected"))
+
+      when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any()))
+        .thenReturn(Future.successful(Success))
+
+      when(mockDesConnector.topUpCTSubmission(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any()))
+        .thenReturn(Future.failed(new InternalServerException("DES returned a 500")))
+
+      when(mockCTRepository.removeTaxRegistrationById(Matchers.eq(validCR.registrationID)))
+        .thenReturn(Future.successful(true))
+
+      when(mockBRConnector.removeMetadata(Matchers.eq(validCR.registrationID))(Matchers.any()))
+        .thenReturn(Future.successful(true))
+
+      intercept[InternalServerException] {
+        await(service.processIncorporationUpdate(incorpRejected))
+      }
+
+       }
   }
 
   "addressLine4Fix" should {
