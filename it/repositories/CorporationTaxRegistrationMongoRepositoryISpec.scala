@@ -20,6 +20,7 @@ import java.util.UUID
 
 import models.RegistrationStatus._
 import models._
+import org.joda.time.chrono.ISOChronology
 import org.joda.time.{DateTime, DateTimeZone}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
@@ -342,9 +343,11 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
       await(setupCollection(repository, corporationTaxRegistration))
 
-      val result: Option[CorporationTaxRegistration] = await(repository.updateRegistrationToHeld(regId, validConfirmationReferences))
+      val Some(result): Option[CorporationTaxRegistration] = await(repository.updateRegistrationToHeld(regId, validConfirmationReferences))
 
-      val expected: Option[CorporationTaxRegistration] = Some(CorporationTaxRegistration(
+      val heldTs: Option[DateTime] = result.heldTimestamp
+
+      val Some(expected): Option[CorporationTaxRegistration] = Some(CorporationTaxRegistration(
         internalId = "testID",
         registrationID = regId,
         formCreationTimestamp = "testDateTime",
@@ -355,7 +358,8 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         status = RegistrationStatus.HELD,
         confirmationReferences = Some(validConfirmationReferences),
         createdTime = dateTime,
-        lastSignedIn = dateTime
+        lastSignedIn = dateTime,
+        heldTimestamp = heldTs
       ))
 
       result shouldBe expected

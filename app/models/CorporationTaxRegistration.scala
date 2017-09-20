@@ -48,7 +48,8 @@ case class CorporationTaxRegistration(internalId: String,
                                       submissionTimestamp: Option[String] = None,
                                       verifiedEmail: Option[Email] = None,
                                       createdTime: DateTime = CorporationTaxRegistration.now,
-                                      lastSignedIn: DateTime = CorporationTaxRegistration.now
+                                      lastSignedIn: DateTime = CorporationTaxRegistration.now,
+                                      heldTimestamp: Option[DateTime] = None
                                      )
 
 object CorporationTaxRegistration {
@@ -73,7 +74,8 @@ object CorporationTaxRegistration {
       (__ \ "submissionTimestamp").readNullable[String] and
       (__ \ "verifiedEmail").readNullable[Email](Email.format(formatter)) and
       (__ \ "createdTime").read[DateTime] and
-      (__ \ "lastSignedIn").read[DateTime].orElse(Reads.pure(CorporationTaxRegistration.now))
+      (__ \ "lastSignedIn").read[DateTime].orElse(Reads.pure(CorporationTaxRegistration.now)) and
+      (__ \ "heldTimestamp").readNullable[DateTime]
     )(CorporationTaxRegistration.apply _)
 
     val writes = (
@@ -94,7 +96,8 @@ object CorporationTaxRegistration {
       (__ \ "submissionTimestamp").writeNullable[String] and
       (__ \ "verifiedEmail").writeNullable[Email](Email.format(formatter)) and
       (__ \ "createdTime").write[DateTime] and
-      (__ \ "lastSignedIn").write[DateTime]
+      (__ \ "lastSignedIn").write[DateTime] and
+      (__ \ "heldTimestamp").writeNullable[DateTime]
     )(unlift(CorporationTaxRegistration.unapply))
 
     Format(reads, writes)
