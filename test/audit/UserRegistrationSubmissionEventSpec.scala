@@ -33,7 +33,88 @@ class UserRegistrationSubmissionEventSpec extends UnitSpec {
     val transactionId = "trans01234"
 
     //todo: SCRS-3971 - take out uprn in json to pass test
-    "construct full json as per definition" in {
+    "construct full json as per definition when the ETMP feature flag is enabled" in {
+      System.setProperty("feature.etmpHoldingPen", "true")
+
+      val expected = Json.parse(
+        s"""
+          |{
+          |   "journeyId": "$regId",
+          |   "acknowledgementReference": "$ackRef",
+          |   "desSubmissionState": "partial",
+          |   "registrationMetadata": {
+          |      "businessType": "Limited company",
+          |      "authProviderId": "$authProviderId",
+          |      "formCreationTimestamp": "$timestamp",
+          |      "submissionFromAgent": false,
+          |      "language": "eng",
+          |      "completionCapacity": "Director",
+          |      "declareAccurateAndComplete": true
+          |   },
+          |   "corporationTax": {
+          |      "companyOfficeNumber": "623",
+          |      "hasCompanyTakenOverBusiness": false,
+          |      "companyMemberOfGroup": false,
+          |      "companiesHouseCompanyName": "Company Co",
+          |      "returnsOnCT61": false,
+          |      "companyACharity": false,
+          |      "businessAddress": {
+          |         "transactionId": "$transactionId",
+          |         "addressEntryMethod": "LOOKUP",
+          |         "addressLine1": "14 Matheson House",
+          |         "addressLine2": "Grange Central",
+          |         "addressLine3": "Town Centre",
+          |         "addressLine4": "Telford",
+          |         "postCode": "TF3 4ER",
+          |         "country": "United Kingdom",
+          |         "uprn": "$uprn"
+          |      },
+          |      "businessContactName": {
+          |         "firstName": "Billy",
+          |         "middleNames": "bob",
+          |         "lastName": "Jones"
+          |      },
+          |      "businessContactDetails": {
+          |         "telephoneNumber": "0123456789",
+          |         "mobileNumber": "0123456789",
+          |         "emailAddress": "test@email.co.uk"
+          |      }
+          |   }
+          |}
+        """.stripMargin)
+
+      val testModel = SubmissionEventDetail(
+        regId,
+        authProviderId,
+        Some(transactionId),
+        Some(uprn),
+        "LOOKUP",
+        Json.toJson(InterimDesRegistration(
+          ackRef,
+          Metadata(
+            "sessionId", "credId", "eng", DateTime.parse(timestamp), CompletionCapacity("Director")
+          ),
+          InterimCorporationTax(
+            "Company Co",
+            returnsOnCT61 = false,
+            Some(BusinessAddress("14 Matheson House", "Grange Central", Some("Town Centre"),Some("Telford"), Some("TF3 4ER"), Some("United Kingdom"))),
+            BusinessContactName(
+              "Billy",
+              Some("bob"),
+              "Jones"
+            ),
+            BusinessContactDetails(
+              Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+            )
+          )
+        )).as[JsObject]
+      )
+      Json.toJson(testModel)(SubmissionEventDetail.writes) shouldBe expected
+    }
+
+    "construct full json as per definition when the ETMP feature flag is disabled" in {
+      System.setProperty("feature.etmpHoldingPen", "false")
+
       val expected = Json.parse(
         s"""
           |{

@@ -92,6 +92,18 @@ class DesConnectorSpec extends UnitSpec with MockitoSugar {
       result.status shouldBe 202
     }
 
+    "for topup  submission, return success" in new Setup {
+      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
+        thenReturn(Future.successful(HttpResponse(202, responseJson = Some(Json.obj("x"->"y")))))
+
+      when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any()))
+        .thenReturn(Future.successful(Success))
+
+      val result = await(connector.topUpCTSubmission("",submission, "testJID"))
+
+      result.status shouldBe 202
+    }
+
     "for a forbidden request, return a bad request" in new Setup {
       when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
         thenReturn(Future.failed(Upstream4xxResponse("", 403, 400)))
@@ -103,6 +115,19 @@ class DesConnectorSpec extends UnitSpec with MockitoSugar {
         await(connector.ctSubmission("", submission, "testJID"))
       }
     }
+
+    "for a forbidden topup request, return a bad request" in new Setup {
+      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
+        thenReturn(Future.failed(Upstream4xxResponse("", 403, 400)))
+
+      when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any()))
+        .thenReturn(Future.successful(Success))
+
+      intercept[Upstream4xxResponse] {
+        await(connector.topUpCTSubmission("", submission, "testJID"))
+      }
+    }
+
 
     "for a client request timedout, return unavailable" in new Setup {
       when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).

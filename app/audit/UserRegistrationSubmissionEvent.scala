@@ -17,9 +17,10 @@
 package audit
 
 import models.des.{BusinessAddress, BusinessContactDetails}
-import play.api.mvc.{Request, AnyContent}
+import play.api.mvc.{AnyContent, Request}
 import uk.gov.hmrc.play.http.HeaderCarrier
 import play.api.libs.json._
+import utils.SCRSFeatureSwitches
 
 case class SubmissionEventDetail(regId: String,
                                  authProviderId: String,
@@ -37,6 +38,14 @@ object SubmissionEventDetail {
 
       def businessAddressAuditWrites(address: BusinessAddress) = BusinessAddress.auditWrites(detail.transId, detail.addressEventType, detail.uprn, address)
       def businessContactAuditWrites(contact: BusinessContactDetails) = BusinessContactDetails.auditWrites(contact)
+
+      def desSubmissionState: JsObject = {
+        if(SCRSFeatureSwitches.etmpHoldingPen.enabled){
+          Json.obj("desSubmissionState" -> "partial")
+        } else {
+          Json.obj()
+        }
+      }
 
       val address = (detail.jsSubmission \ "registration" \ "corporationTax" \ "businessAddress").
         asOpt[BusinessAddress].fold { Json.obj() } {
@@ -57,7 +66,7 @@ object SubmissionEventDetail {
         CORP_TAX -> (detail.jsSubmission \ "registration" \ "corporationTax").as[JsObject].++
           ( address ).++
           ( contactDetails )
-      )
+      ) ++ desSubmissionState
     }
   }
 }
