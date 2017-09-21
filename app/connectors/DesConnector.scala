@@ -65,7 +65,7 @@ trait DesConnector extends ServicesConfig with AuditService with RawResponseRead
     val url: String = s"""${serviceURL}${baseURI}${ctRegistrationURI}"""
     metricsService.processDataResponseWithMetrics[HttpResponse](metricsService.desSubmissionCRTimer.time()) {
       cPOST(url, submission) map { response =>
-        Logger.info(s"[DesConnector] [ctSubmission] Submission to DES successful for regId: $journeyId AckRef:$ackRef")
+        Logger.info(s"[DesConnector] [ctSubmission] Submission to DES successful for regId: $journeyId AckRef: $ackRef")
         sendCTRegSubmissionEvent(buildCTRegSubmissionEvent(ctRegSubmissionFromJson(journeyId, response.json.as[JsObject])))
         response
       } recoverWith {
@@ -81,6 +81,7 @@ trait DesConnector extends ServicesConfig with AuditService with RawResponseRead
     val url: String = s"$serviceURL$baseTopUpURI$ctRegistrationURI"
     metricsService.processDataResponseWithMetrics[HttpResponse](metricsService.desSubmissionCRTimer.time()) {
       cPOST(url, submission) map { response =>
+        Logger.info(s"[DesConnector] [ctTopUpSubmission] Top up submission to DES successful for regId: $journeyId AckRef: $ackRef")
         sendCTRegSubmissionEvent(buildCTRegSubmissionEvent(ctRegSubmissionFromJson(journeyId, response.json.as[JsObject])))
         response
       } recoverWith {
