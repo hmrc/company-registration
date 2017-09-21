@@ -17,6 +17,7 @@
 package controllers
 
 import auth._
+import cats.data.OptionT
 import connectors.AuthConnector
 import play.api.Logger
 import play.api.libs.json.Json
@@ -44,10 +45,17 @@ trait HeldController extends BaseController with Authenticated with Authorisatio
   def fetchHeldSubmissionTime(regId: String) = Action.async {
     implicit request =>
       authenticated {
-        case LoggedIn(_) => heldRepo.retrieveHeldSubmissionTime(regId).map {
-          case Some(time) => Ok(Json.toJson(time))
-          case None => NotFound
-        }
+        case LoggedIn(_) =>
+            resourceConn.retrieveCorporationTaxRegistration(regId) flatMap { doc =>
+              if(doc.exists(_.heldTimestamp.isDefined)) {
+                Future.successful(Ok(Json.toJson(doc.get.heldTimestamp)))
+              } else {
+                heldRepo.retrieveHeldSubmissionTime(regId).map {
+                  case Some(time) => Ok(Json.toJson(time))
+                  case None => NotFound
+                }
+              }
+            }
         case _ =>
           Logger.info(s"[HeldController] [fetchHeldSubmissionTime] User not logged in")
           Future.successful(Forbidden)

@@ -22,6 +22,7 @@ import connectors.AuthConnector
 import fixtures.AuthFixture
 import helpers.SCRSSpec
 import mocks.SCRSMocks
+import models.{CorporationTaxRegistration, Email, RegistrationStatus}
 import org.joda.time.DateTime
 import org.mockito.Matchers
 import org.mockito.Mockito._
@@ -53,15 +54,64 @@ class HeldControllerSpec extends UnitSpec with SCRSMocks with MockitoSugar with 
     }
   }
 
-
   val regId = "1234"
   val timestamp = "2016-12-31T12:00:00.000Z"
   val dateTime = DateTime.parse(timestamp)
 
+  def doc(timestamp: Option[DateTime]) = {
+    CorporationTaxRegistration(internalId = "",
+      registrationID = regId,
+      status = RegistrationStatus.HELD,
+      formCreationTimestamp = "",
+      language = "",
+      registrationProgress = None,
+      acknowledgementReferences = None,
+      confirmationReferences = None,
+      companyDetails = None,
+      accountingDetails = None,
+      tradingDetails = None,
+      contactDetails = None,
+      accountsPreparation = None,
+      crn = None,
+      submissionTimestamp = None,
+      verifiedEmail = None,
+      createdTime = CorporationTaxRegistration.now,
+      lastSignedIn = CorporationTaxRegistration.now,
+      heldTimestamp = timestamp
+    )
+
+  }
+
   "fetchHeldSubmissionTime" should {
-    "return a 200 response along with a submission time" in new Setup {
+    "return a 200 response along with a submission time from the Held Document when CR has no timestamp" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(controller.heldRepo.retrieveHeldSubmissionTime(Matchers.any())).thenReturn(Future.successful(Some(dateTime)))
+
+      when(controller.resourceConn.retrieveCorporationTaxRegistration(Matchers.any()))
+        .thenReturn(Future.successful(Some(doc(None))))
+      when(controller.heldRepo.retrieveHeldSubmissionTime(Matchers.any()))
+        .thenReturn(Future.successful(Some(dateTime)))
+
+      val result = await(controller.fetchHeldSubmissionTime(regId)(FakeRequest()))
+      status(result) shouldBe OK
+      jsonBodyOf(result) shouldBe Json.toJson(dateTime)
+    }
+    "return a 200 response along with a submission time from the Held Document when there is no CR document" in new Setup {
+      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+
+      when(controller.resourceConn.retrieveCorporationTaxRegistration(Matchers.any()))
+        .thenReturn(Future.successful(None))
+      when(controller.heldRepo.retrieveHeldSubmissionTime(Matchers.any()))
+        .thenReturn(Future.successful(Some(dateTime)))
+
+      val result = await(controller.fetchHeldSubmissionTime(regId)(FakeRequest()))
+      status(result) shouldBe OK
+      jsonBodyOf(result) shouldBe Json.toJson(dateTime)
+    }
+    "return a 200 response along with a submission time from the CR Document" in new Setup {
+      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+
+      when(controller.resourceConn.retrieveCorporationTaxRegistration(Matchers.any()))
+        .thenReturn(Future.successful(Some(doc(Some(dateTime)))))
 
       val result = await(controller.fetchHeldSubmissionTime(regId)(FakeRequest()))
       status(result) shouldBe OK
@@ -70,7 +120,11 @@ class HeldControllerSpec extends UnitSpec with SCRSMocks with MockitoSugar with 
 
     "return a 404 (Not found) response" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(controller.heldRepo.retrieveHeldSubmissionTime(Matchers.any())).thenReturn(Future.successful(None))
+
+      when(controller.resourceConn.retrieveCorporationTaxRegistration(Matchers.any()))
+        .thenReturn(Future.successful(Some(doc(None))))
+      when(controller.heldRepo.retrieveHeldSubmissionTime(Matchers.any()))
+        .thenReturn(Future.successful(None))
 
       val result = await(controller.fetchHeldSubmissionTime(regId)(FakeRequest()))
       status(result) shouldBe NOT_FOUND

@@ -362,15 +362,17 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
     val modifier = BSONDocument(
       "$set" -> BSONDocument(
         "status" -> RegistrationStatus.HELD,
-        "confirmationReferences" -> Json.toJson(confRefs)),
+        "confirmationReferences" -> Json.toJson(confRefs),
+        "heldTimestamp" -> Json.toJson(CorporationTaxRegistration.now)
+      ),
       "$unset" -> BSONDocument("tradingDetails" -> 1, "contactDetails" -> 1, "companyDetails" -> 1)
     )
 
     collection.findAndUpdate[BSONDocument, BSONDocument](registrationIDSelector(regId), modifier, fetchNewObject = true, upsert = false) map {
       _.result[CorporationTaxRegistration] flatMap {
         reg =>
-          (reg.status, reg.confirmationReferences, reg.tradingDetails, reg.contactDetails, reg.companyDetails) match {
-            case (RegistrationStatus.HELD, Some(cRefs), None, None, None) if cRefs == confRefs => Some(reg)
+          (reg.status, reg.confirmationReferences, reg.tradingDetails, reg.contactDetails, reg.companyDetails, reg.heldTimestamp) match {
+            case (RegistrationStatus.HELD, Some(cRefs), None, None, None, Some(_)) if cRefs == confRefs => Some(reg)
             case _ => None
           }
       }
