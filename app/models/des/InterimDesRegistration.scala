@@ -57,7 +57,7 @@ case object Director extends CompletionCapacity {
 }
 
 case object Secretary extends CompletionCapacity {
-  val text = "Secretary"
+  val text = "Company secretary"
 }
 
 case object Agent extends CompletionCapacity {

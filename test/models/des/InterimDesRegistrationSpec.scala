@@ -26,10 +26,10 @@ class InterimDesRegistrationSpec extends UnitSpec {
   "CompletionCapacity" should {
     "Construct a director" in { CompletionCapacity("Director") shouldBe Director }
     "Construct an agent" in { CompletionCapacity("Agent") shouldBe Agent }
-    "Construct a secretary" in { CompletionCapacity("Secretary") shouldBe Secretary }
+    "Construct a secretary" in { CompletionCapacity("Company secretary") shouldBe Secretary }
     "Construct a direct from an other" in { CompletionCapacity("director") shouldBe Director }
     "Construct an agent from an other" in { CompletionCapacity("agent") shouldBe Agent }
-    "Construct a secretary from an other" in { CompletionCapacity("secretary") shouldBe Secretary }
+    "Construct a secretary from an other" in { CompletionCapacity("company secretary") shouldBe Secretary }
     "Construct an other" in { CompletionCapacity("foo") shouldBe Other("foo") }
   }
 
@@ -81,7 +81,7 @@ class InterimDesRegistrationSpec extends UnitSpec {
                                      |  "formCreationTimestamp": "1970-01-01T00:00:00.000Z",
                                      |  "submissionFromAgent": false,
                                      |  "language" : "ENG",
-                                     |  "completionCapacity" : "Secretary",
+                                     |  "completionCapacity" : "Company secretary",
                                      |  "declareAccurateAndComplete": true
                                      |}""".stripMargin
 

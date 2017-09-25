@@ -615,7 +615,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
     val sessionId = "testSessionId"
     val credId = "testCredId"
     val userIDs = UserIds("foo", "bar")
-    val authority = Authority("testURI", credId, "testUserDetailsLink",  userIDs)
+    val authority = Authority("testURI", credId, "testUserDetailsLink", userIDs)
 
     val businessRegistration = BusinessRegistration(
       registrationId,
@@ -656,7 +656,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
         InterimCorporationTax(
           corporationTaxRegistration.companyDetails.get.companyName,
           returnsOnCT61 = false,
-          Some(BusinessAddress("10 test street", "test town", Some("test area"),Some("test county"), Some("XX1 1ZZ"), Some("test country"))),
+          Some(BusinessAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"))),
           BusinessContactName(
             corporationTaxRegistration.contactDetails.get.firstName,
             corporationTaxRegistration.contactDetails.get.middleName,
