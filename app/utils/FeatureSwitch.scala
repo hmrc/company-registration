@@ -94,6 +94,7 @@ object SCRSFeatureSwitches extends SCRSFeatureSwitches
 trait SCRSFeatureSwitches {
 
   def scheduler: FeatureSwitch = FeatureSwitch.getProperty("submissionCheck")
+  def missingIncorp: FeatureSwitch = FeatureSwitch.getProperty("missingIncorp")
   def registerInterest: FeatureSwitch = FeatureSwitch.getProperty("registerInterest")
   def etmpHoldingPen: FeatureSwitch = FeatureSwitch.getProperty("etmpHoldingPen")
 
@@ -101,6 +102,7 @@ trait SCRSFeatureSwitches {
     case "submissionCheck" => Some(scheduler)
     case "registerInterest" => Some(registerInterest)
     case "etmpHoldingPen" => Some(etmpHoldingPen)
+    case "missingIncorp" => Some(missingIncorp)
     case _ => None
   }
 }

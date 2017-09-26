@@ -360,4 +360,22 @@ trait CorporationTaxRegistrationService extends DateHelper {
   private[services] def registerInterestRequired(): Boolean = SCRSFeatureSwitches.registerInterest.enabled
 
   private[services] def toETMPHoldingPen: Boolean = SCRSFeatureSwitches.etmpHoldingPen.enabled
+
+  def locateOldHeldSubmissions(implicit hc : HeaderCarrier): Future[String] = {
+    cTRegistrationRepository.retrieveAllWeekOldHeldSubmissions().map {submissions =>
+      if (submissions.nonEmpty) {
+        Logger.error("ALERT_missing_incorporations")
+        submissions.map {submission =>
+          val txID = submission.confirmationReferences.fold("")(cr => cr.transactionId)
+          val heldTimestamp = submission.heldTimestamp.fold("")(ht => ht.toString())
+
+          Logger.warn(s"Held submission older than one week of regID: ${submission.registrationID} txID: $txID heldDate: $heldTimestamp)")
+          true
+        }
+        "Week old held submissions found"
+      } else {
+        "No week old held submissions found"
+      }
+    }
+  }
 }

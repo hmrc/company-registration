@@ -21,7 +21,7 @@ import javax.inject.{Inject, Singleton}
 import auth.{AuthorisationResource, Crypto}
 import cats.data.OptionT
 import models._
-import org.joda.time.DateTime
+import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.DB
@@ -77,6 +77,7 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def fetchHO6Information(regId: String): Future[Option[HO6RegistrationInformation]]
   def fetchDocumentStatus(regId: String): OptionT[Future, String]
   def updateRegistrationToHeld(regId: String, confRefs: ConfirmationReferences): Future[Option[CorporationTaxRegistration]]
+  def retrieveAllWeekOldHeldSubmissions() : Future[List[CorporationTaxRegistration]]
 }
 
 private[repositories] class MissingCTDocument(regId: String) extends NoStackTrace
@@ -109,6 +110,12 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
     Index(
       key = Seq("confirmationReferences.transaction-id" -> IndexType.Ascending),
       name = Some("TransIdIndex"),
+      unique = false,
+      sparse = false
+    ),
+    Index(
+      key = Seq("status" -> IndexType.Ascending, "heldTimestamp" -> IndexType.Ascending),
+      name = Some("StatusHeldTimeIndex"),
       unique = false,
       sparse = false
     )
@@ -377,6 +384,14 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
           }
       }
     }
+  }
+
+  def retrieveAllWeekOldHeldSubmissions() : Future[List[CorporationTaxRegistration]] = {
+    val selector = BSONDocument(
+      "status" -> RegistrationStatus.HELD,
+      "heldTimestamp" -> BSONDocument("$lte" -> DateTime.now(DateTimeZone.UTC).minusWeeks(1).getMillis)
+    )
+    collection.find(selector).cursor[CorporationTaxRegistration]().collect[List]()
   }
 
   def dropCollection = collection.drop()

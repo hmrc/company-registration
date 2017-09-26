@@ -24,6 +24,7 @@ class FeatureSwitchSpec extends UnitSpec with BeforeAndAfterEach {
 
   override def beforeEach() {
     System.clearProperty("feature.submissionCheck")
+    System.clearProperty("feature.missingIncorp")
     System.clearProperty("feature.etmpHoldingPen")
     System.clearProperty("feature.test")
   }
@@ -329,6 +330,16 @@ class FeatureSwitchSpec extends UnitSpec with BeforeAndAfterEach {
 
     "return a disable feature switch if the etmpHoldingPen system property doesn't exist when using the apply function" in {
       SCRSFeatureSwitches("etmpHoldingPen") shouldBe Some(BooleanFeatureSwitch("etmpHoldingPen", false))
+    }
+
+    "return an enabled missingIncorp feature switch if it exists" in {
+      System.setProperty("feature.missingIncorp", "true")
+
+      SCRSFeatureSwitches("missingIncorp") shouldBe Some(BooleanFeatureSwitch("missingIncorp", true))
+    }
+
+    "return a disable feature switch if the missingIncorp system property doesn't exist when using the apply function" in {
+      SCRSFeatureSwitches("missingIncorp") shouldBe Some(BooleanFeatureSwitch("missingIncorp", false))
     }
   }
 }

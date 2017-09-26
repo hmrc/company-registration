@@ -759,4 +759,65 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
       }
     }
   }
+
+  "locateOldHeldSubmissions" should {
+    val registrationId = "testRegId"
+    val tID = "transID"
+    val heldTime = Some(DateTime.now().minusWeeks(1))
+
+    val oldHeldSubmission = CorporationTaxRegistration(
+      internalId = "testID",
+      registrationID = registrationId,
+      formCreationTimestamp = dateTime.toString,
+      language = "en",
+      status = RegistrationStatus.HELD,
+      companyDetails = Some(CompanyDetails(
+        "testCompanyName",
+        CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
+        PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"), None, "txid"))),
+        "testJurisdiction"
+      )),
+      contactDetails = Some(ContactDetails(
+        "testFirstName",
+        Some("testMiddleName"),
+        "testSurname",
+        Some("0123456789"),
+        Some("0123456789"),
+        Some("test@email.co.uk")
+      )),
+      tradingDetails = Some(TradingDetails("false")),
+      heldTimestamp = heldTime,
+      confirmationReferences = Some(ConfirmationReferences(
+        acknowledgementReference = "ackRef",
+        transactionId = tID,
+        paymentReference = "payref",
+        paymentAmount = "12"
+      ))
+    )
+
+    "log nothing and return 'No week old held submissions found' in said case" in new Setup {
+      when(mockCTDataRepository.retrieveAllWeekOldHeldSubmissions())
+        .thenReturn(Future.successful(List()))
+
+      val result = await(service.locateOldHeldSubmissions)
+      result shouldBe "No week old held submissions found"
+    }
+
+    "log cases of week old held submissions and output 'Week old held submissions found'" in new Setup {
+      withCaptureOfLoggingFrom(Logger) { logEvents =>
+        when(mockCTDataRepository.retrieveAllWeekOldHeldSubmissions())
+          .thenReturn(Future.successful(List(oldHeldSubmission)))
+
+        val result = await(service.locateOldHeldSubmissions)
+        result shouldBe "Week old held submissions found"
+
+        eventually {
+          logEvents.length shouldBe 2
+          logEvents.head.getMessage should include("ALERT_missing_incorporations")
+          logEvents.tail.head.getMessage should
+            include(s"Held submission older than one week of regID: $registrationId txID: $tID heldDate: ${heldTime.get.toString})")
+        }
+      }
+    }
+  }
 }
