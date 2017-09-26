@@ -35,7 +35,7 @@ package config
 import javax.inject.{Inject, Singleton}
 
 import com.typesafe.config.Config
-import jobs.CheckSubmissionJob
+import jobs.{CheckSubmissionJob, MissingIncorporationJob}
 import play.api.{Application, Configuration, Logger, Play}
 import uk.gov.hmrc.play.audit.filters.AuditFilter
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
@@ -84,7 +84,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
 
   override val authFilter = Some(MicroserviceAuthFilter)
 
-  override val scheduledJobs = Seq(CheckSubmissionJob)
+  override val scheduledJobs = Seq(CheckSubmissionJob, MissingIncorporationJob)
 
   override def onStart(app : play.api.Application) : scala.Unit = {
 
