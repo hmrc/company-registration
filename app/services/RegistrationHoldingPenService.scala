@@ -439,7 +439,7 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
   private[services] def buildTopUpSubmission(crn: String, status: String, dates: SubmissionDates, ackRef: String): JsObject = {
 
     Json.obj(
-      "status" -> status,
+      "status" -> "Accepted",
       "acknowledgementReference" -> ackRef) ++
       Json.obj("corporationTax" ->
         Json.obj(
@@ -456,7 +456,7 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
   private[services] def buildTopUpRejectionSubmission(status: String, ackRef: String): JsObject = {
 
     Json.obj(
-      "status" -> status,
+      "status" -> "Rejected",
       "acknowledgementReference" -> ackRef)
 
   }
