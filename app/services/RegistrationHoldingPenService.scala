@@ -248,7 +248,7 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
           DesTopUpSubmissionEventDetail(
             ctReg.registrationID,
             ctReg.confirmationReferences.get.acknowledgementReference,
-            item.status,
+            "Accepted",
             Some(dates.intendedAccountsPreparationDate),
             Some(dates.startDateOfFirstAccountingPeriod),
             Some(dates.companyActiveDate),
@@ -263,7 +263,7 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
         DesTopUpSubmissionEventDetail(
           ctReg.registrationID,
           ctReg.confirmationReferences.get.acknowledgementReference,
-          item.status,
+          "Rejected",
           None,
           None,
           None,
