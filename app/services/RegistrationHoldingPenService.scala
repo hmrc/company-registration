@@ -411,7 +411,7 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
                                        accountingDetails: Option[AccountingDetails],
                                        accountsPreparation: Option[AccountPrepDetails]): Future[SubmissionDates] = {
 
-    item.incorpDate.fold(Logger.error(s"[IncorpUpdate] - Incorp update for transaction-id : ${item.transactionId} does not contain an incorp date - IncorpUpdate : $item")) _
+    item.incorpDate.fold(Logger.error(s"[IncorpUpdate] - Incorp update for transaction-id : ${item.transactionId} does not contain an incorp date - IncorpUpdate : $item")) (_ => ())
 
     accountingDetails map { details =>
       val prepDate = accountsPreparation flatMap (_.endDate)
