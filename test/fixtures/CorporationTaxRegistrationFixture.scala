@@ -58,8 +58,8 @@ trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with Accou
   def validConfRefsWithData(ackRef: Option[String] = None) = ConfirmationReferences(
     acknowledgementReference = ackRef.getOrElse("BRCT12345678910"),
     transactionId = "TX1",
-    paymentReference = "PY1",
-    paymentAmount = "12.00"
+    paymentReference = Some("PY1"),
+    paymentAmount = Some("12.00")
   )
 
   val validConfirmationReferences = validConfRefsWithData()

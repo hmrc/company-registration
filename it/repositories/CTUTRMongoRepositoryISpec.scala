@@ -53,8 +53,8 @@ class CTUTRMongoRepositoryISpec
     val validConfirmationReferences = ConfirmationReferences(
       acknowledgementReference = "BRCT12345678910",
       transactionId = "TX1",
-      paymentReference = "PY1",
-      paymentAmount = "12.00"
+      paymentReference = Some("PY1"),
+      paymentAmount = Some("12.00")
     )
 
     val validAckRefs = AcknowledgementReferences(

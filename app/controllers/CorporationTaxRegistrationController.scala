@@ -116,7 +116,7 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
       }
   }
 
-  //HO6
+  //HO5-1 and HO6
   def handleSubmission(registrationID : String) = Action.async[JsValue](parse.json) {
     implicit request =>
       authorised(registrationID) {

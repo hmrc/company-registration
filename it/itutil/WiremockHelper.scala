@@ -70,10 +70,4 @@ trait WiremockHelper {
           withBody(responseBody)
       )
     )
-
-  def setupSimpleAuthMocks(internalId: String = "Int-xxx") = {
-    stubPost("/write/audit", 200, """{"x":2}""")
-    stubGet("/auth/authority", 200, """{"uri":"xxx","credentials":{"gatewayId":"xxx2"},"userDetailsLink":"xxx3","ids":"/auth/ids"}""")
-    stubGet("/auth/ids", 200, s"""{"internalId":"$internalId","externalId":"Ext-xxx"}""")
-  }
 }

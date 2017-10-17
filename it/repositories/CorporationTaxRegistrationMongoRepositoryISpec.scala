@@ -129,8 +129,8 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     val validConfirmationReferences = ConfirmationReferences(
       acknowledgementReference = "BRCT12345678910",
       transactionId = "TX1",
-      paymentReference = "PY1",
-      paymentAmount = "12.00"
+      paymentReference = Some("PY1"),
+      paymentAmount = Some("12.00")
     )
 
     val validAckRefs = AcknowledgementReferences(
@@ -163,7 +163,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
     val ackRef = "BRCT12345678910"
 
-    val validConfirmationReferences = ConfirmationReferences(ackRef, "TX1", "PY1", "12.00")
+    val validConfirmationReferences = ConfirmationReferences(ackRef, "TX1", Some("PY1"), Some("12.00"))
 
     val validHeldCorporationTaxRegistration = CorporationTaxRegistration(
       internalId = "9876543210",
@@ -197,7 +197,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       status = HELD,
       formCreationTimestamp = "2001-12-31T12:00:00Z",
       language = "en",
-      confirmationReferences = Some(ConfirmationReferences(ackRef, "TX1", "PY1", "12.00")),
+      confirmationReferences = Some(ConfirmationReferences(ackRef, "TX1", Some("PY1"), Some("12.00"))),
       accountingDetails = Some(AccountingDetails(AccountingDetails.WHEN_REGISTERED, None)),
       accountsPreparation = Some(AccountPrepDetails(AccountPrepDetails.HMRC_DEFINED, None))
     )
@@ -315,8 +315,8 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     val validConfirmationReferences = ConfirmationReferences(
       acknowledgementReference = "BRCT12345678910",
       transactionId = "TX1",
-      paymentReference = "PY1",
-      paymentAmount = "12.00"
+      paymentReference = Some("PY1"),
+      paymentAmount = Some("12.00")
     )
 
     val corporationTaxRegistration = CorporationTaxRegistration(

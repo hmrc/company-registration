@@ -30,7 +30,8 @@ class UserAccessSpec extends UnitSpec {
            |{
            |  "registration-id" : "regID",
            |  "created" : true,
-           |  "confirmation-reference": false
+           |  "confirmation-reference": false,
+           |  "payment-reference": false
            |}
        """.stripMargin
 
@@ -38,7 +39,8 @@ class UserAccessSpec extends UnitSpec {
         UserAccessSuccessResponse(
           "regID",
           created= true,
-          confRefs = false
+          confRefs = false,
+          paymentRefs = false
         )
 
       val result = Json.toJson[UserAccessSuccessResponse](testModel)
@@ -54,6 +56,7 @@ class UserAccessSpec extends UnitSpec {
            |  "registration-id" : "regID",
            |  "created" : true,
            |  "confirmation-reference": false,
+           |  "payment-reference": false,
            |  "email": { "address": "a@a.a", "type": "GG", "link-sent": true, "verified": false, "return-link-email-sent": false}
            |}
        """.stripMargin
@@ -63,6 +66,7 @@ class UserAccessSpec extends UnitSpec {
           "regID",
           created= true,
           confRefs = false,
+          paymentRefs = false,
           verifiedEmail = Some(Email("a@a.a", "GG", true, false, false))
         )
 

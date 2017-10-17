@@ -61,6 +61,7 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def updateContactDetails(registrationID: String, contactDetails: ContactDetails): Future[Option[ContactDetails]]
   def retrieveConfirmationReferences(registrationID: String) : Future[Option[ConfirmationReferences]]
   def updateConfirmationReferences(registrationID: String, confirmationReferences: ConfirmationReferences) : Future[Option[ConfirmationReferences]]
+  def updateConfirmationReferencesAndUpdateStatus(registrationID: String, confirmationReferences: ConfirmationReferences, status: String) : Future[Option[ConfirmationReferences]]
   def retrieveContactDetails(registrationID: String): Future[Option[ContactDetails]]
   def updateCompanyEndDate(registrationID: String, model: AccountPrepDetails): Future[Option[AccountPrepDetails]]
   def updateSubmissionStatus(registrationID: String, status: String): Future[String]
@@ -227,6 +228,14 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
   override def updateConfirmationReferences(registrationID: String, confirmationReferences: ConfirmationReferences) : Future[Option[ConfirmationReferences]] = {
     retrieveCorporationTaxRegistration(registrationID) flatMap {
       case Some(registration) => collection.update(registrationIDSelector(registrationID), registration.copy(confirmationReferences = Some(confirmationReferences)), upsert = false)
+        .map(_ => Some(confirmationReferences))
+      case None => Future.successful(None)
+    }
+  }
+
+  override def updateConfirmationReferencesAndUpdateStatus(registrationID: String, confirmationReferences: ConfirmationReferences, status: String) : Future[Option[ConfirmationReferences]] = {
+    retrieveCorporationTaxRegistration(registrationID) flatMap {
+      case Some(registration) => collection.update(registrationIDSelector(registrationID), registration.copy(confirmationReferences = Some(confirmationReferences), status = status), upsert = false)
         .map(_ => Some(confirmationReferences))
       case None => Future.successful(None)
     }

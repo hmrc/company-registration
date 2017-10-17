@@ -63,11 +63,11 @@ class UserAccessControllerSpec extends UnitSpec with MockitoSugar with SCRSMocks
     "return a 200" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       when(mockUserAccessService.checkUserAccess(anyString())(any()))
-        .thenReturn(Future.successful(Right(UserAccessSuccessResponse("123", false, false))))
+        .thenReturn(Future.successful(Right(UserAccessSuccessResponse("123", false, false, false))))
 
       val result = controller.checkUserAccess(FakeRequest())
       status(result) shouldBe OK
-      await(jsonBodyOf(result)) shouldBe Json.toJson(UserAccessSuccessResponse("123", false, false))
+      await(jsonBodyOf(result)) shouldBe Json.toJson(UserAccessSuccessResponse("123", false, false, false))
     }
 
     "return a 429" in new Setup {
