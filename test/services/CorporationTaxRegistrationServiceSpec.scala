@@ -211,7 +211,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
 
   "handleSubmission" should {
 
-    val ho6RequestBody = ConfirmationReferences("", "testPayRef", "testPayAmount", "12")
+    val ho6RequestBody = ConfirmationReferences("", "testPayRef", Some("testPayAmount"), Some("12"))
 
     val ackRef = "testAckRef"
     val timestamp = "2016-10-27T17:06:23.000Z"
@@ -308,7 +308,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
 
     "return the confirmation references when document is already Held" in new Setup {
 
-      val confRefs = ConfirmationReferences("BRCT00000000123", "testPayRef", "testPayAmount", "12")
+      val confRefs = ConfirmationReferences("", "testPayRef", Some("testPayAmount"), Some("12"))
 
       when(mockCTDataRepository.fetchDocumentStatus(eqTo(regId)))
         .thenReturn(OptionT(Future.successful(Option(HELD))))
@@ -317,6 +317,24 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
         .thenReturn(Future.successful(Some(confRefs)))
 
       val result = await(service.handleSubmission(regId, ho6RequestBody))
+      result shouldBe confRefs
+    }
+
+    "return the confirmation references when document is already Held and update it with payment info" in new Setup {
+
+      val backendRefs = ho6RequestBody.copy(acknowledgementReference = "BRCT00000000123", paymentReference = None, paymentAmount = None)
+      val confRefs = ConfirmationReferences("BRCT00000000123", "testPayRef", Some("testPayAmount"), Some("12"))
+
+      when(mockCTDataRepository.fetchDocumentStatus(eqTo(regId)))
+        .thenReturn(OptionT(Future.successful(Option(HELD))))
+
+      when(mockCTDataRepository.retrieveConfirmationReferences(eqTo(regId)))
+        .thenReturn(Future.successful(Some(backendRefs)))
+
+      when(mockCTDataRepository.updateConfirmationReferences(eqTo(regId), eqTo(confRefs)))
+          .thenReturn(Future.successful(Some(confRefs)))
+
+      val result = await(service.handleSubmission(regId, confRefs))
       result shouldBe confRefs
     }
 
@@ -333,7 +351,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
   "retrieveConfirmationReference" should {
 
     "return an refs if found" in new Setup {
-      val expected = ConfirmationReferences("testTransaction", "testPayRef", "testPayAmount", "12")
+      val expected = ConfirmationReferences("testTransaction", "testPayRef", Some("testPayAmount"), Some("12"))
 
       when(mockCTDataRepository.retrieveConfirmationReferences(eqTo(regId)))
         .thenReturn(Future.successful(Some(expected)))
@@ -383,7 +401,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
 
   "storeConfirmationReferences" should {
 
-    val confRefs = ConfirmationReferences("testAckRef", "testPayRef", "testPayAmount", "12")
+    val confRefs = ConfirmationReferences("testAckRef", "testPayRef", Some("testPayAmount"), Some("12"))
 
     "return the same confirmation refs that were supplied on a successful store" in new Setup {
 
@@ -790,8 +808,8 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
       confirmationReferences = Some(ConfirmationReferences(
         acknowledgementReference = "ackRef",
         transactionId = tID,
-        paymentReference = "payref",
-        paymentAmount = "12"
+        paymentReference = Some("payref"),
+        paymentAmount = Some("12")
       ))
     )
 

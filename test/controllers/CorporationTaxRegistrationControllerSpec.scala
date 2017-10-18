@@ -207,7 +207,7 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
     val regId = "testRegId"
 
     "return a 200 and an acknowledgement ref is one exists" in new Setup {
-      val expected = ConfirmationReferences("BRCT00000000123", "tx", "py", "12.00")
+      val expected = ConfirmationReferences("BRCT00000000123", "tx", Some("py"), Some("12.00"))
       when(mockCTDataService.retrieveConfirmationReferences(Matchers.eq(regId)))
         .thenReturn(Future.successful(Some(expected)))
 
@@ -260,7 +260,7 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
     implicit val hc = HeaderCarrier()
 
     "return a 200 and an acknowledgement ref is one exists" in new Setup {
-      val expectedRefs = ConfirmationReferences("BRCT00000000123", "tx", "py", "12.00")
+      val expectedRefs = ConfirmationReferences("BRCT00000000123", "tx", Some("py"), Some("12.00"))
       when(mockCTDataService.handleSubmission(Matchers.contains(regId), Matchers.any(), Matchers.any())(Matchers.any[HeaderCarrier], Matchers.any()))
         .thenReturn(Future.successful(expectedRefs))
 
@@ -270,7 +270,7 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
       when(mockCTDataService.retrieveConfirmationReferences(Matchers.eq(regId)))
         .thenReturn(Future.successful(Some(expectedRefs)))
 
-      val result = controller.handleSubmission(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId", "testPaymentRef", "testPaymentAmount", ""))))
+      val result = controller.handleSubmission(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId", "testPaymentRef", Some("testPaymentAmount"), Some("")))))
       status(result) shouldBe OK
       await(jsonBodyOf(result)) shouldBe Json.toJson(expectedRefs)
     }
@@ -279,7 +279,7 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
       AuthenticationMocks.getCurrentAuthority(None)
       AuthorisationMocks.getInternalId(validAuthority.ids.internalId, None)
 
-      val result = controller.handleSubmission(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId", "testPaymentRef", "testPaymentAmount", ""))))
+      val result = controller.handleSubmission(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId", "testPaymentRef", Some("testPaymentAmount"), Some("")))))
       status(result) shouldBe FORBIDDEN
     }
 
@@ -287,7 +287,7 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       AuthorisationMocks.getInternalId(validAuthority.ids.internalId, Some((regId, "xxx")))
 
-      val result = controller.handleSubmission(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId", "testPaymentRef", "testPaymentAmount", ""))))
+      val result = controller.handleSubmission(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId", "testPaymentRef", Some("testPaymentAmount"), Some("")))))
       status(result) shouldBe FORBIDDEN
     }
 
@@ -295,7 +295,7 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       AuthorisationMocks.getInternalId(validAuthority.ids.internalId, None)
 
-      val result = controller.handleSubmission(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId", "testPaymentRef", "testPaymentAmount", ""))))
+      val result = controller.handleSubmission(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId", "testPaymentRef", Some("testPaymentAmount"), Some("")))))
       status(result) shouldBe NOT_FOUND
     }
   }

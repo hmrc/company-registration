@@ -26,6 +26,7 @@ import play.api.mvc.{AnyContent, Request}
 import repositories._
 import helpers.DateHelper
 import models.{ConfirmationReferences, CorporationTaxRegistration}
+import models.RegistrationStatus._
 import models._
 import models.admin.Admin
 import org.joda.time.{DateTime, DateTimeZone}
@@ -122,14 +123,18 @@ trait CorporationTaxRegistrationService extends DateHelper {
     }
   }
 
+  def isConfirmationPaymentRefsEmpty(refs: ConfirmationReferences): Boolean =
+    refs.paymentReference.isEmpty && refs.paymentAmount.isEmpty
+
   def handleSubmission(rID: String, refs: ConfirmationReferences, admin: Option[Admin] = None)
                       (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[ConfirmationReferences] = {
     isRegistrationHeld(rID).ifM(
       ifTrue = {
           Logger.info(s"[CorporationTaxRegistrationService] [updateConfirmationReferences] - Confirmation refs for Reg ID: $rID already exist")
           cTRegistrationRepository.retrieveConfirmationReferences(rID) flatMap {
-            case Some(existingRefs) =>
-              Future.successful(existingRefs)
+            case Some(existingRefs) if existingRefs != refs && isConfirmationPaymentRefsEmpty(existingRefs) =>
+              storeConfirmationReferences(rID, existingRefs.copy(paymentReference = refs.paymentReference, paymentAmount = refs.paymentAmount))
+            case Some(existingRefs) => Future.successful(existingRefs)
             case _ =>
               Logger.error(s"[CorporationTaxRegistrationService] [updateConfirmationReferences] - Registration status is held for regId: $rID but confirmation refs not found")
               throw new RuntimeException(s"Registration status is held for regId: $rID but confirmation refs not found")
@@ -142,14 +147,18 @@ trait CorporationTaxRegistrationService extends DateHelper {
   def submitPartial(rID: String, refs: ConfirmationReferences, admin: Option[Admin] = None)
                    (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[ConfirmationReferences] = {
     cTRegistrationRepository.retrieveConfirmationReferences(rID) flatMap {
-      case Some(cr) => Future.successful(cr)
-      case _ =>
+      case None =>
         for {
+          _                  <- cTRegistrationRepository.updateSubmissionStatus(rID, LOCKED)
           ackRef             <- generateAcknowledgementReference(rID)
           updatedRefs        <- storeConfirmationReferences(rID, refs.copy(acknowledgementReference = ackRef))
         } yield {
           updatedRefs
         }
+      case Some(cr) if isConfirmationPaymentRefsEmpty(cr) =>
+        Future.successful(cr.copy(paymentReference = refs.paymentReference, paymentAmount = refs.paymentAmount))
+      case Some(cr) =>
+        Future.successful(cr)
     } flatMap { cr =>
         sendPartialSubmission(rID, cr, admin) map {if(_) cr else throw new RuntimeException("Document did not update successfully")}
     }

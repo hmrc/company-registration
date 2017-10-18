@@ -18,7 +18,7 @@ package api
 
 import java.util.UUID
 
-import itutil.{IntegrationSpecBase, WiremockHelper}
+import itutil.{IntegrationSpecBase, LoginStub, WiremockHelper}
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsBoolean, JsObject, JsString, Json}
@@ -29,7 +29,7 @@ import uk.gov.hmrc.time.DateTimeUtils
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class ThrottleCheckISpec extends IntegrationSpecBase {
+class ThrottleCheckISpec extends IntegrationSpecBase with LoginStub {
 
   val mockHost = WiremockHelper.wiremockHost
   val mockPort = WiremockHelper.wiremockPort

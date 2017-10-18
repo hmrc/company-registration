@@ -147,7 +147,7 @@ class TestEndpointControllerSpec extends UnitSpec with MockitoSugar {
 
     val registrationId = "testRegId"
 
-    val confirmationRefs = ConfirmationReferences("", "testTransID", "testPaymentRef", "12")
+    val confirmationRefs = ConfirmationReferences("", "testTransID", Some("testPaymentRef"), Some("12"))
 
     "return a 200 if the document was successfully updated with a set of confirmation refs" in new Setup {
       when(mockCTService.handleSubmission(Matchers.eq(registrationId), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any()))

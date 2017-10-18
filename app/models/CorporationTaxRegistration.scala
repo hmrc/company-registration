@@ -27,6 +27,7 @@ import scala.language.implicitConversions
 
 object RegistrationStatus {
   val DRAFT = "draft"
+  val LOCKED = "locked"
   val HELD = "held"
   val SUBMITTED = "submitted"
 }

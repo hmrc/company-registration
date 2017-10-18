@@ -17,7 +17,7 @@
 package api
 
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
-import itutil.IntegrationSpecBase
+import itutil.{IntegrationSpecBase, LoginStub}
 import itutil.WiremockHelper._
 import models._
 import models.RegistrationStatus._
@@ -33,7 +33,7 @@ import uk.gov.hmrc.mongo.MongoSpecSupport
 
 import scala.concurrent.ExecutionContext
 
-class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport {
+class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with LoginStub {
 
   val regime = "testRegime"
   val subscriber = "testSubcriber"
@@ -141,8 +141,8 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport {
     confirmationReferences = Some(ConfirmationReferences(
       acknowledgementReference = ackRef,
       transactionId = transId,
-      paymentReference = payRef,
-      paymentAmount = "12"
+      paymentReference = Some(payRef),
+      paymentAmount = Some("12")
     )),
     companyDetails =  None,
     accountingDetails = Some(AccountingDetails(
@@ -363,7 +363,7 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport {
 
       insertCorpTax(draftRegistration)
 
-      val expectedConfRefs = ConfirmationReferences("BRCT00000000001", transId, payRef, "12")
+      val expectedConfRefs = ConfirmationReferences("BRCT00000000001", transId, Some(payRef), Some("12"))
 
       val firstCall: WSResponse = await(client(s"$url").post(adminJsonBody))
       firstCall.status shouldBe 404

@@ -38,7 +38,7 @@ class ConfirmationReferencesSpec extends UnitSpec with JsonFormatValidation {
     "Be able to be parsed from JSON" in {
       val ackRef = "1234567890123456789012345678901"
       val json = j(ackRef)
-      val expected = ConfirmationReferences(ackRef, "aaa", "bbb", "ccc")
+      val expected = ConfirmationReferences(ackRef, "aaa", Some("bbb"), Some("ccc"))
 
       val result = Json.parse(json).validate[ConfirmationReferences]
 

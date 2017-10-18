@@ -18,7 +18,7 @@ package api
 
 import java.util.UUID
 
-import itutil.{IntegrationSpecBase, WiremockHelper}
+import itutil.{IntegrationSpecBase, LoginStub, WiremockHelper}
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, JsValue, Json}
@@ -28,7 +28,7 @@ import repositories.{CorporationTaxRegistrationMongoRepository, CorporationTaxRe
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class RegistrationProgressISpec extends IntegrationSpecBase {
+class RegistrationProgressISpec extends IntegrationSpecBase with LoginStub {
 
   val mockHost = WiremockHelper.wiremockHost
   val mockPort = WiremockHelper.wiremockPort

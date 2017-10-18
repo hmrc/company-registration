@@ -18,7 +18,7 @@ package api
 
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
-import itutil.{IntegrationSpecBase, MongoIntegrationSpec, WiremockHelper}
+import itutil.{IntegrationSpecBase, LoginStub, MongoIntegrationSpec, WiremockHelper}
 import models.RegistrationStatus.HELD
 import models.{AccountingDetails, ConfirmationReferences, CorporationTaxRegistration, Email}
 import org.joda.time.DateTime
@@ -32,7 +32,7 @@ import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmissionDa
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with MongoIntegrationSpec {
+class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with MongoIntegrationSpec with LoginStub {
   val mockHost = WiremockHelper.wiremockHost
   val mockPort = WiremockHelper.wiremockPort
   val mockUrl = s"http://$mockHost:$mockPort"
@@ -93,8 +93,8 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
     confirmationReferences = Some(ConfirmationReferences(
       acknowledgementReference = ackRef,
       transactionId = transId,
-      paymentReference = payRef,
-      paymentAmount = "12"
+      paymentReference = Some(payRef),
+      paymentAmount = Some("12")
     )),
     companyDetails =  None,
     accountingDetails = Some(AccountingDetails(
