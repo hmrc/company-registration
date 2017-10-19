@@ -238,6 +238,53 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
         reg.status shouldBe HELD
       }
 
+      "registration is in Draft status and update Confirmation References but DES submission failed (old HO6)" in new Setup {
+        System.setProperty("feature.registerInterest", "false")
+        System.setProperty("feature.etmpHoldingPen", "true")
+
+        await(ctRepository.insert(draftRegistration))
+
+        setupSimpleAuthMocks(internalId)
+
+        stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
+        stubPost(s"/business-registration/corporation-tax", 403, "")
+
+        val response = await(client(s"/$regId/confirmation-references").put(jsonConfirmationRefs("", Some(payRef), Some(payAmount))))
+        response.status shouldBe 400
+
+        val reg = await(ctRepository.findAll()).head
+        reg.confirmationReferences shouldBe Some(confRefsWithPayment)
+        reg.status shouldBe LOCKED
+      }
+
+      "registration is in Locked status (old HO6)" in new Setup {
+        val confRefsWithPayment = ConfirmationReferences(
+          acknowledgementReference = ackRef,
+          transactionId = transId,
+          paymentReference = Some(payRef),
+          paymentAmount = Some(payAmount)
+        )
+        val lockedRegistration = draftRegistration.copy(status = LOCKED, confirmationReferences = Some(confRefsWithPayment))
+
+        System.setProperty("feature.registerInterest", "false")
+        System.setProperty("feature.etmpHoldingPen", "true")
+
+        await(ctRepository.insert(lockedRegistration))
+
+        setupSimpleAuthMocks(internalId)
+
+        stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
+        stubPost(s"/business-registration/corporation-tax", 200, """{"a": "b"}""")
+
+        val response = await(client(s"/$regId/confirmation-references").put(jsonConfirmationRefs(ackRef, Some(payRef), Some(payAmount))))
+        response.status shouldBe 200
+        response.json shouldBe Json.toJson(confRefsWithPayment)
+
+        val reg = await(ctRepository.findAll()).head
+        reg.confirmationReferences shouldBe Some(confRefsWithPayment)
+        reg.status shouldBe HELD
+      }
+
       "registration is in Draft status and update Confirmation References with Ack Ref (new HO5-1)" in new Setup {
         val confRefsWithoutPayment = ConfirmationReferences(
           acknowledgementReference = ackRef,
