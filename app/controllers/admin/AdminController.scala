@@ -120,6 +120,6 @@ trait AdminController extends BaseController with FutureInstances with Applicati
   }
 
   private def buildConfirmationRefs(identifiers: HO6Identifiers) = {
-    ConfirmationReferences("", identifiers.transactionId, identifiers.paymentReference, identifiers.paymentAmount)
+    ConfirmationReferences("", identifiers.transactionId, Some(identifiers.paymentReference), Some(identifiers.paymentAmount))
   }
 }

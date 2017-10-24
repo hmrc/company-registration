@@ -26,6 +26,7 @@ import play.api.mvc.{AnyContent, Request}
 import repositories._
 import helpers.DateHelper
 import models.{ConfirmationReferences, CorporationTaxRegistration}
+import models.RegistrationStatus._
 import models._
 import models.admin.Admin
 import org.joda.time.{DateTime, DateTimeZone}
@@ -122,34 +123,41 @@ trait CorporationTaxRegistrationService extends DateHelper {
     }
   }
 
+  def isConfirmationPaymentRefsEmpty(refs: ConfirmationReferences): Boolean =
+    refs.paymentReference.isEmpty && refs.paymentAmount.isEmpty
+
   def handleSubmission(rID: String, refs: ConfirmationReferences, admin: Option[Admin] = None)
                       (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[ConfirmationReferences] = {
-    isRegistrationHeld(rID).ifM(
-      ifTrue = {
-          Logger.info(s"[CorporationTaxRegistrationService] [updateConfirmationReferences] - Confirmation refs for Reg ID: $rID already exist")
-          cTRegistrationRepository.retrieveConfirmationReferences(rID) flatMap {
-            case Some(existingRefs) =>
-              Future.successful(existingRefs)
-            case _ =>
-              Logger.error(s"[CorporationTaxRegistrationService] [updateConfirmationReferences] - Registration status is held for regId: $rID but confirmation refs not found")
-              throw new RuntimeException(s"Registration status is held for regId: $rID but confirmation refs not found")
-          }
-        },
-      ifFalse = submitPartial(rID, refs, admin)
+    isRegistrationDraftOrLocked(rID).ifM(
+      ifTrue = submitPartial(rID, refs, admin),
+      ifFalse = {
+        Logger.info(s"[CorporationTaxRegistrationService] [updateConfirmationReferences] - Confirmation refs for Reg ID: $rID already exist")
+        cTRegistrationRepository.retrieveConfirmationReferences(rID) flatMap {
+          case Some(existingRefs) if existingRefs != refs && isConfirmationPaymentRefsEmpty(existingRefs) =>
+            storeConfirmationReferencesAndUpdateStatus(rID, existingRefs.copy(paymentReference = refs.paymentReference, paymentAmount = refs.paymentAmount), None)
+          case Some(existingRefs) => Future.successful(existingRefs)
+          case _ =>
+            Logger.error(s"[CorporationTaxRegistrationService] [updateConfirmationReferences] - Registration status is held for regId: $rID but confirmation refs not found")
+            throw new RuntimeException(s"Registration status is held for regId: $rID but confirmation refs not found")
+        }
+      }
     )
   }
 
   def submitPartial(rID: String, refs: ConfirmationReferences, admin: Option[Admin] = None)
                    (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[ConfirmationReferences] = {
     cTRegistrationRepository.retrieveConfirmationReferences(rID) flatMap {
-      case Some(cr) => Future.successful(cr)
-      case _ =>
+      case None =>
         for {
           ackRef             <- generateAcknowledgementReference(rID)
-          updatedRefs        <- storeConfirmationReferences(rID, refs.copy(acknowledgementReference = ackRef))
+          updatedRefs        <- storeConfirmationReferencesAndUpdateStatus(rID, refs.copy(acknowledgementReference = ackRef), Some(LOCKED))
         } yield {
           updatedRefs
         }
+      case Some(cr) if isConfirmationPaymentRefsEmpty(cr) =>
+        Future.successful(cr.copy(paymentReference = refs.paymentReference, paymentAmount = refs.paymentAmount))
+      case Some(cr) =>
+        Future.successful(cr)
     } flatMap { cr =>
         sendPartialSubmission(rID, cr, admin) map {if(_) cr else throw new RuntimeException("Document did not update successfully")}
     }
@@ -165,10 +173,10 @@ trait CorporationTaxRegistrationService extends DateHelper {
     cTRegistrationRepository.retrieveConfirmationReferences(rID)
   }
 
-  private[services] def isRegistrationHeld(regId: String): Future[Boolean] = {
+  private[services] def isRegistrationDraftOrLocked(regId: String): Future[Boolean] = {
     fetchStatus(regId).fold(
       throw new RuntimeException(s"Registration status not found for regId : $regId")
-    )(_ == HELD)
+    )(status => status == DRAFT || status == LOCKED)
   }
 
   private[services] def sendPartialSubmission(regId: String, confRefs: ConfirmationReferences, admin: Option[Admin] = None)
@@ -183,12 +191,16 @@ trait CorporationTaxRegistrationService extends DateHelper {
     } yield success
   }
 
-  private[services] def storeConfirmationReferences(regId: String, refs: ConfirmationReferences): Future[ConfirmationReferences] = {
-    cTRegistrationRepository.updateConfirmationReferences(regId, refs) map {
-      case Some(_) => refs
-      case None =>
-        Logger.error(s"[CorporationTaxRegistrationService] [HO6] [updateConfirmationRefs] - Could not find a registration document for regId : $regId")
-        throw new RuntimeException(s"[HO6] Could not update confirmation refs for regId: $regId - registration document not found")
+  private[services] def storeConfirmationReferencesAndUpdateStatus(regId: String, refs: ConfirmationReferences, status: Option[String]): Future[ConfirmationReferences] = {
+    for {
+      oRefs <- status.fold(cTRegistrationRepository.updateConfirmationReferences(regId, refs))(cTRegistrationRepository.updateConfirmationReferencesAndUpdateStatus(regId, refs, _))
+    } yield {
+      oRefs match {
+        case Some(_) => refs
+        case None =>
+          Logger.error(s"[CorporationTaxRegistrationService] [HO6] [updateConfirmationRefs] - Could not find a registration document for regId : $regId")
+          throw new RuntimeException(s"[HO6] Could not update confirmation refs for regId: $regId - registration document not found")
+      }
     }
   }
 

@@ -18,7 +18,7 @@ package api
 
 import java.util.UUID
 
-import itutil.{IntegrationSpecBase, WiremockHelper}
+import itutil.{IntegrationSpecBase, LoginStub, WiremockHelper}
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsBoolean, JsObject, JsString, Json}
@@ -29,7 +29,7 @@ import uk.gov.hmrc.time.DateTimeUtils
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class ThrottleCheckISpec extends IntegrationSpecBase {
+class ThrottleCheckISpec extends IntegrationSpecBase with LoginStub {
 
   val mockHost = WiremockHelper.wiremockHost
   val mockPort = WiremockHelper.wiremockPort
@@ -108,6 +108,7 @@ class ThrottleCheckISpec extends IntegrationSpecBase {
         "registration-id" -> JsString(registrationId),
         "created" -> JsBoolean(false),
         "confirmation-reference" -> JsBoolean(false),
+        "payment-reference" -> JsBoolean(false),
         "registration-progress" -> JsString(progress)
       )
     }
@@ -127,7 +128,8 @@ class ThrottleCheckISpec extends IntegrationSpecBase {
       response.json shouldBe Json.obj(
         "registration-id" -> JsString(registrationId),
         "created" -> JsBoolean(true),
-        "confirmation-reference" -> JsBoolean(false)
+        "confirmation-reference" -> JsBoolean(false),
+        "payment-reference" -> JsBoolean(false)
       )
     }
 

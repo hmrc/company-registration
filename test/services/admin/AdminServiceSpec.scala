@@ -66,7 +66,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar {
         .thenReturn(Future.successful(List.fill(3)(heldSub)))
 
       when(mockCorpTaxRegistrationRepo.retrieveConfirmationReferences(any()))
-        .thenReturn(Future.successful(Some(ConfirmationReferences("", transId, "payRef", "12"))))
+        .thenReturn(Future.successful(Some(ConfirmationReferences("", transId, Some("payRef"), Some("12")))))
 
       when(mockIncorpInfoConnector.registerInterest(any(), any(), any())(any(), any()))
         .thenReturn(Future.successful(true))
@@ -102,7 +102,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar {
         .thenReturn(Future.successful(List.fill(3)(heldSub)))
 
       when(mockCorpTaxRegistrationRepo.retrieveConfirmationReferences(any()))
-        .thenReturn(Future.successful(Some(ConfirmationReferences("", transId, "payRef", "12"))))
+        .thenReturn(Future.successful(Some(ConfirmationReferences("", transId, Some("payRef"), Some("12")))))
 
       when(mockIncorpInfoConnector.registerInterest(any(), any(), any())(any(), any()))
         .thenReturn(Future.successful(false))

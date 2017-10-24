@@ -18,8 +18,8 @@ package api
 
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
-import itutil.{IntegrationSpecBase, MongoIntegrationSpec, WiremockHelper}
-import models.RegistrationStatus.HELD
+import itutil.{IntegrationSpecBase, LoginStub, MongoIntegrationSpec, WiremockHelper}
+import models.RegistrationStatus.{HELD, DRAFT, LOCKED}
 import models.{AccountingDetails, ConfirmationReferences, CorporationTaxRegistration, Email}
 import org.joda.time.DateTime
 import play.api.Application
@@ -32,7 +32,7 @@ import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmissionDa
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with MongoIntegrationSpec {
+class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with MongoIntegrationSpec with LoginStub {
   val mockHost = WiremockHelper.wiremockHost
   val mockPort = WiremockHelper.wiremockPort
   val mockUrl = s"http://$mockHost:$mockPort"
@@ -93,8 +93,8 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
     confirmationReferences = Some(ConfirmationReferences(
       acknowledgementReference = ackRef,
       transactionId = transId,
-      paymentReference = payRef,
-      paymentAmount = "12"
+      paymentReference = Some(payRef),
+      paymentAmount = Some("12")
     )),
     companyDetails =  None,
     accountingDetails = Some(AccountingDetails(
@@ -379,6 +379,22 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
       val reg :: _ = await(ctRepository.findAll())
 
       reg.status shouldBe "submitted"
+    }
+
+    "NOT send a top-up submission to DES if a matching registration exists as not held status and a held submission does not exist" in new Setup {
+
+      val jsonBodyFromII: String = jsonIncorpStatus(testIncorpDate)
+
+      setupSimpleAuthMocks()
+      setupCTRegistration(heldRegistration.copy(status = DRAFT))
+
+      stubEmailPost(202)
+      stubPost("/write/audit", 200, """{"x":2}""")
+
+      heldRepository.awaitCount shouldBe 0
+
+      val response: WSResponse = client(path).post(jsonBodyFromII)
+      response.status shouldBe 500
     }
 
     "send a full submission to DES if a matching held registration exists and a held submission exists" in new Setup {

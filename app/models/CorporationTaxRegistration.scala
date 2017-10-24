@@ -27,6 +27,7 @@ import scala.language.implicitConversions
 
 object RegistrationStatus {
   val DRAFT = "draft"
+  val LOCKED = "locked"
   val HELD = "held"
   val SUBMITTED = "submitted"
 }
@@ -137,15 +138,15 @@ object AcknowledgementReferences {
 
 case class ConfirmationReferences(acknowledgementReference: String = "",
                                   transactionId: String,
-                                  paymentReference: String,
-                                  paymentAmount: String)
+                                  paymentReference: Option[String],
+                                  paymentAmount: Option[String])
 
 object ConfirmationReferences {
   def format(formatter: BaseJsonFormatting): Format[ConfirmationReferences] = (
     (__ \ "acknowledgement-reference").format[String](formatter.ackRefValidator) and
     (__ \ "transaction-id").format[String] and
-    (__ \ "payment-reference").format[String] and
-    (__ \ "payment-amount").format[String]
+    (__ \ "payment-reference").formatNullable[String] and
+    (__ \ "payment-amount").formatNullable[String]
   )(ConfirmationReferences.apply, unlift(ConfirmationReferences.unapply))
 
   implicit val apiFormat = format(APIValidation)

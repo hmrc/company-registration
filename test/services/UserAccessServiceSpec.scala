@@ -81,7 +81,7 @@ class UserAccessServiceSpec
       when(mockCTService.retrieveCorporationTaxRegistrationRecord(eqTo(regId), any[Option[DateTime]]()))
         .thenReturn(Some(draftCorporationTaxRegistration(regId)))
 
-      await(service.checkUserAccess(internalId)) shouldBe Right(UserAccessSuccessResponse(regId, false, false))
+      await(service.checkUserAccess(internalId)) shouldBe Right(UserAccessSuccessResponse(regId, false, false, false))
     }
 
     "return a UserAccessLimitReachedResponse when the throttle service returns a false" in new Setup {
@@ -124,7 +124,7 @@ class UserAccessServiceSpec
         .thenReturn(draftCTReg)
 
       await(service.checkUserAccess(internalId)) shouldBe
-        Right(UserAccessSuccessResponse(regId, true, false, Some(expectedEmail)))
+        Right(UserAccessSuccessResponse(regId, true, false, false, Some(expectedEmail)))
     }
 
     "return a UserAccessSuccessResponse with the created flag set to true" in new Setup {
@@ -137,7 +137,7 @@ class UserAccessServiceSpec
       when(mockCTService.createCorporationTaxRegistrationRecord(anyString(), anyString(), anyString()))
         .thenReturn(draftCorporationTaxRegistration(regId))
 
-      await(service.checkUserAccess("321")) shouldBe Right(UserAccessSuccessResponse("12345", true, false))
+      await(service.checkUserAccess("321")) shouldBe Right(UserAccessSuccessResponse("12345", true, false, false))
     }
 
     "return a UserAccessSuccessResponse with the confirmation refs flag set to true" in new Setup {
@@ -148,7 +148,7 @@ class UserAccessServiceSpec
       when(mockCTService.retrieveCorporationTaxRegistrationRecord(eqTo(regId), any()))
         .thenReturn(Some(validHeldCTRegWithData(regId)))
 
-      await(service.checkUserAccess(internalId)) shouldBe Right(UserAccessSuccessResponse(regId, false, true))
+      await(service.checkUserAccess(internalId)) shouldBe Right(UserAccessSuccessResponse(regId, false, true, true))
     }
 
     "return an error when retrieving metadata returns a forbidden response" in new Setup {
