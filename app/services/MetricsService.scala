@@ -18,8 +18,10 @@ package services
 
 import javax.inject.{Inject, Singleton}
 
-import com.codahale.metrics.{Counter, Timer}
-import com.kenshoo.play.metrics.Metrics
+import com.codahale.metrics.{Counter, Gauge, Timer}
+import com.kenshoo.play.metrics.{Metrics, MetricsDisabledException}
+import play.api.Logger
+import repositories.Repositories
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -84,6 +86,36 @@ trait MetricsService {
   val userAccessCRTimer : Timer
 
   val desSubmissionCRTimer : Timer
+
+  protected val
+
+  def updateSubscriptionMetrics(): Future[Map[String, Int]] = {
+
+    Repositories.cTRepository.getRegistrationStats() map {
+      stats => {
+        for( (status, count) <- stats ) {
+          recordStatusCountStat(status, count)
+        }
+        stats
+      }
+    }
+  }
+
+  private def recordStatusCountStat(status: String, count: Int) = {
+    val metricName = s"status-count-stat.${status}"
+    try {
+      val gauge = new Gauge[Int] {
+        val getValue = count
+      }
+
+      metricsInstance.defaultRegistry.remove(metricName)
+      metricsInstance.defaultRegistry.register(metricName, gauge)
+    } catch {
+      case ex: MetricsDisabledException => {
+        Logger.warn(s"[MetricsService] [recordSubscriptionRegimeStat] Metrics disabled - ${metricName} -> ${count}")
+      }
+    }
+  }
 
   def processDataResponseWithMetrics[T](timer: Timer.Context, success: Option[Counter] = None, failed: Option[Counter] = None)(f: => Future[T]): Future[T] = {
     f map { data =>
