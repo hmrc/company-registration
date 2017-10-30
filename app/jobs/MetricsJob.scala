@@ -16,10 +16,14 @@
 
 package jobs
 
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 
+import org.joda.time.Duration
+import play.api.{Logger, Play}
 import play.modules.reactivemongo.MongoDbConnection
 import reactivemongo.api.DefaultDB
+import services.MetricsService
+import uk.gov.hmrc.lock.{LockKeeper, LockRepository}
 import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.scheduling.ExclusiveScheduledJob
 import utils.SCRSFeatureSwitches
@@ -27,18 +31,48 @@ import utils.SCRSFeatureSwitches
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class MetricsJobImpl @Inject()() extends MetricsJob {
+class MetricsJobImpl @Inject()(val metricsService: MetricsService) extends MetricsJob {
   val name = "metrics-job"
   lazy val db: () => DefaultDB = new MongoDbConnection{}.db
+  override lazy val lock: LockKeeper = new LockKeeper() {
+    override val lockId = s"$name-lock"
+    override val forceLockReleaseAfter: Duration = lockTimeout
+    private implicit val mongo = new MongoDbConnection {}.db
+    override val repo = new LockRepository
+  }
 }
+
+object MetricsJob extends MetricsJob {
+  val name = "metrics-job"
+
+  lazy val app = Play.current
+  override lazy val metricsService: MetricsService = app.injector.instanceOf[MetricsService]
+  lazy val db: () => DefaultDB = new MongoDbConnection{}.db
+  override lazy val lock: LockKeeper = new LockKeeper() {
+    override val lockId = s"$name-lock"
+    override val forceLockReleaseAfter: Duration = lockTimeout
+    private implicit val mongo = new MongoDbConnection {}.db
+    override val repo = new LockRepository
+  }
+}
+
 
 trait MetricsJob extends ExclusiveScheduledJob with JobConfig with JobHelper {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
+  val lock: LockKeeper
+  val metricsService: MetricsService
+
   override def executeInMutex(implicit ec: ExecutionContext): Future[Result] = {
     ifFeatureEnabled(SCRSFeatureSwitches.graphiteMetrics) {
-      ???
+      whenLockAcquired {
+        metricsService.updateDocumentMetrics() map { result =>
+          val message = s"Feature is turned on - result = Updated document stats - $result"
+          Logger.info(message)
+          Result(message)
+        }
+      }
     }
   }
 }

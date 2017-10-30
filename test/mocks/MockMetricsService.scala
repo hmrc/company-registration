@@ -17,14 +17,18 @@
 package mocks
 
 import com.codahale.metrics.{Counter, Timer}
+import com.kenshoo.play.metrics.Metrics
 import org.scalatest.mock.MockitoSugar
+import repositories.{CorporationTaxRegistrationMongoRepository, CorporationTaxRegistrationRepository}
 import services._
 
 object MockMetricsService extends MetricsService with MockitoSugar {
+  override val metrics = mock[Metrics]
   val fakeCounter = mock[Counter]
   lazy val mockContext = mock[Timer.Context]
   val mockTimer = new Timer()
 
+  val ctRepository = mock[CorporationTaxRegistrationMongoRepository]
 
   override val ctutrConfirmationCounter: Counter = fakeCounter
 

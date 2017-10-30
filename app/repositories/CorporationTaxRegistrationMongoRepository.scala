@@ -358,6 +358,8 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
       }
     }
 
+    metrics foreach (println)
+
     metrics map {
       _.toMap
     }

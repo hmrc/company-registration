@@ -21,14 +21,14 @@ import javax.inject.{Inject, Singleton}
 import com.codahale.metrics.{Counter, Gauge, Timer}
 import com.kenshoo.play.metrics.{Metrics, MetricsDisabledException}
 import play.api.Logger
-import repositories.Repositories
+import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 @Singleton
 class MetricsServiceImp @Inject() (metricsInstance: Metrics) extends MetricsService {
-  val metrics = metricsInstance
+  override val metrics = metricsInstance
 
   override val ctutrConfirmationCounter: Counter = metrics.defaultRegistry.counter("ctutr-confirmation-counter")
 
@@ -56,6 +56,7 @@ class MetricsServiceImp @Inject() (metricsInstance: Metrics) extends MetricsServ
   override val userAccessCRTimer: Timer = metrics.defaultRegistry.timer("user-access-CR-timer")
 
   override val desSubmissionCRTimer: Timer = metrics.defaultRegistry.timer("des-submission-CR-timer")
+  override val ctRepository: CorporationTaxRegistrationMongoRepository = Repositories.cTRepository
 }
 
 trait MetricsService {
@@ -87,11 +88,12 @@ trait MetricsService {
 
   val desSubmissionCRTimer : Timer
 
-  protected val
+  val ctRepository: CorporationTaxRegistrationMongoRepository
 
-  def updateSubscriptionMetrics(): Future[Map[String, Int]] = {
+  protected val metrics: Metrics
 
-    Repositories.cTRepository.getRegistrationStats() map {
+  def updateDocumentMetrics(): Future[Map[String, Int]] = {
+    ctRepository.getRegistrationStats() map {
       stats => {
         for( (status, count) <- stats ) {
           recordStatusCountStat(status, count)
@@ -102,17 +104,16 @@ trait MetricsService {
   }
 
   private def recordStatusCountStat(status: String, count: Int) = {
-    val metricName = s"status-count-stat.${status}"
+    val metricName = s"status-count-stat.$status"
     try {
       val gauge = new Gauge[Int] {
-        val getValue = count
+        val getValue: Int = count
       }
-
-      metricsInstance.defaultRegistry.remove(metricName)
-      metricsInstance.defaultRegistry.register(metricName, gauge)
+      metrics.defaultRegistry.remove(metricName)
+      metrics.defaultRegistry.register(metricName, gauge)
     } catch {
       case ex: MetricsDisabledException => {
-        Logger.warn(s"[MetricsService] [recordSubscriptionRegimeStat] Metrics disabled - ${metricName} -> ${count}")
+        Logger.warn(s"[MetricsService] [recordStatusCountStat] Metrics disabled - $metricName -> $count")
       }
     }
   }
