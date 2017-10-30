@@ -18,15 +18,17 @@ package services
 
 import javax.inject.{Inject, Singleton}
 
-import com.codahale.metrics.{Counter, Timer}
-import com.kenshoo.play.metrics.Metrics
+import com.codahale.metrics.{Counter, Gauge, Timer}
+import com.kenshoo.play.metrics.{Metrics, MetricsDisabledException}
+import play.api.Logger
+import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 @Singleton
 class MetricsServiceImp @Inject() (metricsInstance: Metrics) extends MetricsService {
-  val metrics = metricsInstance
+  override val metrics = metricsInstance
 
   override val ctutrConfirmationCounter: Counter = metrics.defaultRegistry.counter("ctutr-confirmation-counter")
 
@@ -54,6 +56,7 @@ class MetricsServiceImp @Inject() (metricsInstance: Metrics) extends MetricsServ
   override val userAccessCRTimer: Timer = metrics.defaultRegistry.timer("user-access-CR-timer")
 
   override val desSubmissionCRTimer: Timer = metrics.defaultRegistry.timer("des-submission-CR-timer")
+  override val ctRepository: CorporationTaxRegistrationMongoRepository = Repositories.cTRepository
 }
 
 trait MetricsService {
@@ -84,6 +87,36 @@ trait MetricsService {
   val userAccessCRTimer : Timer
 
   val desSubmissionCRTimer : Timer
+
+  val ctRepository: CorporationTaxRegistrationMongoRepository
+
+  protected val metrics: Metrics
+
+  def updateDocumentMetrics(): Future[Map[String, Int]] = {
+    ctRepository.getRegistrationStats() map {
+      stats => {
+        for( (status, count) <- stats ) {
+          recordStatusCountStat(status, count)
+        }
+        stats
+      }
+    }
+  }
+
+  private def recordStatusCountStat(status: String, count: Int) = {
+    val metricName = s"status-count-stat.$status"
+    try {
+      val gauge = new Gauge[Int] {
+        val getValue: Int = count
+      }
+      metrics.defaultRegistry.remove(metricName)
+      metrics.defaultRegistry.register(metricName, gauge)
+    } catch {
+      case ex: MetricsDisabledException => {
+        Logger.warn(s"[MetricsService] [recordStatusCountStat] Metrics disabled - $metricName -> $count")
+      }
+    }
+  }
 
   def processDataResponseWithMetrics[T](timer: Timer.Context, success: Option[Counter] = None, failed: Option[Counter] = None)(f: => Future[T]): Future[T] = {
     f map { data =>
