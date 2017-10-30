@@ -28,7 +28,9 @@ import scala.concurrent.Future
 
 @Singleton
 class MetricsServiceImp @Inject() (metricsInstance: Metrics) extends MetricsService {
-  override val metrics = metricsInstance
+
+  override val metrics: Metrics = metricsInstance
+  override lazy val ctRepository: CorporationTaxRegistrationMongoRepository = Repositories.cTRepository
 
   override val ctutrConfirmationCounter: Counter = metrics.defaultRegistry.counter("ctutr-confirmation-counter")
 
@@ -56,7 +58,6 @@ class MetricsServiceImp @Inject() (metricsInstance: Metrics) extends MetricsServ
   override val userAccessCRTimer: Timer = metrics.defaultRegistry.timer("user-access-CR-timer")
 
   override val desSubmissionCRTimer: Timer = metrics.defaultRegistry.timer("des-submission-CR-timer")
-  override val ctRepository: CorporationTaxRegistrationMongoRepository = Repositories.cTRepository
 }
 
 trait MetricsService {

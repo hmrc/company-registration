@@ -18,7 +18,10 @@ package config
 
 import com.google.inject.AbstractModule
 import connectors.{IncorporationInformationConnector, IncorporationInformationConnectorImpl}
+import controllers._
 import controllers.admin.{AdminController, AdminControllerImpl}
+import controllers.test.{EmailController, EmailControllerImp}
+import services._
 import services.admin.{AdminService, AdminServiceImpl}
 import uk.gov.hmrc.play.config.inject.{DefaultServicesConfig, ServicesConfig}
 
@@ -31,12 +34,33 @@ class Module extends AbstractModule {
     bind(classOf[ServicesConfig]).to(classOf[DefaultServicesConfig])
 
     // controllers
-    bind(classOf[AdminController]).to(classOf[AdminControllerImpl])
+    bind(classOf[EmailController]) to classOf[EmailControllerImp]
+    bind(classOf[AccountingDetailsController]) to classOf[AccountingDetailsControllerImp]
+    bind(classOf[ProcessIncorporationsController]) to classOf[ProcessIncorporationsControllerImp]
+    bind(classOf[CompanyDetailsController]) to classOf[CompanyDetailsControllerImp]
+    bind(classOf[ContactDetailsController]) to classOf[ContactDetailsControllerImp]
+    bind(classOf[CorporationTaxRegistrationController]) to classOf[CorporationTaxRegistrationControllerImp]
+    bind(classOf[TradingDetailsController]) to classOf[TradingDetailsControllerImp]
+    bind(classOf[UserAccessController]) to classOf[UserAccessControllerImp]
+    bind(classOf[AdminController]) to classOf[AdminControllerImpl]
 
-    // services
-    bind(classOf[AdminService]).to(classOf[AdminServiceImpl])
+    bindServices()
 
     //connectors
     bind(classOf[IncorporationInformationConnector]).to(classOf[IncorporationInformationConnectorImpl])
+  }
+
+
+  private def bindServices() {
+    bind(classOf[AdminService]).to(classOf[AdminServiceImpl])
+    bind(classOf[MetricsService]) to classOf[MetricsServiceImp]
+    bind(classOf[CompanyDetailsService]) to classOf[CompanyDetailsServiceImp]
+    bind(classOf[ContactDetailsService]) to classOf[ContactDetailsServiceImp]
+    bind(classOf[EmailService]) to classOf[EmailServiceImp]
+    bind(classOf[MetricsService]) to classOf[MetricsServiceImp]
+    bind(classOf[PrepareAccountService]) to classOf[PrepareAccountServiceImp]
+    bind(classOf[ThrottleService]) to classOf[ThrottleServiceImp]
+    bind(classOf[TradingDetailsService]) to classOf[TradingDetailsServiceImp]
+    bind(classOf[UserAccessService]) to classOf[UserAccessServiceImp]
   }
 }
