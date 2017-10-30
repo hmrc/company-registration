@@ -16,14 +16,11 @@
 
 package repositories
 
-import javax.inject.Singleton
-
-
 import uk.gov.hmrc.lock.LockRepository
 import play.modules.reactivemongo.MongoDbConnection
 
 object Repositories {
-  private implicit val mongo = new MongoDbConnection {}.db
+  private implicit lazy val mongo = new MongoDbConnection {}.db
 
   lazy val cTRepository = new CorporationTaxRegistrationMongoRepository(mongo)
   lazy val sequenceRepository = new SequenceMongoRepository(mongo)
