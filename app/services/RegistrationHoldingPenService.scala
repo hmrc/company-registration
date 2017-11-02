@@ -166,7 +166,7 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
           processSuccessDesResponse(item, ctReg, auditDetail, isAdmin)
         } recover {
           case e =>
-            Logger.error(s"""Submission to DES failed for ack ref ${ackRef}.""")
+            Logger.error(s"""Submission to DES failed for ack ref ${ackRef}. Corresponding RegID: $journeyId and Transaction ID: ${item.transactionId}""")
             throw e
         }
       case None => processMissingAckRefForTxID(item.transactionId)
