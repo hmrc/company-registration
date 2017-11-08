@@ -93,6 +93,11 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
       stats => Logger.info(s"[RegStats] ${stats}")
     }
 
+    Repositories.cTRepository.retrieveLockedRegIDs() map { regIds =>
+      val message = regIds.map(rid => s" RegId: $rid")
+      Logger.info(s"RegIds with locked status:$message")
+    }
+
     import java.util.Base64
     val regIdConf = app.configuration.getString("registrationList").getOrElse("")
     val regIdList = new String(Base64.getDecoder.decode(regIdConf), "UTF-8")

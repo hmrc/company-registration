@@ -365,4 +365,68 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       result shouldBe expected
     }
   }
+
+  "retrieveLockedRegIds" should {
+
+    val regId = "reg-12345"
+    val lockedRegId = "reg-54321"
+    val dateTime = DateTime.parse("2017-09-04T14:49:48.261")
+
+    val validConfirmationReferences = ConfirmationReferences(
+      acknowledgementReference = "BRCT12345678910",
+      transactionId = "TX1",
+      paymentReference = Some("PY1"),
+      paymentAmount = Some("12.00")
+    )
+
+    val corporationTaxRegistration = CorporationTaxRegistration(
+      internalId = "testID",
+      registrationID = regId,
+      formCreationTimestamp = "testDateTime",
+      language = "en",
+      companyDetails = Some(CompanyDetails(
+        "testCompanyName",
+        CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
+        PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"), None, "txid"))),
+        "testJurisdiction"
+      )),
+      contactDetails = Some(ContactDetails(
+        "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+      )),
+      tradingDetails = Some(TradingDetails("true")),
+      status = RegistrationStatus.DRAFT,
+      createdTime = dateTime,
+      lastSignedIn = dateTime
+    )
+
+    val lockedCorporationTaxRegistration = CorporationTaxRegistration(
+      internalId = "testID",
+      registrationID = lockedRegId,
+      formCreationTimestamp = "testDateTime",
+      language = "en",
+      companyDetails = Some(CompanyDetails(
+        "testCompanyName",
+        CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
+        PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"), None, "txid"))),
+        "testJurisdiction"
+      )),
+      contactDetails = Some(ContactDetails(
+        "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+      )),
+      tradingDetails = Some(TradingDetails("true")),
+      status = RegistrationStatus.LOCKED,
+      createdTime = dateTime,
+      lastSignedIn = dateTime
+    )
+
+    "retrieve only regids with the status of LOCKED" in new Setup {
+
+      await(setupCollection(repository, corporationTaxRegistration))
+      await(setupCollection(repository, lockedCorporationTaxRegistration))
+
+      val result = await(repository.retrieveLockedRegIDs())
+
+      result shouldBe List(lockedRegId)
+    }
+  }
 }
