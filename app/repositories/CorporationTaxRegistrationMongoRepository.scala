@@ -79,6 +79,7 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def fetchDocumentStatus(regId: String): OptionT[Future, String]
   def updateRegistrationToHeld(regId: String, confRefs: ConfirmationReferences): Future[Option[CorporationTaxRegistration]]
   def retrieveAllWeekOldHeldSubmissions() : Future[List[CorporationTaxRegistration]]
+  def retrieveLockedRegIDs() : Future[List[String]]
 }
 
 private[repositories] class MissingCTDocument(regId: String) extends NoStackTrace
@@ -403,6 +404,12 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
       "heldTimestamp" -> BSONDocument("$lte" -> DateTime.now(DateTimeZone.UTC).minusWeeks(1).getMillis)
     )
     collection.find(selector).cursor[CorporationTaxRegistration]().collect[List]()
+  }
+
+  def retrieveLockedRegIDs() : Future[List[String]] = {
+    val selector = BSONDocument("status" -> RegistrationStatus.LOCKED)
+    val res = collection.find(selector).cursor[CorporationTaxRegistration]().collect[List]()
+    res.map{ docs => docs.map(_.registrationID) }
   }
 
   def dropCollection = collection.drop()
