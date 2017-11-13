@@ -107,4 +107,8 @@ trait SCRSFeatureSwitches {
     case "graphiteMetrics" => Some(graphiteMetrics)
     case _ => None
   }
+
+  def all: Seq[FeatureSwitch] = {
+    Seq(scheduler, missingIncorp, registerInterest, etmpHoldingPen, graphiteMetrics)
+  }
 }
