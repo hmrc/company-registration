@@ -30,10 +30,28 @@ class FeatureSwitchControllerSpec extends UnitSpec with BeforeAndAfterEach {
 
   override def beforeEach() {
     System.clearProperty("feature.submissionCheck")
+    System.clearProperty("feature.missingIncorp")
+    System.clearProperty("feature.registerInterest")
+    System.clearProperty("feature.etmpHoldingPen")
+    System.clearProperty("feature.graphiteMetrics")
   }
 
   class Setup {
     val controller = FeatureSwitchController
+  }
+
+  "show" should {
+
+    "return a 200 and display all feature flags and their " in new Setup {
+      val result = controller.show(FakeRequest())
+      status(result) shouldBe 200
+      bodyOf(await(result)) shouldBe
+        "submissionCheck false\n" +
+          "missingIncorp false\n" +
+          "registerInterest false\n" +
+          "etmpHoldingPen false\n" +
+          "graphiteMetrics false\n"
+    }
   }
 
   "switch" should {

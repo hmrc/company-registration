@@ -17,7 +17,8 @@
 package controllers.test
 
 import play.api.libs.json.Json
-import play.api.mvc.Action
+import play.api.mvc.{Action, AnyContent}
+import play.twirl.api.Html
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import utils.{FeatureSwitch, SCRSFeatureSwitches}
 
@@ -45,6 +46,12 @@ trait FeatureSwitchController extends BaseController {
         }
         case None => Future.successful(BadRequest)
       }
+  }
+
+  def show: Action[AnyContent] = Action.async {
+    implicit request =>
+      val f = SCRSFeatureSwitches.all.foldLeft("")((s: String, fs: FeatureSwitch) => s + s"""${fs.name} ${fs.enabled}\n""")
+      Future.successful(Ok(f))
   }
 
 }
