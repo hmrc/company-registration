@@ -74,11 +74,8 @@ class HeldSubmissionMongoRepositoryISpec extends UnitSpec with ScalaFutures with
 
       val f = repository.storePartialSubmission(randomRegid, newId, data)
 
-      whenReady( f.failed ) {
-        ex => ex match {
-          case DefaultWriteResult(_, _, _, _, Some(code), Some(message)) => { code shouldBe 11000 }
-          case _ => fail(s"Unexpected result - ${ex}")
-        }
+      intercept[Exception] {
+        await(f)
       }
     }
 
@@ -92,13 +89,9 @@ class HeldSubmissionMongoRepositoryISpec extends UnitSpec with ScalaFutures with
 
       val f = repository.storePartialSubmission(newId, randomAckid, data)
 
-      whenReady( f.failed ) {
-        ex => ex match {
-          case DefaultWriteResult(_, _, _, _, Some(code), Some(message)) => { code shouldBe 11000 }
-          case _ => fail(s"Unexpected result - ${ex}")
-        }
+      intercept[Exception] {
+        await(f)
       }
-
     }
   }
 

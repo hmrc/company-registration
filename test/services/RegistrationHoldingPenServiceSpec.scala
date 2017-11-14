@@ -28,7 +28,6 @@ import org.mockito.{ArgumentCaptor, Matchers}
 import org.scalatest.mock.MockitoSugar
 import play.api.libs.json.{JsObject, JsPath, JsString, Json}
 import repositories.{CorporationTaxRegistrationRepository, HeldSubmission, HeldSubmissionRepository, StateDataRepository}
-import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.play.test.UnitSpec
 import org.mockito.Mockito._
@@ -39,6 +38,7 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
 
 import scala.concurrent.{ExecutionContext, Future}
+import uk.gov.hmrc.http.{ HeaderCarrier, HttpResponse, InternalServerException, Upstream4xxResponse }
 
 class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with CorporationTaxRegistrationFixture with BeforeAndAfterEach with Eventually {
 
@@ -351,7 +351,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockAuthConnector.getUserDetails(Matchers.any[HeaderCarrier]()))
         .thenReturn(Future.successful(Some(testUserDetails)))
 
-      when(mockAuditConnector.sendEvent(Matchers.any[RegistrationAuditEvent]())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]()))
+      when(mockAuditConnector.sendExtendedEvent(Matchers.any[RegistrationAuditEvent]())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]()))
         .thenReturn(Future.successful(Success))
 
       when(mockHeldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
@@ -373,7 +373,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
       val captor = ArgumentCaptor.forClass(classOf[RegistrationAuditEvent])
 
-      verify(mockAuditConnector, times(2)).sendEvent(captor.capture())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]())
+      verify(mockAuditConnector, times(2)).sendExtendedEvent(captor.capture())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]())
 
       val audit = captor.getAllValues
 
@@ -389,7 +389,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockAuthConnector.getUserDetails(Matchers.any[HeaderCarrier]()))
         .thenReturn(Future.successful(Some(testUserDetails)))
 
-      when(mockAuditConnector.sendEvent(Matchers.any[RegistrationAuditEvent]())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]()))
+      when(mockAuditConnector.sendExtendedEvent(Matchers.any[RegistrationAuditEvent]())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]()))
         .thenReturn(Future.successful(Success))
 
       when(mockHeldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
@@ -409,7 +409,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       val captor = ArgumentCaptor.forClass(classOf[RegistrationAuditEvent])
 
       eventually {
-        verify(mockAuditConnector, times(1)).sendEvent(captor.capture())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]())
+        verify(mockAuditConnector, times(1)).sendExtendedEvent(captor.capture())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]())
       }
       val audit = captor.getAllValues
 
@@ -425,7 +425,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockAuthConnector.getUserDetails(Matchers.any[HeaderCarrier]()))
         .thenReturn(Future.successful(Some(testUserDetails)))
 
-      when(mockAuditConnector.sendEvent(Matchers.any[RegistrationAuditEvent]())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]()))
+      when(mockAuditConnector.sendExtendedEvent(Matchers.any[RegistrationAuditEvent]())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]()))
         .thenReturn(Future.failed(new RuntimeException("Audit failed")))
 
       when(mockHeldRepo.retrieveSubmissionByAckRef(Matchers.eq(testAckRef)))
@@ -445,7 +445,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       val captor = ArgumentCaptor.forClass(classOf[RegistrationAuditEvent])
 
       eventually {
-        verify(mockAuditConnector, times(1)).sendEvent(captor.capture())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]())
+        verify(mockAuditConnector, times(1)).sendExtendedEvent(captor.capture())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]())
       }
       val audit = captor.getAllValues
 
@@ -465,7 +465,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockDesConnector.ctSubmission(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any()))
         .thenReturn(Future.failed(Upstream4xxResponse("", 404, 400)))
 
-      when(mockAuditConnector.sendEvent(Matchers.any[SuccessfulIncorporationAuditEvent]())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]()))
+      when(mockAuditConnector.sendExtendedEvent(Matchers.any[SuccessfulIncorporationAuditEvent]())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]()))
         .thenReturn(Future.successful(Success))
 
       intercept[Upstream4xxResponse] {
@@ -483,7 +483,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockDesConnector.topUpCTSubmission(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any()))
         .thenReturn(Future.failed(Upstream4xxResponse("", 404, 400)))
 
-      when(mockAuditConnector.sendEvent(Matchers.any[SuccessfulIncorporationAuditEvent]())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]()))
+      when(mockAuditConnector.sendExtendedEvent(Matchers.any[SuccessfulIncorporationAuditEvent]())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]()))
         .thenReturn(Future.successful(Success))
 
       intercept[Upstream4xxResponse] {
@@ -612,7 +612,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
     }
 
     "return a future true when processing an accepted incorporation" in new SetupBoolean {
-//      when(mockAuditConnector.sendEvent(Matchers.any[RegistrationAuditEvent]())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]()))
+//      when(mockAuditConnector.sendExtendedEvent(Matchers.any[RegistrationAuditEvent]())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]()))
 //        .thenReturn(Future.successful(Success))
 //
 //      val captor = ArgumentCaptor.forClass(classOf[RegistrationAuditEvent])
@@ -622,7 +622,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockSendEmailService.sendVATEmail(Matchers.eq("testemail.com"))(Matchers.any[HeaderCarrier]())).thenReturn(Future.successful(true))
       await(serviceTrue.processIncorporationUpdate(incorpSuccess)) shouldBe true
 //
-//      verify(mockAuditConnector, times(1)).sendEvent(captor.capture())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]())
+//      verify(mockAuditConnector, times(1)).sendExtendedEvent(captor.capture())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]())
 //
 //      val audit = captor.getValue
 //      audit.auditType shouldBe "successIncorpInformation"
@@ -630,7 +630,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
     }
 
     "return a FailedToUpdateSubmissionWithAcceptedIncorp when processing an accepted incorporation returns a false" in new SetupBoolean {
-//      when(mockAuditConnector.sendEvent(Matchers.any[RegistrationAuditEvent]())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]()))
+//      when(mockAuditConnector.sendExtendedEvent(Matchers.any[RegistrationAuditEvent]())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]()))
 //        .thenReturn(Future.successful(Success))
 
 //      val captor = ArgumentCaptor.forClass(classOf[RegistrationAuditEvent])
@@ -639,7 +639,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       
       intercept[FailedToUpdateSubmissionWithAcceptedIncorp.type](await(serviceFalse.processIncorporationUpdate(incorpSuccess)) shouldBe false)
 
-//      verify(mockAuditConnector, times(1)).sendEvent(captor.capture())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]())
+//      verify(mockAuditConnector, times(1)).sendExtendedEvent(captor.capture())(Matchers.any[HeaderCarrier](), Matchers.any[ExecutionContext]())
 //
 //      val audit = captor.getValue
 //      audit.auditType shouldBe "successIncorpInformation"
@@ -656,7 +656,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
       when(mockCTRepository.updateSubmissionStatus(Matchers.any(), Matchers.any())).thenReturn(Future.successful("rejected"))
 
-      when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any()))
+      when(mockAuditConnector.sendExtendedEvent(Matchers.any())(Matchers.any(), Matchers.any()))
         .thenReturn(Future.successful(Success))
 
       when(mockHeldRepo.removeHeldDocument(Matchers.eq(validCR.registrationID)))
@@ -681,7 +681,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
       when(mockCTRepository.updateSubmissionStatus(Matchers.any(), Matchers.any())).thenReturn(Future.successful("rejected"))
 
-      when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any()))
+      when(mockAuditConnector.sendExtendedEvent(Matchers.any())(Matchers.any(), Matchers.any()))
         .thenReturn(Future.successful(Success))
 
       when(mockDesConnector.topUpCTSubmission(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any()))
@@ -706,7 +706,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
       when(mockCTRepository.updateSubmissionStatus(Matchers.any(), Matchers.any())).thenReturn(Future.successful("rejected"))
 
-      when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any()))
+      when(mockAuditConnector.sendExtendedEvent(Matchers.any())(Matchers.any(), Matchers.any()))
         .thenReturn(Future.successful(Success))
 
       when(mockDesConnector.topUpCTSubmission(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any()))

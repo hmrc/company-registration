@@ -18,9 +18,9 @@ package audit
 
 import models.des.{BusinessAddress, BusinessContactDetails}
 import play.api.mvc.{AnyContent, Request}
-import uk.gov.hmrc.play.http.HeaderCarrier
 import play.api.libs.json._
 import utils.SCRSFeatureSwitches
+import uk.gov.hmrc.http.HeaderCarrier
 
 case class SubmissionEventDetail(regId: String,
                                  authProviderId: String,

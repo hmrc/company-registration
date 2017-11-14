@@ -32,10 +32,10 @@ import org.mockito.Matchers.{eq => eqTo}
 import org.mockito.Matchers.any
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
-import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
+import uk.gov.hmrc.http.HeaderCarrier
 
 class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSugar with SCRSMocks with BeforeAndAfterEach with CorporationTaxRegistrationFixture with AuthFixture {
 

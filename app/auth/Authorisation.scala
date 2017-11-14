@@ -20,10 +20,10 @@ import play.api.mvc.Result
 import play.api.mvc.Results._
 import play.api.Logger
 import connectors.{AuthConnector, Authority}
-import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import uk.gov.hmrc.http.HeaderCarrier
 
 sealed trait AuthorisationResult {}
 case object NotLoggedInOrAuthorised extends AuthorisationResult

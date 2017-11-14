@@ -16,15 +16,11 @@
 
 package services
 
-import javax.inject.{Inject, Singleton}
-
-import models.SubmissionDates
+import models.{AccountingDetails, SubmissionDates}
 import org.joda.time.DateTime
-import models.AccountingDetails
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 
 import scala.concurrent.Future
-
 
 object AccountingDetailsService extends AccountingDetailsService {
   override val corporationTaxRegistrationRepository = Repositories.cTRepository

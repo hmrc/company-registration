@@ -18,37 +18,27 @@ package connectors
 
 import java.util.UUID
 
-import mocks.MockMetricsService
+import mocks.{MockMetricsService, WSHttpMock}
 import org.mockito.Matchers
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.play.audit.http.HttpAuditing
-import uk.gov.hmrc.play.audit.http.config.LoadAuditingConfig
+import uk.gov.hmrc.http.logging.SessionId
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, Upstream4xxResponse}
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
-import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.config.{AppName, RunMode}
-import uk.gov.hmrc.play.http.logging.SessionId
-import uk.gov.hmrc.play.http.ws.{WSGet, WSPost, WSPut}
-import uk.gov.hmrc.play.http._
+import uk.gov.hmrc.play.microservice.config.LoadAuditingConfig
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
 
-class DesConnectorSpec extends UnitSpec with MockitoSugar {
+class DesConnectorSpec extends UnitSpec with MockitoSugar with WSHttpMock {
 
   object TestAuditConnector extends AuditConnector with AppName with RunMode {
     override lazy val auditingConfig = LoadAuditingConfig("auditing")
   }
 
-  class MockHttp extends WSGet with WSPost with WSPut with HttpAuditing {
-    override val hooks = Seq(AuditingHook)
-    override def auditConnector: AuditConnector = TestAuditConnector
-    override def appName = "company-registration"
-  }
-
-  val mockWSHttp = mock[MockHttp]
   val mockAuditConnector = mock[AuditConnector]
 
   trait Setup {
@@ -81,10 +71,10 @@ class DesConnectorSpec extends UnitSpec with MockitoSugar {
     implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
 
     "for accepted submission, return success" in new Setup {
-      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
+      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())).
         thenReturn(Future.successful(HttpResponse(202, responseJson = Some(Json.obj("x"->"y")))))
 
-      when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any()))
+      when(mockAuditConnector.sendExtendedEvent(Matchers.any())(Matchers.any(), Matchers.any()))
         .thenReturn(Future.successful(Success))
 
       val result = await(connector.ctSubmission("",submission, "testJID"))
@@ -93,10 +83,10 @@ class DesConnectorSpec extends UnitSpec with MockitoSugar {
     }
 
     "for topup  submission, return success" in new Setup {
-      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
+      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())).
         thenReturn(Future.successful(HttpResponse(202, responseJson = Some(Json.obj("x"->"y")))))
 
-      when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any()))
+      when(mockAuditConnector.sendExtendedEvent(Matchers.any())(Matchers.any(), Matchers.any()))
         .thenReturn(Future.successful(Success))
 
       val result = await(connector.topUpCTSubmission("",submission, "testJID"))
@@ -105,10 +95,10 @@ class DesConnectorSpec extends UnitSpec with MockitoSugar {
     }
 
     "for a forbidden request, return a bad request" in new Setup {
-      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
+      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())).
         thenReturn(Future.failed(Upstream4xxResponse("", 403, 400)))
 
-      when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any()))
+      when(mockAuditConnector.sendExtendedEvent(Matchers.any())(Matchers.any(), Matchers.any()))
         .thenReturn(Future.successful(Success))
 
       intercept[Upstream4xxResponse] {
@@ -117,10 +107,10 @@ class DesConnectorSpec extends UnitSpec with MockitoSugar {
     }
 
     "for a forbidden topup request, return a bad request" in new Setup {
-      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
+      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())).
         thenReturn(Future.failed(Upstream4xxResponse("", 403, 400)))
 
-      when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any()))
+      when(mockAuditConnector.sendExtendedEvent(Matchers.any())(Matchers.any(), Matchers.any()))
         .thenReturn(Future.successful(Success))
 
       intercept[Upstream4xxResponse] {
@@ -130,10 +120,10 @@ class DesConnectorSpec extends UnitSpec with MockitoSugar {
 
 
     "for a client request timedout, return unavailable" in new Setup {
-      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
+      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())).
         thenReturn(Future.failed(Upstream4xxResponse("", 499, 502)))
 
-      when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any()))
+      when(mockAuditConnector.sendExtendedEvent(Matchers.any())(Matchers.any(), Matchers.any()))
         .thenReturn(Future.successful(Success))
 
       intercept[Upstream4xxResponse] {

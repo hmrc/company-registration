@@ -23,33 +23,23 @@ private object AppDependencies {
   import play.core.PlayVersion
   import play.sbt.PlayImport._
 
-  private val microserviceBootstrapVersion = "5.14.0"
-  private val playAuthVersion = "4.3.0"
-  private val playHealthVersion = "2.1.0"
-  private val logbackJsonLoggerVersion = "3.1.0"
+  private val microserviceBootstrapVersion = "6.13.0"
   private val playUrlBindersVersion = "2.1.0"
-  private val playConfigVersion = "4.3.0"
-  private val domainVersion = "4.1.0"
+  private val domainVersion = "5.0.0"
   private val hmrcTestVersion = "2.3.0"
   private val reactiveMongoVersion = "5.2.0"
   private val mockitoVersion = "1.9.0"
   private val scalatestPlusPlayVersion = "1.5.1"
   private val playSchedulingVersion = "4.1.0"
-  private val mongoLockVersion = "4.1.0"
-  private val cryptoVersion = "4.2.0"
+  private val mongoLockVersion = "5.0.0"
 
   val compile = Seq(
     ws,
     "uk.gov.hmrc" %% "microservice-bootstrap" % microserviceBootstrapVersion,
-    "uk.gov.hmrc" %% "play-authorisation" % playAuthVersion,
-    "uk.gov.hmrc" %% "play-health" % playHealthVersion,
     "uk.gov.hmrc" %% "play-url-binders" % playUrlBindersVersion,
-    "uk.gov.hmrc" %% "play-config" % playConfigVersion,
-    "uk.gov.hmrc" %% "logback-json-logger" % logbackJsonLoggerVersion,
     "uk.gov.hmrc" %% "domain" % domainVersion,
     "uk.gov.hmrc" %% "play-scheduling" % playSchedulingVersion,
     "uk.gov.hmrc" %% "mongo-lock" % mongoLockVersion,
-    "uk.gov.hmrc" %% "crypto" % cryptoVersion,
     "uk.gov.hmrc" %% "play-reactivemongo" % reactiveMongoVersion,
     "org.typelevel" %% "cats" % "0.9.0"
   )

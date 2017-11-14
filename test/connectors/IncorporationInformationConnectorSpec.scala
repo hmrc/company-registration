@@ -26,8 +26,8 @@ import org.scalatest.mock.MockitoSugar
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{AnyContent, Request}
 import play.api.test.FakeRequest
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.http.{ HeaderCarrier, HttpResponse }
 
 class IncorporationInformationConnectorSpec extends UnitSpec with MockitoSugar with SCRSMocks with BusinessRegistrationFixture {
 
@@ -79,25 +79,29 @@ class IncorporationInformationConnectorSpec extends UnitSpec with MockitoSugar w
 
   "createMetadataEntry" should {
     "make a http POST request to Incorporation Information micro-service to register an interest and return 202" in new Setup {
-      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.anyString(), Matchers.any[JsValue](), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any[HeaderCarrier]()))
+      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.anyString(), Matchers.any[JsValue](), Matchers.any())
+        (Matchers.any(), Matchers.any(), Matchers.any[HeaderCarrier](), Matchers.any()))
         .thenReturn(HttpResponse(202))
 
       await(connector.registerInterest(regId, txId)) shouldBe true
     }
     "not make a http POST request to Incorporation Information micro-service to register an interest and return any other 2xx" in new Setup {
-      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.anyString(), Matchers.any[JsValue](), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any[HeaderCarrier]()))
+      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.anyString(), Matchers.any[JsValue](), Matchers.any())
+        (Matchers.any(), Matchers.any(), Matchers.any[HeaderCarrier](), Matchers.any()))
         .thenReturn(HttpResponse(200))
 
       intercept[RuntimeException](await(connector.registerInterest(regId, txId)))
     }
     "not make a http POST request to Incorporation Information micro-service to register an interest and return any 4xx" in new Setup {
-      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.anyString(), Matchers.any[JsValue](), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any[HeaderCarrier]()))
+      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.anyString(), Matchers.any[JsValue](), Matchers.any())
+        (Matchers.any(), Matchers.any(), Matchers.any[HeaderCarrier](), Matchers.any()))
         .thenReturn(HttpResponse(400))
 
       intercept[RuntimeException](await(connector.registerInterest(regId, txId)))
     }
     "not make a http POST request to Incorporation Information micro-service to register an interest and return any 5xx" in new Setup {
-      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.anyString(), Matchers.any[JsValue](), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any[HeaderCarrier]()))
+      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.anyString(), Matchers.any[JsValue](), Matchers.any())
+        (Matchers.any(), Matchers.any(), Matchers.any[HeaderCarrier](), Matchers.any()))
         .thenReturn(HttpResponse(500))
 
       intercept[RuntimeException](await(connector.registerInterest(regId, txId)))

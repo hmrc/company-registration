@@ -18,12 +18,14 @@ package audit
 
 import org.joda.time.DateTime
 import play.api.libs.json.{JsObject, Json}
-import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
 
 class SuccessfulIncorporationAuditEventSpec extends UnitSpec {
 
   implicit val hc = HeaderCarrier()
+  implicit val format = Json.format[ExtendedDataEvent]
 
   val testModel = SuccessfulIncorporationAuditEventDetail(
     "1234567890",

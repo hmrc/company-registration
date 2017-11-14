@@ -18,12 +18,12 @@ package services
 
 import audit.{CTRegistrationAuditEvent, CTRegistrationSubmissionAuditEventDetails, DesResponse}
 import config.MicroserviceAuditConnector
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.JsObject
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
-import uk.gov.hmrc.play.http.HeaderCarrier
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
 import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
 
 object AuditService extends AuditService {
   val auditConnector = MicroserviceAuditConnector
@@ -34,7 +34,7 @@ trait AuditService {
   val auditConnector : AuditConnector
 
   def sendCTRegSubmissionEvent(event : CTRegistrationAuditEvent)(implicit hc : HeaderCarrier) : Future[AuditResult] = {
-    auditConnector.sendEvent(event)
+    auditConnector.sendExtendedEvent(event)
   }
 
   def buildCTRegSubmissionEvent(detail: CTRegistrationSubmissionAuditEventDetails)(implicit hc : HeaderCarrier) : CTRegistrationAuditEvent = {

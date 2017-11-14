@@ -16,13 +16,12 @@
 
 package jobs
 
-
 import org.joda.time.Duration
 import play.api.Logger
 import repositories.Repositories
 import services.RegistrationHoldingPenService
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.lock.LockKeeper
-import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.scheduling.ExclusiveScheduledJob
 import utils.SCRSFeatureSwitches
 

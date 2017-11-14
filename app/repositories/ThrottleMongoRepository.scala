@@ -22,6 +22,7 @@ import reactivemongo.api.DB
 import reactivemongo.bson._
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
+import reactivemongo.play.json.ImplicitBSONHandlers.BSONDocumentWrites
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global

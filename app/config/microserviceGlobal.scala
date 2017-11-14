@@ -37,17 +37,15 @@ import javax.inject.{Inject, Singleton}
 import com.typesafe.config.Config
 import jobs.{CheckSubmissionJob, MetricsJob, MissingIncorporationJob}
 import play.api.{Application, Configuration, Logger, Play}
-import uk.gov.hmrc.play.audit.filters.AuditFilter
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode}
-import uk.gov.hmrc.play.http.logging.filters.LoggingFilter
 import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
 import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
 import net.ceedubs.ficus.Ficus._
 import repositories.Repositories
 import services.CorporationTaxRegistrationService
 import uk.gov.hmrc.play.scheduling.RunningOfScheduledJobs
-import uk.gov.hmrc.play.filters.MicroserviceFilterSupport
+import uk.gov.hmrc.play.microservice.filters.{ AuditFilter, LoggingFilter, MicroserviceFilterSupport }
 
 object ControllerConfiguration extends ControllerConfig {
   lazy val controllerConfigs = Play.current.configuration.underlying.as[Config]("controllers")

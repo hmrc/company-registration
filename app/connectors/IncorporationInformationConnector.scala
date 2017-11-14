@@ -23,14 +23,14 @@ import models.IncorpStatus
 import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.http.ws.{WSGet, WSPost}
 import play.api.http.Status.{ACCEPTED, OK}
 import play.api.mvc.Request
 
 import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import scala.util.control.NoStackTrace
+import uk.gov.hmrc.http.{ HeaderCarrier, HttpResponse }
 
 class SubscriptionFailure(msg: String) extends NoStackTrace {
   override def getMessage: String = msg

@@ -25,10 +25,10 @@ import play.api.Logger
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.Action
 import repositories.Repositories
-import services.{ContactDetailsService, CorporationTaxRegistrationService, MetricsService}
+import services.{ContactDetailsService, MetricsService}
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class ContactDetailsControllerImp @Inject() (metrics: MetricsService,

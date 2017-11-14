@@ -18,25 +18,22 @@ package services
 
 import audit.{SubmissionEventDetail, UserRegistrationSubmissionEvent}
 import cats.data.OptionT
+import cats.implicits._
 import config.MicroserviceAuditConnector
 import connectors._
-import models.des._
-import models.{BusinessRegistration, RegistrationStatus}
-import play.api.mvc.{AnyContent, Request}
-import repositories._
 import helpers.DateHelper
-import models.{ConfirmationReferences, CorporationTaxRegistration}
 import models.RegistrationStatus._
-import models._
 import models.admin.Admin
+import models.des._
+import models.{BusinessRegistration, ConfirmationReferences, CorporationTaxRegistration, _}
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
+import play.api.mvc.{AnyContent, Request}
+import repositories._
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
-import uk.gov.hmrc.play.http.HeaderCarrier
-import cats.implicits._
 import utils.SCRSFeatureSwitches
-import RegistrationStatus._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -252,7 +249,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
       case (_, Some(address)) => (Some(address.txid), address.uprn)
     }
     val event = new UserRegistrationSubmissionEvent(SubmissionEventDetail(rID, authProviderId, txID, uprn, ppob.addressType, jsSubmission))(hc, req)
-    auditConnector.sendEvent(event)
+    auditConnector.sendExtendedEvent(event)
   }
 
   private[services] def buildPartialDesSubmission(regId: String, ackRef: String, admin: Option[Admin] = None)(implicit hc: HeaderCarrier): Future[InterimDesRegistration] = {

@@ -24,9 +24,9 @@ import org.mockito.stubbing.OngoingStubbing
 import org.scalatest.mock.MockitoSugar
 import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmissionMongoRepository, SequenceRepository, StateDataRepository}
 import services._
-import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.Future
+import uk.gov.hmrc.http.HeaderCarrier
 
 trait SCRSMocks
   extends WSHttpMock

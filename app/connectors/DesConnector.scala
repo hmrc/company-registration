@@ -18,14 +18,14 @@ package connectors
 
 import audit.DesSubmissionEventFailure
 import config.{MicroserviceAuditConnector, WSHttp}
-import play.api.{Logger, Play}
 import play.api.libs.json.{JsObject, Writes}
+import play.api.{Logger, Play}
 import services.{AuditService, MetricsService}
+import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.logging.Authorization
 import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.play.http._
-import uk.gov.hmrc.play.http.logging.Authorization
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 trait DesConnector extends ServicesConfig with AuditService with RawResponseReads with HttpErrorFunctions {
@@ -39,7 +39,7 @@ trait DesConnector extends ServicesConfig with AuditService with RawResponseRead
   val urlHeaderEnvironment: String
   val urlHeaderAuthorization: String
 
-  val http: HttpGet with HttpPost with HttpPut = WSHttp
+  val http: CoreGet with CorePost with CorePut = WSHttp
 
   val metricsService: MetricsService
 
@@ -71,7 +71,7 @@ trait DesConnector extends ServicesConfig with AuditService with RawResponseRead
       } recoverWith {
         case ex: Upstream4xxResponse =>
           val event = new DesSubmissionEventFailure(journeyId, submission)
-          auditConnector.sendEvent(event)
+          auditConnector.sendExtendedEvent(event)
           throw ex
       }
     }
@@ -87,7 +87,7 @@ trait DesConnector extends ServicesConfig with AuditService with RawResponseRead
       } recoverWith {
         case ex: Upstream4xxResponse =>
           val event = new DesSubmissionEventFailure(journeyId, submission)
-          auditConnector.sendEvent(event)
+          auditConnector.sendExtendedEvent(event)
           throw ex
       }
     }
@@ -101,7 +101,7 @@ trait DesConnector extends ServicesConfig with AuditService with RawResponseRead
 
   @inline
   private def cPOST[I, O](url: String, body: I, headers: Seq[(String, String)] = Seq.empty)(implicit wts: Writes[I], rds: HttpReads[O], hc: HeaderCarrier) =
-    http.POST[I, O](url, body, headers)(wts = wts, rds = rds, hc = createHeaderCarrier(hc))
+    http.POST[I, O](url, body, headers)(wts = wts, rds = rds, hc = createHeaderCarrier(hc), implicitly)
 
 }
 

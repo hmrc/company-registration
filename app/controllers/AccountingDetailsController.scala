@@ -16,19 +16,19 @@
 
 package controllers
 
+import javax.inject.Inject
+
 import auth._
 import connectors.AuthConnector
-import models.{AccountingDetails, CompanyDetails, ErrorResponse}
+import models.{AccountingDetails, ErrorResponse}
 import play.api.Logger
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.Action
-import services.{AccountingDetailsService, CorporationTaxRegistrationService, MetricsService, PrepareAccountService}
-import uk.gov.hmrc.play.microservice.controller.BaseController
-import javax.inject.Inject
-
 import repositories.Repositories
+import services.{AccountingDetailsService, MetricsService, PrepareAccountService}
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
+import uk.gov.hmrc.play.microservice.controller.BaseController
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 

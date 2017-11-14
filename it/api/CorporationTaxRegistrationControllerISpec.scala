@@ -16,15 +16,12 @@
 
 package api
 
-import java.util.UUID
-
-import com.github.tomakehurst.wiremock.client.WireMock.{findAll, postRequestedFor, urlMatching}
 import itutil.{IntegrationSpecBase, LoginStub, WiremockHelper}
 import models.RegistrationStatus._
 import models.{AccountingDetails, CHROAddress, CompanyDetails, ConfirmationReferences, ContactDetails, CorporationTaxRegistration, Email, PPOB, PPOBAddress, TradingDetails}
 import play.api.Application
 import play.api.http.HeaderNames
-import uk.gov.hmrc.play.http.{HeaderNames => GovHeaderNames}
+import uk.gov.hmrc.http.{HeaderNames => GovHeaderNames}
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws.WS
@@ -67,7 +64,7 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
   private def client(path: String) = WS.url(s"http://localhost:$port/company-registration/corporation-tax-registration$path")
     .withFollowRedirects(false)
     .withHeaders("Content-Type"->"application/json")
-    .withHeaders(HeaderNames.COOKIE -> getSessionCookie())
+    .withHeaders(HeaderNames.SET_COOKIE -> getSessionCookie())
     .withHeaders(GovHeaderNames.xSessionId -> SessionId)
 
   class Setup extends MongoDbConnection {

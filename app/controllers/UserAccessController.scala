@@ -23,11 +23,11 @@ import connectors.AuthConnector
 import play.api.libs.json.Json
 import play.api.mvc.Action
 import services.{MetricsService, UserAccessService}
+
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.control.NoStackTrace
+import scala.concurrent.Future
 
 class UserAccessControllerImp @Inject() (metrics: MetricsService, userAccessServ: UserAccessService) extends UserAccessController {
   override val auth = AuthConnector

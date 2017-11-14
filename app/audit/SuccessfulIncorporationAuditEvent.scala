@@ -19,7 +19,7 @@ package audit
 import org.joda.time.DateTime
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-import uk.gov.hmrc.play.http.HeaderCarrier
+import uk.gov.hmrc.http.HeaderCarrier
 
 case class SuccessfulIncorporationAuditEventDetail(journeyId : String,
                                                    companyRegistrationNumber : String,

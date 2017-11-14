@@ -71,7 +71,7 @@ class ThrottleCheckISpec extends IntegrationSpecBase with LoginStub {
     val registrationId = UUID.randomUUID().toString
     val internalId = UUID.randomUUID().toString
 
-    import reactivemongo.json._
+    import reactivemongo.play.json._
 
     def crDoc(progressJson: String = "") = Json.parse(
       s"""

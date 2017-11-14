@@ -16,19 +16,15 @@
 
 package repositories
 
-import java.util.UUID
-
 import models.RegistrationStatus._
 import models._
-import org.joda.time.DateTime
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
-import play.api.libs.json.{Json, JsObject}
+import play.api.libs.json.{JsObject, Json}
 import reactivemongo.api.commands.WriteResult
-import reactivemongo.bson.{BSONString, BSONDocument}
-import reactivemongo.json.ImplicitBSONHandlers
+import reactivemongo.bson.{BSONDocument, BSONInteger, BSONString}
 import uk.gov.hmrc.mongo.MongoSpecSupport
-import uk.gov.hmrc.play.test.{WithFakeApplication, UnitSpec}
+import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -78,13 +74,12 @@ class CTUTRMongoRepositoryISpec
     )
 
     "store the plain UTR in encrypted form" in new Setup {
-      import reactivemongo.bson.{BSONDocument, BSONInteger, BSONString}
-      import ImplicitBSONHandlers._
+      import reactivemongo.play.json.ImplicitBSONHandlers._
 
       val ctUtr = validHeldCorporationTaxRegistration.acknowledgementReferences.get.ctUtr
       await(setupCollection(repository, validHeldCorporationTaxRegistration))
       val result = await(repository.updateCTRecordWithAcknowledgments(ackRef, validHeldCorporationTaxRegistration))
-      result.hasErrors shouldBe false
+      result.writeErrors shouldBe Seq()
 
       // check the value isn't the UTR when fetched direct from the DB
       val query = BSONDocument("confirmationReferences.acknowledgement-reference" -> BSONString(ackRef))

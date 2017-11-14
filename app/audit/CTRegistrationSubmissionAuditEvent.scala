@@ -18,7 +18,7 @@ package audit
 
 import models.AcknowledgementReferences
 import play.api.libs.json.{JsObject, Json}
-import uk.gov.hmrc.play.http.HeaderCarrier
+import uk.gov.hmrc.http.HeaderCarrier
 
 case class CTRegistrationSubmissionAuditEventDetails(journeyId : String,
                                                      processingDate : Option[String],

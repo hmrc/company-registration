@@ -30,10 +30,10 @@ import play.api.test.FakeRequest
 import services.{CorporationTaxRegistrationService, MetricsService, UserAccessService}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 import play.api.test.Helpers._
-import uk.gov.hmrc.play.http.HeaderCarrier
 import mocks.{MockMetricsService, SCRSMocks}
 
 import scala.concurrent.Future
+import uk.gov.hmrc.http.HeaderCarrier
 
 class UserAccessControllerSpec extends UnitSpec with MockitoSugar with SCRSMocks with AuthFixture{
 

@@ -25,10 +25,10 @@ import org.mockito.Matchers
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.play.http.{ForbiddenException, HeaderCarrier, NotFoundException}
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
+import uk.gov.hmrc.http.{ ForbiddenException, HeaderCarrier, NotFoundException }
 
 class BusinessRegistrationConnectorSpec extends UnitSpec with MockitoSugar with SCRSMocks with BusinessRegistrationFixture {
 
@@ -68,21 +68,21 @@ class BusinessRegistrationConnectorSpec extends UnitSpec with MockitoSugar with 
     }
 
     "return a Not Found response when a metadata record can not be found" in new Setup {
-      when(mockWSHttp.GET[BusinessRegistration](Matchers.any())(Matchers.any(), Matchers.any()))
+      when(mockWSHttp.GET[BusinessRegistration](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
         .thenReturn(Future.failed(new NotFoundException("Bad request")))
 
       await(connector.retrieveMetadata) shouldBe BusinessRegistrationNotFoundResponse
     }
 
     "return a Forbidden response when a metadata record can not be accessed by the user" in new Setup {
-      when(mockWSHttp.GET[BusinessRegistration](Matchers.any())(Matchers.any(), Matchers.any()))
+      when(mockWSHttp.GET[BusinessRegistration](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
         .thenReturn(Future.failed(new ForbiddenException("Forbidden")))
 
       await(connector.retrieveMetadata) shouldBe BusinessRegistrationForbiddenResponse
     }
 
     "return an Exception response when an unspecified error has occurred" in new Setup {
-      when(mockWSHttp.GET[BusinessRegistration](Matchers.any())(Matchers.any(), Matchers.any()))
+      when(mockWSHttp.GET[BusinessRegistration](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
         .thenReturn(Future.failed(new Exception("exception")))
 
       await(connector.retrieveMetadata).getClass shouldBe BusinessRegistrationErrorResponse(new Exception).getClass
@@ -97,7 +97,7 @@ class BusinessRegistrationConnectorSpec extends UnitSpec with MockitoSugar with 
     val failureMessage = Json.parse("""{"message":"failed"}""")
 
     "return a success message upon successfully dropping the collection" in new Setup {
-      when(mockWSHttp.GET[JsValue](Matchers.any())(Matchers.any(), Matchers.any()))
+      when(mockWSHttp.GET[JsValue](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
         .thenReturn(Future.successful(successMessage))
 
       val result = connector.dropMetadataCollection
@@ -106,7 +106,7 @@ class BusinessRegistrationConnectorSpec extends UnitSpec with MockitoSugar with 
     }
 
     "return a failed message upon successfully dropping the collection" in new Setup {
-      when(mockWSHttp.GET[JsValue](Matchers.any())(Matchers.any(), Matchers.any()))
+      when(mockWSHttp.GET[JsValue](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
         .thenReturn(Future.successful(failureMessage))
 
       val result = connector.dropMetadataCollection

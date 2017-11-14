@@ -16,13 +16,10 @@
 
 package services
 
-import javax.inject.{Inject, Singleton}
-
 import models.CompanyDetails
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 
 import scala.concurrent.Future
-
 
 class CompanyDetailsServiceImp extends CompanyDetailsService {
   override lazy val corporationTaxRegistrationRepository = Repositories.cTRepository

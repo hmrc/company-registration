@@ -16,18 +16,12 @@
 
 package fixtures
 
-import reactivemongo.api.{MongoConnection, FailoverStrategy, DB}
+import reactivemongo.api.{DB, FailoverStrategy, MongoConnection}
 import uk.gov.hmrc.mongo.MongoConnector
 
 trait MongoFixture {
 
 	private lazy val mongoUri: String = s"mongodb://127.0.0.1:27017/scrs"
 	private lazy val conn = new MongoConnector(mongoUri)
-
-	lazy val mongoDB = () => new DB {
-		override def failoverStrategy: FailoverStrategy = conn.helper.failoverStrategy.getOrElse(FailoverStrategy())
-		override def connection: MongoConnection = conn.helper.connection
-		override def name: String = conn.helper.dbName
-	}
 
 }

@@ -17,12 +17,14 @@
 package audit
 
 import play.api.libs.json.{JsObject, Json}
-import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
 
 class FailedIncorporationAuditEventSpec extends UnitSpec {
 
   implicit val hc = HeaderCarrier()
+  implicit val format = Json.format[ExtendedDataEvent]
 
   val testModel = FailedIncorporationAuditEventDetail(
     "1234567890",
