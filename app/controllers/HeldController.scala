@@ -17,16 +17,15 @@
 package controllers
 
 import auth._
-import cats.data.OptionT
 import connectors.AuthConnector
 import play.api.Logger
 import play.api.libs.json.Json
 import play.api.mvc.Action
 import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmissionMongoRepository, Repositories}
 import services.RegistrationHoldingPenService
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object HeldController extends HeldController {

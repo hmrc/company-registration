@@ -21,11 +21,11 @@ import play.api.Logger
 import repositories.Repositories
 import services.{CorporationTaxRegistrationService}
 import uk.gov.hmrc.lock.LockKeeper
-import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.scheduling.ExclusiveScheduledJob
 import utils.SCRSFeatureSwitches
 
 import scala.concurrent.{ExecutionContext, Future}
+import uk.gov.hmrc.http.HeaderCarrier
 
 trait MissingIncorporationJob extends ExclusiveScheduledJob with JobConfig {
 

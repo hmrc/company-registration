@@ -41,7 +41,6 @@ trait MicroService {
     .settings(defaultSettings(): _*)
     .settings(
       targetJvm := "jvm-1.8",
-      scalaVersion := "2.11.8",
       libraryDependencies ++= appDependencies,
       parallelExecution in Test := false,
       fork in Test := false,
@@ -50,7 +49,8 @@ trait MicroService {
       routesGenerator := StaticRoutesGenerator,
       scalacOptions ++= List(
         "-Xlint:-missing-interpolator"
-      )
+      ),
+      scalaVersion := "2.11.11"
     )
     .configs(IntegrationTest)
     .settings(inConfig(IntegrationTest)(Defaults.itSettings): _*)

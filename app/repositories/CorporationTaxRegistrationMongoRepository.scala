@@ -18,24 +18,26 @@ package repositories
 
 import javax.inject.{Inject, Singleton}
 
-import auth.{AuthorisationResource, Crypto}
+import auth.AuthorisationResource
 import cats.data.OptionT
+import cats.implicits._
 import models._
+import models.validation.MongoValidation
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.DB
-import reactivemongo.bson.BSONDocument
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.bson._
+import reactivemongo.bson.{BSONDocument, _}
+import reactivemongo.play.json.BSONFormats
+import reactivemongo.bson.BSONReader
+import reactivemongo.play.json.ImplicitBSONHandlers.BSONDocumentWrites
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
-import cats.implicits._
-import models.validation.MongoValidation
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.util.control.NoStackTrace
 
 @Singleton
@@ -338,15 +340,13 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
   }
 
   override def getRegistrationStats(): Future[Map[String, Int]] = {
+    import collection.BatchCommands.AggregationFramework._
 
-    import play.api.libs.json._
-    import reactivemongo.json.collection.JSONBatchCommands.AggregationFramework.{Group, Match, SumValue, Project}
-
-    // perform on all documents in the collection
     val matchQuery = Match(Json.obj())
-    // covering query to minimise doc fetch (optimiser would probably spot this anyway and transform the query)
-    val project = Project(Json.obj("status" -> 1, "_id" -> 0))
-    // calculate the status counts
+    val project = Project(Json.obj(
+      "status" -> 1,
+      "_id" -> 0
+    ))
     val group = Group(JsString("$status"))("count" -> SumValue(1))
 
     val metrics = collection.aggregate(matchQuery, List(project, group)) map {
@@ -358,8 +358,6 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
         }
       }
     }
-
-    metrics foreach (println)
 
     metrics map {
       _.toMap
@@ -377,13 +375,14 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
   }
 
   override def updateRegistrationToHeld(regId: String, confRefs: ConfirmationReferences): Future[Option[CorporationTaxRegistration]] = {
+    val jsonobj = BSONFormats.readAsBSONValue(Json.obj(
+      "status" -> RegistrationStatus.HELD,
+      "confirmationReferences" -> Json.toJson(confRefs),
+      "heldTimestamp" -> Json.toJson(CorporationTaxRegistration.now)
+    )).get
 
     val modifier = BSONDocument(
-      "$set" -> BSONDocument(
-        "status" -> RegistrationStatus.HELD,
-        "confirmationReferences" -> Json.toJson(confRefs),
-        "heldTimestamp" -> Json.toJson(CorporationTaxRegistration.now)
-      ),
+      "$set" -> jsonobj,
       "$unset" -> BSONDocument("tradingDetails" -> 1, "contactDetails" -> 1, "companyDetails" -> 1)
     )
 

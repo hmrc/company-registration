@@ -21,14 +21,14 @@ import javax.inject.Inject
 import auth._
 import connectors.AuthConnector
 import models.{ErrorResponse, TradingDetails}
-import play.api.libs.json.{JsValue, Json}
 import play.api.Logger
-import uk.gov.hmrc.play.microservice.controller.BaseController
-import services.{CorporationTaxRegistrationService, MetricsService, TradingDetailsService}
+import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Action
 import repositories.Repositories
+import services.{MetricsService, TradingDetailsService}
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
+import uk.gov.hmrc.play.microservice.controller.BaseController
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class TradingDetailsControllerImp @Inject() (metrics: MetricsService, tradingDetailsServ: TradingDetailsService)

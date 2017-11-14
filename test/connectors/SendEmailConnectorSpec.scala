@@ -25,10 +25,11 @@ import org.scalatest.BeforeAndAfter
 import org.scalatest.mock.MockitoSugar
 import play.api.http.Status._
 import play.api.libs.json.JsValue
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse, NotFoundException, _}
+import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.Future
+import uk.gov.hmrc.http.{ BadGatewayException, BadRequestException, HeaderCarrier, HttpResponse, InternalServerException, NotFoundException, Upstream4xxResponse }
 
 class SendEmailConnectorSpec  extends UnitSpec with MockitoSugar with SCRSMocks with BeforeAndAfter {
 
@@ -62,28 +63,28 @@ class SendEmailConnectorSpec  extends UnitSpec with MockitoSugar with SCRSMocks 
     }
 
     "Fail the future when the service cannot be found" in new Setup {
-      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
+      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any()))
         .thenReturn(Future.failed(new NotFoundException("error")))
 
       intercept[EmailErrorResponse](await(connector.requestEmail(emailRequest)))
     }
 
     "Fail the future when we send a bad request" in new Setup {
-      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
+      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any()))
         .thenReturn(Future.failed(new BadRequestException("error")))
 
       intercept[EmailErrorResponse](await(connector.requestEmail(emailRequest)))
     }
 
     "Fail the future when EVS returns an internal server error" in new Setup {
-      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
+      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any()))
         .thenReturn(Future.failed(new InternalServerException("error")))
 
       intercept[EmailErrorResponse](await(connector.requestEmail(emailRequest)))
     }
 
     "Fail the future when EVS returns an upstream error" in new Setup {
-      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
+      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any()))
         .thenReturn(Future.failed(new BadGatewayException("error")))
 
       intercept[EmailErrorResponse](await(connector.requestEmail(emailRequest)))

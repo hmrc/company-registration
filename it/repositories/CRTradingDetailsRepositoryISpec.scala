@@ -60,8 +60,7 @@ class CRTradingDetailsRepositoryISpec
       """.stripMargin).as[JsObject]
 
     "process with a regular payments string properly" in new Setup {
-
-      import reactivemongo.json._
+      import reactivemongo.play.json._
 
       val tradingDetails = """ "tradingDetails":{"regularPayments":"true"}, """
       await(repository.collection.insert(json(tradingDetails)))
@@ -72,8 +71,7 @@ class CRTradingDetailsRepositoryISpec
     }
 
     "process with a regular payments boolean properly" in new Setup {
-
-      import reactivemongo.json._
+      import reactivemongo.play.json._
 
       val tradingDetails = """ "tradingDetails":{"regularPayments":true}, """
       await(repository.collection.insert(json(tradingDetails)))

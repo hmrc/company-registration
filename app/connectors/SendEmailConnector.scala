@@ -20,22 +20,23 @@ import config.WSHttp
 import models.SendEmailRequest
 import play.api.Logger
 import play.api.http.Status._
+import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.play.http._
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
+
 import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.control.NoStackTrace
 
 private[connectors] class EmailErrorResponse(s: String) extends NoStackTrace
 
 object SendEmailConnector extends SendEmailConnector with ServicesConfig with HttpErrorFunctions  {
-  val http: HttpGet with HttpPost with HttpPut = WSHttp
+  val http: CoreGet with CorePost with CorePut = WSHttp
     val sendEmailURL = getConfString("email.sendEmailURL", throw new Exception("email.sendEmailURL not found"))
 
 }
 
 trait SendEmailConnector extends HttpErrorFunctions {
-  val http : HttpPost with HttpPut
+  val http : CorePost with CorePut
   val sendEmailURL : String
 
 

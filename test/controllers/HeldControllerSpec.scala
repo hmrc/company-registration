@@ -32,10 +32,10 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import repositories.HeldSubmissionMongoRepository
 import services.RegistrationHoldingPenService
-import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
+import uk.gov.hmrc.http.HeaderCarrier
 
 
 class HeldControllerSpec extends UnitSpec with SCRSMocks with MockitoSugar with AuthFixture {

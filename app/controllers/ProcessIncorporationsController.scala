@@ -22,10 +22,8 @@ import models._
 import play.api.libs.json.JsValue
 import play.api.mvc.Action
 import services.{MetricsService, RegistrationHoldingPenService}
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import uk.gov.hmrc.play.microservice.controller.BaseController
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 
 class ProcessIncorporationsControllerImp @Inject()(metricsService: MetricsService)
   extends ProcessIncorporationsController {

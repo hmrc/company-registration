@@ -17,13 +17,13 @@
 package services
 
 import com.codahale.metrics.MetricRegistry
-import helpers.SCRSSpec
 import mocks.MockMetricsService
 import org.mockito.Matchers
 import org.mockito.Mockito._
-import org.scalatest.BeforeAndAfterEach
+import org.scalatest.mock.MockitoSugar
+import uk.gov.hmrc.play.test.UnitSpec
 
-class MetricsServiceSpec extends SCRSSpec with BeforeAndAfterEach {
+class MetricsServiceSpec extends UnitSpec with MockitoSugar {
 
   val mockRegistry = mock[MetricRegistry]
 

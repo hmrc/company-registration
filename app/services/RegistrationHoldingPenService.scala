@@ -24,16 +24,15 @@ import config.MicroserviceAuditConnector
 import connectors._
 import helpers.DateHelper
 import models._
-import uk.gov.hmrc.play.http.{HttpResponse => HmrcHttpResponse}
 import org.joda.time.DateTime
 import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import repositories._
+import uk.gov.hmrc.http.{HeaderCarrier, HttpErrorFunctions, HttpResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpErrorFunctions}
+import utils.DateCalculators
 
-import utils.{DateCalculators, SCRSFeatureSwitches}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.control.NoStackTrace
@@ -224,7 +223,7 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
 
   private[services] def auditDesSubmission(rID: String, jsSubmission: JsObject, isAdmin: Boolean = false)(implicit hc: HeaderCarrier) = {
     val event = new DesSubmissionEvent(DesSubmissionAuditEventDetail(rID, jsSubmission), isAdmin)
-    auditConnector.sendEvent(event)
+    auditConnector.sendExtendedEvent(event)
   }
 
   private[services] def auditSuccessfulIncorporation(item: IncorpUpdate, ctReg: CorporationTaxRegistration)(implicit hc: HeaderCarrier) = {
@@ -237,7 +236,7 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
       "successIncorpInformation",
       "successIncorpInformation"
     )
-    auditConnector.sendEvent(event)
+    auditConnector.sendExtendedEvent(event)
   }
 
   private[services] def auditSuccessfulTopUp(submission: JsObject, item: IncorpUpdate, ctReg: CorporationTaxRegistration)(implicit hc: HeaderCarrier) = {
@@ -257,7 +256,7 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
           "ctRegistrationAdditionalData",
           "ctRegistrationAdditionalData"
         )
-          auditConnector.sendEvent(event)
+          auditConnector.sendExtendedEvent(event)
         }
       case None =>  val event = new DesTopUpSubmissionEvent(
         DesTopUpSubmissionEventDetail(
@@ -272,7 +271,7 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
         "ctRegistrationAdditionalData",
         "ctRegistrationAdditionalData"
       )
-        auditConnector.sendEvent(event)
+        auditConnector.sendExtendedEvent(event)
     }
     }
 
@@ -289,7 +288,7 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
       "failedIncorpInformation"
     )
 
-    auditConnector.sendEvent(event)
+    auditConnector.sendExtendedEvent(event)
   }
 
   private def processMissingAckRefForTxID(txID: String) = {
@@ -465,7 +464,7 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
 
   private[services] def postSubmissionToDes(ackRef: String, submission: JsObject, journeyId: String, isAdmin: Boolean = false,
                                             hData: Option[HeldSubmission], item: IncorpUpdate, ctReg: CorporationTaxRegistration)
-                                           (implicit hc: HeaderCarrier): Future[HmrcHttpResponse] = {
+                                           (implicit hc: HeaderCarrier): Future[HttpResponse] = {
 
     hData match {
       case Some(_) => {

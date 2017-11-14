@@ -25,8 +25,6 @@ import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc._
 import services.CorporationTaxRegistrationService
 import services.admin.AdminService
-import uk.gov.hmrc.play.http.HeaderCarrier
-import uk.gov.hmrc.play.http.logging.SessionId
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import cats.instances.FutureInstances
 import cats.syntax.{ApplicativeSyntax, FlatMapSyntax}
@@ -34,6 +32,8 @@ import uk.gov.hmrc.play.audit.http.connector.AuditResult
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.logging.SessionId
 
 @Singleton
 class AdminControllerImpl @Inject()(val adminService: AdminService) extends AdminController {

@@ -155,7 +155,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
     "return a WriteResult with no errors" in new Setup {
       val result = await(repository.updateCTRecordWithAcknowledgments(ackRef, validHeldCorporationTaxRegistration))
-      result.hasErrors shouldBe false
+      result.writeErrors shouldBe Seq()
     }
   }
 

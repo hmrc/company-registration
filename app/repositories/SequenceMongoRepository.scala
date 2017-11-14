@@ -20,11 +20,12 @@ import models.Sequence
 import play.api.libs.json.JsValue
 import reactivemongo.api.DB
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
+import reactivemongo.play.json.ImplicitBSONHandlers.BSONDocumentWrites
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 trait SequenceRepository extends Repository[Sequence, BSONObjectID]{
   def getNext(sequenceID: String): Future[Int]

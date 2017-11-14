@@ -25,11 +25,11 @@ import play.api.Logger
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.{Action, AnyContentAsJson}
 import repositories.Repositories
-import services.{CorporationTaxRegistrationService, MetricsService, RegistrationProgressUpdated}
+import services.{CorporationTaxRegistrationService, MetricsService}
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
 
 class CorporationTaxRegistrationControllerImp @Inject() (metricsService: MetricsService) extends CorporationTaxRegistrationController {
   val ctService = CorporationTaxRegistrationService
@@ -44,6 +44,8 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
   val metrics : MetricsService
 
   def createCorporationTaxRegistration(registrationId: String): Action[JsValue] = Action.async(parse.json) {
+    import scala.concurrent.ExecutionContext.Implicits.global
+
     implicit request =>
       authenticated {
         case NotLoggedIn => Future.successful(Forbidden)
@@ -186,7 +188,7 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
             body =>
               val progress = (body \ "registration-progress").as[String]
               ctService.updateRegistrationProgress(registrationID, progress) map { result =>
-                import services.{RegistrationProgressUpdated, CompanyRegistrationDoesNotExist}
+                import services.{CompanyRegistrationDoesNotExist, RegistrationProgressUpdated}
                 result match {
                   case(RegistrationProgressUpdated) => Ok
                   case(CompanyRegistrationDoesNotExist) => NotFound

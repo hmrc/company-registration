@@ -29,10 +29,10 @@ import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.Request
 import repositories.{CorpTaxRegistrationRepo, CorporationTaxRegistrationMongoRepository, HeldSubmissionMongoRepository, HeldSubmissionRepo}
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
-import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import uk.gov.hmrc.http.HeaderCarrier
 
 @Singleton
 class AdminServiceImpl @Inject()(corpTaxRepo: CorpTaxRegistrationRepo, heldSubMongo: HeldSubmissionRepo, val incorpInfoConnector: IncorporationInformationConnector) extends AdminService {
@@ -75,7 +75,7 @@ trait AdminService extends DateFormatter {
     val responseJson = Json.toJson(response)(HO6Response.adminAuditWrites).as[JsObject]
     val timestamp = Json.obj("timestamp" -> Json.toJson(nowAsZonedDateTime)(zonedDateTimeWrites))
     val auditEvent = new AdminReleaseAuditEvent(timestamp, strideUser, identifiersJson, responseJson)
-    auditConnector.sendEvent(auditEvent)
+    auditConnector.sendExtendedEvent(auditEvent)
   }
 
   private[services] def fetchAllRegIdsFromHeldSubmissions: Future[List[String]] = heldSubRepo.findAll() map { list => list.map(_.registrationID)}

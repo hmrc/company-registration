@@ -24,10 +24,10 @@ import org.scalatest.{BeforeAndAfter, ShouldMatchers, WordSpecLike}
 import play.api.mvc.Results
 import play.api.test.FakeApplication
 import play.api.test.Helpers._
-import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
+import uk.gov.hmrc.http.HeaderCarrier
 
 class AuthenticationSpec extends UnitSpec with MockitoSugar {
 

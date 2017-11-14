@@ -20,7 +20,7 @@ import java.util.UUID
 
 import cats.data.OptionT
 import connectors._
-import fixtures.{AuthFixture, CorporationTaxRegistrationFixture, MongoFixture}
+import fixtures.{AuthFixture, CorporationTaxRegistrationFixture}
 import helpers.MongoMocks
 import mocks.SCRSMocks
 import models.RegistrationStatus._
@@ -38,16 +38,15 @@ import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.{AnyContent, Request}
 import play.api.test.FakeRequest
 import repositories._
-import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
-import uk.gov.hmrc.play.http.HeaderCarrier
-import uk.gov.hmrc.play.http.logging.SessionId
+import uk.gov.hmrc.http.logging.SessionId
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
-import uk.gov.hmrc.play.http.{HttpResponse => HmrcHttpResponse}
 
 import scala.concurrent.Future
 
 class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with CorporationTaxRegistrationFixture
-  with MongoFixture with AuthFixture with MongoMocks with LogCapturing with Eventually {
+  with AuthFixture with MongoMocks with LogCapturing with Eventually {
 
   implicit val hc = HeaderCarrier(sessionId = Some(SessionId("testSessionId")))
   implicit val req = FakeRequest("GET", "/test-path")
@@ -478,7 +477,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
       System.setProperty("feature.etmpHoldingPen", "true")
 
       when(mockDesConnector.ctSubmission(eqTo(ackRef), eqTo(partialSubmission), eqTo(regId), any())(any()))
-        .thenReturn(Future.successful(HmrcHttpResponse(200)))
+        .thenReturn(Future.successful(HttpResponse(200)))
 
       val result: HeldSubmissionData = await(service.storePartialSubmission(regId, ackRef, partialSubmission))
       val heldSubmissionWithSameSubmissionTime: HeldSubmissionData = heldSubmissionData.copy(heldTime = result.heldTime)

@@ -17,7 +17,7 @@
 package audit
 
 import play.api.libs.json.{JsObject, Json}
-import uk.gov.hmrc.play.http.HeaderCarrier
+import uk.gov.hmrc.http.HeaderCarrier
 
 class AdminReleaseAuditEvent(timestamp: JsObject, strideUsername: String, submittedIdentifiers: JsObject, receivedDetails: JsObject)(implicit hc: HeaderCarrier)
   extends RegistrationAuditEvent(
