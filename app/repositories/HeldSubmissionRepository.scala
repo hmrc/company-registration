@@ -141,4 +141,8 @@ class HeldSubmissionMongoRepository(mongo: () => DB)
       }
     }
   }
+
+  def getAllHeldDocs : Future[Seq[HeldSubmission]] =  {
+    findAll() map(_ map mapHeldSubmission)
+  }
 }
