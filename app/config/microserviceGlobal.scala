@@ -42,10 +42,12 @@ import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode}
 import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
 import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
 import net.ceedubs.ficus.Ficus._
-import repositories.Repositories
+import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmission, HeldSubmissionMongoRepository, Repositories}
 import services.CorporationTaxRegistrationService
 import uk.gov.hmrc.play.scheduling.RunningOfScheduledJobs
-import uk.gov.hmrc.play.microservice.filters.{ AuditFilter, LoggingFilter, MicroserviceFilterSupport }
+import uk.gov.hmrc.play.microservice.filters.{AuditFilter, LoggingFilter, MicroserviceFilterSupport}
+
+import scala.concurrent.Future
 
 object ControllerConfiguration extends ControllerConfig {
   lazy val controllerConfigs = Play.current.configuration.underlying.as[Config]("controllers")
@@ -70,8 +72,7 @@ object MicroserviceAuthFilter extends AuthorisationFilter with MicroserviceFilte
   override def controllerNeedsAuth(controllerName: String): Boolean = ControllerConfiguration.paramsForController(controllerName).needsAuth
 }
 
-object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with RunningOfScheduledJobs
-{
+object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with RunningOfScheduledJobs {
   override val auditConnector = MicroserviceAuditConnector
 
   override def microserviceMetricsConfig(implicit app: Application): Option[Configuration] = app.configuration.getConfig(s"microservice.metrics")
@@ -96,6 +97,8 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
       Logger.info(s"RegIds with locked status:$message")
     }
 
+    app.injector.instanceOf[AppStartupJobs].getHeldDocsInfo
+
     import java.util.Base64
     val regIdConf = app.configuration.getString("registrationList").getOrElse("")
     val regIdList = new String(Base64.getDecoder.decode(regIdConf), "UTF-8")
@@ -104,5 +107,33 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
 
     super.onStart(app)
   }
+}
 
+@Singleton
+class AppStartupJobs {
+
+  import scala.concurrent.ExecutionContext.Implicits.global
+
+  lazy val heldRepo: HeldSubmissionMongoRepository = Repositories.heldSubmissionRepository
+  lazy val ctRepo: CorporationTaxRegistrationMongoRepository = Repositories.cTRepository
+
+  def getHeldDocsInfo : Future[Unit] = {
+    heldRepo.getAllHeldDocs map {
+      _ foreach { held =>
+        ctRepo.retrieveCorporationTaxRegistration(held.regId) map {
+          _ map { ctDoc =>
+            Logger.info(s"[HeldDocs] " +
+              s"status : ${ctDoc.status} - " +
+              s"reg Id : ${ctDoc.registrationID} - " +
+              s"""conf refs : ${ctDoc.confirmationReferences.fold("none"){ refs =>
+                s"txId : ${refs.transactionId} - " +
+                s"ack ref : ${refs.acknowledgementReference}"
+              }}"""
+            )
+            Unit
+          }
+        }
+      }
+    }
+  }
 }

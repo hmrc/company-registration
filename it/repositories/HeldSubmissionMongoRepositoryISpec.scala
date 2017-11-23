@@ -181,4 +181,25 @@ class HeldSubmissionMongoRepositoryISpec extends UnitSpec with ScalaFutures with
     }
 
   }
+  "getAllHeldDocs" should{
+    "provide a sequence of held documents from the held repo" in new Setup{
+
+      val randomRegid = newId
+      val randomAckid = newId
+      val randomRegid2 = newId
+      val randomAckid2 = newId
+      val data = Json.obj("bar" -> "foo")
+      val heldsub1 = HeldSubmission(randomRegid, randomAckid, data)
+      val heldsub2 = HeldSubmission(randomRegid2, randomAckid2, data)
+
+      await(repository.storePartialSubmission(randomRegid, randomAckid, data))
+      await(repository.storePartialSubmission(randomRegid2, randomAckid2, data))
+
+      await(repository.count) shouldBe 2
+
+      val getAllHeld: Seq[HeldSubmission] = await(repository.getAllHeldDocs)
+      getAllHeld shouldBe Seq(heldsub1,heldsub2)
+
+    }
+  }
 }
