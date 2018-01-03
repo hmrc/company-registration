@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 HM Revenue & Customs
+ * Copyright 2018 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,14 +27,16 @@ import play.api.libs.json.{JsObject, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.call
 import services.{MetricsService, RegistrationHoldingPenService}
-import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
 import org.mockito.Matchers._
 import org.mockito.Mockito._
+import org.scalatest.concurrent.Eventually
+import play.api.Logger
 import play.api.libs.json.Reads._
 
 import scala.concurrent.Future
 
-class ProcessIncorporationsControllerSpec extends UnitSpec with MockitoSugar with AuthFixture {
+class ProcessIncorporationsControllerSpec extends UnitSpec with MockitoSugar with AuthFixture  with LogCapturing with Eventually {
 
   implicit val as = ActorSystem()
   implicit val mat = ActorMaterializer()
@@ -95,6 +97,12 @@ class ProcessIncorporationsControllerSpec extends UnitSpec with MockitoSugar wit
        |}
     """.stripMargin).as[JsObject]
 
+  val DESFailedJson = Json.parse(
+    s"""
+       |{
+       |}
+    """.stripMargin).as[JsObject]
+
   val acceptedIncorpStatus = IncorpStatus(transactionId, "accepted", Some(crn), None, Some(incDate))
 
   "ProcessAdminIncorp" should {
@@ -136,6 +144,31 @@ class ProcessIncorporationsControllerSpec extends UnitSpec with MockitoSugar wit
 
       status(result) shouldBe 200
 
+    }
+  }
+
+  "Failing Topup" should {
+
+    "log the correct error message" in new Setup {
+
+      when(mockRegHoldingPenService.updateIncorp(any(), any())(any())).thenReturn(Future.failed(new RuntimeException))
+
+      val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
+
+      withCaptureOfLoggingFrom(Logger) { logEvents =>
+
+        intercept[RuntimeException](await(call(controller.processIncorp, request)))
+
+          eventually {
+
+            logEvents.size shouldBe 2
+
+            val res = logEvents.map(_.getMessage) contains "FAILED_DES_TOPUP"
+
+            res shouldBe true
+
+        }
+      }
     }
   }
 

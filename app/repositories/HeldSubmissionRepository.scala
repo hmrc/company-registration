@@ -131,6 +131,7 @@ class HeldSubmissionMongoRepository(mongo: () => DB)
       case DefaultWriteResult(true, 1, _, _, _, _) => Future.successful(true)
       case DefaultWriteResult(true, 0, _, _, _, _) => {
         Logger.warn(s"[HeldSubmissionRepository] [removeHeldDocument] Didn't delete missing held submission for ${regId}")
+        Logger.error("FAILED_DES_TOPUP")
         Future.successful(false)
       }
       case unknown => {
