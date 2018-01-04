@@ -16,14 +16,20 @@
 
 package services
 
+
+import java.util.Base64
+
 import models.{AccountingDetails, SubmissionDates}
 import org.joda.time.DateTime
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
+import uk.gov.hmrc.play.config.ServicesConfig
 
 import scala.concurrent.Future
 
-object AccountingDetailsService extends AccountingDetailsService {
+object AccountingDetailsService extends AccountingDetailsService with ServicesConfig {
   override val corporationTaxRegistrationRepository = Repositories.cTRepository
+  val notStartDate = getConfString("services.defaultStartDate", throw new Exception("could not find fake start date"))
+  override val defaultDate: DateTime = DateTime.parse(new String(Base64.getDecoder.decode(notStartDate), "UTF-8"))
 }
 
 sealed trait ActiveDate
@@ -32,6 +38,8 @@ case object ActiveOnIncorporation extends ActiveDate
 case class ActiveInFuture(date: DateTime) extends ActiveDate
 
 trait AccountingDetailsService {
+
+  val defaultDate: DateTime
 
   val corporationTaxRegistrationRepository : CorporationTaxRegistrationMongoRepository
 
@@ -47,8 +55,7 @@ trait AccountingDetailsService {
 
     (activeDate, accountingDate) match {
       case (DoNotIntendToTrade, _) =>
-        val newDate = incorporationDate plusYears 5
-        SubmissionDates(newDate, newDate, endOfMonthPlusOneYear(newDate))
+        SubmissionDates(defaultDate, defaultDate, defaultDate)
 
       case (ActiveOnIncorporation, Some(date)) =>
         SubmissionDates (incorporationDate, incorporationDate, date)
