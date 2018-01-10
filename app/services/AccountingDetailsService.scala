@@ -19,11 +19,14 @@ package services
 import models.{AccountingDetails, SubmissionDates}
 import org.joda.time.DateTime
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
+import uk.gov.hmrc.play.config.ServicesConfig
+import java.util.Base64
 
 import scala.concurrent.Future
 
-object AccountingDetailsService extends AccountingDetailsService {
+object AccountingDetailsService extends AccountingDetailsService with ServicesConfig {
   override val corporationTaxRegistrationRepository = Repositories.cTRepository
+  override val doNotIndendToTradeDefaultDate = getConfString("doNotIndendToTradeDefaultDate", throw new Exception("Unable to retrieve doNotIndendToTradeDefaultDate from config"))
 }
 
 sealed trait ActiveDate
@@ -34,6 +37,7 @@ case class ActiveInFuture(date: DateTime) extends ActiveDate
 trait AccountingDetailsService {
 
   val corporationTaxRegistrationRepository : CorporationTaxRegistrationMongoRepository
+  val doNotIndendToTradeDefaultDate: String
 
   def retrieveAccountingDetails(registrationID: String): Future[Option[AccountingDetails]] = {
     corporationTaxRegistrationRepository.retrieveAccountingDetails(registrationID)
@@ -47,8 +51,8 @@ trait AccountingDetailsService {
 
     (activeDate, accountingDate) match {
       case (DoNotIntendToTrade, _) =>
-        val newDate = incorporationDate plusYears 5
-        SubmissionDates(newDate, newDate, endOfMonthPlusOneYear(newDate))
+        val defaultDate = DateTime.parse(new String(java.util.Base64.getDecoder.decode(doNotIndendToTradeDefaultDate.getBytes())))
+        SubmissionDates(defaultDate, defaultDate, defaultDate)
 
       case (ActiveOnIncorporation, Some(date)) =>
         SubmissionDates (incorporationDate, incorporationDate, date)
