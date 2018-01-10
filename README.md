@@ -49,7 +49,7 @@ A ```200``` success response:
 }
 ```
 
-The error scenarios will return an error document, for example :
+The error scenarios will return an error document, for example:
 ```
 {
     "statusCode": 404,
