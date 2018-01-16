@@ -29,6 +29,7 @@ class AccountingDetailsServiceSpec extends UnitSpec with MockitoSugar with SCRSM
   trait Setup {
     val service = new AccountingDetailsService {
       override val corporationTaxRegistrationRepository = mockCTDataRepository
+      override val doNotIndendToTradeDefaultDate = "1900-01-01"
     }
   }
 
@@ -84,38 +85,13 @@ class AccountingDetailsServiceSpec extends UnitSpec with MockitoSugar with SCRSM
 
       "return a 5 years from the Incorporation date for 'companyActiveDate' and 'startDateOfFirstAccountingPeriod' " +
         "dates and plus 1 year (end of month for Intended date)" in new Setup {
-        val dateOfIncorp: DateTime = date("2020-1-1")
-        val targetActiveDate = date("2025-1-1")
-        val targetIntendedDate = date("2026-1-31")
+        val targetDate: DateTime = date(service.doNotIndendToTradeDefaultDate)
+        val result:SubmissionDates = service.calculateSubmissionDates(targetDate, DoNotIntendToTrade, None)
 
-        val result:SubmissionDates = service.calculateSubmissionDates(dateOfIncorp, DoNotIntendToTrade, None)
-
-        result.companyActiveDate                 shouldBe targetActiveDate
-        result.startDateOfFirstAccountingPeriod  shouldBe targetActiveDate
-        result.intendedAccountsPreparationDate   shouldBe targetIntendedDate
+        result.companyActiveDate                 shouldBe targetDate
+        result.startDateOfFirstAccountingPeriod  shouldBe targetDate
+        result.intendedAccountsPreparationDate   shouldBe targetDate
       }
-
-      "return correct intendedAccountsPreperationDate when called on a leap year edge case" in new Setup {
-        val dateOfIncorp: DateTime = date("2014-2-28")
-        val targetResult = date("2019-2-28")
-        val successfulEdgeCase = date("2020-2-29")
-
-        val result:SubmissionDates = service.calculateSubmissionDates(dateOfIncorp, DoNotIntendToTrade, None)
-
-        result.companyActiveDate                 shouldBe targetResult
-        result.startDateOfFirstAccountingPeriod  shouldBe targetResult
-        result.intendedAccountsPreparationDate   shouldBe successfulEdgeCase
-      }
-
-      "return correct intendedAccountsPreperationDate when called on a non-leap year edge case" in new Setup {
-        val dateOfIncorp: DateTime = date("2016-2-28")
-        val successfulEdgeCase = date("2022-2-28")
-
-        val result:SubmissionDates = service.calculateSubmissionDates(dateOfIncorp, DoNotIntendToTrade, None)
-
-        result.intendedAccountsPreparationDate   shouldBe successfulEdgeCase
-      }
-
     }
 
     "called with 'Date of incorporation' selected" should {
