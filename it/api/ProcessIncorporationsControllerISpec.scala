@@ -53,7 +53,8 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
     "microservice.services.des-service.environment" -> "local",
     "microservice.services.des-service.authorization-token" -> "testAuthToken",
     "microservice.services.des-topup-service.host" -> mockHost,
-    "microservice.services.des-topup-service.port" -> mockPort
+    "microservice.services.des-topup-service.port" -> mockPort,
+    "microservice.services.doNotIndendToTradeDefaultDate" -> "MTkwMC0wMS0wMQ=="
   )
 
   override implicit lazy val app: Application = new GuiceApplicationBuilder()
@@ -278,7 +279,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
         import AccountingDetails.NOT_PLANNING_TO_YET
 
         val incorpDate = "2017-07-25"
-        val activeDateToDES = "2022-07-25"
+        val activeDateToDES = "1900-01-01"
         val heldRegistration2: CorporationTaxRegistration = heldRegistration.copy(
           accountingDetails = Some(heldRegistration.accountingDetails.get.copy(status = NOT_PLANNING_TO_YET, activeDate = None))
         )
