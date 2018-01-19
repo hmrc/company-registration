@@ -143,8 +143,13 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
   }
 
   private[services] def updateSubmissionWithIncorporation(item: IncorpUpdate, ctReg: CorporationTaxRegistration, isAdmin: Boolean = false)(implicit hc: HeaderCarrier): Future[Boolean] = {
-    import RegistrationStatus.{HELD, SUBMITTED}
+    import RegistrationStatus.{HELD, SUBMITTED, LOCKED}
     ctReg.status match {
+      case LOCKED =>
+        Logger.error("FAILED_DES_TOPUP")
+        Logger.info("FAILED_DES_TOPUP" +
+          s" Top-up failed. TxId:${item.transactionId} regId: ${ctReg.registrationID} is LOCKED. Cancelling II subscription")
+        Future.successful(true)
       case HELD => updateHeldSubmission(item, ctReg, ctReg.registrationID, isAdmin)
       case SUBMITTED => updateSubmittedSubmission(ctReg)
       case unknown => updateOtherSubmission(ctReg.registrationID, item.transactionId, unknown)

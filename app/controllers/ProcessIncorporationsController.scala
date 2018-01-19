@@ -35,17 +35,24 @@ trait ProcessIncorporationsController extends BaseController {
 
   val regHoldingPenService: RegistrationHoldingPenService
 
+  private def logFailedTopup(txId: String) = {
+    Logger.error("FAILED_DES_TOPUP")
+    Logger.info(s"FAILED_DES_TOPUP - Topup failed for transaction ID: $txId")
+  }
+
   def processIncorp = Action.async[JsValue](parse.json) {
     implicit request =>
 
       implicit val reads = IncorpStatus.reads
       withJsonBody[IncorpStatus]{ incorp =>
         regHoldingPenService.updateIncorp(incorp) map {
-          if(_) Ok else BadRequest
+          if(_) { Ok } else {
+            logFailedTopup(incorp.transactionId)
+            BadRequest
+          }
         } recover {
           case e =>
-            Logger.error("FAILED_DES_TOPUP")
-            Logger.info(s"[ProcessIncorporationsController] [processIncorp] Topup failed for transaction ID: ${incorp.transactionId}")
+            logFailedTopup(incorp.transactionId)
             throw e
       }
     }
@@ -55,9 +62,16 @@ trait ProcessIncorporationsController extends BaseController {
     implicit request =>
       implicit val reads = IncorpStatus.reads
       withJsonBody[IncorpStatus]{ incorp =>
-        regHoldingPenService.updateIncorp(incorp,true) map {
-          if(_) Ok else BadRequest
-      }
+        regHoldingPenService.updateIncorp(incorp, isAdmin = true) map {
+          if(_) { Ok } else {
+            logFailedTopup(incorp.transactionId)
+            BadRequest
+          }
+      } recover {
+          case e =>
+            logFailedTopup(incorp.transactionId)
+            throw e
+        }
     }
   }
 

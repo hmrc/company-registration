@@ -528,6 +528,13 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
       await(service.updateSubmissionWithIncorporation(incorpSuccess, validCR)) shouldBe true
     }
+    "return true for a Locked registration" in new SetupNoProcess {
+      val lockedReg = validCR.copy(status = LOCKED)
+      when(mockCTRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
+        .thenReturn(Future.successful(Some(lockedReg)))
+
+      await(service.updateSubmissionWithIncorporation(incorpSuccess, lockedReg)) shouldBe true
+    }
     "return true for a submission that is already 'Submitted" in new SetupNoProcess {
       when(mockCTRepository.retrieveRegistrationByTransactionID(Matchers.eq(transId)))
         .thenReturn(Future.successful(Some(submittedCR)))
