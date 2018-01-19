@@ -330,6 +330,18 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
         val response = await(client("/process-incorp").post(jsonIncorpStatus(incorpDate)))
         response.status shouldBe 200
       }
+      "registration is Locked by returning 200 to cancel the II subscription" in new Setup {
+        val incorpDate = "2017-07-24"
+
+        await(ctRepository.insert(heldRegistration.copy(status = LOCKED)))
+
+        setupSimpleAuthMocks()
+        stubPost("/hmrc/email", 202, "")
+        val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
+
+        val response = await(client("/process-incorp").post(jsonIncorpStatus(incorpDate)))
+        response.status shouldBe 200
+      }
       "it is a 499" in new Setup {
         val incorpDate = "2017-07-24"
 
