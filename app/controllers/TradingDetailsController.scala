@@ -49,10 +49,9 @@ trait TradingDetailsController extends BaseController with Authenticated with Au
       authorised(registrationID) {
         case Authorised(_) => val timer = metricsService.retrieveTradingDetailsCRTimer.time()
                               tradingDetailsService.retrieveTradingDetails(registrationID).map {
-          case Some(res) =>
-            timer.stop()
+          case Some(res) => timer.stop()
             Ok(Json.toJson(res))
-          case _ =>
+          case _ => timer.stop()
             Logger.info(s"[TradingDetailsController] [retrieveTradingDetails] Authorised but no data for $registrationID")
             NotFound(ErrorResponse.tradingDetailsNotFound)
         }
@@ -76,7 +75,8 @@ trait TradingDetailsController extends BaseController with Authenticated with Au
               .map{
                 case Some(details) => timer.stop()
                                       Ok(Json.toJson(details))
-                case None => NotFound(ErrorResponse.tradingDetailsNotFound)
+                case None => timer.stop()
+                  NotFound(ErrorResponse.tradingDetailsNotFound)
               }
           }
         case NotLoggedInOrAuthorised =>
