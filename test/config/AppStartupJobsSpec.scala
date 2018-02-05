@@ -21,7 +21,7 @@ import org.scalatest.mock.MockitoSugar
 import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmission, HeldSubmissionMongoRepository}
 import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
 import org.mockito.Mockito._
-import org.mockito.Matchers.any
+import org.mockito.ArgumentMatchers.any
 import org.scalatest.concurrent.Eventually
 import play.api.Logger
 import play.api.libs.json.Json

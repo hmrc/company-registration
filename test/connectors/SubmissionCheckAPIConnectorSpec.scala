@@ -21,7 +21,7 @@ import java.util.UUID
 import config.WSHttp
 import models.{IncorpUpdate, SubmissionCheckResponse}
 import org.joda.time.DateTime
-import org.mockito.{ArgumentCaptor, Matchers}
+import org.mockito.{ArgumentCaptor, ArgumentMatchers}
 import org.scalatest.mock.MockitoSugar
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 import org.mockito.Mockito._
@@ -64,7 +64,7 @@ class SubmissionCheckAPIConnectorSpec extends UnitSpec with MockitoSugar  {
     "return a submission status response when no timepoint is provided" in new Setup {
       val testTimepoint = UUID.randomUUID().toString
 
-      when(mockWSHttp.GET[SubmissionCheckResponse](Matchers.anyString())(Matchers.any(), Matchers.any(), Matchers.any()))
+      when(mockWSHttp.GET[SubmissionCheckResponse](ArgumentMatchers.anyString())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
           .thenReturn(Future.successful(validSubmissionResponse))
 
       await(connector.checkSubmission()) shouldBe validSubmissionResponse
@@ -73,7 +73,7 @@ class SubmissionCheckAPIConnectorSpec extends UnitSpec with MockitoSugar  {
     "return a submission status response when a timepoint is provided" in new Setup {
       val testTimepoint = UUID.randomUUID().toString
 
-      when(mockWSHttp.GET[SubmissionCheckResponse](Matchers.anyString())(Matchers.any(), Matchers.any(), Matchers.any()))
+      when(mockWSHttp.GET[SubmissionCheckResponse](ArgumentMatchers.anyString())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
           .thenReturn(Future.successful(validSubmissionResponse))
 
       await(connector.checkSubmission(Some(testTimepoint))) shouldBe validSubmissionResponse
@@ -84,7 +84,7 @@ class SubmissionCheckAPIConnectorSpec extends UnitSpec with MockitoSugar  {
 
       val urlCaptor = ArgumentCaptor.forClass(classOf[String])
 
-      when(mockWSHttp.GET[SubmissionCheckResponse](urlCaptor.capture())(Matchers.any(), Matchers.any(), Matchers.any()))
+      when(mockWSHttp.GET[SubmissionCheckResponse](urlCaptor.capture())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(validSubmissionResponse))
 
       await(connector.checkSubmission(Some(testTimepoint)))
@@ -97,7 +97,7 @@ class SubmissionCheckAPIConnectorSpec extends UnitSpec with MockitoSugar  {
 
       val urlCaptor = ArgumentCaptor.forClass(classOf[String])
 
-      when(mockWSHttp.GET[SubmissionCheckResponse](urlCaptor.capture())(Matchers.any(), Matchers.any(), Matchers.any()))
+      when(mockWSHttp.GET[SubmissionCheckResponse](urlCaptor.capture())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(validSubmissionResponse))
 
       await(connector.checkSubmission(None))
@@ -110,7 +110,7 @@ class SubmissionCheckAPIConnectorSpec extends UnitSpec with MockitoSugar  {
 
       val urlCaptor = ArgumentCaptor.forClass(classOf[String])
 
-      when(mockWSHttp.GET[SubmissionCheckResponse](urlCaptor.capture())(Matchers.any(), Matchers.any(), Matchers.any()))
+      when(mockWSHttp.GET[SubmissionCheckResponse](urlCaptor.capture())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.failed(new BadRequestException("400")))
 
       intercept[SubmissionAPIFailure](await(connector.checkSubmission(None)))
@@ -123,7 +123,7 @@ class SubmissionCheckAPIConnectorSpec extends UnitSpec with MockitoSugar  {
 
       val urlCaptor = ArgumentCaptor.forClass(classOf[String])
 
-      when(mockWSHttp.GET[SubmissionCheckResponse](urlCaptor.capture())(Matchers.any(), Matchers.any(), Matchers.any()))
+      when(mockWSHttp.GET[SubmissionCheckResponse](urlCaptor.capture())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.failed(new NotFoundException("404")))
 
       intercept[SubmissionAPIFailure](await(connector.checkSubmission(None)))
@@ -136,7 +136,7 @@ class SubmissionCheckAPIConnectorSpec extends UnitSpec with MockitoSugar  {
 
       val urlCaptor = ArgumentCaptor.forClass(classOf[String])
 
-      when(mockWSHttp.GET[SubmissionCheckResponse](urlCaptor.capture())(Matchers.any(), Matchers.any(), Matchers.any()))
+      when(mockWSHttp.GET[SubmissionCheckResponse](urlCaptor.capture())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.failed(Upstream4xxResponse("429", 429, 429)))
 
       intercept[SubmissionAPIFailure](await(connector.checkSubmission(None)))
@@ -149,7 +149,7 @@ class SubmissionCheckAPIConnectorSpec extends UnitSpec with MockitoSugar  {
 
       val urlCaptor = ArgumentCaptor.forClass(classOf[String])
 
-      when(mockWSHttp.GET[SubmissionCheckResponse](urlCaptor.capture())(Matchers.any(), Matchers.any(), Matchers.any()))
+      when(mockWSHttp.GET[SubmissionCheckResponse](urlCaptor.capture())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.failed(Upstream5xxResponse("502", 502, 502)))
 
       intercept[SubmissionAPIFailure](await(connector.checkSubmission(None)))
@@ -162,7 +162,7 @@ class SubmissionCheckAPIConnectorSpec extends UnitSpec with MockitoSugar  {
 
       val urlCaptor = ArgumentCaptor.forClass(classOf[String])
 
-      when(mockWSHttp.GET[SubmissionCheckResponse](urlCaptor.capture())(Matchers.any(), Matchers.any(), Matchers.any()))
+      when(mockWSHttp.GET[SubmissionCheckResponse](urlCaptor.capture())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.failed(new NoSuchElementException))
 
       intercept[SubmissionAPIFailure](await(connector.checkSubmission(None)))

@@ -23,7 +23,7 @@ import fixtures.{AccountingDetailsFixture, AuthFixture}
 import helpers.SCRSSpec
 import mocks.{MockMetricsService, SCRSMocks}
 import models.{AccountPrepDetails, ErrorResponse}
-import org.mockito.Matchers
+import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneAppPerSuite, OneAppPerTest}
@@ -57,11 +57,11 @@ class AccountingDetailsControllerSpec extends UnitSpec with MockitoSugar with SC
   "retrieveAccountingDetails" should {
     "return a 200 with accounting details in the json body when authorised" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockCTDataRepository.getInternalId(Matchers.anyString()))
+      when(mockCTDataRepository.getInternalId(ArgumentMatchers.anyString()))
         .thenReturn(Future.successful(Some(registrationID -> validAuthority.ids.internalId)))
       AccountingDetailsServiceMocks.retrieveAccountingDetails(registrationID, Some(validAccountingDetails))
 
-      when(mockPrepareAccountService.updateEndDate(Matchers.any()))
+      when(mockPrepareAccountService.updateEndDate(ArgumentMatchers.any()))
         .thenReturn(Future.successful(Some(AccountPrepDetails())))
 
       val result = controller.retrieveAccountingDetails(registrationID)(FakeRequest())
@@ -74,11 +74,11 @@ class AccountingDetailsControllerSpec extends UnitSpec with MockitoSugar with SC
 
     "return a 404 when the user is authorised but accounting details cannot be found" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockCTDataRepository.getInternalId(Matchers.anyString()))
+      when(mockCTDataRepository.getInternalId(ArgumentMatchers.anyString()))
         .thenReturn(Future.successful(Some(registrationID -> validAuthority.ids.internalId)))
       AccountingDetailsServiceMocks.retrieveAccountingDetails(registrationID, None)
 
-      when(mockPrepareAccountService.updateEndDate(Matchers.any()))
+      when(mockPrepareAccountService.updateEndDate(ArgumentMatchers.any()))
         .thenReturn(Future.successful(Some(AccountPrepDetails())))
 
       val result = controller.retrieveAccountingDetails(registrationID)(FakeRequest())
@@ -88,7 +88,7 @@ class AccountingDetailsControllerSpec extends UnitSpec with MockitoSugar with SC
 
     "return a 404 when the auth resource cannot be found" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockCTDataRepository.getInternalId(Matchers.anyString()))
+      when(mockCTDataRepository.getInternalId(ArgumentMatchers.anyString()))
         .thenReturn(Future.successful(None))
       AccountingDetailsServiceMocks.retrieveAccountingDetails(registrationID, None)
 
@@ -100,7 +100,7 @@ class AccountingDetailsControllerSpec extends UnitSpec with MockitoSugar with SC
     "return a 403 when the user is unauthorised to access the record" in new Setup {
       val authority = validAuthority.copy(ids = validAuthority.ids.copy(internalId = "notAuthorisedID"))
       AuthenticationMocks.getCurrentAuthority(Some(authority))
-      when(mockCTDataRepository.getInternalId(Matchers.anyString()))
+      when(mockCTDataRepository.getInternalId(ArgumentMatchers.anyString()))
         .thenReturn(Future.successful(Some("testRegID" -> "testID")))
 
       val result = controller.retrieveAccountingDetails(registrationID)(FakeRequest())
@@ -109,7 +109,7 @@ class AccountingDetailsControllerSpec extends UnitSpec with MockitoSugar with SC
 
     "return a 403 when the user is not logged in" in new Setup {
       AuthenticationMocks.getCurrentAuthority(None)
-      when(mockCTDataRepository.getInternalId(Matchers.anyString()))
+      when(mockCTDataRepository.getInternalId(ArgumentMatchers.anyString()))
         .thenReturn(Future.successful(Some("testRegID" -> "testID")))
 
       val result = controller.retrieveAccountingDetails(registrationID)(FakeRequest())
@@ -120,7 +120,7 @@ class AccountingDetailsControllerSpec extends UnitSpec with MockitoSugar with SC
   "updateAccountingDetails" should {
     "return a 200 with accounting details in the json body when authorised" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockCTDataRepository.getInternalId(Matchers.anyString()))
+      when(mockCTDataRepository.getInternalId(ArgumentMatchers.anyString()))
         .thenReturn(Future.successful(Some(registrationID -> validAuthority.ids.internalId)))
       AccountingDetailsServiceMocks.updateAccountingDetails(registrationID, Some(validAccountingDetails))
 
@@ -157,7 +157,7 @@ class AccountingDetailsControllerSpec extends UnitSpec with MockitoSugar with SC
 
     "return a 403 when the user is unauthorised to access the record" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockCTDataRepository.getInternalId(Matchers.anyString()))
+      when(mockCTDataRepository.getInternalId(ArgumentMatchers.anyString()))
         .thenReturn(Future.successful(Some("testRegID" -> (validAuthority.ids.internalId + "123"))))
 
       val response = FakeRequest().withBody(Json.toJson(validAccountingDetails))

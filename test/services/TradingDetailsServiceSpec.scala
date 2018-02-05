@@ -19,7 +19,7 @@ package services
 import fixtures.{CorporationTaxRegistrationFixture, MongoFixture}
 import mocks.SCRSMocks
 import models.TradingDetails
-import org.mockito.Matchers
+import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import uk.gov.hmrc.play.test.UnitSpec
@@ -38,7 +38,7 @@ class TradingDetailsServiceSpec extends UnitSpec with MockitoSugar with SCRSMock
     "fetch trading details if a record exists against the given registration ID" in new Setup {
       CTDataRepositoryMocks.retrieveCorporationTaxRegistration(Some(validDraftCorporationTaxRegistration))
 
-      when(mockCTDataRepository.retrieveTradingDetails(Matchers.anyString())).thenReturn(Future.successful(Some(TradingDetails("true"))))
+      when(mockCTDataRepository.retrieveTradingDetails(ArgumentMatchers.anyString())).thenReturn(Future.successful(Some(TradingDetails("true"))))
 
       val result = TestService.retrieveTradingDetails("testRegID")
       await(result) shouldBe Some(TradingDetails("true"))
@@ -47,7 +47,7 @@ class TradingDetailsServiceSpec extends UnitSpec with MockitoSugar with SCRSMock
     "return an 'empty' trading details model if no record exists against the given registration ID" in new Setup {
       CTDataRepositoryMocks.retrieveCorporationTaxRegistration(Some(validDraftCorporationTaxRegistration))
 
-      when(mockCTDataRepository.retrieveTradingDetails(Matchers.anyString()))
+      when(mockCTDataRepository.retrieveTradingDetails(ArgumentMatchers.anyString()))
         .thenReturn(Future.successful(None))
 
       val result = TestService.retrieveTradingDetails("testRegID")
@@ -59,7 +59,7 @@ class TradingDetailsServiceSpec extends UnitSpec with MockitoSugar with SCRSMock
     "update the trading details record against a given regID" in new Setup {
       CTDataRepositoryMocks.retrieveCorporationTaxRegistration(Some(validDraftCorporationTaxRegistration))
 
-      when(mockCTDataRepository.updateTradingDetails(Matchers.anyString(), Matchers.eq[TradingDetails](TradingDetails("true"))))
+      when(mockCTDataRepository.updateTradingDetails(ArgumentMatchers.anyString(), ArgumentMatchers.eq[TradingDetails](TradingDetails("true"))))
         .thenReturn(Future.successful(Some(TradingDetails("true"))))
 
       val result = TestService.updateTradingDetails("testRegID", TradingDetails("true"))

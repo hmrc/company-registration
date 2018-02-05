@@ -23,7 +23,7 @@ import fixtures.AuthFixture
 import helpers.SCRSSpec
 import mocks.SCRSMocks
 import models.Email
-import org.mockito.Matchers
+import org.mockito.ArgumentMatchers
 import org.scalatest.mock.MockitoSugar
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
@@ -56,7 +56,7 @@ class EmailControllerSpec extends UnitSpec with SCRSMocks with MockitoSugar with
   "retrieveEmail" should {
 
     "return a 200 and an Email json object" in new Setup {
-      when(mockEmailService.retrieveEmail(Matchers.eq(registrationId)))
+      when(mockEmailService.retrieveEmail(ArgumentMatchers.eq(registrationId)))
         .thenReturn(Future.successful(Some(email)))
 
       AuthorisationMocks.mockSuccessfulAuthorisation(registrationId, validAuthority)
@@ -95,7 +95,7 @@ class EmailControllerSpec extends UnitSpec with SCRSMocks with MockitoSugar with
     val request = FakeRequest().withJsonBody(emailJson)
 
     "return a 200 and an email json object" in new Setup {
-      when(mockEmailService.updateEmail(Matchers.eq(registrationId), Matchers.eq(email)))
+      when(mockEmailService.updateEmail(ArgumentMatchers.eq(registrationId), ArgumentMatchers.eq(email)))
         .thenReturn(Future.successful(Some(email)))
 
       AuthorisationMocks.mockSuccessfulAuthorisation(registrationId, validAuthority)

@@ -23,15 +23,15 @@ private object AppDependencies {
   import play.core.PlayVersion
   import play.sbt.PlayImport._
 
-  private val microserviceBootstrapVersion = "6.13.0"
+  private val microserviceBootstrapVersion = "6.15.0"
   private val playUrlBindersVersion = "2.1.0"
-  private val domainVersion = "5.0.0"
-  private val hmrcTestVersion = "2.3.0"
-  private val reactiveMongoVersion = "5.2.0"
-  private val mockitoVersion = "1.9.0"
-  private val scalatestPlusPlayVersion = "1.5.1"
+  private val domainVersion = "5.1.0"
+  private val hmrcTestVersion = "3.0.0"
+  private val reactiveMongoVersion = "6.2.0"
+  private val mockitoVersion = "2.13.0"
+  private val scalatestPlusPlayVersion = "2.0.0"
   private val playSchedulingVersion = "4.1.0"
-  private val mongoLockVersion = "5.0.0"
+  private val mongoLockVersion = "5.1.0"
 
   val compile = Seq(
     ws,
@@ -53,12 +53,12 @@ private object AppDependencies {
     def apply() = new TestDependencies {
       override lazy val test = Seq(
         "uk.gov.hmrc" %% "hmrctest" % hmrcTestVersion % scope,
-        "org.scalatest" %% "scalatest" % "2.2.6" % scope,
+        "org.scalatest" %% "scalatest" % "3.0.0" % scope,
         "org.scalatestplus.play" %% "scalatestplus-play" % scalatestPlusPlayVersion % scope,
-        "org.pegdown" % "pegdown" % "1.5.0" % scope,
+        "org.pegdown" % "pegdown" % "1.6.0" % scope,
         "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
         "org.mockito" % "mockito-core" % mockitoVersion % scope,
-        "uk.gov.hmrc" %% "reactivemongo-test" % "2.0.0" % scope
+        "uk.gov.hmrc" %% "reactivemongo-test" % "3.1.0" % scope
       )
     }.test
   }
@@ -75,7 +75,7 @@ private object AppDependencies {
         "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
         "org.scalatestplus.play" %% "scalatestplus-play" % scalatestPlusPlayVersion % scope,
         "uk.gov.hmrc" %% "reactivemongo-test" % "2.0.0" % scope,
-        "com.github.tomakehurst" % "wiremock" % "2.5.0" % scope
+        "com.github.tomakehurst" % "wiremock" % "2.6.0" % scope
       )
     }.test
   }

@@ -24,7 +24,7 @@ import helpers.SCRSSpec
 import mocks.SCRSMocks
 import models.{CorporationTaxRegistration, Email, RegistrationStatus}
 import org.joda.time.DateTime
-import org.mockito.Matchers
+import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import play.api.libs.json.Json
@@ -86,9 +86,9 @@ class HeldControllerSpec extends UnitSpec with SCRSMocks with MockitoSugar with 
     "return a 200 response along with a submission time from the Held Document when CR has no timestamp" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
 
-      when(controller.resourceConn.retrieveCorporationTaxRegistration(Matchers.any()))
+      when(controller.resourceConn.retrieveCorporationTaxRegistration(ArgumentMatchers.any()))
         .thenReturn(Future.successful(Some(doc(None))))
-      when(controller.heldRepo.retrieveHeldSubmissionTime(Matchers.any()))
+      when(controller.heldRepo.retrieveHeldSubmissionTime(ArgumentMatchers.any()))
         .thenReturn(Future.successful(Some(dateTime)))
 
       val result = await(controller.fetchHeldSubmissionTime(regId)(FakeRequest()))
@@ -98,9 +98,9 @@ class HeldControllerSpec extends UnitSpec with SCRSMocks with MockitoSugar with 
     "return a 200 response along with a submission time from the Held Document when there is no CR document" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
 
-      when(controller.resourceConn.retrieveCorporationTaxRegistration(Matchers.any()))
+      when(controller.resourceConn.retrieveCorporationTaxRegistration(ArgumentMatchers.any()))
         .thenReturn(Future.successful(None))
-      when(controller.heldRepo.retrieveHeldSubmissionTime(Matchers.any()))
+      when(controller.heldRepo.retrieveHeldSubmissionTime(ArgumentMatchers.any()))
         .thenReturn(Future.successful(Some(dateTime)))
 
       val result = await(controller.fetchHeldSubmissionTime(regId)(FakeRequest()))
@@ -110,7 +110,7 @@ class HeldControllerSpec extends UnitSpec with SCRSMocks with MockitoSugar with 
     "return a 200 response along with a submission time from the CR Document" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
 
-      when(controller.resourceConn.retrieveCorporationTaxRegistration(Matchers.any()))
+      when(controller.resourceConn.retrieveCorporationTaxRegistration(ArgumentMatchers.any()))
         .thenReturn(Future.successful(Some(doc(Some(dateTime)))))
 
       val result = await(controller.fetchHeldSubmissionTime(regId)(FakeRequest()))
@@ -121,9 +121,9 @@ class HeldControllerSpec extends UnitSpec with SCRSMocks with MockitoSugar with 
     "return a 404 (Not found) response" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
 
-      when(controller.resourceConn.retrieveCorporationTaxRegistration(Matchers.any()))
+      when(controller.resourceConn.retrieveCorporationTaxRegistration(ArgumentMatchers.any()))
         .thenReturn(Future.successful(Some(doc(None))))
-      when(controller.heldRepo.retrieveHeldSubmissionTime(Matchers.any()))
+      when(controller.heldRepo.retrieveHeldSubmissionTime(ArgumentMatchers.any()))
         .thenReturn(Future.successful(None))
 
       val result = await(controller.fetchHeldSubmissionTime(regId)(FakeRequest()))
@@ -142,7 +142,7 @@ class HeldControllerSpec extends UnitSpec with SCRSMocks with MockitoSugar with 
   "deleteSubmissionData" should {
     "return a 200 response when a user is logged in and their rejected submission data is deleted" in new Setup {
       AuthorisationMocks.mockSuccessfulAuthorisation(regId, validAuthority)
-      when(controller.service.deleteRejectedSubmissionData(Matchers.any())(Matchers.any())).thenReturn(Future.successful(true))
+      when(controller.service.deleteRejectedSubmissionData(ArgumentMatchers.any())(ArgumentMatchers.any())).thenReturn(Future.successful(true))
 
       val result = await(controller.deleteSubmissionData(regId)(FakeRequest()))
       status(result) shouldBe OK
@@ -150,7 +150,7 @@ class HeldControllerSpec extends UnitSpec with SCRSMocks with MockitoSugar with 
 
     "return a 404 (Not found) response when a user's rejected submission data is not found" in new Setup {
       AuthorisationMocks.mockAuthResourceNotFound(validAuthority)
-      when(controller.service.deleteRejectedSubmissionData(Matchers.any())(Matchers.any())).thenReturn(Future.successful(false))
+      when(controller.service.deleteRejectedSubmissionData(ArgumentMatchers.any())(ArgumentMatchers.any())).thenReturn(Future.successful(false))
 
       val result = await(controller.deleteSubmissionData(regId)(FakeRequest()))
       status(result) shouldBe NOT_FOUND

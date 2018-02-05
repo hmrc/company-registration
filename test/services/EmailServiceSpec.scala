@@ -17,7 +17,7 @@
 package services
 
 import models.Email
-import org.mockito.Matchers
+import org.mockito.ArgumentMatchers
 import org.scalatest.mock.MockitoSugar
 import repositories.CorporationTaxRegistrationMongoRepository
 import uk.gov.hmrc.play.test.UnitSpec
@@ -41,7 +41,7 @@ class EmailServiceSpec extends UnitSpec with MockitoSugar {
   "updateEmail" should {
 
     "update and return the supplied email case class" in new Setup {
-      when(mockCTRepository.updateEmail(Matchers.eq(registrationId), Matchers.eq(email)))
+      when(mockCTRepository.updateEmail(ArgumentMatchers.eq(registrationId), ArgumentMatchers.eq(email)))
         .thenReturn(Future.successful(Some(email)))
 
       await(emailService.updateEmail(registrationId, email)) shouldBe Some(email)
@@ -51,7 +51,7 @@ class EmailServiceSpec extends UnitSpec with MockitoSugar {
   "retrieveEmail" should {
 
     "return an email case class" in new Setup {
-      when(mockCTRepository.retrieveEmail(Matchers.eq(registrationId)))
+      when(mockCTRepository.retrieveEmail(ArgumentMatchers.eq(registrationId)))
         .thenReturn(Future.successful(Some(email)))
 
       await(emailService.retrieveEmail(registrationId)) shouldBe Some(email)

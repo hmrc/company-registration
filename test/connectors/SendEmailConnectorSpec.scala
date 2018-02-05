@@ -19,7 +19,7 @@ package connectors
 import helpers.SCRSSpec
 import mocks.SCRSMocks
 import models.SendEmailRequest
-import org.mockito.Matchers
+import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
 import org.scalatest.mock.MockitoSugar
@@ -63,28 +63,28 @@ class SendEmailConnectorSpec  extends UnitSpec with MockitoSugar with SCRSMocks 
     }
 
     "Fail the future when the service cannot be found" in new Setup {
-      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any()))
+      when(mockWSHttp.POST[JsValue, HttpResponse](ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.failed(new NotFoundException("error")))
 
       intercept[EmailErrorResponse](await(connector.requestEmail(emailRequest)))
     }
 
     "Fail the future when we send a bad request" in new Setup {
-      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any()))
+      when(mockWSHttp.POST[JsValue, HttpResponse](ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.failed(new BadRequestException("error")))
 
       intercept[EmailErrorResponse](await(connector.requestEmail(emailRequest)))
     }
 
     "Fail the future when EVS returns an internal server error" in new Setup {
-      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any()))
+      when(mockWSHttp.POST[JsValue, HttpResponse](ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.failed(new InternalServerException("error")))
 
       intercept[EmailErrorResponse](await(connector.requestEmail(emailRequest)))
     }
 
     "Fail the future when EVS returns an upstream error" in new Setup {
-      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any()))
+      when(mockWSHttp.POST[JsValue, HttpResponse](ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.failed(new BadGatewayException("error")))
 
       intercept[EmailErrorResponse](await(connector.requestEmail(emailRequest)))

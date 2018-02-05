@@ -22,7 +22,7 @@ import connectors.AuthConnector
 import fixtures.AuthFixture
 import helpers.SCRSSpec
 import models.{UserAccessLimitReachedResponse, UserAccessSuccessResponse}
-import org.mockito.Matchers.{any, anyString}
+import org.mockito.ArgumentMatchers.{any, anyString}
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import play.api.libs.json.Json

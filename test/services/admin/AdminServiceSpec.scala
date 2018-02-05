@@ -23,7 +23,7 @@ import org.scalatest.mock.MockitoSugar
 import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmissionData, HeldSubmissionMongoRepository}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.test.UnitSpec
-import org.mockito.Matchers.any
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
 import play.api.mvc.{AnyContent, Request}
 import play.api.test.FakeRequest

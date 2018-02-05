@@ -23,13 +23,13 @@ import fixtures.{AuthFixture, CorporationTaxRegistrationFixture}
 import helpers.SCRSSpec
 import mocks.{MockMetricsService, SCRSMocks}
 import models.{AcknowledgementReferences, ConfirmationReferences}
-import org.mockito.{ArgumentCaptor, Matchers}
+import org.mockito.{ArgumentCaptor, ArgumentMatchers}
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import org.mockito.Mockito._
-import org.mockito.Matchers.{eq => eqTo}
-import org.mockito.Matchers.any
+import org.mockito.ArgumentMatchers.{eq => eqTo}
+import org.mockito.ArgumentMatchers.any
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
 import uk.gov.hmrc.play.test.UnitSpec
@@ -95,7 +95,7 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
 
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
 
-      when(mockCTDataRepository.getInternalId(Matchers.contains(regId))).
+      when(mockCTDataRepository.getInternalId(ArgumentMatchers.contains(regId))).
         thenReturn(Future.successful(Some((regId, validAuthority.ids.internalId))))
 
       val result = call(controller.retrieveCorporationTaxRegistration(regId), FakeRequest())
@@ -109,7 +109,7 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
       CTServiceMocks.retrieveCTDataRecord(regId, None)
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
 
-      when(mockCTDataRepository.getInternalId(Matchers.contains(regId))).
+      when(mockCTDataRepository.getInternalId(ArgumentMatchers.contains(regId))).
         thenReturn(Future.successful(Some((regId, validAuthority.ids.internalId))))
 
       val result = call(controller.retrieveCorporationTaxRegistration(regId), FakeRequest())
@@ -120,7 +120,7 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
       val regId = "testRegId"
       AuthenticationMocks.getCurrentAuthority(None)
 
-      when(mockCTDataRepository.getInternalId(Matchers.any())).
+      when(mockCTDataRepository.getInternalId(ArgumentMatchers.any())).
         thenReturn(Future.successful(None))
 
       val result = call(controller.retrieveCorporationTaxRegistration(regId), FakeRequest())
@@ -130,7 +130,7 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
     "return a 403 - forbidden when the user is logged in but not authorised to access the resource" in new Setup {
       val regId = "testRegId"
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockCTDataRepository.getInternalId(Matchers.contains(regId))).
+      when(mockCTDataRepository.getInternalId(ArgumentMatchers.contains(regId))).
         thenReturn(Future.successful(Some((regId, validAuthority.ids.internalId + "xxx"))))
 
       val result = call(controller.retrieveCorporationTaxRegistration(regId), FakeRequest())
@@ -140,7 +140,7 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
     "return a 404 - not found logged in the requested document doesn't exist" in new Setup {
       val regId = "testRegId"
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockCTDataRepository.getInternalId(Matchers.contains(regId))).thenReturn(Future.successful(None))
+      when(mockCTDataRepository.getInternalId(ArgumentMatchers.contains(regId))).thenReturn(Future.successful(None))
 
       val result = call(controller.retrieveCorporationTaxRegistration(regId), FakeRequest())
       status(result) shouldBe NOT_FOUND
@@ -155,7 +155,7 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
       CTServiceMocks.retrieveCTDataRecord(registrationID, Some(validDraftCorporationTaxRegistration))
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
 
-      when(mockCTDataRepository.getInternalId(Matchers.contains(registrationID))).
+      when(mockCTDataRepository.getInternalId(ArgumentMatchers.contains(registrationID))).
         thenReturn(Future.successful(Some((registrationID, validAuthority.ids.internalId))))
 
       val result = call(controller.retrieveFullCorporationTaxRegistration(registrationID), FakeRequest())
@@ -167,7 +167,7 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
       CTServiceMocks.retrieveCTDataRecord(registrationID, None)
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
 
-      when(mockCTDataRepository.getInternalId(Matchers.contains(registrationID))).
+      when(mockCTDataRepository.getInternalId(ArgumentMatchers.contains(registrationID))).
         thenReturn(Future.successful(Some((registrationID, validAuthority.ids.internalId))))
 
       val result = call(controller.retrieveFullCorporationTaxRegistration(registrationID), FakeRequest())
@@ -177,7 +177,7 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
     "return a 403 - forbidden when the user is not authenticated" in new Setup {
       AuthenticationMocks.getCurrentAuthority(None)
 
-      when(mockCTDataRepository.getInternalId(Matchers.any())).
+      when(mockCTDataRepository.getInternalId(ArgumentMatchers.any())).
         thenReturn(Future.successful(None))
 
       val result = call(controller.retrieveFullCorporationTaxRegistration(registrationID), FakeRequest())
@@ -186,7 +186,7 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
 
     "return a 403 - forbidden when the user is logged in but not authorised to access the resource" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockCTDataRepository.getInternalId(Matchers.contains(registrationID))).
+      when(mockCTDataRepository.getInternalId(ArgumentMatchers.contains(registrationID))).
         thenReturn(Future.successful(Some((registrationID, validAuthority.ids.internalId + "xxx"))))
 
       val result = call(controller.retrieveFullCorporationTaxRegistration(registrationID), FakeRequest())
@@ -195,7 +195,7 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
 
     "return a 404 - not found logged in the requested document doesn't exist" in new Setup {
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockCTDataRepository.getInternalId(Matchers.contains(registrationID))).thenReturn(Future.successful(None))
+      when(mockCTDataRepository.getInternalId(ArgumentMatchers.contains(registrationID))).thenReturn(Future.successful(None))
 
       val result = call(controller.retrieveFullCorporationTaxRegistration(registrationID), FakeRequest())
       status(result) shouldBe NOT_FOUND
@@ -208,7 +208,7 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
 
     "return a 200 and an acknowledgement ref is one exists" in new Setup {
       val expected = ConfirmationReferences("BRCT00000000123", "tx", Some("py"), Some("12.00"))
-      when(mockCTDataService.retrieveConfirmationReferences(Matchers.eq(regId)))
+      when(mockCTDataService.retrieveConfirmationReferences(ArgumentMatchers.eq(regId)))
         .thenReturn(Future.successful(Some(expected)))
 
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
@@ -220,7 +220,7 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
     }
 
     "return a 404 if a record cannot be found" in new Setup {
-      when(mockCTDataService.retrieveConfirmationReferences(Matchers.eq(regId)))
+      when(mockCTDataService.retrieveConfirmationReferences(ArgumentMatchers.eq(regId)))
         .thenReturn(None)
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       AuthorisationMocks.getInternalId(validAuthority.ids.internalId, Some((regId, validAuthority.ids.internalId)))
@@ -261,13 +261,13 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
 
     "return a 200 and an acknowledgement ref is one exists" in new Setup {
       val expectedRefs = ConfirmationReferences("BRCT00000000123", "tx", Some("py"), Some("12.00"))
-      when(mockCTDataService.handleSubmission(Matchers.contains(regId), Matchers.any(), Matchers.any())(Matchers.any[HeaderCarrier], Matchers.any()))
+      when(mockCTDataService.handleSubmission(ArgumentMatchers.contains(regId), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any[HeaderCarrier], ArgumentMatchers.any()))
         .thenReturn(Future.successful(expectedRefs))
 
       AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
       AuthorisationMocks.getInternalId(validAuthority.ids.internalId, Some((regId, validAuthority.ids.internalId)))
 
-      when(mockCTDataService.retrieveConfirmationReferences(Matchers.eq(regId)))
+      when(mockCTDataService.retrieveConfirmationReferences(ArgumentMatchers.eq(regId)))
         .thenReturn(Future.successful(Some(expectedRefs)))
 
       val result = controller.handleSubmission(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId", "testPaymentRef", Some("testPaymentAmount"), Some("")))))
@@ -320,7 +320,7 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
       val request = FakeRequest().withBody(jsonBody)
 
       "a CT record cannot be found against the given ack ref" in new Setup {
-        when(mockCTDataService.updateCTRecordWithAckRefs(Matchers.eq(ackRef), Matchers.eq(refs)))
+        when(mockCTDataService.updateCTRecordWithAckRefs(ArgumentMatchers.eq(ackRef), ArgumentMatchers.eq(refs)))
           .thenReturn(Future.successful(Some(validHeldCorporationTaxRegistration)))
 
         val result = controller.acknowledgementConfirmation(ackRef)(request)
@@ -364,14 +364,14 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
 
       val progress = "HO5"
       val request = FakeRequest().withBody(progressRequest(progress))
-      when(mockCTDataService.updateRegistrationProgress(Matchers.eq(regId), Matchers.any[String]())).
+      when(mockCTDataService.updateRegistrationProgress(ArgumentMatchers.eq(regId), ArgumentMatchers.any[String]())).
         thenReturn(Future.successful(RegistrationProgressUpdated))
       val response = await(controller.updateRegistrationProgress(regId)(request))
 
       status(response) shouldBe OK
 
       val captor = ArgumentCaptor.forClass(classOf[String])
-      verify(mockCTDataService, times(1)).updateRegistrationProgress(Matchers.eq(regId), captor.capture())
+      verify(mockCTDataService, times(1)).updateRegistrationProgress(ArgumentMatchers.eq(regId), captor.capture())
       captor.getValue shouldBe progress
     }
 
@@ -380,13 +380,13 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
 
       val progress = "N/A"
       val request = FakeRequest().withBody(progressRequest(progress))
-      when(mockCTDataService.updateRegistrationProgress(Matchers.eq(regId), Matchers.any[String]())).
+      when(mockCTDataService.updateRegistrationProgress(ArgumentMatchers.eq(regId), ArgumentMatchers.any[String]())).
         thenReturn(Future.successful(CompanyRegistrationDoesNotExist))
       val response = await(controller.updateRegistrationProgress(regId)(request))
 
       status(response) shouldBe NOT_FOUND
 
-      verify(mockCTDataService, times(1)).updateRegistrationProgress(Matchers.eq(regId), Matchers.any[String]())
+      verify(mockCTDataService, times(1)).updateRegistrationProgress(ArgumentMatchers.eq(regId), ArgumentMatchers.any[String]())
     }
   }
 }

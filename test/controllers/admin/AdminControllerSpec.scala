@@ -24,7 +24,7 @@ import play.api.libs.json.{JsObject, Json}
 import play.api.test.FakeRequest
 import services.admin.AdminService
 import uk.gov.hmrc.play.test.UnitSpec
-import org.mockito.Matchers.{any, eq => eqTo}
+import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
 import play.api.mvc.Result
 import services.CorporationTaxRegistrationService
