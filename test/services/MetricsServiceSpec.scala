@@ -18,7 +18,7 @@ package services
 
 import com.codahale.metrics.MetricRegistry
 import mocks.MockMetricsService
-import org.mockito.Matchers
+import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import uk.gov.hmrc.play.test.UnitSpec
@@ -48,8 +48,8 @@ class MetricsServiceSpec extends UnitSpec with MockitoSugar {
 
       await(service.updateDocumentMetrics()) shouldBe Map("test" -> 1)
 
-      verify(mockRegistry).remove(Matchers.any())
-      verify(mockRegistry).register(Matchers.contains("test"), Matchers.any())
+      verify(mockRegistry).remove(ArgumentMatchers.any())
+      verify(mockRegistry).register(ArgumentMatchers.contains("test"), ArgumentMatchers.any())
       verifyNoMoreInteractions(mockRegistry)
     }
 
@@ -61,12 +61,12 @@ class MetricsServiceSpec extends UnitSpec with MockitoSugar {
 
       result shouldBe Map("testOne" -> 1, "testTwo" -> 2, "testThree" -> 3)
 
-      verify(mockRegistry).remove(Matchers.contains("testOne"))
-      verify(mockRegistry).register(Matchers.contains("testOne"), Matchers.any())
-      verify(mockRegistry).remove(Matchers.contains("testTwo"))
-      verify(mockRegistry).register(Matchers.contains("testTwo"), Matchers.any())
-      verify(mockRegistry).remove(Matchers.contains("testThree"))
-      verify(mockRegistry).register(Matchers.contains("testThree"), Matchers.any())
+      verify(mockRegistry).remove(ArgumentMatchers.contains("testOne"))
+      verify(mockRegistry).register(ArgumentMatchers.contains("testOne"), ArgumentMatchers.any())
+      verify(mockRegistry).remove(ArgumentMatchers.contains("testTwo"))
+      verify(mockRegistry).register(ArgumentMatchers.contains("testTwo"), ArgumentMatchers.any())
+      verify(mockRegistry).remove(ArgumentMatchers.contains("testThree"))
+      verify(mockRegistry).register(ArgumentMatchers.contains("testThree"), ArgumentMatchers.any())
       verifyNoMoreInteractions(mockRegistry)
     }
   }

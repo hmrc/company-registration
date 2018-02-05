@@ -28,8 +28,8 @@ import models._
 import models.admin.Admin
 import models.des._
 import org.joda.time.DateTime
-import org.mockito.Matchers
-import org.mockito.Matchers.{any, eq => eqTo}
+import org.mockito.ArgumentMatchers
+import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
 import org.mockito.stubbing.OngoingStubbing
 import org.scalatest.concurrent.Eventually
@@ -539,7 +539,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
     )
 
     "return a business registration" in new Setup {
-      when(mockBRConnector.retrieveMetadata(Matchers.any())(Matchers.any(), Matchers.any()))
+      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
 
       val result: BusinessRegistration = await(service.retrieveBRMetadata(regId))
@@ -701,9 +701,9 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
         )
       )
 
-      when(mockBRConnector.retrieveMetadata(Matchers.any())(Matchers.any(), Matchers.any()))
+      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
-      when(mockAuthConnector.getCurrentAuthority()(Matchers.any()))
+      when(mockAuthConnector.getCurrentAuthority()(ArgumentMatchers.any()))
         .thenReturn(Future.successful(Some(authority)))
       when(mockCTDataRepository.retrieveCorporationTaxRegistration(eqTo(registrationId)))
         .thenReturn(Future.successful(Some(corporationTaxRegistration)))
@@ -779,10 +779,10 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
 
       withCaptureOfLoggingFrom(Logger) { logEvents =>
 
-        when(mockCTDataRepository.retrieveCorporationTaxRegistration(Matchers.anyString()))
+        when(mockCTDataRepository.retrieveCorporationTaxRegistration(ArgumentMatchers.anyString()))
           .thenReturn(success(0), success(1), success(2), success(3), success(4))
 
-        when(mockHeldSubmissionRepository.retrieveSubmissionByRegId(Matchers.anyString()))
+        when(mockHeldSubmissionRepository.retrieveSubmissionByRegId(ArgumentMatchers.anyString()))
           .thenReturn(Future.successful(None), Future.successful(Some(heldSubmission)))
 
         await(service.checkDocumentStatus(registrationIds))

@@ -66,7 +66,8 @@ trait AccountingDetailsController extends BaseController with Authenticated with
                               accountingDetailsService.retrieveAccountingDetails(registrationID) map {
           case Some(details) => timer.stop()
                                 Ok(mapToResponse(registrationID, details))
-          case None => NotFound(ErrorResponse.accountingDetailsNotFound)
+          case None => timer.stop()
+            NotFound(ErrorResponse.accountingDetailsNotFound)
         }
         case NotLoggedInOrAuthorised =>
           Logger.info(s"[AccountingDetailsController] [retrieveAccountingDetails] User not logged in")
@@ -92,7 +93,8 @@ trait AccountingDetailsController extends BaseController with Authenticated with
                 accountingDetails match {
                   case Some(details) => timer.stop()
                     Ok(mapToResponse(registrationID, details))
-                  case None => NotFound(ErrorResponse.companyDetailsNotFound)
+                  case None => timer.stop()
+                    NotFound(ErrorResponse.companyDetailsNotFound)
                 }
               }
           }

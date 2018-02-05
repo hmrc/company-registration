@@ -18,7 +18,7 @@ package controllers.test
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import org.mockito.Matchers
+import org.mockito.ArgumentMatchers
 import org.scalatest.mock.MockitoSugar
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
@@ -50,7 +50,7 @@ class HeldSubmissionControllerSpec extends UnitSpec with MockitoSugar {
     val heldSubmission = HeldSubmission(registrationId, ackRef, json)
 
     "return a 200 with a held submission" in new Setup {
-      when(mockHeldSubmissionRepo.retrieveSubmissionByRegId(Matchers.eq(registrationId)))
+      when(mockHeldSubmissionRepo.retrieveSubmissionByRegId(ArgumentMatchers.eq(registrationId)))
         .thenReturn(Future.successful(Some(heldSubmission)))
 
       val result = await(controller.fetchHeldSubmission(registrationId)(FakeRequest()))
@@ -59,7 +59,7 @@ class HeldSubmissionControllerSpec extends UnitSpec with MockitoSugar {
     }
 
     "return a 404 if a held submission is not found" in new Setup {
-      when(mockHeldSubmissionRepo.retrieveSubmissionByRegId(Matchers.eq(registrationId)))
+      when(mockHeldSubmissionRepo.retrieveSubmissionByRegId(ArgumentMatchers.eq(registrationId)))
         .thenReturn(Future.successful(None))
 
       val result = await(controller.fetchHeldSubmission(registrationId)(FakeRequest()))

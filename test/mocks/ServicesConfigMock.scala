@@ -16,7 +16,7 @@
 
 package mocks
 
-import org.mockito.Matchers
+import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
 import org.mockito.stubbing.OngoingStubbing
 import org.scalatest.mock.MockitoSugar
@@ -28,7 +28,7 @@ trait ServicesConfigMock {
   lazy val mockServicesConfig = mock[ServicesConfig]
 
   def mockGetConfString(url: String): OngoingStubbing[String] = {
-    when(mockServicesConfig.getConfString(Matchers.any(), Matchers.any()))
+    when(mockServicesConfig.getConfString(ArgumentMatchers.any(), ArgumentMatchers.any()))
       .thenReturn(url)
   }
 }

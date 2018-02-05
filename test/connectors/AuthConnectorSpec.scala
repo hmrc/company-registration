@@ -20,8 +20,8 @@ import java.util.UUID
 
 import mocks.SCRSMocks
 import org.mockito.Mockito._
-import org.mockito.Matchers
-import org.scalatest.{BeforeAndAfter, ShouldMatchers, WordSpecLike}
+import org.mockito.ArgumentMatchers
+import org.scalatest.{BeforeAndAfter, WordSpecLike}
 import org.scalatest.mock.MockitoSugar
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.FakeApplication
@@ -36,7 +36,7 @@ import uk.gov.hmrc.http.logging.SessionId
 /**
   * Created by crispy on 03/08/16.
   */
-class AuthConnectorSpec extends WordSpecLike with UnitSpec with SCRSMocks with ShouldMatchers with MockitoSugar with BeforeAndAfter {
+class AuthConnectorSpec extends WordSpecLike with UnitSpec with SCRSMocks with MockitoSugar with BeforeAndAfter {
 
   implicit val hc = HeaderCarrier()
 
@@ -81,10 +81,10 @@ class AuthConnectorSpec extends WordSpecLike with UnitSpec with SCRSMocks with S
       val userIDs = UserIds("foo", "bar")
       val expected = Authority(uri, ggid, userDetailsLink, userIDs)
 
-      when(mockHttp.GET[HttpResponse](Matchers.eq("localhost/auth/authority"))(Matchers.any(), Matchers.any(), Matchers.any())).
+      when(mockHttp.GET[HttpResponse](ArgumentMatchers.eq("localhost/auth/authority"))(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())).
         thenReturn(Future.successful(HttpResponse(200, Some(authResponseJson(uri, userDetailsLink, ggid, idsLink)))))
 
-      when(mockHttp.GET[HttpResponse](Matchers.eq(s"localhost${idsLink}"))(Matchers.any(), Matchers.any(), Matchers.any())).
+      when(mockHttp.GET[HttpResponse](ArgumentMatchers.eq(s"localhost${idsLink}"))(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())).
         thenReturn(Future.successful(HttpResponse(200, Some(idsResponseJson(userIDs.internalId, userIDs.externalId)))))
 
 
@@ -97,7 +97,7 @@ class AuthConnectorSpec extends WordSpecLike with UnitSpec with SCRSMocks with S
 
     "return None when an authority isn't found" in {
 
-      when(mockHttp.GET[HttpResponse](Matchers.eq("localhost/auth/authority"))(Matchers.any(), Matchers.any(), Matchers.any())).
+      when(mockHttp.GET[HttpResponse](ArgumentMatchers.eq("localhost/auth/authority"))(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())).
         thenReturn(Future.successful(HttpResponse(404, None)))
 
       implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))

@@ -17,7 +17,7 @@
 package auth
 
 import connectors.{AuthConnector, Authority, UserIds}
-import org.mockito.Matchers
+import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import play.api.mvc.Results
@@ -47,8 +47,8 @@ class AuthorisationSpec extends UnitSpec with MockitoSugar {
 
     "indicate there's no logged in user where there isn't a valid bearer token" in new Setup {
 
-      when(mockAuth.getCurrentAuthority()(Matchers.any())).thenReturn(Future.successful(None))
-      when(mockResource.getInternalId(Matchers.any())).thenReturn(Future.successful(None))
+      when(mockAuth.getCurrentAuthority()(ArgumentMatchers.any())).thenReturn(Future.successful(None))
+      when(mockResource.getInternalId(ArgumentMatchers.any())).thenReturn(Future.successful(None))
 
       val result = Authorisation.authorised("xxx") { authResult => {
         authResult shouldBe NotLoggedInOrAuthorised
@@ -65,8 +65,8 @@ class AuthorisationSpec extends UnitSpec with MockitoSugar {
       val userIDs = UserIds("foo", "bar")
       val a = Authority("x", "", "z", userIDs)
 
-      when(mockAuth.getCurrentAuthority()(Matchers.any())).thenReturn(Future.successful(Some(a)))
-      when(mockResource.getInternalId(Matchers.eq(regId))).thenReturn(Future.successful(Some((regId, userIDs.internalId))))
+      when(mockAuth.getCurrentAuthority()(ArgumentMatchers.any())).thenReturn(Future.successful(Some(a)))
+      when(mockResource.getInternalId(ArgumentMatchers.eq(regId))).thenReturn(Future.successful(Some((regId, userIDs.internalId))))
 
       val result = Authorisation.authorised(regId) { authResult => {
         authResult shouldBe Authorised(a)
@@ -82,8 +82,8 @@ class AuthorisationSpec extends UnitSpec with MockitoSugar {
       val userIDs = UserIds("foo", "bar")
       val a = Authority("x", "", "z", userIDs)
 
-      when(mockAuth.getCurrentAuthority()(Matchers.any())).thenReturn(Future.successful(Some(a)))
-      when(mockResource.getInternalId(Matchers.eq(regId))).thenReturn(Future.successful(Some((regId, userIDs.internalId + "xxx"))))
+      when(mockAuth.getCurrentAuthority()(ArgumentMatchers.any())).thenReturn(Future.successful(Some(a)))
+      when(mockResource.getInternalId(ArgumentMatchers.eq(regId))).thenReturn(Future.successful(Some((regId, userIDs.internalId + "xxx"))))
 
       val result = Authorisation.authorised(regId) { authResult => {
         authResult shouldBe NotAuthorised(a)
@@ -99,8 +99,8 @@ class AuthorisationSpec extends UnitSpec with MockitoSugar {
       val userIDs = UserIds("foo", "bar")
       val a = Authority("x", "", "z", userIDs)
 
-      when(mockAuth.getCurrentAuthority()(Matchers.any())).thenReturn(Future.successful(Some(a)))
-      when(mockResource.getInternalId(Matchers.any())).thenReturn(Future.successful(None))
+      when(mockAuth.getCurrentAuthority()(ArgumentMatchers.any())).thenReturn(Future.successful(Some(a)))
+      when(mockResource.getInternalId(ArgumentMatchers.any())).thenReturn(Future.successful(None))
 
       val result = Authorisation.authorised("xxx") { authResult => {
         authResult shouldBe AuthResourceNotFound(a)

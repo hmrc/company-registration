@@ -20,7 +20,7 @@ import helpers.SCRSSpec
 import mocks.SCRSMocks
 import models.AccountPrepDetails
 import org.joda.time.DateTime
-import org.mockito.Matchers
+import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import uk.gov.hmrc.play.test.UnitSpec
@@ -42,7 +42,7 @@ class PrepareAccountServiceSpec extends UnitSpec with MockitoSugar with SCRSMock
     val prepareAccountModel = AccountPrepDetails(AccountPrepDetails.COMPANY_DEFINED, Some(DateTime.parse("1980-12-12")))
 
     "return a PrepareAccountModel on successful update" in new Setup {
-      when(mockCTDataRepository.updateCompanyEndDate(Matchers.eq(rID), Matchers.any()))
+      when(mockCTDataRepository.updateCompanyEndDate(ArgumentMatchers.eq(rID), ArgumentMatchers.any()))
         .thenReturn(Future.successful(Some(prepareAccountModel)))
 
       val result = prepareAccountService.updateEndDate(rID)
@@ -50,7 +50,7 @@ class PrepareAccountServiceSpec extends UnitSpec with MockitoSugar with SCRSMock
     }
 
     "return None when a None is returned from the repository" in new Setup {
-      when(mockCTDataRepository.updateCompanyEndDate(Matchers.eq(rID), Matchers.any()))
+      when(mockCTDataRepository.updateCompanyEndDate(ArgumentMatchers.eq(rID), ArgumentMatchers.any()))
         .thenReturn(Future.successful(None))
 
       val result = prepareAccountService.updateEndDate(rID)

@@ -61,7 +61,8 @@ trait ContactDetailsController extends BaseController with Authenticated with Au
                               contactDetailsService.retrieveContactDetails(registrationID) map {
           case Some(details) => timer.stop()
                                 Ok(mapToResponse(registrationID, details))
-          case None => NotFound(ErrorResponse.contactDetailsNotFound)
+          case None => timer.stop()
+            NotFound(ErrorResponse.contactDetailsNotFound)
         }
         case NotLoggedInOrAuthorised =>
           Logger.info(s"[ContactDetailsController] [retrieveContactDetails] User not logged in")
@@ -81,7 +82,8 @@ trait ContactDetailsController extends BaseController with Authenticated with Au
             contactDetailsService.updateContactDetails(registrationID, contactDetails) map {
               case Some(details) => timer.stop()
                                     Ok(mapToResponse(registrationID, details))
-              case None => NotFound(ErrorResponse.contactDetailsNotFound)
+              case None => timer.stop()
+                NotFound(ErrorResponse.contactDetailsNotFound)
             }
           }
         case NotLoggedInOrAuthorised =>

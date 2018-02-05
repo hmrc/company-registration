@@ -47,8 +47,7 @@ trait UserAccessController extends BaseController with Authenticated{
       authenticated{
         case NotLoggedIn => Future.successful(Forbidden)
         case LoggedIn(context) => userAccessService.checkUserAccess(context.ids.internalId) flatMap {
-          case Right(res) => {
-            timer.stop()
+          case Right(res) => { timer.stop()
             Future.successful(Ok(Json.toJson(res)))
           }
           case Left(_) => timer.stop()

@@ -21,8 +21,8 @@ import fixtures.{BusinessRegistrationFixture, CorporationTaxRegistrationFixture}
 import helpers.MockHelper
 import models.{Email, UserAccessLimitReachedResponse, UserAccessSuccessResponse}
 import org.joda.time.{DateTimeZone, DateTime}
-import org.mockito.Matchers.{eq => eqTo}
-import org.mockito.Matchers.{any, anyString}
+import org.mockito.ArgumentMatchers.{eq => eqTo}
+import org.mockito.ArgumentMatchers.{any, anyString}
 import org.scalatest.mock.MockitoSugar
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}

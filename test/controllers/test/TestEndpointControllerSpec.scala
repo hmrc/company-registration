@@ -20,7 +20,7 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import connectors.BusinessRegistrationConnector
 import models.ConfirmationReferences
-import org.mockito.Matchers
+import org.mockito.ArgumentMatchers
 import org.scalatest.mock.MockitoSugar
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
@@ -58,7 +58,7 @@ class TestEndpointControllerSpec extends UnitSpec with MockitoSugar {
   "modifyThrottledUsers" should {
 
     "return a 200" in new Setup {
-      when(mockThrottleRepository.modifyThrottledUsers(Matchers.anyString(), Matchers.eq(5)))
+      when(mockThrottleRepository.modifyThrottledUsers(ArgumentMatchers.anyString(), ArgumentMatchers.eq(5)))
         .thenReturn(Future.successful(5))
 
       val result = await(controller.modifyThrottledUsers(5)(FakeRequest()))
@@ -70,8 +70,8 @@ class TestEndpointControllerSpec extends UnitSpec with MockitoSugar {
   "dropCTCollection" should {
 
     "return a 200 with a confirmation message" in new Setup {
-      when(mockCTRepository.drop(Matchers.any())).thenReturn(Future.successful(true))
-      when(mockBusRegConnector.dropMetadataCollection(Matchers.any()))
+      when(mockCTRepository.drop(ArgumentMatchers.any())).thenReturn(Future.successful(true))
+      when(mockBusRegConnector.dropMetadataCollection(ArgumentMatchers.any()))
         .thenReturn(Future.successful("test message success"))
 
       val result = await(controller.dropJourneyCollections(FakeRequest()))
@@ -80,8 +80,8 @@ class TestEndpointControllerSpec extends UnitSpec with MockitoSugar {
     }
 
     "return a 200 with an error message when the collection drop was unsuccessful" in new Setup {
-      when(mockCTRepository.drop(Matchers.any())).thenReturn(Future.successful(false))
-      when(mockBusRegConnector.dropMetadataCollection(Matchers.any()))
+      when(mockCTRepository.drop(ArgumentMatchers.any())).thenReturn(Future.successful(false))
+      when(mockBusRegConnector.dropMetadataCollection(ArgumentMatchers.any()))
         .thenReturn(Future.successful("test message failed"))
 
       val result = await(controller.dropJourneyCollections(FakeRequest()))
@@ -98,7 +98,7 @@ class TestEndpointControllerSpec extends UnitSpec with MockitoSugar {
     val heldSubmission = HeldSubmission(registrationId, ackRef, Json.obj("test" -> "ing"))
 
     "return a 200 and a valid held submission when one is found" in new Setup {
-      when(mockHeldRepository.retrieveSubmissionByRegId(Matchers.eq(registrationId)))
+      when(mockHeldRepository.retrieveSubmissionByRegId(ArgumentMatchers.eq(registrationId)))
         .thenReturn(Future.successful(Some(heldSubmission)))
 
       val result = await(controller.fetchHeldData(registrationId)(FakeRequest()))
@@ -107,7 +107,7 @@ class TestEndpointControllerSpec extends UnitSpec with MockitoSugar {
     }
 
     "return a 404 when a held submission is not found" in new Setup {
-      when(mockHeldRepository.retrieveSubmissionByRegId(Matchers.eq(registrationId)))
+      when(mockHeldRepository.retrieveSubmissionByRegId(ArgumentMatchers.eq(registrationId)))
         .thenReturn(Future.successful(None))
 
       val result = await(controller.fetchHeldData(registrationId)(FakeRequest()))
@@ -125,7 +125,7 @@ class TestEndpointControllerSpec extends UnitSpec with MockitoSugar {
     val heldSubmission = HeldSubmissionData(registrationId, ackRef, Json.obj("test" -> "ing").toString())
 
     "return a 200 when it is stored successfully" in new Setup {
-      when(mockHeldRepository.storePartialSubmission(Matchers.eq(registrationId), Matchers.eq(ackRef), Matchers.any()))
+      when(mockHeldRepository.storePartialSubmission(ArgumentMatchers.eq(registrationId), ArgumentMatchers.eq(ackRef), ArgumentMatchers.any()))
         .thenReturn(Future.successful(Some(heldSubmission)))
 
       val result = await(call(controller.storeHeldData(registrationId, ackRef), FakeRequest().withJsonBody(request)))
@@ -134,7 +134,7 @@ class TestEndpointControllerSpec extends UnitSpec with MockitoSugar {
     }
 
     "return a 400 when a problem occurred when storing the request" in new Setup {
-      when(mockHeldRepository.storePartialSubmission(Matchers.eq(registrationId), Matchers.eq(ackRef), Matchers.any()))
+      when(mockHeldRepository.storePartialSubmission(ArgumentMatchers.eq(registrationId), ArgumentMatchers.eq(ackRef), ArgumentMatchers.any()))
         .thenReturn(Future.successful(None))
 
       val result = await(call(controller.storeHeldData(registrationId, ackRef), FakeRequest().withJsonBody(request)))
@@ -150,7 +150,7 @@ class TestEndpointControllerSpec extends UnitSpec with MockitoSugar {
     val confirmationRefs = ConfirmationReferences("", "testTransID", Some("testPaymentRef"), Some("12"))
 
     "return a 200 if the document was successfully updated with a set of confirmation refs" in new Setup {
-      when(mockCTService.handleSubmission(Matchers.eq(registrationId), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any()))
+      when(mockCTService.handleSubmission(ArgumentMatchers.eq(registrationId), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(confirmationRefs))
 
       val result = await(controller.updateConfirmationRefs(registrationId)(FakeRequest()))
@@ -163,7 +163,7 @@ class TestEndpointControllerSpec extends UnitSpec with MockitoSugar {
     val timepoint = "12345"
 
     "return a 200" in new Setup {
-      when(mockStateRepository.updateTimepoint(Matchers.eq(timepoint)))
+      when(mockStateRepository.updateTimepoint(ArgumentMatchers.eq(timepoint)))
         .thenReturn(Future.successful(timepoint))
 
       val result = await(controller.updateTimePoint(timepoint)(FakeRequest()))

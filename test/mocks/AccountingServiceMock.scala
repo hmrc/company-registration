@@ -17,7 +17,7 @@
 package mocks
 
 import models.AccountingDetails
-import org.mockito.Matchers
+import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
 import org.mockito.stubbing.OngoingStubbing
 import org.scalatest.mock.MockitoSugar
@@ -33,12 +33,12 @@ trait AccountingServiceMock {
 
   object AccountingDetailsServiceMocks {
     def retrieveAccountingDetails(registrationID: String, result: Option[AccountingDetails]): OngoingStubbing[Future[Option[AccountingDetails]]] = {
-      when(mockAccountingDetailsService.retrieveAccountingDetails(Matchers.anyString()))
+      when(mockAccountingDetailsService.retrieveAccountingDetails(ArgumentMatchers.anyString()))
         .thenReturn(Future.successful(result))
     }
 
     def updateAccountingDetails(registrationID: String, result: Option[AccountingDetails]): OngoingStubbing[Future[Option[AccountingDetails]]] = {
-      when(mockAccountingDetailsService.updateAccountingDetails(Matchers.anyString(), Matchers.any[AccountingDetails]()))
+      when(mockAccountingDetailsService.updateAccountingDetails(ArgumentMatchers.anyString(), ArgumentMatchers.any[AccountingDetails]()))
         .thenReturn(Future.successful(result))
     }
   }

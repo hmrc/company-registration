@@ -17,7 +17,7 @@
 package services
 
 import org.joda.time.DateTime
-import org.mockito.Matchers
+import org.mockito.ArgumentMatchers
 import org.scalatest.mock.MockitoSugar
 import repositories.{Repositories, ThrottleMongoRepository}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
@@ -46,25 +46,25 @@ class ThrottleServiceSpec extends UnitSpec with MockitoSugar {
   "updateUserCount" should {
 
     "return true when updating user count on a new collection" in new Setup {
-      when(mockThrottleMongoRepository.update(Matchers.eq("2000-02-01"), Matchers.eq(10), Matchers.eq(false)))
+      when(mockThrottleMongoRepository.update(ArgumentMatchers.eq("2000-02-01"), ArgumentMatchers.eq(10), ArgumentMatchers.eq(false)))
         .thenReturn(Future.successful(1))
 
       await(service.checkUserAccess) shouldBe true
     }
 
     "return true when user threshold is reached" in new Setup {
-      when(mockThrottleMongoRepository.update(Matchers.eq("2000-02-01"), Matchers.eq(10), Matchers.eq(false)))
+      when(mockThrottleMongoRepository.update(ArgumentMatchers.eq("2000-02-01"), ArgumentMatchers.eq(10), ArgumentMatchers.eq(false)))
         .thenReturn(Future.successful(10))
-      when(mockThrottleMongoRepository.compensate(Matchers.eq("2000-02-01"), Matchers.eq(10)))
+      when(mockThrottleMongoRepository.compensate(ArgumentMatchers.eq("2000-02-01"), ArgumentMatchers.eq(10)))
         .thenReturn(Future.successful(10))
 
       await(service.checkUserAccess) shouldBe true
     }
 
     "return false when user threshold is over the limit" in new Setup {
-      when(mockThrottleMongoRepository.update(Matchers.eq("2000-02-01"), Matchers.eq(10), Matchers.eq(false)))
+      when(mockThrottleMongoRepository.update(ArgumentMatchers.eq("2000-02-01"), ArgumentMatchers.eq(10), ArgumentMatchers.eq(false)))
         .thenReturn(Future.successful(15))
-      when(mockThrottleMongoRepository.compensate(Matchers.eq("2000-02-01"), Matchers.eq(10)))
+      when(mockThrottleMongoRepository.compensate(ArgumentMatchers.eq("2000-02-01"), ArgumentMatchers.eq(10)))
         .thenReturn(Future.successful(10))
 
       await(service.checkUserAccess) shouldBe false

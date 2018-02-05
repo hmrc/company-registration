@@ -19,7 +19,7 @@ package controllers.test
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import org.joda.time.Duration
-import org.mockito.Matchers
+import org.mockito.ArgumentMatchers
 import org.scalatest.mock.MockitoSugar
 import play.api.test.FakeRequest
 import services.RegistrationHoldingPenService
@@ -62,7 +62,7 @@ class SubmissionCheckControllerSpec extends UnitSpec with MockitoSugar {
     val res = "testString"
 
     "return a 200 when a successful future is supplied" in new Setup(true) {
-      when(mockRegHoldingPenService.updateNextSubmissionByTimepoint(Matchers.any()))
+      when(mockRegHoldingPenService.updateNextSubmissionByTimepoint(ArgumentMatchers.any()))
         .thenReturn(Future.successful(res))
 
       val result = await(controller.triggerSubmissionCheck(FakeRequest()))
@@ -71,7 +71,7 @@ class SubmissionCheckControllerSpec extends UnitSpec with MockitoSugar {
     }
 
     "return a 200 with the exception message when a failed future is supplied" in new Setup(true) {
-      when(mockRegHoldingPenService.updateNextSubmissionByTimepoint(Matchers.any()))
+      when(mockRegHoldingPenService.updateNextSubmissionByTimepoint(ArgumentMatchers.any()))
 //        .thenReturn(Future.failed(new RegistrationHoldingPenService.FailedToRetrieveByTxId("")))
         .thenReturn(Future.successful("test failed - An error has occurred during the submission - ex message"))
 
@@ -81,7 +81,7 @@ class SubmissionCheckControllerSpec extends UnitSpec with MockitoSugar {
     }
 
     "return a 200 with a failed to acquire lock message when the lock could not be acquired" in new Setup(false) {
-      when(mockRegHoldingPenService.updateNextSubmissionByTimepoint(Matchers.any()))
+      when(mockRegHoldingPenService.updateNextSubmissionByTimepoint(ArgumentMatchers.any()))
         .thenReturn(Future.successful(res))
 
       val result = await(controller.triggerSubmissionCheck(FakeRequest()))

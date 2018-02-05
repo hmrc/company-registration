@@ -75,8 +75,7 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
       authorised(registrationID) {
         case Authorised(_) => val timer = metrics.retrieveCorporationTaxRegistrationCRTimer.time()
                               ctService.retrieveCorporationTaxRegistrationRecord(registrationID).map{
-          case Some(data) =>
-            timer.stop()
+          case Some(data) => timer.stop()
             Ok(
             Json.obj(
               "registrationID" -> data.registrationID,
@@ -87,7 +86,8 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
               )
             )
           )
-          case _ => NotFound
+          case _ => timer.stop()
+            NotFound
         }
         case NotLoggedInOrAuthorised =>
           Logger.info(s"[CorporationTaxRegistrationController] [retrieveCTData] User not logged in")
@@ -106,7 +106,8 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
                               ctService.retrieveCorporationTaxRegistrationRecord(registrationID).map{
           case Some(data) => timer.stop()
                              Ok(Json.toJson(data))
-          case _ => NotFound
+          case _ => timer.stop()
+            NotFound
         }
         case NotLoggedInOrAuthorised =>
           Logger.info(s"[CorporationTaxRegistrationController] [retrieveCTData] User not logged in")
@@ -151,7 +152,8 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
                               ctService.retrieveConfirmationReferences(registrationID) map {
           case Some(ref) => timer.stop()
                             Ok(Json.toJson(ref))
-          case None => NotFound
+          case None => timer.stop()
+            NotFound
         }
         case NotLoggedInOrAuthorised =>
           Logger.info(s"[CorporationTaxRegistrationController] [retrieveConfirmationReference] User not logged in")
@@ -170,12 +172,12 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
         ackRefsPayload =>
           val timer = metrics.acknowledgementConfirmationCRTimer.time()
           ctService.updateCTRecordWithAckRefs(ackRef, ackRefsPayload) map {
-            case Some(record) =>
-              timer.stop()
+            case Some(record) => timer.stop()
               Logger.debug(s"[CorporationTaxRegistrationController] - [acknowledgementConfirmation] : Updated Record")
               metrics.ctutrConfirmationCounter.inc(1)
               Ok
-            case None => NotFound("Ack ref not found")
+            case None => timer.stop()
+              NotFound("Ack ref not found")
           }
       }
   }

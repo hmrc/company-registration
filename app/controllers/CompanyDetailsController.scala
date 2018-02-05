@@ -61,11 +61,11 @@ trait CompanyDetailsController extends BaseController with Authenticated with Au
         case Authorised(_) =>
                      val timer = metricsService.retrieveCompanyDetailsCRTimer.time()
                      companyDetailsService.retrieveCompanyDetails(registrationID).map {
-          case Some(details) => {
-            timer.stop()
+          case Some(details) => {timer.stop()
             Ok(mapToResponse(registrationID, details))
           }
-          case _ => NotFound(ErrorResponse.companyDetailsNotFound)
+          case _ => timer.stop()
+            NotFound(ErrorResponse.companyDetailsNotFound)
         }
         case NotLoggedInOrAuthorised =>
           Logger.info(s"[CompanyDetailsController] [retrieveCompanyDetails] User not logged in")

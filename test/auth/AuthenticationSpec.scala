@@ -17,10 +17,10 @@
 package auth
 
 import connectors.{AuthConnector, Authority, UserIds}
-import org.mockito.Matchers
+import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
-import org.scalatest.{BeforeAndAfter, ShouldMatchers, WordSpecLike}
+import org.scalatest.{BeforeAndAfter, WordSpecLike}
 import play.api.mvc.Results
 import play.api.test.FakeApplication
 import play.api.test.Helpers._
@@ -46,7 +46,7 @@ class AuthenticationSpec extends UnitSpec with MockitoSugar {
             val userIDs = UserIds("foo", "bar")
             val a = Authority("x", "", "z", userIDs)
 
-            when(mockAuth.getCurrentAuthority()(Matchers.any())).
+            when(mockAuth.getCurrentAuthority()(ArgumentMatchers.any())).
                 thenReturn(Future.successful(Some(a)))
 
             val result = Authenticated.authenticated { authResult => {
@@ -60,7 +60,7 @@ class AuthenticationSpec extends UnitSpec with MockitoSugar {
 
         "indicate there's no logged in user where there isn't a valid bearer token" in {
 
-            when(mockAuth.getCurrentAuthority()(Matchers.any())).
+            when(mockAuth.getCurrentAuthority()(ArgumentMatchers.any())).
                 thenReturn(Future.successful(None))
 
             val result = Authenticated.authenticated { authResult => {
