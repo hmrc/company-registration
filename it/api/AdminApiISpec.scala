@@ -481,4 +481,58 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with Login
       result.json shouldBe expectedJson
     }
   }
+
+  "GET /admin/:id/ctutr" should {
+
+    val testRegistrationID = "12345678"
+    val testAckowledgementReference = "BRCT01234567890"
+    def path(id: String) = s"/$id/ctutr"
+
+    "successfully return a 200 with valid JSON" when {
+      "fetched by RegId" in new Setup {
+        insertCorpTax(draftRegistration.copy(registrationID = testRegistrationID))
+        ctRegCount shouldBe 1
+
+        val result: WSResponse = await(client(path(testRegistrationID)).get())
+        val expectedJson: JsValue = Json.parse(
+          """
+          |{
+          |  "status": "draft",
+          |  "ctutr": false
+          |}
+        """.
+            stripMargin)
+
+        result.status shouldBe 200
+        result.json shouldBe expectedJson
+      }
+      "fetched by AckRef" in new Setup {
+        insertCorpTax(heldRegistration(testRegistrationID).copy(
+          confirmationReferences = Option(
+            ConfirmationReferences(
+              acknowledgementReference = testAckowledgementReference, "transID", None, None
+            )),
+            acknowledgementReferences = Option(
+              AcknowledgementReferences(
+              "ctutr", "timestamp", "accepted"
+            ))
+          )
+        )
+        ctRegCount shouldBe 1
+
+        val result: WSResponse = await(client(path(testAckowledgementReference)).get())
+        val expectedJson: JsValue = Json.parse(
+          """
+          |{
+          |  "status": "held",
+          |  "ctutr": true
+          |}
+        """.
+            stripMargin)
+
+        result.status shouldBe 200
+        result.json shouldBe expectedJson
+      }
+    }
+  }
 }

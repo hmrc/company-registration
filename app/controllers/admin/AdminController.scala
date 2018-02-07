@@ -22,7 +22,7 @@ import models.{ConfirmationReferences, HO6RegistrationInformation}
 import models.admin.{Admin, HO6Identifiers, HO6Response}
 import play.api.Logger
 import play.api.libs.json.{JsObject, JsValue, Json}
-import play.api.mvc._
+import play.api.mvc.{Action, _}
 import services.CorporationTaxRegistrationService
 import services.admin.AdminService
 import uk.gov.hmrc.play.microservice.controller.BaseController
@@ -84,6 +84,11 @@ trait AdminController extends BaseController with FutureInstances with Applicati
           }
         }
       }
+  }
+
+  def ctutrCheck(id: String) = Action.async {
+    implicit request =>
+      adminService.ctutrCheck(id) map (Ok(_))
   }
 
   private def buildResponse(strideUser: String, isSuccess: Boolean, statusBefore: String, identifiers: HO6Identifiers)(implicit hc: HeaderCarrier): Future[Result] = {

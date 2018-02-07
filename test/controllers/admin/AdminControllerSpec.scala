@@ -143,4 +143,26 @@ class AdminControllerSpec extends UnitSpec with MockitoSugar {
       jsonBodyOf(result) shouldBe expected
     }
   }
+
+  "ctutrCheck" should {
+    "return valid JSON responses" in new Setup {
+      val outputs = List(
+        """{}""",
+        """{"status": "draft", "ctutr": false}""",
+        """{"status": "submitted", "ctutr": true}"""
+      ).map{js => Json.parse(js).as[JsObject]}
+
+      val mocks = outputs map Future.successful
+
+      when(mockAdminService.ctutrCheck(any()))
+        .thenReturn(mocks(0), mocks(1), mocks(2))
+
+      outputs foreach { expected =>
+        val result: Result = await(controller.ctutrCheck(regId)(FakeRequest()))
+
+        status(result) shouldBe 200
+        jsonBodyOf(result) shouldBe expected
+      }
+    }
+  }
 }
