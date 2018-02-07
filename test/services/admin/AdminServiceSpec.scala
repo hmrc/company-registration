@@ -17,7 +17,7 @@
 package services.admin
 
 import connectors.IncorporationInformationConnector
-import models.{ConfirmationReferences, IncorpStatus}
+import models.{ConfirmationReferences, IncorpStatus, RegistrationStatus}
 import org.joda.time.DateTime
 import org.scalatest.mock.MockitoSugar
 import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmissionData, HeldSubmissionMongoRepository}
@@ -25,11 +25,15 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.test.UnitSpec
 import org.mockito.Matchers.any
 import org.mockito.Mockito._
+import play.api.Logger
+import play.api.libs.json.Json
 import play.api.mvc.{AnyContent, Request}
 import play.api.test.FakeRequest
 
 import scala.concurrent.Future
 import uk.gov.hmrc.http.HeaderCarrier
+
+import scala.util.matching.Regex
 
 class AdminServiceSpec extends UnitSpec with MockitoSugar {
 
@@ -110,6 +114,69 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar {
       val result: List[Boolean] = await(service.migrateHeldSubmissions)
 
       result shouldBe List(false, false, false)
+    }
+  }
+
+  "adminCTUTRCheck" should {
+    "return the Status and presence of CTUTR as valid JSON" when {
+       "using a valid RegId" in new Setup {
+         val id = "12345"
+         val expected = Json.parse(
+           """
+             |{
+             | "status": "draft",
+             | "ctutr": false
+             |}
+           """.stripMargin
+         )
+
+         when(mockCorpTaxRegistrationRepo.retrieveStatusAndExistenceOfCTUTR(any()))
+           .thenReturn(Future.successful(Option(RegistrationStatus.DRAFT -> false)))
+
+         val result = await(service.ctutrCheck(id))
+
+         result shouldBe expected
+      }
+       "using a valid AckRef" in new Setup {
+         val id = "BRCT09876543210"
+         val expected = Json.parse(
+           """
+             |{
+             | "status": "submitted",
+             | "ctutr": true
+             |}
+           """.stripMargin
+         )
+
+         when(mockCorpTaxRegistrationRepo.retrieveStatusAndExistenceOfCTUTRByAckRef(any()))
+           .thenReturn(Future.successful(Option(RegistrationStatus.SUBMITTED -> true)))
+
+         val result = await(service.ctutrCheck(id))
+
+         result shouldBe expected
+      }
+    }
+    "return the Status and presence of CTUTR as valid JSON" when {
+      "the ID doesn't match the format of a RegId or AckRef" in new Setup {
+        val result = await(service.ctutrCheck("unexpected"))
+        result shouldBe Json.parse("{}")
+      }
+      "the valid RegId retrieves no stored document" in new Setup {
+        val id = "12345"
+        when(mockCorpTaxRegistrationRepo.retrieveStatusAndExistenceOfCTUTR(any()))
+          .thenReturn(Future.successful(None))
+
+        val result = await(service.ctutrCheck(id))
+        result shouldBe Json.parse("{}")
+      }
+      "the valid AckRef retrieves no stored document" in new Setup {
+        val id = "BRCT09876543210"
+        when(mockCorpTaxRegistrationRepo.retrieveStatusAndExistenceOfCTUTRByAckRef(any()))
+          .thenReturn(Future.successful(None))
+
+        val result = await(service.ctutrCheck(id))
+        result shouldBe Json.parse("{}")
+      }
     }
   }
 }
