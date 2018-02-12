@@ -307,24 +307,44 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
         val result = call(controller.acknowledgementConfirmation("TestAckRef"), request)
         status(result) shouldBe BAD_REQUEST
       }
+      "given an Accepted response without a CTUTR" in new Setup {
+        val json = Json.toJson(AcknowledgementReferences(None, "bbb", "04"))
+
+        val request = FakeRequest().withBody[JsValue](Json.toJson(""))
+        val result = call(controller.acknowledgementConfirmation("TestAckRef"), request)
+        status(result) shouldBe BAD_REQUEST
+      }
     }
 
     "return an OK" when {
 
       val ackRef = "TestAckRef"
 
-      val refs = AcknowledgementReferences("aaa", "bbb", "ccc")
+      val refs = AcknowledgementReferences(Option("aaa"), "bbb", "04")
 
       val jsonBody = Json.toJson(refs)
 
       val request = FakeRequest().withBody(jsonBody)
 
-      "a CT record cannot be found against the given ack ref" in new Setup {
+      "given an Accepted response with a CTUTR" in new Setup {
         when(mockCTDataService.updateCTRecordWithAckRefs(ArgumentMatchers.eq(ackRef), ArgumentMatchers.eq(refs)))
           .thenReturn(Future.successful(Some(validHeldCorporationTaxRegistration)))
 
         val result = controller.acknowledgementConfirmation(ackRef)(request)
         status(result) shouldBe OK
+      }
+
+      "given any Rejected response, regardless of a CTUTR being present" in new Setup {
+        def buildRejection(optCtutr: Option[String]) = FakeRequest().withBody(Json.toJson(AcknowledgementReferences(optCtutr, "bbb", "06")))
+        val rejections = List(buildRejection(None), buildRejection(Some("ctutrExample")))
+
+        when(mockCTDataService.rejectRegistration(ArgumentMatchers.eq(ackRef))(ArgumentMatchers.any[HeaderCarrier]()))
+          .thenReturn(Future.successful(Some("rejected")))
+
+        rejections.foreach { request =>
+          val result = controller.acknowledgementConfirmation(ackRef)(request)
+          status(result) shouldBe OK
+        }
       }
     }
 
@@ -332,7 +352,7 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
 
       val ackRef = "TestAckRef"
 
-      val refs = AcknowledgementReferences("aaa", "bbb", "ccc")
+      val refs = AcknowledgementReferences(Option("aaa"), "bbb", "04")
 
       val jsonBody = Json.toJson(refs)
 

@@ -27,10 +27,11 @@ import scala.language.implicitConversions
 
 
 object RegistrationStatus {
-  val DRAFT = "draft"
-  val LOCKED = "locked"
-  val HELD = "held"
+  val DRAFT     = "draft"
+  val LOCKED    = "locked"
+  val HELD      = "held"
   val SUBMITTED = "submitted"
+  val REJECTED  = "rejected"
 }
 
 case class CorporationTaxRegistration(internalId: String,
@@ -116,7 +117,7 @@ object CorporationTaxRegistration {
   implicit val apiFormat = format(APIValidation)
 }
 
-case class AcknowledgementReferences(ctUtr: String,
+case class AcknowledgementReferences(ctUtr: Option[String],
                                      timestamp: String,
                                      status: String)
 
@@ -126,11 +127,9 @@ object AcknowledgementReferences {
       case APIValidation => "ctUtr"
       case MongoValidation => "ct-utr"
     }
-
-    (
-      (__ \ pathCTUtr).format[String](formatter.cryptoFormat) and
-      (__ \ "timestamp").format[String] and
-      (__ \ "status").format[String]
+    ((__ \ pathCTUtr).formatNullable[String](formatter.cryptoFormat) and
+     (__ \ "timestamp").format[String] and
+     (__ \ "status").format[String]
     )(AcknowledgementReferences.apply, unlift(AcknowledgementReferences.unapply))
   }
 
