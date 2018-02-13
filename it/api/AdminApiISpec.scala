@@ -514,7 +514,7 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with Login
             )),
             acknowledgementReferences = Option(
               AcknowledgementReferences(
-              "ctutr", "timestamp", "accepted"
+              Option("ctutr"), "timestamp", "accepted"
             ))
           )
         )

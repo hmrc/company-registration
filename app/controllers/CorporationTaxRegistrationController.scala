@@ -30,6 +30,7 @@ import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.Future
+import scala.util.control.NoStackTrace
 
 class CorporationTaxRegistrationControllerImp @Inject() (metricsService: MetricsService) extends CorporationTaxRegistrationController {
   val ctService = CorporationTaxRegistrationService
@@ -165,20 +166,42 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
       }
   }
 
+  //TODO Enrich Logger to have a .pagerDuty(pagerDutyMessage: String, errorMessage: String) function
+  class PagerDutyException(msg: String) extends NoStackTrace {
+    override def getMessage: String = msg
+  }
+
   def acknowledgementConfirmation(ackRef : String) = Action.async[JsValue](parse.json) {
     Logger.debug(s"[CorporationTaxRegistrationController] [acknowledgementConfirmation] confirming for ack ${ackRef}")
     implicit request =>
       withJsonBody[AcknowledgementReferences] {
-        ackRefsPayload =>
+
+        case accepted @ AcknowledgementReferences(Some(_), _, "04") =>
           val timer = metrics.acknowledgementConfirmationCRTimer.time()
-          ctService.updateCTRecordWithAckRefs(ackRef, ackRefsPayload) map {
-            case Some(record) => timer.stop()
+          ctService.updateCTRecordWithAckRefs(ackRef, accepted) map {
+            case Some(_) =>
+              timer.stop()
               Logger.debug(s"[CorporationTaxRegistrationController] - [acknowledgementConfirmation] : Updated Record")
               metrics.ctutrConfirmationCounter.inc(1)
               Ok
-            case None => timer.stop()
+            case None =>
+              timer.stop()
               NotFound("Ack ref not found")
           }
+
+        case AcknowledgementReferences(_, _, "04") =>
+          Logger.error(
+            "CT_ACCEPTED_MISSING_UTR",
+             new PagerDutyException(s"[acknowledgementConfirmation] Received an Accepted response from ETMP without a CTUTR for ackRef: $ackRef")
+          )
+          Future.successful(BadRequest("Accepted but no CTUTR provided"))
+
+        case rejected =>
+          Logger.error(
+            "CT_REJECTED",
+            new PagerDutyException(s"[acknowledgementConfirmation] Received a Rejected response from ETMP for ackRef: $ackRef")
+          )
+          ctService.rejectRegistration(ackRef) map {_ => Ok}
       }
   }
 

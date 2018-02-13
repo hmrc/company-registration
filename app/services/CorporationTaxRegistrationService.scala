@@ -83,6 +83,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
     }
   }
 
+
   def updateCTRecordWithAckRefs(ackRef: String, refPayload: AcknowledgementReferences): Future[Option[CorporationTaxRegistration]] = {
     cTRegistrationRepository.retrieveByAckRef(ackRef) flatMap {
       case Some(record) =>
@@ -387,4 +388,14 @@ trait CorporationTaxRegistrationService extends DateHelper {
       }
     }
   }
+
+  def rejectRegistration(ackRef: String)(implicit hc : HeaderCarrier): Future[Option[String]] = {
+    cTRegistrationRepository.retrieveByAckRef(ackRef) flatMap {
+      case Some(doc) => cTRegistrationRepository.updateSubmissionStatus(doc.registrationID, RegistrationStatus.REJECTED) map {Option.apply}
+      case noDocument =>
+        Logger.error(s"[rejectRegistration] No document retrieved for acknowledgement reference: $ackRef")
+        Future.successful(None)
+    }
+  }
+
 }
