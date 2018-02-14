@@ -19,193 +19,123 @@ package controllers
 import javax.inject.Inject
 
 import auth._
-import connectors.AuthConnector
 import models.{AcknowledgementReferences, ConfirmationReferences, CorporationTaxRegistrationRequest}
 import play.api.Logger
 import play.api.libs.json.{JsObject, JsValue, Json}
-import play.api.mvc.{Action, AnyContentAsJson}
-import repositories.Repositories
+import play.api.mvc.{Action, AnyContent, AnyContentAsJson}
+import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.{CorporationTaxRegistrationService, MetricsService}
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
-import uk.gov.hmrc.play.microservice.controller.BaseController
+import services.{CompanyRegistrationDoesNotExist, RegistrationProgressUpdated}
 
-import scala.concurrent.Future
-
-class CorporationTaxRegistrationControllerImp @Inject() (metricsService: MetricsService) extends CorporationTaxRegistrationController {
-  val ctService = CorporationTaxRegistrationService
-  val resourceConn = Repositories.cTRepository
-  val auth = AuthConnector
-  val metrics = metricsService
+class CorporationTaxRegistrationControllerImpl @Inject()(val metricsService: MetricsService,
+                                                         val authConnector: AuthClientConnector) extends CorporationTaxRegistrationController {
+  val ctService: CorporationTaxRegistrationService = CorporationTaxRegistrationService
+  val resource: CorporationTaxRegistrationMongoRepository = Repositories.cTRepository
 }
 
-trait CorporationTaxRegistrationController extends BaseController with Authenticated with Authorisation[String] {
+trait CorporationTaxRegistrationController extends AuthorisedController {
 
   val ctService : CorporationTaxRegistrationService
-  val metrics : MetricsService
+  val metricsService : MetricsService
 
-  def createCorporationTaxRegistration(registrationId: String): Action[JsValue] = Action.async(parse.json) {
-    import scala.concurrent.ExecutionContext.Implicits.global
-
+  def createCorporationTaxRegistration(registrationId: String): Action[JsValue] =
+    AuthenticatedAction.retrieve(internalId).async(parse.json){ internalId =>
     implicit request =>
-      authenticated {
-        case NotLoggedIn => Future.successful(Forbidden)
-        case LoggedIn(context) =>
-          val timer = metrics.createCorporationTaxRegistrationCRTimer.time()
-          withJsonBody[CorporationTaxRegistrationRequest] {
-            request => ctService.createCorporationTaxRegistrationRecord(context.ids.internalId, registrationId, request.language) map {
-              res =>
-                timer.stop()
-                Created(
-                  Json.obj(
-                    "registrationID" -> res.registrationID,
-                    "status" -> res.status,
-                    "formCreationTimestamp" -> res.formCreationTimestamp,
-                    "links" -> Json.obj(
-                      "self" -> routes.CorporationTaxRegistrationController.retrieveCorporationTaxRegistration(registrationId).url
-                    )
-                  )
-                )
-            }
-          }
-        }
-  }
-
-  def retrieveCorporationTaxRegistration(registrationID: String) = Action.async {
-    implicit request =>
-      authorised(registrationID) {
-        case Authorised(_) => val timer = metrics.retrieveCorporationTaxRegistrationCRTimer.time()
-                              ctService.retrieveCorporationTaxRegistrationRecord(registrationID).map{
-          case Some(data) => timer.stop()
-            Ok(
-            Json.obj(
-              "registrationID" -> data.registrationID,
-              "status" -> data.status,
-              "formCreationTimestamp" -> data.formCreationTimestamp,
-              "links" -> Json.obj(
-                "self" -> routes.CorporationTaxRegistrationController.retrieveCorporationTaxRegistration(registrationID).url
-              )
+      val timer = metricsService.createCorporationTaxRegistrationCRTimer.time()
+      withJsonBody[CorporationTaxRegistrationRequest] { ctRequest =>
+        ctService.createCorporationTaxRegistrationRecord(internalId, registrationId, ctRequest.language).map{ res =>
+          timer.stop()
+          Created(Json.obj(
+            "registrationID" -> res.registrationID,
+            "status" -> res.status,
+            "formCreationTimestamp" -> res.formCreationTimestamp,
+            "links" -> Json.obj(
+              "self" -> routes.CorporationTaxRegistrationController.retrieveCorporationTaxRegistration(registrationId).url
             )
-          )
-          case _ => timer.stop()
-            NotFound
+          ))
         }
-        case NotLoggedInOrAuthorised =>
-          Logger.info(s"[CorporationTaxRegistrationController] [retrieveCTData] User not logged in")
-          Future.successful(Forbidden)
-        case NotAuthorised(_) =>
-          Logger.info(s"[CorporationTaxRegistrationController] [retrieveCTData] User logged in but not authorised for resource $registrationID")
-          Future.successful(Forbidden)
-        case AuthResourceNotFound(_) => Future.successful(NotFound)
       }
   }
 
-  def retrieveFullCorporationTaxRegistration(registrationID: String) = Action.async {
+  def retrieveCorporationTaxRegistration(registrationID: String): Action[AnyContent] = AuthorisedAction(registrationID).async{
     implicit request =>
-      authorised(registrationID) {
-        case Authorised(_) => val timer = metrics.retrieveFullCorporationTaxRegistrationCRTimer.time()
-                              ctService.retrieveCorporationTaxRegistrationRecord(registrationID).map{
-          case Some(data) => timer.stop()
-                             Ok(Json.toJson(data))
-          case _ => timer.stop()
-            NotFound
-        }
-        case NotLoggedInOrAuthorised =>
-          Logger.info(s"[CorporationTaxRegistrationController] [retrieveCTData] User not logged in")
-          Future.successful(Forbidden)
-        case NotAuthorised(_) =>
-          Logger.info(s"[CorporationTaxRegistrationController] [retrieveCTData] User logged in but not authorised for resource $registrationID")
-          Future.successful(Forbidden)
-        case AuthResourceNotFound(_) => Future.successful(NotFound)
+      val timer = metricsService.retrieveCorporationTaxRegistrationCRTimer.time()
+      ctService.retrieveCorporationTaxRegistrationRecord(registrationID).map {
+        case Some(data) => timer.stop()
+          Ok(Json.obj(
+            "registrationID" -> data.registrationID,
+            "status" -> data.status,
+            "formCreationTimestamp" -> data.formCreationTimestamp,
+            "links" -> Json.obj(
+              "self" -> routes.CorporationTaxRegistrationController.retrieveCorporationTaxRegistration(registrationID).url
+            ))
+          )
+        case _ => timer.stop()
+          NotFound
+      }
+  }
+
+  def retrieveFullCorporationTaxRegistration(registrationID: String): Action[AnyContent] = AuthorisedAction(registrationID).async{
+    implicit request =>
+      val timer = metricsService.retrieveFullCorporationTaxRegistrationCRTimer.time()
+      ctService.retrieveCorporationTaxRegistrationRecord(registrationID).map {
+        case Some(data) => timer.stop()
+          Ok(Json.toJson(data))
+        case _ => timer.stop()
+          NotFound
       }
   }
 
   //HO5-1 and HO6
-  def handleSubmission(registrationID : String) = Action.async[JsValue](parse.json) {
+  def handleSubmission(registrationID : String): Action[JsValue] = AuthorisedAction(registrationID).async(parse.json){
     implicit request =>
-      authorised(registrationID) {
-        case Authorised(_) =>
-          withJsonBody[ConfirmationReferences] {
-            refs =>
-              val timer = metrics.updateReferencesCRTimer.time()
-              ctService.handleSubmission(registrationID, refs)(hc, request.map(js => AnyContentAsJson(js))) map {
-                references =>
-                  timer.stop()
-                  Logger.info(s"[Confirmation Refs] Acknowledgement ref:${references.acknowledgementReference} " +
-                    s"- Transaction id:${references.transactionId} - Payment ref:${references.paymentReference}")
-                  Ok(Json.toJson[ConfirmationReferences](references))
-              }
-          }
-        case NotLoggedInOrAuthorised =>
-          Logger.info("[CorporationTaxRegistrationController] [updateReferences] User not logged in")
-          Future.successful(Forbidden)
-        case NotAuthorised(_) =>
-          Logger.info(s"[CorporationTaxRegistrationController] [updateReferences] User logged in but not authorised for resource $registrationID")
-          Future.successful(Forbidden)
-        case AuthResourceNotFound(_) => Future.successful(NotFound)
-      }
-  }
-
-  def retrieveConfirmationReference(registrationID: String) = Action.async {
-    implicit request =>
-      authorised(registrationID) {
-        case Authorised(_) => val timer = metrics.retrieveConfirmationReferenceCRTimer.time()
-                              ctService.retrieveConfirmationReferences(registrationID) map {
-          case Some(ref) => timer.stop()
-                            Ok(Json.toJson(ref))
-          case None => timer.stop()
-            NotFound
+      withJsonBody[ConfirmationReferences] { refs =>
+        val timer = metricsService.updateReferencesCRTimer.time()
+        ctService.handleSubmission(registrationID, refs)(hc, request.map(js => AnyContentAsJson(js))) map { references =>
+          timer.stop()
+          Logger.info(s"[Confirmation Refs] Acknowledgement ref:${references.acknowledgementReference} " +
+            s"- Transaction id:${references.transactionId} - Payment ref:${references.paymentReference}")
+          Ok(Json.toJson[ConfirmationReferences](references))
         }
-        case NotLoggedInOrAuthorised =>
-          Logger.info(s"[CorporationTaxRegistrationController] [retrieveConfirmationReference] User not logged in")
-          Future.successful(Forbidden)
-        case NotAuthorised(_) =>
-          Logger.info(s"[CorporationTaxRegistrationController] [retrieveConfirmationReference] User logged in but not authorised for resource $registrationID")
-          Future.successful(Forbidden)
-        case AuthResourceNotFound(_) => Future.successful(NotFound)
       }
   }
 
-  def acknowledgementConfirmation(ackRef : String) = Action.async[JsValue](parse.json) {
+  def retrieveConfirmationReference(registrationID: String): Action[AnyContent] = AuthorisedAction(registrationID).async{
+    implicit request =>
+      val timer = metricsService.retrieveConfirmationReferenceCRTimer.time()
+      ctService.retrieveConfirmationReferences(registrationID) map {
+        case Some(ref) => timer.stop()
+          Ok(Json.toJson(ref))
+        case None => timer.stop()
+          NotFound
+      }
+  }
+
+  def acknowledgementConfirmation(ackRef : String): Action[JsValue] = Action.async[JsValue](parse.json) {
     Logger.debug(s"[CorporationTaxRegistrationController] [acknowledgementConfirmation] confirming for ack ${ackRef}")
     implicit request =>
-      withJsonBody[AcknowledgementReferences] {
-        ackRefsPayload =>
-          val timer = metrics.acknowledgementConfirmationCRTimer.time()
-          ctService.updateCTRecordWithAckRefs(ackRef, ackRefsPayload) map {
-            case Some(record) => timer.stop()
-              Logger.debug(s"[CorporationTaxRegistrationController] - [acknowledgementConfirmation] : Updated Record")
-              metrics.ctutrConfirmationCounter.inc(1)
-              Ok
-            case None => timer.stop()
-              NotFound("Ack ref not found")
-          }
-      }
-  }
-
-  def updateRegistrationProgress(registrationID: String) = Action.async[JsValue](parse.json) {
-    implicit request =>
-      authorised(registrationID){
-        case Authorised(_) => {
-          withJsonBody[JsObject] {
-            body =>
-              val progress = (body \ "registration-progress").as[String]
-              ctService.updateRegistrationProgress(registrationID, progress) map { result =>
-                import services.{CompanyRegistrationDoesNotExist, RegistrationProgressUpdated}
-                result match {
-                  case(RegistrationProgressUpdated) => Ok
-                  case(CompanyRegistrationDoesNotExist) => NotFound
-                }
-              }
-          }
+      withJsonBody[AcknowledgementReferences]{ ackRefsPayload =>
+        val timer = metricsService.acknowledgementConfirmationCRTimer.time()
+        ctService.updateCTRecordWithAckRefs(ackRef, ackRefsPayload) map {
+          case Some(_) => timer.stop()
+            Logger.debug(s"[CorporationTaxRegistrationController] - [acknowledgementConfirmation] : Updated Record")
+            metricsService.ctutrConfirmationCounter.inc(1)
+            Ok
+          case None => timer.stop()
+            NotFound("Ack ref not found")
         }
-        case NotLoggedInOrAuthorised =>
-          Logger.info(s"[CorporationTaxRegistrationController] [retrieveConfirmationReference] User not logged in")
-          Future.successful(Forbidden)
-        case NotAuthorised(_) =>
-        Logger.info(s"[CorporationTaxRegistrationController] [retrieveConfirmationReference] User logged in but not authorised for resource $registrationID")
-        Future.successful(Forbidden)
-        case AuthResourceNotFound(_) => Future.successful(NotFound)
       }
   }
 
+  def updateRegistrationProgress(registrationID: String): Action[JsValue] = AuthorisedAction(registrationID).async(parse.json) {
+    implicit request =>
+      withJsonBody[JsObject] { body =>
+        val progress = (body \ "registration-progress").as[String]
+        ctService.updateRegistrationProgress(registrationID, progress) map {
+          case (RegistrationProgressUpdated) => Ok
+          case (CompanyRegistrationDoesNotExist) => NotFound
+        }
+      }
+  }
 }

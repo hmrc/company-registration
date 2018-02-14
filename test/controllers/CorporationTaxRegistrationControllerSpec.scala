@@ -16,295 +16,195 @@
 
 package controllers
 
-import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
-import connectors.AuthConnector
-import fixtures.{AuthFixture, CorporationTaxRegistrationFixture}
-import helpers.SCRSSpec
-import mocks.{MockMetricsService, SCRSMocks}
+import fixtures.CorporationTaxRegistrationFixture
+import helpers.BaseSpec
+import mocks.{AuthorisationMocks, MockMetricsService}
 import models.{AcknowledgementReferences, ConfirmationReferences}
 import org.mockito.{ArgumentCaptor, ArgumentMatchers}
-import play.api.libs.json.{JsObject, JsValue, Json}
+import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import org.mockito.Mockito._
-import org.mockito.ArgumentMatchers.{eq => eqTo}
-import org.mockito.ArgumentMatchers.any
-import org.scalatest.BeforeAndAfterEach
-import org.scalatest.mock.MockitoSugar
-import uk.gov.hmrc.play.test.UnitSpec
-
-import scala.concurrent.Future
+import org.mockito.ArgumentMatchers.{any, eq => eqTo}
+import services.{CompanyRegistrationDoesNotExist, RegistrationProgressUpdated}
+import uk.gov.hmrc.auth.core.InsufficientConfidenceLevel
 import uk.gov.hmrc.http.HeaderCarrier
 
-class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSugar with SCRSMocks with BeforeAndAfterEach with CorporationTaxRegistrationFixture with AuthFixture {
+import scala.concurrent.Future
 
-  implicit val system = ActorSystem("CR")
-  implicit val materializer = ActorMaterializer()
-
-  override def beforeEach(): Unit = reset(mockCTDataService)
+class CorporationTaxRegistrationControllerSpec extends BaseSpec with AuthorisationMocks with CorporationTaxRegistrationFixture {
 
   class Setup {
     val controller = new CorporationTaxRegistrationController {
       val ctService = mockCTDataService
-      val resourceConn = mockCTDataRepository
-      val auth = mockAuthConnector
-      val metrics = MockMetricsService
-
+      val resource = mockResource
+      val authConnector = mockAuthClientConnector
+      val metricsService = MockMetricsService
     }
   }
 
-  val internalId = "int-12345"
   val regId = "reg-12345"
-  val authority = buildAuthority(internalId)
-
+  val internalId = "int-12345"
 
   "createCorporationTaxRegistration" should {
 
+    val request = FakeRequest().withBody(Json.toJson(validCorporationTaxRegistrationRequest))
+
     "return a 201 when a new entry is created from the parsed json" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(authority))
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(internalId)))
 
       when(mockCTDataService.createCorporationTaxRegistrationRecord(eqTo(internalId), eqTo(regId), eqTo("en")))
         .thenReturn(Future.successful(draftCorporationTaxRegistration(regId)))
-
-      val request = FakeRequest().withJsonBody(Json.toJson(validCorporationTaxRegistrationRequest))
       val response = buildCTRegistrationResponse(regId)
 
-      val result = call(controller.createCorporationTaxRegistration(regId), request)
-      val json = await(jsonBodyOf(result)).as[JsObject]
-      json shouldBe Json.toJson(response)
+      val result = await(controller.createCorporationTaxRegistration(regId)(request))
       status(result) shouldBe CREATED
+      contentAsJson(result) shouldBe Json.toJson(response)
     }
 
-    "return a 403 - forbidden when the user is not authenticated" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(None)
+    "return a 403 when the user is not authorised" in new Setup {
+      mockAuthorise(Future.failed(InsufficientConfidenceLevel()))
 
-      val request = FakeRequest().withJsonBody(Json.toJson(validDraftCorporationTaxRegistration))
-      val result = call(controller.createCorporationTaxRegistration(regId), request)
+      val result = controller.createCorporationTaxRegistration(regId)(request)
       status(result) shouldBe FORBIDDEN
     }
   }
 
   "retrieveCorporationTaxRegistration" should {
 
+    val ctRegistrationResponse = buildCTRegistrationResponse(regId)
+
     "return a 200 and a CorporationTaxRegistration model is one is found" in new Setup {
-      val regId = "0123456789"
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(internalId)))
 
       when(mockCTDataService.retrieveCorporationTaxRegistrationRecord(eqTo(regId), any()))
-        .thenReturn(Future.successful(Some(validDraftCorporationTaxRegistration)))
+        .thenReturn(Future.successful(Some(draftCorporationTaxRegistration(regId))))
 
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-
-      when(mockCTDataRepository.getInternalId(ArgumentMatchers.contains(regId))).
-        thenReturn(Future.successful(Some((regId, validAuthority.ids.internalId))))
-
-      val result = call(controller.retrieveCorporationTaxRegistration(regId), FakeRequest())
+      val result = await(controller.retrieveCorporationTaxRegistration(regId)(FakeRequest()))
       status(result) shouldBe OK
-     val json =  await(jsonBodyOf(result)).as[JsObject]
-      json shouldBe Json.toJson(Some(validCorporationTaxRegistrationResponse))
+      contentAsJson(result) shouldBe Json.toJson(ctRegistrationResponse)
     }
 
     "return a 404 if a CT registration record cannot be found" in new Setup {
-      val regId = "testRegId"
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(internalId)))
+
       CTServiceMocks.retrieveCTDataRecord(regId, None)
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
 
-      when(mockCTDataRepository.getInternalId(ArgumentMatchers.contains(regId))).
-        thenReturn(Future.successful(Some((regId, validAuthority.ids.internalId))))
-
-      val result = call(controller.retrieveCorporationTaxRegistration(regId), FakeRequest())
+      val result = await(controller.retrieveCorporationTaxRegistration(regId)(FakeRequest()))
       status(result) shouldBe NOT_FOUND
     }
 
-    "return a 403 - forbidden when the user is not authenticated" in new Setup {
-      val regId = "testRegId"
-      AuthenticationMocks.getCurrentAuthority(None)
+    "return a 403 when the user is not authenticated" in new Setup {
+      mockAuthorise(Future.failed(InsufficientConfidenceLevel()))
 
-      when(mockCTDataRepository.getInternalId(ArgumentMatchers.any())).
-        thenReturn(Future.successful(None))
-
-      val result = call(controller.retrieveCorporationTaxRegistration(regId), FakeRequest())
+      val result = controller.retrieveCorporationTaxRegistration(regId)(FakeRequest())
       status(result) shouldBe FORBIDDEN
-    }
-
-    "return a 403 - forbidden when the user is logged in but not authorised to access the resource" in new Setup {
-      val regId = "testRegId"
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockCTDataRepository.getInternalId(ArgumentMatchers.contains(regId))).
-        thenReturn(Future.successful(Some((regId, validAuthority.ids.internalId + "xxx"))))
-
-      val result = call(controller.retrieveCorporationTaxRegistration(regId), FakeRequest())
-      status(result) shouldBe FORBIDDEN
-    }
-
-    "return a 404 - not found logged in the requested document doesn't exist" in new Setup {
-      val regId = "testRegId"
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockCTDataRepository.getInternalId(ArgumentMatchers.contains(regId))).thenReturn(Future.successful(None))
-
-      val result = call(controller.retrieveCorporationTaxRegistration(regId), FakeRequest())
-      status(result) shouldBe NOT_FOUND
     }
   }
 
   "retrieveFullCorporationTaxRegistration" should {
 
-    val registrationID = "testRegID"
-
     "return a 200 and a CorporationTaxRegistration model is found" in new Setup {
-      CTServiceMocks.retrieveCTDataRecord(registrationID, Some(validDraftCorporationTaxRegistration))
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(internalId)))
 
-      when(mockCTDataRepository.getInternalId(ArgumentMatchers.contains(registrationID))).
-        thenReturn(Future.successful(Some((registrationID, validAuthority.ids.internalId))))
+      CTServiceMocks.retrieveCTDataRecord(regId, Some(validDraftCorporationTaxRegistration))
 
-      val result = call(controller.retrieveFullCorporationTaxRegistration(registrationID), FakeRequest())
+      val result = await(controller.retrieveFullCorporationTaxRegistration(regId)(FakeRequest()))
       status(result) shouldBe OK
-      await(jsonBodyOf(result)) shouldBe Json.toJson(validDraftCorporationTaxRegistration)
+      contentAsJson(result) shouldBe Json.toJson(validDraftCorporationTaxRegistration)
     }
 
     "return a 404 if a CT registration record cannot be found" in new Setup {
-      CTServiceMocks.retrieveCTDataRecord(registrationID, None)
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(internalId)))
 
-      when(mockCTDataRepository.getInternalId(ArgumentMatchers.contains(registrationID))).
-        thenReturn(Future.successful(Some((registrationID, validAuthority.ids.internalId))))
+      CTServiceMocks.retrieveCTDataRecord(regId, None)
 
-      val result = call(controller.retrieveFullCorporationTaxRegistration(registrationID), FakeRequest())
+      val result = await(controller.retrieveFullCorporationTaxRegistration(regId)(FakeRequest()))
       status(result) shouldBe NOT_FOUND
     }
 
-    "return a 403 - forbidden when the user is not authenticated" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(None)
+    "return a 403 when the user is not authenticated" in new Setup {
+      mockAuthorise(Future.failed(InsufficientConfidenceLevel()))
 
-      when(mockCTDataRepository.getInternalId(ArgumentMatchers.any())).
-        thenReturn(Future.successful(None))
-
-      val result = call(controller.retrieveFullCorporationTaxRegistration(registrationID), FakeRequest())
+      val result = controller.retrieveFullCorporationTaxRegistration(regId)(FakeRequest())
       status(result) shouldBe FORBIDDEN
-    }
-
-    "return a 403 - forbidden when the user is logged in but not authorised to access the resource" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockCTDataRepository.getInternalId(ArgumentMatchers.contains(registrationID))).
-        thenReturn(Future.successful(Some((registrationID, validAuthority.ids.internalId + "xxx"))))
-
-      val result = call(controller.retrieveFullCorporationTaxRegistration(registrationID), FakeRequest())
-      status(result) shouldBe FORBIDDEN
-    }
-
-    "return a 404 - not found logged in the requested document doesn't exist" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockCTDataRepository.getInternalId(ArgumentMatchers.contains(registrationID))).thenReturn(Future.successful(None))
-
-      val result = call(controller.retrieveFullCorporationTaxRegistration(registrationID), FakeRequest())
-      status(result) shouldBe NOT_FOUND
     }
   }
 
   "retrieveConfirmationReference" should {
 
-    val regId = "testRegId"
-
     "return a 200 and an acknowledgement ref is one exists" in new Setup {
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(internalId)))
+
       val expected = ConfirmationReferences("BRCT00000000123", "tx", Some("py"), Some("12.00"))
       when(mockCTDataService.retrieveConfirmationReferences(ArgumentMatchers.eq(regId)))
         .thenReturn(Future.successful(Some(expected)))
 
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      AuthorisationMocks.getInternalId(validAuthority.ids.internalId, Some((regId, validAuthority.ids.internalId)))
-
-      val result = controller.retrieveConfirmationReference(regId)(FakeRequest())
+      val result = await(controller.retrieveConfirmationReference(regId)(FakeRequest()))
       status(result) shouldBe OK
-      await(jsonBodyOf(result)) shouldBe Json.toJson(expected)
+      contentAsJson(result) shouldBe Json.toJson(expected)
     }
 
     "return a 404 if a record cannot be found" in new Setup {
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(internalId)))
+
       when(mockCTDataService.retrieveConfirmationReferences(ArgumentMatchers.eq(regId)))
-        .thenReturn(None)
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      AuthorisationMocks.getInternalId(validAuthority.ids.internalId, Some((regId, validAuthority.ids.internalId)))
+        .thenReturn(Future.successful(None))
 
       val result = controller.retrieveConfirmationReference(regId)(FakeRequest())
       status(result) shouldBe NOT_FOUND
     }
 
     "return a 403 when the user is not authenticated" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(None)
-      AuthorisationMocks.getInternalId(validAuthority.ids.internalId, None)
+      mockAuthorise(Future.failed(InsufficientConfidenceLevel()))
 
       val result = controller.retrieveConfirmationReference(regId)(FakeRequest())
       status(result) shouldBe FORBIDDEN
-    }
-
-    "return a 403 when the user is logged in but not authorised to access the resource" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      AuthorisationMocks.getInternalId(validAuthority.ids.internalId, Some((regId, "xxx")))
-
-      val result = controller.retrieveConfirmationReference(regId)(FakeRequest())
-      status(result) shouldBe FORBIDDEN
-    }
-
-    "return a 404 when the user is logged in but the record doesn't exist" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      AuthorisationMocks.getInternalId(validAuthority.ids.internalId, None)
-
-      val result = controller.retrieveConfirmationReference(regId)(FakeRequest())
-      status(result) shouldBe NOT_FOUND
     }
   }
 
   "updateReferences" should {
 
-    val regId = "testRegId"
-    implicit val hc = HeaderCarrier()
+    val confRefs = ConfirmationReferences("testTransactionId", "testPaymentRef", Some("testPaymentAmount"), Some(""))
+    val request = FakeRequest().withBody(Json.toJson(confRefs))
 
     "return a 200 and an acknowledgement ref is one exists" in new Setup {
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(internalId)))
+
       val expectedRefs = ConfirmationReferences("BRCT00000000123", "tx", Some("py"), Some("12.00"))
+
       when(mockCTDataService.handleSubmission(ArgumentMatchers.contains(regId), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any[HeaderCarrier], ArgumentMatchers.any()))
         .thenReturn(Future.successful(expectedRefs))
-
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      AuthorisationMocks.getInternalId(validAuthority.ids.internalId, Some((regId, validAuthority.ids.internalId)))
 
       when(mockCTDataService.retrieveConfirmationReferences(ArgumentMatchers.eq(regId)))
         .thenReturn(Future.successful(Some(expectedRefs)))
 
-      val result = controller.handleSubmission(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId", "testPaymentRef", Some("testPaymentAmount"), Some("")))))
+      val result = await(controller.handleSubmission(regId)(request))
       status(result) shouldBe OK
-      await(jsonBodyOf(result)) shouldBe Json.toJson(expectedRefs)
+      contentAsJson(result) shouldBe Json.toJson(expectedRefs)
     }
 
     "return a 403 when the user is not authenticated" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(None)
-      AuthorisationMocks.getInternalId(validAuthority.ids.internalId, None)
+      mockAuthorise(Future.failed(InsufficientConfidenceLevel()))
 
-      val result = controller.handleSubmission(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId", "testPaymentRef", Some("testPaymentAmount"), Some("")))))
+      val result = await(controller.handleSubmission(regId)(request))
       status(result) shouldBe FORBIDDEN
-    }
-
-    "return a 403 when the user is logged in but not authorised to access the resource" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      AuthorisationMocks.getInternalId(validAuthority.ids.internalId, Some((regId, "xxx")))
-
-      val result = controller.handleSubmission(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId", "testPaymentRef", Some("testPaymentAmount"), Some("")))))
-      status(result) shouldBe FORBIDDEN
-    }
-
-    "return a 404 when the user is logged in but the record doesn't exist" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      AuthorisationMocks.getInternalId(validAuthority.ids.internalId, None)
-
-      val result = controller.handleSubmission(regId)(FakeRequest().withBody(Json.toJson(ConfirmationReferences("testTransactionId", "testPaymentRef", Some("testPaymentAmount"), Some("")))))
-      status(result) shouldBe NOT_FOUND
     }
   }
 
   "acknowledgementConfirmation" should {
     "return a bad request" when {
       "given invalid json" in new Setup {
-        val request = FakeRequest().withBody[JsValue](Json.toJson(""))
-        val result = call(controller.acknowledgementConfirmation("TestAckRef"), request)
+        val request = FakeRequest().withBody(Json.toJson(""))
+        val result = await(controller.acknowledgementConfirmation("TestAckRef")(request))
         status(result) shouldBe BAD_REQUEST
       }
     }
@@ -350,17 +250,11 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
 
   "updateRegistrationProgress" should {
 
-    import services.{RegistrationProgressUpdated, CompanyRegistrationDoesNotExist}
-
-    def setupAuth() = {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      AuthorisationMocks.getInternalId(validAuthority.ids.internalId, Some((regId, validAuthority.ids.internalId)))
-    }
-
     def progressRequest(progress: String) = Json.parse(s"""{"registration-progress":"${progress}"}""")
 
     "Extract the progress correctly from the message and request doc is updated" in new Setup {
-      setupAuth()
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(internalId)))
 
       val progress = "HO5"
       val request = FakeRequest().withBody(progressRequest(progress))
@@ -370,23 +264,23 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
 
       status(response) shouldBe OK
 
-      val captor = ArgumentCaptor.forClass(classOf[String])
-      verify(mockCTDataService, times(1)).updateRegistrationProgress(ArgumentMatchers.eq(regId), captor.capture())
+      val captor = ArgumentCaptor.forClass[String, String](classOf[String])
+      verify(mockCTDataService, times(1)).updateRegistrationProgress(eqTo(regId), captor.capture())
       captor.getValue shouldBe progress
     }
 
     "Return not found is the doc couldn't be updated" in new Setup {
-      setupAuth()
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(internalId)))
 
       val progress = "N/A"
       val request = FakeRequest().withBody(progressRequest(progress))
-      when(mockCTDataService.updateRegistrationProgress(ArgumentMatchers.eq(regId), ArgumentMatchers.any[String]())).
+
+      when(mockCTDataService.updateRegistrationProgress(eqTo(regId), any())).
         thenReturn(Future.successful(CompanyRegistrationDoesNotExist))
-      val response = await(controller.updateRegistrationProgress(regId)(request))
 
-      status(response) shouldBe NOT_FOUND
-
-      verify(mockCTDataService, times(1)).updateRegistrationProgress(ArgumentMatchers.eq(regId), ArgumentMatchers.any[String]())
+      val result = await(controller.updateRegistrationProgress(regId)(request))
+      status(result) shouldBe NOT_FOUND
     }
   }
 }

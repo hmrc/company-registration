@@ -16,145 +16,140 @@
 
 package controllers
 
-import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
-import connectors.AuthConnector
-import fixtures.{AuthFixture, CompanyDetailsFixture}
-import helpers.SCRSSpec
-import org.mockito.ArgumentMatchers
-import org.mockito.Mockito._
-import play.api.libs.json.{JsObject, Json}
+import fixtures.CompanyDetailsFixture
+import helpers.BaseSpec
+import play.api.libs.json.Json
 import play.api.test.FakeRequest
-import play.api.test.Helpers.{FORBIDDEN, NOT_FOUND, OK, call}
-import services.{CompanyDetailsService, MetricsService}
-import mocks.{MockMetricsService, SCRSMocks}
-import org.scalatest.mock.MockitoSugar
-import uk.gov.hmrc.play.test.UnitSpec
+import play.api.test.Helpers._
+import mocks.{AuthorisationMocks, MockMetricsService}
+import models.ErrorResponse
+import uk.gov.hmrc.auth.core.MissingBearerToken
 
 import scala.concurrent.Future
 
-class CompanyDetailsControllerSpec extends UnitSpec with MockitoSugar with SCRSMocks with AuthFixture with CompanyDetailsFixture{
-
-  implicit val system = ActorSystem("CR")
-  implicit val materializer = ActorMaterializer()
+class CompanyDetailsControllerSpec extends BaseSpec with AuthorisationMocks with CompanyDetailsFixture {
 
   trait Setup {
     val controller = new CompanyDetailsController {
-      override val auth = mockAuthConnector
-      override val resourceConn = mockCTDataRepository
+      override val authConnector = mockAuthClientConnector
+      override val resource = mockResource
       override val companyDetailsService = mockCompanyDetailsService
       override val metricsService = MockMetricsService
     }
   }
 
-  val registrationID = "12345"
+  val registrationID = "reg-12345"
+  val internalId = "int-12345"
+  val otherInternalID = "other-int-12345"
 
+  val companyDetailsResponseJson = Json.toJson(Some(validCompanyDetailsResponse(registrationID)))
 
   "retrieveCompanyDetails" should {
-    "return a 200 - Ok and a Company details record if one is found in the database" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
 
-      when(mockCTDataRepository.getInternalId(ArgumentMatchers.any()))
-        .thenReturn(Future.successful(Some(registrationID -> validAuthority.ids.internalId)))
+    "return a 200 and a Company details record when authorised" in new Setup {
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(internalId)))
+
       CompanyDetailsServiceMocks.retrieveCompanyDetails(registrationID, Some(validCompanyDetails))
 
-      val result = controller.retrieveCompanyDetails(registrationID)(FakeRequest())
+      val result = await(controller.retrieveCompanyDetails(registrationID)(FakeRequest()))
       status(result) shouldBe OK
-
-      val json =  await(jsonBodyOf(result)).as[JsObject]
-      json shouldBe Json.toJson(Some(validCompanyDetailsResponse))
+      contentAsJson(result) shouldBe companyDetailsResponseJson
 
     }
 
-    "return a 404 - Not Found if the record does not exist" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockCTDataRepository.getInternalId(ArgumentMatchers.any()))
-        .thenReturn(Future.successful(Some(registrationID -> validAuthority.ids.internalId)))
+    "return a 404 if company details are not found on the CT document" in new Setup {
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(internalId)))
+
       CompanyDetailsServiceMocks.retrieveCompanyDetails(registrationID, None)
 
-      val result = controller.retrieveCompanyDetails(registrationID)(FakeRequest())
+      val result = await(controller.retrieveCompanyDetails(registrationID)(FakeRequest()))
       status(result) shouldBe NOT_FOUND
-      await(jsonBodyOf(result)) shouldBe Json.parse(s"""{"statusCode":"404","message":"Could not find company details record"}""")
+      contentAsJson(result) shouldBe ErrorResponse.companyDetailsNotFound
     }
 
-    "return a 403 - Forbidden if the user cannot be authenticated" in new Setup {
-      val authority = validAuthority.copy(ids = validAuthority.ids.copy(internalId = "notAuthorisedID"))
-      AuthenticationMocks.getCurrentAuthority(Some(authority))
-      AuthorisationMocks.getInternalId("testID", Some("testRegID" -> "testID"))
+    "return a 404 when the CT document cannot be found" in new Setup {
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(None))
+
+      val result = controller.retrieveCompanyDetails(registrationID)(FakeRequest())
+      status(result) shouldBe NOT_FOUND
+    }
+
+    "return a 403 when the user is unauthorised to access the record" in new Setup {
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(otherInternalID)))
 
       val result = controller.retrieveCompanyDetails(registrationID)(FakeRequest())
       status(result) shouldBe FORBIDDEN
     }
 
-    "return a 403 - Forbidden if the user is not logged in" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(None)
-      AuthorisationMocks.getInternalId("testID", Some("testRegID" -> "testID"))
+    "return a 401 when the user is not logged in" in new Setup {
+      mockAuthorise(Future.failed(MissingBearerToken()))
 
       val result = controller.retrieveCompanyDetails(registrationID)(FakeRequest())
-      status(result) shouldBe FORBIDDEN
-    }
-
-    "return a 404 - Not found when an authority is found but nothing is returned from" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockCTDataRepository.getInternalId(ArgumentMatchers.any())).thenReturn(Future.successful(None))
-
-      val result = controller.retrieveCompanyDetails(registrationID)(FakeRequest())
-      status(result) shouldBe NOT_FOUND
+      status(result) shouldBe UNAUTHORIZED
     }
   }
 
   "updateCompanyDetails" should {
-    "return a 200 - Ok and a company details response if a record is updated" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
 
-      when(mockCTDataRepository.getInternalId(ArgumentMatchers.any()))
-        .thenReturn(Future.successful(Some(registrationID -> validAuthority.ids.internalId)))
-      CompanyDetailsServiceMocks.retrieveCompanyDetails(registrationID, Some(validCompanyDetails))
+    val request = FakeRequest().withBody(Json.toJson(validCompanyDetails))
+
+    "return a 200 and a company details response if the user is authorised" in new Setup {
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(internalId)))
 
       CompanyDetailsServiceMocks.updateCompanyDetails(registrationID, Some(validCompanyDetails))
 
-      val request = FakeRequest().withBody(Json.toJson(validCompanyDetails))
-      val result = call(controller.updateCompanyDetails(registrationID), request)
+      val result = await(controller.updateCompanyDetails(registrationID)(request))
+      status(result) shouldBe OK
+      contentAsJson(result) shouldBe companyDetailsResponseJson
+    }
 
-      val json =  await(jsonBodyOf(result)).as[JsObject]
-      json shouldBe Json.toJson(Some(validCompanyDetailsResponse))
-
-      status(result) shouldBe OK}
-
-    "return a 404 - Not Found if the recorde to update does not exist" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-
-      when(mockCTDataRepository.getInternalId(ArgumentMatchers.any()))
-        .thenReturn(Future.successful(Some(registrationID -> validAuthority.ids.internalId)))
-      CompanyDetailsServiceMocks.retrieveCompanyDetails(registrationID, Some(validCompanyDetails))
+    "return a 404 if the record to update does not exist" in new Setup {
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(internalId)))
 
       CompanyDetailsServiceMocks.updateCompanyDetails(registrationID, None)
 
-      val request = FakeRequest().withBody(Json.toJson(validCompanyDetailsResponse))
-      val result = call(controller.updateCompanyDetails(registrationID), request)
+      val result = await(controller.updateCompanyDetails(registrationID)(request))
       status(result) shouldBe NOT_FOUND
-      await(jsonBodyOf(result)) shouldBe Json.parse(s"""{"statusCode":"404","message":"Could not find company details record"}""")
+      contentAsJson(result) shouldBe ErrorResponse.companyDetailsNotFound
     }
 
-    "return a 403 - Forbidden if the user cannot be authenticated" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(None)
+    "return a 404 when the user is authorised but the CT document does not exist" in new Setup {
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(None))
 
-      when(mockCTDataRepository.getInternalId(ArgumentMatchers.any())).thenReturn(Future.successful(Some("testRegID" -> "testID")))
-      CompanyDetailsServiceMocks.retrieveCompanyDetails(registrationID, Some(validCompanyDetails))
+      val result = await(controller.updateCompanyDetails(registrationID)(request))
+      status(result) shouldBe NOT_FOUND
+    }
 
-      val request = FakeRequest().withBody(Json.toJson(validCompanyDetailsResponse))
-      val result = call(controller.updateCompanyDetails(registrationID), request)
-      status(result) shouldBe FORBIDDEN
+    "return a 401 when the user is not logged in" in new Setup {
+      mockAuthorise(Future.failed(MissingBearerToken()))
+
+      val result = await(controller.updateCompanyDetails(registrationID)(request))
+      status(result) shouldBe UNAUTHORIZED
     }
 
     "return a 403 when the user is unauthorised to access the record" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockCTDataRepository.getInternalId(ArgumentMatchers.anyString()))
-        .thenReturn(Future.successful(Some("testRegID" -> (validAuthority.ids.internalId + "123"))))
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(otherInternalID)))
 
-      val request = FakeRequest().withBody(Json.toJson(validCompanyDetailsResponse))
-      val result = call(controller.updateCompanyDetails(registrationID), request)
+      val result = await(controller.updateCompanyDetails(registrationID)(request))
       status(result) shouldBe FORBIDDEN
+    }
+
+    "verify that metrics are captured on a successful update" in new Setup {
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(internalId)))
+
+      CompanyDetailsServiceMocks.updateCompanyDetails(registrationID, Some(validCompanyDetails))
+
+      val result = await(controller.updateCompanyDetails(registrationID)(request))
+      status(result) shouldBe OK
     }
   }
 }

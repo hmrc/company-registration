@@ -76,4 +76,13 @@ trait CompanyDetailsFixture {
     TradingDetails(),
     buildLinks("12345")
     )
+
+  def validCompanyDetailsResponse(regId: String) = CompanyDetailsResponse(
+    companyName = validCompanyDetails.companyName,
+    cHROAddress = validCompanyDetails.registeredOffice,
+    pPOBAddress = validCompanyDetails.ppob,
+    jurisdiction = validCompanyDetails.jurisdiction,
+    TradingDetails(),
+    buildLinks(regId)
+  )
 }

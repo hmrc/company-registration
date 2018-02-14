@@ -74,7 +74,7 @@ object CorporationTaxRegistration {
       (__ \ "accountsPreparation").readNullable[AccountPrepDetails](AccountPrepDetails.format(formatter)) and
       (__ \ "crn").readNullable[String] and
       (__ \ "submissionTimestamp").readNullable[String] and
-      (__ \ "verifiedEmail").readNullable[Email](Email.format(formatter)) and
+      (__ \ "verifiedEmail").readNullable[Email] and
       (__ \ "createdTime").read[DateTime] and
       (__ \ "lastSignedIn").read[DateTime].orElse(Reads.pure(CorporationTaxRegistration.now)) and
       (__ \ "heldTimestamp").readNullable[DateTime]
@@ -96,7 +96,7 @@ object CorporationTaxRegistration {
       (__ \ "accountsPreparation").writeNullable[AccountPrepDetails](AccountPrepDetails.format(formatter)) and
       (__ \ "crn").writeNullable[String] and
       (__ \ "submissionTimestamp").writeNullable[String] and
-      (__ \ "verifiedEmail").writeNullable[Email](Email.format(formatter)) and
+      (__ \ "verifiedEmail").writeNullable[Email] and
       (__ \ "createdTime").write[DateTime] and
       (__ \ "lastSignedIn").write[DateTime] and
       (__ \ "heldTimestamp").writeNullable[DateTime]

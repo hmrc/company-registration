@@ -11,7 +11,8 @@ POST       /corporation-tax-registration/acknowledgement-confirmation           
 GET        /corporation-tax-registration/:registrationId                                    @controllers.CorporationTaxRegistrationController.retrieveCorporationTaxRegistration(registrationId)
 PUT        /corporation-tax-registration/:registrationId                                    @controllers.CorporationTaxRegistrationController.createCorporationTaxRegistration(registrationId)
 
-GET        /corporation-tax-registration/:registrationId/fetch-held-time                    controllers.HeldController.fetchHeldSubmissionTime(registrationId: String)
+GET        /corporation-tax-registration/:registrationId/fetch-held-time                    @controllers.HeldController.fetchHeldSubmissionTime(registrationId: String)
+DELETE     /corporation-tax-registration/:registrationId/delete-submission                  @controllers.HeldController.deleteSubmissionData(registrationId: String)
 
 GET        /corporation-tax-registration/:registrationId/corporation-tax-registration       @controllers.CorporationTaxRegistrationController.retrieveFullCorporationTaxRegistration(registrationId)
 
@@ -34,6 +35,4 @@ PUT        /corporation-tax-registration/:registrationID/progress               
 
 PUT        /corporation-tax-registration/:registrationId/update-email                       @controllers.test.EmailController.updateEmail(registrationId: String)
 GET        /corporation-tax-registration/:registrationId/retrieve-email                     @controllers.test.EmailController.retrieveEmail(registrationId: String)
-
-DELETE     /corporation-tax-registration/:registrationId/delete-submission                  controllers.HeldController.deleteSubmissionData(registrationId: String)
 

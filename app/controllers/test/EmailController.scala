@@ -16,50 +16,40 @@
 
 package controllers.test
 
-import javax.inject.{Inject, Singleton}
+import javax.inject.Inject
 
-import auth.Authorisation
-import connectors.AuthConnector
+import auth.{AuthClientConnector, AuthorisedController}
 import models.Email
-import models.validation.APIValidation
-import play.api.libs.json.Json
-import play.api.mvc.Action
-import repositories.Repositories
+import play.api.libs.json.{JsValue, Json}
+import play.api.mvc.{Action, AnyContent}
+import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.EmailService
-import uk.gov.hmrc.play.microservice.controller.BaseController
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
-import scala.concurrent.ExecutionContext.Implicits.global
-
-
-class EmailControllerImp @Inject() (emailServ: EmailService) extends EmailController {
-  val emailService = emailServ
-  val resourceConn = Repositories.cTRepository
-  val auth = AuthConnector
+class EmailControllerImpl @Inject()(val emailService: EmailService,
+                                    val authConnector: AuthClientConnector) extends EmailController {
+  val resource: CorporationTaxRegistrationMongoRepository = Repositories.cTRepository
 }
 
-trait EmailController extends BaseController with Authorisation[String]{
+trait EmailController extends AuthorisedController {
+
   val emailService: EmailService
 
-  def updateEmail(registrationId: String) = Action.async(parse.json) {
+  def updateEmail(registrationId: String): Action[JsValue] = AuthorisedAction(registrationId).async(parse.json){
     implicit request =>
-      authorisedFor(registrationId){ _ =>
-        withJsonBody[Email] {
-          emailService.updateEmail(registrationId, _).map {
-            case Some(email) => Ok(Json.toJson(email)(Email.format(APIValidation)))
-            case None => NotFound
-          }
+      withJsonBody[Email]{
+        emailService.updateEmail(registrationId, _).map{
+          case Some(email) => Ok(Json.toJson(email))
+          case None        => NotFound
         }
       }
   }
 
-  def retrieveEmail(registrationId: String) = Action.async {
+  def retrieveEmail(registrationId: String): Action[AnyContent] = AuthorisedAction(registrationId).async{
     implicit request =>
-      authorisedFor(registrationId){ _ =>
-        emailService.retrieveEmail(registrationId).map{
-          case Some(email) => Ok(Json.toJson(email)(Email.format(APIValidation)))
-          case None => NotFound
-
-        }
+      emailService.retrieveEmail(registrationId).map{
+        case Some(email) => Ok(Json.toJson(email))
+        case None        => NotFound
       }
   }
 }

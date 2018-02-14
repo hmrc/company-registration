@@ -16,45 +16,39 @@
 
 package controllers
 
-import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
-import connectors.AuthConnector
-import fixtures.AuthFixture
-import helpers.SCRSSpec
-import mocks.SCRSMocks
-import models.{CorporationTaxRegistration, Email, RegistrationStatus}
+import helpers.BaseSpec
+import mocks.AuthorisationMocks
+import models.{CorporationTaxRegistration, RegistrationStatus}
 import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import repositories.HeldSubmissionMongoRepository
-import services.RegistrationHoldingPenService
-import uk.gov.hmrc.play.test.UnitSpec
-
-import scala.concurrent.Future
+import repositories.CorporationTaxRegistrationMongoRepository
 import uk.gov.hmrc.http.HeaderCarrier
 
+import scala.concurrent.Future
 
-class HeldControllerSpec extends UnitSpec with SCRSMocks with MockitoSugar with AuthFixture {
 
-  implicit val system = ActorSystem("CR")
-  implicit val materializer = ActorMaterializer()
+class HeldControllerSpec extends BaseSpec with AuthorisationMocks {
 
   implicit val hc = HeaderCarrier()
 
+  override val mockResource = mockTypedResource[CorporationTaxRegistrationMongoRepository]
+
   trait Setup {
     val controller = new HeldController {
-      override val service: RegistrationHoldingPenService = mockRegHoldingPen
-      override val heldRepo: HeldSubmissionMongoRepository = mockHeldSubRepo
-      override val auth: AuthConnector = mockAuthConnector
-      override val resourceConn = mockCTDataRepository
+      override val service = mockRegHoldingPen
+      override val heldRepo = mockHeldSubRepo
+      override val authConnector = mockAuthClientConnector
+      override val resource = mockResource
     }
   }
 
-  val regId = "1234"
+  val regId = "reg-12345"
+  val otherRegId = "other-reg-12345"
+  val internalId = "int-12345"
   val timestamp = "2016-12-31T12:00:00.000Z"
   val dateTime = DateTime.parse(timestamp)
 
@@ -83,65 +77,63 @@ class HeldControllerSpec extends UnitSpec with SCRSMocks with MockitoSugar with 
   }
 
   "fetchHeldSubmissionTime" should {
+
     "return a 200 response along with a submission time from the Held Document when CR has no timestamp" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+      mockAuthorise()
 
-      when(controller.resourceConn.retrieveCorporationTaxRegistration(ArgumentMatchers.any()))
+      when(mockResource.retrieveCorporationTaxRegistration(ArgumentMatchers.any()))
         .thenReturn(Future.successful(Some(doc(None))))
-      when(controller.heldRepo.retrieveHeldSubmissionTime(ArgumentMatchers.any()))
+      when(mockHeldSubRepo.retrieveHeldSubmissionTime(ArgumentMatchers.any()))
         .thenReturn(Future.successful(Some(dateTime)))
 
       val result = await(controller.fetchHeldSubmissionTime(regId)(FakeRequest()))
       status(result) shouldBe OK
-      jsonBodyOf(result) shouldBe Json.toJson(dateTime)
+      contentAsJson(result) shouldBe Json.toJson(dateTime)
     }
+
     "return a 200 response along with a submission time from the Held Document when there is no CR document" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+      mockAuthorise()
 
-      when(controller.resourceConn.retrieveCorporationTaxRegistration(ArgumentMatchers.any()))
+      when(mockResource.retrieveCorporationTaxRegistration(ArgumentMatchers.any()))
         .thenReturn(Future.successful(None))
-      when(controller.heldRepo.retrieveHeldSubmissionTime(ArgumentMatchers.any()))
+      when(mockHeldSubRepo.retrieveHeldSubmissionTime(ArgumentMatchers.any()))
         .thenReturn(Future.successful(Some(dateTime)))
 
       val result = await(controller.fetchHeldSubmissionTime(regId)(FakeRequest()))
       status(result) shouldBe OK
-      jsonBodyOf(result) shouldBe Json.toJson(dateTime)
+      contentAsJson(result) shouldBe Json.toJson(dateTime)
     }
-    "return a 200 response along with a submission time from the CR Document" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
 
-      when(controller.resourceConn.retrieveCorporationTaxRegistration(ArgumentMatchers.any()))
+    "return a 200 response along with a submission time from the CR Document" in new Setup {
+      mockAuthorise()
+
+      when(mockResource.retrieveCorporationTaxRegistration(ArgumentMatchers.any()))
         .thenReturn(Future.successful(Some(doc(Some(dateTime)))))
 
       val result = await(controller.fetchHeldSubmissionTime(regId)(FakeRequest()))
       status(result) shouldBe OK
-      jsonBodyOf(result) shouldBe Json.toJson(dateTime)
+      contentAsJson(result) shouldBe Json.toJson(dateTime)
     }
 
     "return a 404 (Not found) response" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+      mockAuthorise()
 
-      when(controller.resourceConn.retrieveCorporationTaxRegistration(ArgumentMatchers.any()))
+      when(mockResource.retrieveCorporationTaxRegistration(ArgumentMatchers.any()))
         .thenReturn(Future.successful(Some(doc(None))))
-      when(controller.heldRepo.retrieveHeldSubmissionTime(ArgumentMatchers.any()))
+      when(mockHeldSubRepo.retrieveHeldSubmissionTime(ArgumentMatchers.any()))
         .thenReturn(Future.successful(None))
 
       val result = await(controller.fetchHeldSubmissionTime(regId)(FakeRequest()))
       status(result) shouldBe NOT_FOUND
     }
-
-    "return a Forbidden response when an unauthenticated user tries to fetch a held submission time" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(None)
-
-      val result = await(controller.fetchHeldSubmissionTime(regId)(FakeRequest()))
-      status(result) shouldBe FORBIDDEN
-    }
   }
 
-
   "deleteSubmissionData" should {
+
     "return a 200 response when a user is logged in and their rejected submission data is deleted" in new Setup {
-      AuthorisationMocks.mockSuccessfulAuthorisation(regId, validAuthority)
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(internalId)))
+
       when(controller.service.deleteRejectedSubmissionData(ArgumentMatchers.any())(ArgumentMatchers.any())).thenReturn(Future.successful(true))
 
       val result = await(controller.deleteSubmissionData(regId)(FakeRequest()))
@@ -149,21 +141,13 @@ class HeldControllerSpec extends UnitSpec with SCRSMocks with MockitoSugar with 
     }
 
     "return a 404 (Not found) response when a user's rejected submission data is not found" in new Setup {
-      AuthorisationMocks.mockAuthResourceNotFound(validAuthority)
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(internalId)))
+
       when(controller.service.deleteRejectedSubmissionData(ArgumentMatchers.any())(ArgumentMatchers.any())).thenReturn(Future.successful(false))
 
       val result = await(controller.deleteSubmissionData(regId)(FakeRequest()))
       status(result) shouldBe NOT_FOUND
     }
-
-    "return a Forbidden response when an unauthenticated user tries to delete submission data" in new Setup {
-      AuthorisationMocks.mockNotAuthorised(regId, validAuthority)
-
-      val result = await(controller.deleteSubmissionData(regId)(FakeRequest()))
-      status(result) shouldBe FORBIDDEN
-    }
   }
-
-
-
 }

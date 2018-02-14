@@ -19,56 +19,40 @@ package controllers
 import javax.inject.Inject
 
 import auth._
-import connectors.AuthConnector
+import play.api.mvc.AnyContent
+import repositories.CorporationTaxRegistrationMongoRepository
 import models.{ErrorResponse, TradingDetails}
-import play.api.Logger
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Action
 import repositories.Repositories
 import services.{MetricsService, TradingDetailsService}
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
-import uk.gov.hmrc.play.microservice.controller.BaseController
 
-import scala.concurrent.Future
-
-class TradingDetailsControllerImp @Inject() (metrics: MetricsService, tradingDetailsServ: TradingDetailsService)
-  extends TradingDetailsController {
-  val tradingDetailsService = tradingDetailsServ
-  val resourceConn = Repositories.cTRepository
-  val auth = AuthConnector
-  override val metricsService: MetricsService = metrics
+class TradingDetailsControllerImpl @Inject()(val metricsService: MetricsService,
+                                             val tradingDetailsService: TradingDetailsService,
+                                             val authConnector: AuthClientConnector) extends TradingDetailsController {
+  val resource: CorporationTaxRegistrationMongoRepository = Repositories.cTRepository
 }
 
-trait TradingDetailsController extends BaseController with Authenticated with Authorisation[String] {
+
+trait TradingDetailsController extends AuthorisedController {
 
   val tradingDetailsService : TradingDetailsService
   val metricsService: MetricsService
 
-  def retrieveTradingDetails(registrationID : String) = Action.async {
+  def retrieveTradingDetails(registrationID : String): Action[AnyContent] = AuthorisedAction(registrationID).async {
     implicit request =>
-      authorised(registrationID) {
-        case Authorised(_) => val timer = metricsService.retrieveTradingDetailsCRTimer.time()
-                              tradingDetailsService.retrieveTradingDetails(registrationID).map {
+      val timer = metricsService.retrieveTradingDetailsCRTimer.time()
+      tradingDetailsService.retrieveTradingDetails(registrationID).map {
           case Some(res) => timer.stop()
             Ok(Json.toJson(res))
           case _ => timer.stop()
-            Logger.info(s"[TradingDetailsController] [retrieveTradingDetails] Authorised but no data for $registrationID")
             NotFound(ErrorResponse.tradingDetailsNotFound)
         }
-        case NotLoggedInOrAuthorised =>
-          Logger.info(s"[TradingDetailsController] [retrieveTradingDetails] User not logged in")
-          Future.successful(Forbidden)
-        case NotAuthorised(_) =>
-          Logger.info(s"[TradingDetailsController] [retrieveTradingDetails] User logged in but not authorised for resource $registrationID")
-          Future.successful(Forbidden)
-        case AuthResourceNotFound(_) => Future.successful(NotFound)
-      }
   }
 
-  def updateTradingDetails(registrationID : String) : Action[JsValue] = Action.async[JsValue](parse.json) {
+  def updateTradingDetails(registrationID : String) : Action[JsValue] = AuthorisedAction(registrationID).async(parse.json) {
     implicit request =>
-      authorised(registrationID) {
-        case Authorised(_) =>
           val timer = metricsService.updateTradingDetailsCRTimer.time()
           withJsonBody[TradingDetails] {
             tradingDetails => tradingDetailsService.updateTradingDetails(registrationID, tradingDetails)
@@ -79,13 +63,5 @@ trait TradingDetailsController extends BaseController with Authenticated with Au
                   NotFound(ErrorResponse.tradingDetailsNotFound)
               }
           }
-        case NotLoggedInOrAuthorised =>
-          Logger.info(s"[TradingDetailsController] [retrieveTradingDetails] User not logged in")
-          Future.successful(Forbidden)
-        case NotAuthorised(_) =>
-          Logger.info(s"[TradingDetailsController] [retrieveTradingDetails] User logged in but not authorised for resource $registrationID")
-          Future.successful(Forbidden)
-        case AuthResourceNotFound(_) => Future.successful(NotFound)
-      }
   }
 }

@@ -19,32 +19,25 @@ package controllers
 import javax.inject.Inject
 
 import auth._
-import connectors.AuthConnector
 import models.{CompanyDetails, ErrorResponse, TradingDetails}
-import play.api.Logger
 import play.api.libs.json.{JsObject, JsValue, Json}
-import play.api.mvc.Action
-import repositories.Repositories
+import play.api.mvc.{Action, AnyContent}
+import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.{CompanyDetailsService, MetricsService}
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
-import uk.gov.hmrc.play.microservice.controller.BaseController
 
-import scala.concurrent.Future
-
-class CompanyDetailsControllerImp @Inject() (metrics: MetricsService,
-                                             companyDetailsServ: CompanyDetailsService) extends CompanyDetailsController {
-  override val auth: AuthConnector = AuthConnector
-  val resourceConn = Repositories.cTRepository
-  override val companyDetailsService = companyDetailsServ
-  override val metricsService: MetricsService = metrics
+class CompanyDetailsControllerImpl @Inject()(val metricsService: MetricsService,
+                                             val companyDetailsService: CompanyDetailsService,
+                                             val authConnector: AuthClientConnector) extends CompanyDetailsController {
+  val resource: CorporationTaxRegistrationMongoRepository = Repositories.cTRepository
 }
 
-trait CompanyDetailsController extends BaseController with Authenticated with Authorisation[String]{
+trait CompanyDetailsController extends AuthorisedController {
 
   val companyDetailsService: CompanyDetailsService
   val metricsService: MetricsService
 
-  private def mapToResponse(registrationID: String, res: CompanyDetails)= {
+  private[controllers] def mapToResponse(registrationID: String, res: CompanyDetails) = {
     Json.toJson(res).as[JsObject] ++
       Json.obj("tradingDetails" -> TradingDetails()) ++
       Json.obj(
@@ -55,47 +48,27 @@ trait CompanyDetailsController extends BaseController with Authenticated with Au
       )
   }
 
-  def retrieveCompanyDetails(registrationID: String) = Action.async {
+  def retrieveCompanyDetails(registrationID: String): Action[AnyContent] = AuthorisedAction(registrationID).async{
     implicit request =>
-      authorised(registrationID){
-        case Authorised(_) =>
-                     val timer = metricsService.retrieveCompanyDetailsCRTimer.time()
-                     companyDetailsService.retrieveCompanyDetails(registrationID).map {
-          case Some(details) => {timer.stop()
-            Ok(mapToResponse(registrationID, details))
-          }
-          case _ => timer.stop()
-            NotFound(ErrorResponse.companyDetailsNotFound)
-        }
-        case NotLoggedInOrAuthorised =>
-          Logger.info(s"[CompanyDetailsController] [retrieveCompanyDetails] User not logged in")
-          Future.successful(Forbidden)
-        case NotAuthorised(_) =>
-          Logger.info(s"[CompanyDetailsController] [retrieveCompanyDetails] User logged in but not authorised for resource $registrationID")
-          Future.successful(Forbidden)
-        case AuthResourceNotFound(_) => Future.successful(NotFound)
+      val timer = metricsService.retrieveCompanyDetailsCRTimer.time()
+      companyDetailsService.retrieveCompanyDetails(registrationID).map {
+        case Some(details) => timer.stop()
+          Ok(mapToResponse(registrationID, details))
+        case None => timer.stop()
+          NotFound(ErrorResponse.companyDetailsNotFound)
       }
   }
 
-  def updateCompanyDetails(registrationID: String): Action[JsValue] = Action.async[JsValue](parse.json) {
+  def updateCompanyDetails(registrationID: String): Action[JsValue] = AuthorisedAction(registrationID).async[JsValue](parse.json){
     implicit request =>
-      authorised(registrationID) {
-        case Authorised(_) =>
-          val timer = metricsService.updateCompanyDetailsCRTimer.time()
-          withJsonBody[CompanyDetails] {
-            companyDetails => companyDetailsService.updateCompanyDetails(registrationID, companyDetails).map{
-              case Some(details) => timer.stop
-                                    Ok(mapToResponse(registrationID, details))
-              case None => NotFound(ErrorResponse.companyDetailsNotFound)
-            }
-          }
-        case NotLoggedInOrAuthorised =>
-          Logger.info(s"[CompanyDetailsController] [updateCompanyDetails] User not logged in")
-          Future.successful(Forbidden)
-        case NotAuthorised(_) =>
-          Logger.info(s"[CompanyDetailsController] [updateCompanyDetails] User logged in but not authorised for resource $registrationID")
-          Future.successful(Forbidden)
-        case AuthResourceNotFound(_) => Future.successful(NotFound)
+      val timer = metricsService.updateCompanyDetailsCRTimer.time()
+      withJsonBody[CompanyDetails]{
+        companyDetails => companyDetailsService.updateCompanyDetails(registrationID, companyDetails).map{
+          case Some(details) => timer.stop()
+            Ok(mapToResponse(registrationID, details))
+          case None => timer.stop()
+            NotFound(ErrorResponse.companyDetailsNotFound)
+        }
       }
   }
 }

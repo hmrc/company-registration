@@ -81,6 +81,8 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
     System.clearProperty("feature.etmpHoldingPen")
 
     def setupCTRegistration(reg: CorporationTaxRegistration): WriteResult = ctRepository.insert(reg)
+
+    stubAuthorise(internalId)
   }
 
   val regId = "reg-id-12345"
@@ -183,10 +185,11 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
   }
 
   "handleSubmission" should {
-    "return Confirmation References when registration is in Held status" in new Setup {
-      await(ctRepository.insert(heldRegistration.copy(confirmationReferences = Some(confRefsWithPayment))))
 
-      setupSimpleAuthMocks(internalId)
+    "return Confirmation References when registration is in Held status" in new Setup {
+      stubAuthorise(internalId)
+
+      await(ctRepository.insert(heldRegistration.copy(confirmationReferences = Some(confRefsWithPayment))))
 
       val response = await(client(s"/$regId/confirmation-references").put(jsonConfirmationRefs(ackRef, Some(payRef), Some(payAmount))))
       response.status shouldBe 200
@@ -194,9 +197,9 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
     }
 
     "update Confirmation References when registration is in Held status (new HO6)" in new Setup {
-      await(ctRepository.insert(heldRegistration))
+      stubAuthorise(internalId)
 
-      setupSimpleAuthMocks(internalId)
+      await(ctRepository.insert(heldRegistration))
 
       val response = await(client(s"/$regId/confirmation-references").put(jsonConfirmationRefs(ackRef, Some(payRef), Some(payAmount))))
       response.status shouldBe 200
@@ -216,12 +219,13 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
       """.stripMargin
 
       "registration is in Draft status and update Confirmation References with Ack Ref and Payment infos (old HO6)" in new Setup {
+        stubAuthorise(internalId)
+        setupSimpleAuthMocks(internalId)
+
         System.setProperty("feature.registerInterest", "false")
         System.setProperty("feature.etmpHoldingPen", "true")
 
         await(ctRepository.insert(draftRegistration))
-
-        setupSimpleAuthMocks(internalId)
 
         stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
         stubPost(s"/business-registration/corporation-tax", 200, """{"a": "b"}""")
@@ -349,6 +353,7 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
 
         await(ctRepository.insert(lockedRegistration))
 
+        stubAuthorise(internalId)
         setupSimpleAuthMocks(internalId)
 
         stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)

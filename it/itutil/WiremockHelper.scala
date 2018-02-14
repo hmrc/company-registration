@@ -19,6 +19,8 @@ import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
+import com.github.tomakehurst.wiremock.stubbing.StubMapping
+import play.api.libs.json.{JsObject, Json}
 
 object WiremockHelper {
   val wiremockPort = 11111
@@ -70,4 +72,17 @@ trait WiremockHelper {
           withBody(responseBody)
       )
     )
+
+  def stubAuthorise(status: Int, body: (String, String)*) = {
+    stubFor(post(urlMatching("/auth/authorise"))
+      .willReturn(
+        aResponse()
+          .withStatus(status)
+          .withBody{
+            Json.obj(body.map{ case (k, v) => k -> Json.toJsFieldJsValueWrapper(v)}:_*).toString()
+          }
+      ))
+  }
+
+  def stubAuthorise(internalId: String): StubMapping = stubAuthorise(200, "internalId" -> internalId)
 }

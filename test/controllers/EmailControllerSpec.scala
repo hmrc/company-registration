@@ -16,113 +16,113 @@
 
 package controllers
 
-import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
 import controllers.test.EmailController
-import fixtures.AuthFixture
-import helpers.SCRSSpec
-import mocks.SCRSMocks
+import helpers.BaseSpec
+import mocks.AuthorisationMocks
 import models.Email
-import org.mockito.ArgumentMatchers
-import org.scalatest.mock.MockitoSugar
+import org.mockito.ArgumentMatchers.{eq => eqTo}
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import services.EmailService
 import org.mockito.Mockito._
 import play.api.test.Helpers._
-import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.auth.core.MissingBearerToken
 
 import scala.concurrent.Future
 
-class EmailControllerSpec extends UnitSpec with SCRSMocks with MockitoSugar with AuthFixture{
-
-  implicit val system = ActorSystem("CR")
-  implicit val materializer = ActorMaterializer()
+class EmailControllerSpec extends BaseSpec with AuthorisationMocks {
 
   val mockEmailService = mock[EmailService]
 
   class Setup {
     val emailController = new EmailController {
       val emailService = mockEmailService
-      val auth = mockAuthConnector
-      val resourceConn = mockCTDataRepository
+      val authConnector = mockAuthClientConnector
+      val resource = mockResource
     }
   }
 
-  val registrationId = "12345"
+  val registrationID = "reg-12345"
+  val internalId = "int-12345"
+  val otherInternalID = "other-int-12345"
+  
   val email = Email("testAddress", "GG", linkSent = true, verified = true, returnLinkEmailSent = true)
-
+  val emailJson = Json.toJson(email)
 
   "retrieveEmail" should {
 
-    "return a 200 and an Email json object" in new Setup {
-      when(mockEmailService.retrieveEmail(ArgumentMatchers.eq(registrationId)))
+    "return a 200 and an Email json object if the user is authorised" in new Setup {
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(internalId)))
+
+      when(mockEmailService.retrieveEmail(eqTo(registrationID)))
         .thenReturn(Future.successful(Some(email)))
 
-      AuthorisationMocks.mockSuccessfulAuthorisation(registrationId, validAuthority)
-
-      val result = await(emailController.retrieveEmail(registrationId)(FakeRequest()))
+      val result = await(emailController.retrieveEmail(registrationID)(FakeRequest()))
       status(result) shouldBe OK
-      jsonBodyOf(result) shouldBe Json.toJson(email)
+      contentAsJson(result) shouldBe Json.toJson(email)
     }
 
-    "return a 403 when the user is not authenticated or logged in" in new Setup {
-      AuthorisationMocks.mockNotLoggedInOrAuthorised
+    "return a 401 when the user is not logged in" in new Setup {
+      mockAuthorise(Future.failed(MissingBearerToken()))
 
-      val result = await(emailController.retrieveEmail(registrationId)(FakeRequest()))
-      status(result) shouldBe FORBIDDEN
+      val result = await(emailController.retrieveEmail(registrationID)(FakeRequest()))
+      status(result) shouldBe UNAUTHORIZED
     }
 
     "return a 403 when the user is logged in but not authorised to access the resource" in new Setup {
-      AuthorisationMocks.mockNotAuthorised(registrationId, validAuthority)
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(otherInternalID)))
 
-      val result = await(emailController.retrieveEmail(registrationId)(FakeRequest()))
+      val result = await(emailController.retrieveEmail(registrationID)(FakeRequest()))
       status(result) shouldBe FORBIDDEN
     }
 
-    "return a 404 when the user is logged in but the record to authorise against doesn't exist" in new Setup {
-      AuthorisationMocks.mockAuthResourceNotFound(validAuthority)
+    "return a 404 when the user is logged in but a CT record doesn't exist" in new Setup {
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(None))
 
-      val result = await(emailController.retrieveEmail(registrationId)(FakeRequest()))
+      val result = await(emailController.retrieveEmail(registrationID)(FakeRequest()))
       status(result) shouldBe NOT_FOUND
     }
   }
 
   "updateEmail" should {
 
-    val emailJson = Json.toJson(email)
+    val request = FakeRequest().withBody(Json.toJson(email))
 
-    val request = FakeRequest().withJsonBody(emailJson)
+    "return a 200 and an email json object when the user is authorised" in new Setup {
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(internalId)))
 
-    "return a 200 and an email json object" in new Setup {
-      when(mockEmailService.updateEmail(ArgumentMatchers.eq(registrationId), ArgumentMatchers.eq(email)))
+      when(mockEmailService.updateEmail(eqTo(registrationID), eqTo(email)))
         .thenReturn(Future.successful(Some(email)))
 
-      AuthorisationMocks.mockSuccessfulAuthorisation(registrationId, validAuthority)
-
-      val result = await(call(emailController.updateEmail(registrationId), request))
+      val result = await(emailController.updateEmail(registrationID)(request))
       status(result) shouldBe OK
-      jsonBodyOf(result) shouldBe emailJson
+      contentAsJson(result) shouldBe emailJson
     }
 
-    "return a 403 when the user is not authenticated or logged in" in new Setup {
-      AuthorisationMocks.mockNotLoggedInOrAuthorised
+    "return a 401 when the user is not logged in" in new Setup {
+      mockAuthorise(Future.failed(MissingBearerToken()))
 
-      val result = await(call(emailController.updateEmail(registrationId), request))
-      status(result) shouldBe FORBIDDEN
+      val result = emailController.updateEmail(registrationID)(request)
+      status(result) shouldBe UNAUTHORIZED
     }
 
     "return a 403 when the user is logged in but not authorised to access the resource" in new Setup {
-      AuthorisationMocks.mockNotAuthorised(registrationId, validAuthority)
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(otherInternalID)))
 
-      val result = await(call(emailController.updateEmail(registrationId), request))
+      val result = emailController.updateEmail(registrationID)(request)
       status(result) shouldBe FORBIDDEN
     }
 
-    "return a 404 when the user is logged in but the record to authorise against doesn't exist" in new Setup {
-      AuthorisationMocks.mockAuthResourceNotFound(validAuthority)
+    "return a 404 when the user is authorised but the CT document doesn't exist" in new Setup {
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(None))
 
-      val result = await(call(emailController.updateEmail(registrationId), request))
+      val result = emailController.updateEmail(registrationID)(request)
       status(result) shouldBe NOT_FOUND
     }
   }

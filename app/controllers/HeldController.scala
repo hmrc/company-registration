@@ -16,65 +16,48 @@
 
 package controllers
 
+import javax.inject.Inject
+
 import auth._
-import connectors.AuthConnector
-import play.api.Logger
 import play.api.libs.json.Json
-import play.api.mvc.Action
+import play.api.mvc.{Action, AnyContent}
 import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmissionMongoRepository, Repositories}
 import services.RegistrationHoldingPenService
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
-import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.Future
 
-object HeldController extends HeldController {
-  val auth = AuthConnector
-  val resourceConn = Repositories.cTRepository
-  val heldRepo = Repositories.heldSubmissionRepository
-  val service = RegistrationHoldingPenService
+class HeldControllerImpl @Inject()(val authConnector: AuthClientConnector) extends HeldController {
+  val service: RegistrationHoldingPenService = RegistrationHoldingPenService
+  val heldRepo: HeldSubmissionMongoRepository = Repositories.heldSubmissionRepository
+  val resource: CorporationTaxRegistrationMongoRepository = Repositories.cTRepository
 }
 
-trait HeldController extends BaseController with Authenticated with Authorisation[String] {
+trait HeldController extends AuthorisedController {
 
-  val resourceConn: CorporationTaxRegistrationMongoRepository
+  val resource: CorporationTaxRegistrationMongoRepository
   val heldRepo: HeldSubmissionMongoRepository
   val service: RegistrationHoldingPenService
 
-  def fetchHeldSubmissionTime(regId: String) = Action.async {
+  def fetchHeldSubmissionTime(regId: String): Action[AnyContent] = AuthenticatedAction.async {
     implicit request =>
-      authenticated {
-        case LoggedIn(_) =>
-            resourceConn.retrieveCorporationTaxRegistration(regId) flatMap { doc =>
-              if(doc.exists(_.heldTimestamp.isDefined)) {
-                Future.successful(Ok(Json.toJson(doc.get.heldTimestamp)))
-              } else {
-                heldRepo.retrieveHeldSubmissionTime(regId).map {
-                  case Some(time) => Ok(Json.toJson(time))
-                  case None => NotFound
-                }
-              }
-            }
-        case _ =>
-          Logger.info(s"[HeldController] [fetchHeldSubmissionTime] User not logged in")
-          Future.successful(Forbidden)
-      }
-  }
-
-  def deleteSubmissionData(regId: String) = Action.async {
-    implicit request =>
-      authorised(regId) {
-        case Authorised(_) => service.deleteRejectedSubmissionData(regId).map {
-          case true => Ok
-          case false => NotFound
+      resource.retrieveCorporationTaxRegistration(regId) flatMap { doc =>
+        if (doc.exists(_.heldTimestamp.isDefined)) {
+          Future.successful(Ok(Json.toJson(doc.get.heldTimestamp)))
+        } else {
+          heldRepo.retrieveHeldSubmissionTime(regId).map {
+            case Some(time) => Ok(Json.toJson(time))
+            case None => NotFound
+          }
         }
-        case AuthResourceNotFound(_) =>
-          Logger.info(s"[HeldController] [deleteHeldSubmissionData] User registration not found")
-          Future.successful(NotFound)
-        case _ =>
-          Logger.info(s"[HeldController] [deleteHeldSubmissionData] User not logged in")
-          Future.successful(Forbidden)
       }
   }
 
+  def deleteSubmissionData(regId: String): Action[AnyContent] = AuthorisedAction(regId).async {
+    implicit request =>
+      service.deleteRejectedSubmissionData(regId).map {
+        case true  => Ok
+        case false => NotFound
+      }
+  }
 }

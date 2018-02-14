@@ -16,140 +16,129 @@
 
 package controllers
 
-import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
-import connectors.AuthConnector
-import fixtures.{AuthFixture, ContactDetailsFixture, ContactDetailsResponse}
-import helpers.SCRSSpec
-import models.{ContactDetails, ErrorResponse}
+import fixtures.ContactDetailsFixture
+import helpers.BaseSpec
+import models.ErrorResponse
 import play.api.libs.json._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import services.{ContactDetailsService, CorporationTaxRegistrationService, MetricsService}
-import mocks.{MockMetricsService, SCRSMocks}
-import org.mockito.Mockito.reset
-import org.scalatest.BeforeAndAfterEach
-import org.scalatest.mock.MockitoSugar
-import uk.gov.hmrc.play.test.UnitSpec
+import mocks.{AuthorisationMocks, MockMetricsService}
+import play.api.mvc.Result
+import uk.gov.hmrc.auth.core.MissingBearerToken
 
-class ContactDetailsControllerSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEach with SCRSMocks with ContactDetailsFixture with AuthFixture {
+import scala.concurrent.Future
 
-  implicit val system = ActorSystem("CR")
-  implicit val materializer = ActorMaterializer()
-  override def beforeEach(): Unit = reset(mockCTDataService)
+class ContactDetailsControllerSpec extends BaseSpec with AuthorisationMocks with ContactDetailsFixture {
+
   trait Setup {
     val controller = new ContactDetailsController {
       override val contactDetailsService = mockContactDetailsService
-      override val resourceConn = mockCTDataRepository
-      override val auth = mockAuthConnector
+      override val resource = mockResource
+      override val authConnector = mockAuthClientConnector
       override val metricsService = MockMetricsService
     }
   }
 
-  val registrationID = "12345"
+  val registrationID = "reg-12345"
+  val internalId = "int-12345"
+  val otherInternalID = "other-int-12345"
 
+  val contactDetailsJsonResponse = Json.toJson(contactDetailsResponse(registrationID))
 
   "retrieveContactDetails" should {
-    "return a 200 with contact details in the json body when authorised" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      AuthorisationMocks.getInternalId("testID", Some(registrationID -> validAuthority.ids.internalId))
-      ContactDetailsServiceMocks.retrieveContactDetails(registrationID, Some(contactDetails))
-      val result = controller.retrieveContactDetails(registrationID)(FakeRequest())
-      status(result) shouldBe OK
 
-      val json = await(jsonBodyOf(result))
-      json.as[JsObject]  shouldBe Json.toJson(contactDetailsResponse).as[JsObject]
+    "return a 200 with contact details in the json body when authorised" in new Setup {
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(internalId)))
+
+      ContactDetailsServiceMocks.retrieveContactDetails(registrationID, Some(contactDetails))
+
+      val result: Result = await(controller.retrieveContactDetails(registrationID)(FakeRequest()))
+      status(result) shouldBe OK
+      contentAsJson(result) shouldBe contactDetailsJsonResponse
     }
 
     "return a 404 when the user is authorised but contact details cannot be found" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      AuthorisationMocks.getInternalId("testID", Some(registrationID -> validAuthority.ids.internalId))
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(internalId)))
+
       ContactDetailsServiceMocks.retrieveContactDetails(registrationID, None)
 
-      val result = controller.retrieveContactDetails(registrationID)(FakeRequest())
+      val result = await(controller.retrieveContactDetails(registrationID)(FakeRequest()))
       status(result) shouldBe NOT_FOUND
-      await(jsonBodyOf(result)) shouldBe ErrorResponse.contactDetailsNotFound
+      contentAsJson(result) shouldBe ErrorResponse.contactDetailsNotFound
     }
 
-    "return a 404 when the auth resource cannot be found" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      AuthorisationMocks.getInternalId("testID", None)
-      ContactDetailsServiceMocks.retrieveContactDetails(registrationID, None)
+    "return a 404 when the CT document cannot be found" in new Setup {
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(None))
 
       val result = controller.retrieveContactDetails(registrationID)(FakeRequest())
       status(result) shouldBe NOT_FOUND
     }
 
     "return a 403 when the user is unauthorised to access the record" in new Setup {
-      val authority = validAuthority.copy(ids = validAuthority.ids.copy(internalId = "notAuthorisedID"))
-      AuthenticationMocks.getCurrentAuthority(Some(authority))
-      AuthorisationMocks.getInternalId("testID", Some("testRegID" -> "testID"))
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(otherInternalID)))
 
       val result = controller.retrieveContactDetails(registrationID)(FakeRequest())
       status(result) shouldBe FORBIDDEN
     }
 
-    "return a 403 when the user is not logged in" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(None)
-      AuthorisationMocks.getInternalId("testID", Some("testRegID" -> "testID"))
+    "return a 401 when the user is not logged in" in new Setup {
+      mockAuthorise(Future.failed(MissingBearerToken()))
 
-      val result = controller.retrieveContactDetails(registrationID)(FakeRequest())
-      status(result) shouldBe FORBIDDEN
+      val result = await(controller.retrieveContactDetails(registrationID)(FakeRequest()))
+      status(result) shouldBe UNAUTHORIZED
     }
   }
 
   "updateContactDetails" should {
+
+    val request = FakeRequest().withBody(Json.toJson(contactDetails))
+
     "return a 200 with contact details in the json body when authorised" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      AuthorisationMocks.getInternalId("testID", Some(registrationID -> validAuthority.ids.internalId))
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(internalId)))
+
       ContactDetailsServiceMocks.updateContactDetails(registrationID, Some(contactDetails))
-      val request = FakeRequest().withBody(Json.toJson(contactDetails))
-      val result = call(controller.updateContactDetails(registrationID), request)
+
+      val result = await(controller.updateContactDetails(registrationID)(request))
       status(result) shouldBe OK
-      val json = await(jsonBodyOf(result))
-      json.as[JsObject] shouldBe Json.toJson(contactDetailsResponse)
+      contentAsJson(result) shouldBe Json.toJson(contactDetailsJsonResponse)
     }
 
     "return a 404 when the user is authorised but contact details cannot be found" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      AuthorisationMocks.getInternalId("testID", Some(registrationID -> validAuthority.ids.internalId))
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(internalId)))
+
       ContactDetailsServiceMocks.updateContactDetails(registrationID, None)
 
-      val response = FakeRequest().withBody(Json.toJson(contactDetails))
-
-      val result = call(controller.updateContactDetails(registrationID), response)
+      val result = controller.updateContactDetails(registrationID)(request)
       status(result) shouldBe NOT_FOUND
     }
 
-    "return a 400 when the auth resource cannot be found" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      AuthorisationMocks.getInternalId("testID", None)
+    "return a 404 when the CT document cannot be found" in new Setup {
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(None))
 
-      val response = FakeRequest().withBody(Json.toJson(contactDetails))
-
-      val result = call(controller.updateContactDetails(registrationID), response)
+      val result = controller.updateContactDetails(registrationID)(request)
       status(result) shouldBe NOT_FOUND
     }
 
     "return a 403 when the user is unauthorised to access the record" in new Setup {
-      val authority = validAuthority.copy(ids = validAuthority.ids.copy(internalId = "notAuthorisedID"))
-      AuthenticationMocks.getCurrentAuthority(Some(authority))
-      AuthorisationMocks.getInternalId("testID", Some("testRegID" -> "testID"))
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(otherInternalID)))
 
-      val response = FakeRequest().withBody(Json.toJson(contactDetails))
-
-      val result = call(controller.updateContactDetails(registrationID), response)
+      val result = controller.updateContactDetails(registrationID)(request)
       status(result) shouldBe FORBIDDEN
     }
 
-    "return a 403 when the user is not logged in" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(None)
-      AuthorisationMocks.getInternalId("testID", Some("testRegID" -> "testID"))
+    "return a 401 when the user is not logged in" in new Setup {
+      mockAuthorise(Future.failed(MissingBearerToken()))
 
-      val response = FakeRequest().withBody(Json.toJson(contactDetails))
-
-      val result = call(controller.updateContactDetails(registrationID), response)
-      status(result) shouldBe FORBIDDEN
+      val result = controller.updateContactDetails(registrationID)(request)
+      status(result) shouldBe UNAUTHORIZED
     }
   }
 }
