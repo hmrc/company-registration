@@ -310,7 +310,7 @@ class CorporationTaxRegistrationControllerSpec extends UnitSpec with MockitoSuga
       "given an Accepted response without a CTUTR" in new Setup {
         val json = Json.toJson(AcknowledgementReferences(None, "bbb", "04"))
 
-        val request = FakeRequest().withBody[JsValue](Json.toJson(json))
+        val request = FakeRequest().withBody[JsValue](Json.toJson(""))
         val result = call(controller.acknowledgementConfirmation("TestAckRef"), request)
         status(result) shouldBe BAD_REQUEST
       }
