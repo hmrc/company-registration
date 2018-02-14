@@ -92,7 +92,7 @@ class ThrottleCheckISpec extends IntegrationSpecBase with LoginStub {
        """.stripMargin).as[JsObject]
 
     "allow a user through if they already have a reg doc" in new Setup {
-      setupSimpleAuthMocks()
+      stubAuthorise(internalId)
 
       val progress = "HO5"
       await(crRepo.collection.insert(crDoc(s""" "registrationProgress":"${progress}",""")))
@@ -114,7 +114,7 @@ class ThrottleCheckISpec extends IntegrationSpecBase with LoginStub {
     }
 
     "allow a user through if they're the first of the day" in new Setup {
-      setupSimpleAuthMocks()
+      stubAuthorise(internalId)
 
       private val brURL = "/business-registration/business-tax-registration"
       stubGet(brURL, 404, "")
@@ -134,7 +134,7 @@ class ThrottleCheckISpec extends IntegrationSpecBase with LoginStub {
     }
 
     "prevent a user through if we're at the limit" in new Setup {
-      setupSimpleAuthMocks()
+      stubAuthorise(internalId)
 
       await(throttleRepo.collection.insert(throttleDoc(throttleThreshold)))
 

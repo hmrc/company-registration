@@ -73,7 +73,7 @@ class RegistrationProgressISpec extends IntegrationSpecBase with LoginStub {
       """.stripMargin).as[JsObject]
 
     "Update the CR doc successfully with the progress info" in new Setup {
-      setupSimpleAuthMocks(internalId)
+      stubAuthorise(200, "internalId" -> internalId)
 
       await(repository.collection.insert(jsonDoc))
 

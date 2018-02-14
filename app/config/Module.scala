@@ -16,11 +16,12 @@
 
 package config
 
+import auth.{AuthClientConnector, AuthClientConnectorImpl}
 import com.google.inject.AbstractModule
 import connectors.{IncorporationInformationConnector, IncorporationInformationConnectorImpl}
 import controllers._
 import controllers.admin.{AdminController, AdminControllerImpl}
-import controllers.test.{EmailController, EmailControllerImp}
+import controllers.test.{EmailController, EmailControllerImpl}
 import services._
 import services.admin.{AdminService, AdminServiceImpl}
 import uk.gov.hmrc.play.config.inject.{DefaultServicesConfig, ServicesConfig}
@@ -32,22 +33,26 @@ class Module extends AbstractModule {
     //config
     bind(classOf[MicroserviceAppConfig]).to(classOf[MicroserviceAppConfigImpl])
     bind(classOf[ServicesConfig]).to(classOf[DefaultServicesConfig])
+    bind(classOf[WSHttp]).to(classOf[WSHttpImpl])
 
     // controllers
-    bind(classOf[EmailController]) to classOf[EmailControllerImp]
-    bind(classOf[AccountingDetailsController]) to classOf[AccountingDetailsControllerImp]
+    bind(classOf[EmailController]) to classOf[EmailControllerImpl]
+    bind(classOf[AccountingDetailsController]) to classOf[AccountingDetailsControllerImpl]
     bind(classOf[ProcessIncorporationsController]) to classOf[ProcessIncorporationsControllerImp]
-    bind(classOf[CompanyDetailsController]) to classOf[CompanyDetailsControllerImp]
-    bind(classOf[ContactDetailsController]) to classOf[ContactDetailsControllerImp]
-    bind(classOf[CorporationTaxRegistrationController]) to classOf[CorporationTaxRegistrationControllerImp]
-    bind(classOf[TradingDetailsController]) to classOf[TradingDetailsControllerImp]
+    bind(classOf[CompanyDetailsController]) to classOf[CompanyDetailsControllerImpl]
+    bind(classOf[ContactDetailsController]) to classOf[ContactDetailsControllerImpl]
+    bind(classOf[CorporationTaxRegistrationController]) to classOf[CorporationTaxRegistrationControllerImpl]
+    bind(classOf[TradingDetailsController]) to classOf[TradingDetailsControllerImpl]
     bind(classOf[UserAccessController]) to classOf[UserAccessControllerImp]
     bind(classOf[AdminController]) to classOf[AdminControllerImpl]
+    bind(classOf[HeldController]) to classOf[HeldControllerImpl]
+    bind(classOf[AccountingDetailsController]) to classOf[AccountingDetailsControllerImpl]
 
     bindServices()
 
     //connectors
     bind(classOf[IncorporationInformationConnector]).to(classOf[IncorporationInformationConnectorImpl])
+    bind(classOf[AuthClientConnector]).to(classOf[AuthClientConnectorImpl])
   }
 
 

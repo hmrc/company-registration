@@ -18,41 +18,31 @@ package controllers
 
 import javax.inject.Inject
 
-import auth.{Authenticated, LoggedIn, NotLoggedIn}
+import auth._
 import connectors.AuthConnector
 import play.api.libs.json.Json
-import play.api.mvc.Action
 import services.{MetricsService, UserAccessService}
-
-import uk.gov.hmrc.play.microservice.controller.BaseController
-
-import scala.concurrent.ExecutionContext.Implicits.global
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import scala.concurrent.Future
 
-class UserAccessControllerImp @Inject() (metrics: MetricsService, userAccessServ: UserAccessService) extends UserAccessController {
-  override val auth = AuthConnector
-  val userAccessService = userAccessServ
-  override val metricsService: MetricsService = metrics
-}
+class UserAccessControllerImp @Inject() (val authConnector: AuthClientConnector,
+                                         val metricsService: MetricsService,
+                                         val userAccessService: UserAccessService) extends UserAccessController
 
-trait UserAccessController extends BaseController with Authenticated{
-
-  val userAccessService : UserAccessService
+trait UserAccessController extends AuthenticatedController {
+  val userAccessService: UserAccessService
   val metricsService: MetricsService
-  val auth: AuthConnector
 
-  def checkUserAccess = Action.async {
+  def checkUserAccess = AuthenticatedAction.retrieve(internalId).async { intId =>
     implicit request =>
       val timer = metricsService.userAccessCRTimer.time()
-      authenticated{
-        case NotLoggedIn => Future.successful(Forbidden)
-        case LoggedIn(context) => userAccessService.checkUserAccess(context.ids.internalId) flatMap {
-          case Right(res) => { timer.stop()
-            Future.successful(Ok(Json.toJson(res)))
-          }
-          case Left(_) => timer.stop()
-                          Future.successful(TooManyRequest)
+      userAccessService.checkUserAccess(intId) flatMap {
+        case Right(res) => {
+          timer.stop()
+          Future.successful(Ok(Json.toJson(res)))
+        }
+        case Left(_) => timer.stop()
+          Future.successful(TooManyRequests)
       }
-    }
   }
 }

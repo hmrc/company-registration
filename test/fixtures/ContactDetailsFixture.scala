@@ -44,6 +44,17 @@ trait ContactDetailsFixture {
     Some("test@email.co.uk")
   )
 
+  def contactDetailsResponse(regId: String) = ContactDetailsResponse(
+    contactDetails.firstName,
+    contactDetails.middleName,
+    contactDetails.surname,
+    contactDetails.phone,
+    contactDetails.mobile,
+    contactDetails.email,
+    Links(Some(routes.ContactDetailsController.retrieveContactDetails(regId).url),
+      Some(routes.CorporationTaxRegistrationController.retrieveCorporationTaxRegistration(regId).url))
+  )
+
 
 
    val contactDetailsResponse = ContactDetailsResponse(

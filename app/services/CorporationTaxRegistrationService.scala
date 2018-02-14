@@ -101,9 +101,9 @@ trait CorporationTaxRegistrationService extends DateHelper {
     }
   }
 
-  def createCorporationTaxRegistrationRecord(internalID: String, registrationId: String, language: String): Future[CorporationTaxRegistration] = {
+  def createCorporationTaxRegistrationRecord(internalId: String, registrationId: String, language: String): Future[CorporationTaxRegistration] = {
     val record = CorporationTaxRegistration(
-      internalId = internalID,
+      internalId = internalId,
       registrationID = registrationId,
       formCreationTimestamp = formatTimestamp(currentDateTime),
       language = language)
@@ -268,6 +268,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
 
   private[services] class FailedToGetCredId extends NoStackTrace
 
+  //Todo remove this
   private[services] def retrieveCredId(implicit hc: HeaderCarrier): Future[String] = {
     microserviceAuthConnector.getCurrentAuthority flatMap {
       case Some(a) => Future.successful(a.gatewayId)

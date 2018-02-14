@@ -19,27 +19,20 @@ package controllers
 import javax.inject.Inject
 
 import auth._
-import connectors.AuthConnector
 import models.{ContactDetails, ErrorResponse}
-import play.api.Logger
 import play.api.libs.json.{JsObject, JsValue, Json}
-import play.api.mvc.Action
-import repositories.Repositories
+import play.api.mvc.{Action, AnyContent, AnyContentAsJson}
+import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.{ContactDetailsService, MetricsService}
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
-import uk.gov.hmrc.play.microservice.controller.BaseController
 
-import scala.concurrent.Future
-
-class ContactDetailsControllerImp @Inject() (metrics: MetricsService,
-                                             contactDetailsServ: ContactDetailsService) extends ContactDetailsController{
-  override val auth = AuthConnector
-  override val resourceConn = Repositories.cTRepository
-  override val contactDetailsService = contactDetailsServ
-  override val metricsService: MetricsService = metrics
+class ContactDetailsControllerImpl @Inject()(val metricsService: MetricsService,
+                                             val contactDetailsService: ContactDetailsService,
+                                             val authConnector: AuthClientConnector) extends ContactDetailsController {
+  override val resource: CorporationTaxRegistrationMongoRepository = Repositories.cTRepository
 }
 
-trait ContactDetailsController extends BaseController with Authenticated with Authorisation[String] {
+trait ContactDetailsController extends AuthorisedController {
 
   val contactDetailsService: ContactDetailsService
   val metricsService: MetricsService
@@ -54,46 +47,27 @@ trait ContactDetailsController extends BaseController with Authenticated with Au
       )
   }
 
-  def retrieveContactDetails(registrationID: String) = Action.async {
+  def retrieveContactDetails(registrationID: String): Action[AnyContent] = AuthorisedAction(registrationID).async {
     implicit request =>
-      authorised(registrationID){
-        case Authorised(_) => val timer = metricsService.retrieveContactDetailsCRTimer.time()
-                              contactDetailsService.retrieveContactDetails(registrationID) map {
-          case Some(details) => timer.stop()
-                                Ok(mapToResponse(registrationID, details))
-          case None => timer.stop()
-            NotFound(ErrorResponse.contactDetailsNotFound)
-        }
-        case NotLoggedInOrAuthorised =>
-          Logger.info(s"[ContactDetailsController] [retrieveContactDetails] User not logged in")
-          Future.successful(Forbidden)
-        case NotAuthorised(_) =>
-          Logger.info(s"[ContactDetailsController] [retrieveContactDetails] User logged in but not authorised for resource $registrationID")
-          Future.successful(Forbidden)
-        case AuthResourceNotFound(_) => Future.successful(NotFound)
+      val timer = metricsService.retrieveContactDetailsCRTimer.time()
+      contactDetailsService.retrieveContactDetails(registrationID).map{
+        case Some(details) => timer.stop()
+          Ok(mapToResponse(registrationID, details))
+        case None => timer.stop()
+          NotFound(ErrorResponse.contactDetailsNotFound)
       }
   }
 
-  def updateContactDetails(registrationID: String) = Action.async[JsValue](parse.json) {
+  def updateContactDetails(registrationID: String): Action[JsValue] = AuthorisedAction(registrationID).async(parse.json) {
     implicit request =>
-      authorised(registrationID){
-        case Authorised(_) => val timer = metricsService.updateContactDetailsCRTimer.time()
-          withJsonBody[ContactDetails]{ contactDetails =>
-            contactDetailsService.updateContactDetails(registrationID, contactDetails) map {
-              case Some(details) => timer.stop()
-                                    Ok(mapToResponse(registrationID, details))
-              case None => timer.stop()
-                NotFound(ErrorResponse.contactDetailsNotFound)
-            }
-          }
-        case NotLoggedInOrAuthorised =>
-          Logger.info(s"[ContactDetailsController] [retrieveContactDetails] User not logged in")
-          Future.successful(Forbidden)
-        case NotAuthorised(_) =>
-          Logger.info(s"[ContactDetailsController] [retrieveContactDetails] User logged in but not authorised for resource $registrationID")
-          Future.successful(Forbidden)
-        case AuthResourceNotFound(_) => Logger.info(s"[ContactDetailsController] [retrieveContactDetails] Auth resource not found $registrationID")
-          Future.successful(NotFound)
+      val timer = metricsService.updateContactDetailsCRTimer.time()
+      withJsonBody[ContactDetails]{ contactDetails =>
+        contactDetailsService.updateContactDetails(registrationID, contactDetails).map{
+          case Some(details) => timer.stop()
+            Ok(mapToResponse(registrationID, details))
+          case None => timer.stop()
+            NotFound(ErrorResponse.contactDetailsNotFound)
+        }
       }
   }
 }

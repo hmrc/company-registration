@@ -20,7 +20,7 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import connectors.AuthConnector
 import fixtures.AuthFixture
-import helpers.SCRSSpec
+import helpers.{BaseSpec, SCRSSpec}
 import models.{UserAccessLimitReachedResponse, UserAccessSuccessResponse}
 import org.mockito.ArgumentMatchers.{any, anyString}
 import org.mockito.Mockito._
@@ -30,12 +30,13 @@ import play.api.test.FakeRequest
 import services.{CorporationTaxRegistrationService, MetricsService, UserAccessService}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 import play.api.test.Helpers._
-import mocks.{MockMetricsService, SCRSMocks}
+import mocks.{AuthorisationMocks, MockMetricsService, SCRSMocks}
+import uk.gov.hmrc.auth.core.MissingBearerToken
 
 import scala.concurrent.Future
 import uk.gov.hmrc.http.HeaderCarrier
 
-class UserAccessControllerSpec extends UnitSpec with MockitoSugar with SCRSMocks with AuthFixture{
+class UserAccessControllerSpec extends BaseSpec with AuthorisationMocks {
 
   implicit val system = ActorSystem("CR")
   implicit val materializer = ActorMaterializer()
@@ -47,21 +48,25 @@ class UserAccessControllerSpec extends UnitSpec with MockitoSugar with SCRSMocks
   trait Setup {
     val controller = new UserAccessController {
       override val userAccessService = mockUserAccessService
-      override val auth = mockAuthConnector
       override val metricsService = MockMetricsService
+      override val authConnector = mockAuthClientConnector
     }
   }
 
+  val internalId = "int-12345"
 
   "checkUserAccess" should {
 
-    "return a forbidden status code" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(None)
-      status(controller.checkUserAccess(FakeRequest())) shouldBe FORBIDDEN
+    "return a unauthorised status code when user is not in session" in new Setup {
+      mockAuthorise(Future.failed(MissingBearerToken()))
+
+      val result = controller.checkUserAccess(FakeRequest())
+      status(result) shouldBe UNAUTHORIZED
     }
 
     "return a 200" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(internalId)))
       when(mockUserAccessService.checkUserAccess(anyString())(any()))
         .thenReturn(Future.successful(Right(UserAccessSuccessResponse("123", false, false, false))))
 
@@ -71,12 +76,13 @@ class UserAccessControllerSpec extends UnitSpec with MockitoSugar with SCRSMocks
     }
 
     "return a 429" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(internalId)))
       when(mockUserAccessService.checkUserAccess(anyString())(any()))
         .thenReturn(Future.successful(Left(Json.toJson(UserAccessLimitReachedResponse(limitReached = true)))))
 
       val result = controller.checkUserAccess(FakeRequest())
-      status(result) shouldBe TOO_MANY_REQUEST
+      status(result) shouldBe TOO_MANY_REQUESTS
     }
   }
 

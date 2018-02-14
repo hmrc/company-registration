@@ -20,12 +20,12 @@ package controllers
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import fixtures.{AccountingDetailsFixture, AuthFixture}
-import helpers.SCRSSpec
-import mocks.{MockMetricsService, SCRSMocks}
+import helpers.{BaseSpec, SCRSSpec}
+import mocks.{AuthorisationMocks, MockMetricsService, SCRSMocks}
 import models.{AccountPrepDetails, ErrorResponse}
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.{OneAppPerSuite, OneAppPerTest}
 import play.api.libs.json.{JsObject, Json}
 import play.api.test.FakeRequest
@@ -35,17 +35,14 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 
-class AccountingDetailsControllerSpec extends UnitSpec with MockitoSugar with SCRSMocks with  AuthFixture with AccountingDetailsFixture {
-
-  implicit val system = ActorSystem("CR")
-  implicit val materializer = ActorMaterializer()
+class AccountingDetailsControllerSpec extends BaseSpec with AccountingDetailsFixture with AuthorisationMocks {
 
   val mockPrepareAccountService = mock[PrepareAccountService]
 
   trait Setup {
     val controller = new AccountingDetailsController {
-      override val auth = mockAuthConnector
-      override val resourceConn = mockCTDataRepository
+      override val authConnector = mockAuthClientConnector
+      override val resource = mockResource
       override val accountingDetailsService = mockAccountingDetailsService
       override val metricsService = MockMetricsService
       override val prepareAccountService = mockPrepareAccountService
@@ -53,126 +50,65 @@ class AccountingDetailsControllerSpec extends UnitSpec with MockitoSugar with SC
   }
 
   val registrationID = "12345"
+  val internalId = "int-12345"
+
+  val accountingDetailsResponseJson = Json.toJson(validAccountingDetailsResponse)
 
   "retrieveAccountingDetails" should {
-    "return a 200 with accounting details in the json body when authorised" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockCTDataRepository.getInternalId(ArgumentMatchers.anyString()))
-        .thenReturn(Future.successful(Some(registrationID -> validAuthority.ids.internalId)))
+
+    "return a 200 with accounting details in the js on body when authorised" in new Setup {
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(internalId)))
+
       AccountingDetailsServiceMocks.retrieveAccountingDetails(registrationID, Some(validAccountingDetails))
 
       when(mockPrepareAccountService.updateEndDate(ArgumentMatchers.any()))
         .thenReturn(Future.successful(Some(AccountPrepDetails())))
 
-      val result = controller.retrieveAccountingDetails(registrationID)(FakeRequest())
+      val result = await(controller.retrieveAccountingDetails(registrationID)(FakeRequest()))
       status(result) shouldBe OK
-
-      val json =  await(jsonBodyOf(result)).as[JsObject]
-      json shouldBe Json.toJson(Some(validAccountingDetailsResponse))
+      contentAsJson(result) shouldBe accountingDetailsResponseJson
     }
 
 
     "return a 404 when the user is authorised but accounting details cannot be found" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockCTDataRepository.getInternalId(ArgumentMatchers.anyString()))
-        .thenReturn(Future.successful(Some(registrationID -> validAuthority.ids.internalId)))
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(internalId)))
+
       AccountingDetailsServiceMocks.retrieveAccountingDetails(registrationID, None)
 
       when(mockPrepareAccountService.updateEndDate(ArgumentMatchers.any()))
         .thenReturn(Future.successful(Some(AccountPrepDetails())))
 
-      val result = controller.retrieveAccountingDetails(registrationID)(FakeRequest())
+      val result = await(controller.retrieveAccountingDetails(registrationID)(FakeRequest()))
       status(result) shouldBe NOT_FOUND
-      await(jsonBodyOf(result)) shouldBe ErrorResponse.accountingDetailsNotFound
-    }
-
-    "return a 404 when the auth resource cannot be found" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockCTDataRepository.getInternalId(ArgumentMatchers.anyString()))
-        .thenReturn(Future.successful(None))
-      AccountingDetailsServiceMocks.retrieveAccountingDetails(registrationID, None)
-
-      val result = controller.retrieveAccountingDetails(registrationID)(FakeRequest())
-      status(result) shouldBe NOT_FOUND
-    }
-
-
-    "return a 403 when the user is unauthorised to access the record" in new Setup {
-      val authority = validAuthority.copy(ids = validAuthority.ids.copy(internalId = "notAuthorisedID"))
-      AuthenticationMocks.getCurrentAuthority(Some(authority))
-      when(mockCTDataRepository.getInternalId(ArgumentMatchers.anyString()))
-        .thenReturn(Future.successful(Some("testRegID" -> "testID")))
-
-      val result = controller.retrieveAccountingDetails(registrationID)(FakeRequest())
-      status(result) shouldBe FORBIDDEN
-    }
-
-    "return a 403 when the user is not logged in" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(None)
-      when(mockCTDataRepository.getInternalId(ArgumentMatchers.anyString()))
-        .thenReturn(Future.successful(Some("testRegID" -> "testID")))
-
-      val result = controller.retrieveAccountingDetails(registrationID)(FakeRequest())
-      status(result) shouldBe FORBIDDEN
+      contentAsJson(result) shouldBe ErrorResponse.accountingDetailsNotFound
     }
   }
 
   "updateAccountingDetails" should {
+
+    val request = FakeRequest().withBody(Json.toJson(validAccountingDetails))
+
     "return a 200 with accounting details in the json body when authorised" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockCTDataRepository.getInternalId(ArgumentMatchers.anyString()))
-        .thenReturn(Future.successful(Some(registrationID -> validAuthority.ids.internalId)))
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(internalId)))
+
       AccountingDetailsServiceMocks.updateAccountingDetails(registrationID, Some(validAccountingDetails))
 
-      val response = FakeRequest().withBody(Json.toJson(validAccountingDetails))
-
-      val result = call(controller.updateAccountingDetails(registrationID), response)
+      val result = await(controller.updateAccountingDetails(registrationID)(request))
       status(result) shouldBe OK
-
-      val json =  await(jsonBodyOf(result)).as[JsObject]
-      json shouldBe Json.toJson(Some(validAccountingDetailsResponse))
+      contentAsJson(result) shouldBe accountingDetailsResponseJson
     }
-  }
 
     "return a 404 when the user is authorised but accounting details cannot be found" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      AuthorisationMocks.getInternalId("testID", Some(registrationID -> validAuthority.ids.internalId))
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(Some(internalId)))
+
       AccountingDetailsServiceMocks.updateAccountingDetails(registrationID, None)
 
-      val response = FakeRequest().withBody(Json.toJson(validAccountingDetails))
-
-      val result = call(controller.updateAccountingDetails(registrationID), response)
+      val result = await(controller.updateAccountingDetails(registrationID)(request))
       status(result) shouldBe NOT_FOUND
     }
-
-    "return a 400 when the auth resource cannot be found" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      AuthorisationMocks.getInternalId("testID", None)
-
-      val response = FakeRequest().withBody(Json.toJson(validAccountingDetails))
-
-      val result = call(controller.updateAccountingDetails(registrationID), response)
-      status(result) shouldBe NOT_FOUND
-    }
-
-    "return a 403 when the user is unauthorised to access the record" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(Some(validAuthority))
-      when(mockCTDataRepository.getInternalId(ArgumentMatchers.anyString()))
-        .thenReturn(Future.successful(Some("testRegID" -> (validAuthority.ids.internalId + "123"))))
-
-      val response = FakeRequest().withBody(Json.toJson(validAccountingDetails))
-
-      val result = call(controller.updateAccountingDetails(registrationID), response)
-      status(result) shouldBe FORBIDDEN
-    }
-
-    "return a 403 when the user is not logged in" in new Setup {
-      AuthenticationMocks.getCurrentAuthority(None)
-      AuthorisationMocks.getInternalId("testID", Some("testRegID" -> "testID"))
-
-      val response = FakeRequest().withBody(Json.toJson(validAccountingDetails))
-
-      val result = call(controller.updateAccountingDetails(registrationID), response)
-      status(result) shouldBe FORBIDDEN
-    }
+  }
 }

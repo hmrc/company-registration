@@ -16,6 +16,8 @@
 
 package config
 
+import javax.inject.Inject
+
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.hooks.HttpHooks
 import uk.gov.hmrc.play.audit.http.HttpAuditing
@@ -29,6 +31,8 @@ trait Hooks extends HttpHooks with HttpAuditing {
   override val hooks = NoneRequired
   override lazy val auditConnector: AuditConnector = MicroserviceAuditConnector
 }
+
+class WSHttpImpl extends WSHttp
 
 object WSHttp extends WSHttp
 

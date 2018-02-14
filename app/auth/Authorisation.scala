@@ -31,6 +31,14 @@ final case class NotAuthorised(authContext: Authority) extends AuthorisationResu
 final case class Authorised(authContext: Authority) extends AuthorisationResult
 final case class AuthResourceNotFound(authContext: Authority) extends AuthorisationResult
 
+trait Authed {
+  val resource : AuthorisationResource[String]
+
+  def fetchInternalID(regId : String): Future[Option[String]] = {
+    resource.getInternalId(regId).map(_.map{ case(_, intId) => intId })
+  }
+}
+
 trait Authorisation[I] {
 
   val auth: AuthConnector
@@ -74,7 +82,7 @@ trait Authorisation[I] {
       case Some(context) => {
         resource match {
           case None => AuthResourceNotFound(context)
-          case Some((_, context.ids.internalId)) => Authorised (context)
+          case Some((_, context.ids.`internalId`)) => Authorised (context)
           case Some((_, _)) => NotAuthorised (context)
         }
       }
