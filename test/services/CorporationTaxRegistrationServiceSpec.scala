@@ -717,7 +717,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
 
     val ackRef = "testAckRef"
 
-    val refs = AcknowledgementReferences(Option("aaa"), "bbb", "ccc")
+    val refs = AcknowledgementReferences("aaa", "bbb", "ccc")
 
     val updated = validHeldCorporationTaxRegistration.copy(acknowledgementReferences = Some(refs), status = "acknowledged")
 
@@ -855,60 +855,4 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
       }
     }
   }
-
-
-  "rejectRegistration" should {
-    val registrationId = "testRegId"
-    val tID = "transID"
-    val ackRef = "transID"
-    val heldTime = Some(DateTime.now().minusWeeks(1))
-
-    val submission = CorporationTaxRegistration(
-      internalId = "testID",
-      registrationID = registrationId,
-      formCreationTimestamp = dateTime.toString,
-      language = "en",
-      status = RegistrationStatus.SUBMITTED,
-      companyDetails = Some(CompanyDetails(
-        "testCompanyName",
-        CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
-        PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"), None, "txid"))),
-        "testJurisdiction"
-      )),
-      contactDetails = Some(ContactDetails(
-        "testFirstName",
-        Some("testMiddleName"),
-        "testSurname",
-        Some("0123456789"),
-        Some("0123456789"),
-        Some("test@email.co.uk")
-      )),
-      tradingDetails = Some(TradingDetails("false")),
-      heldTimestamp = heldTime,
-      confirmationReferences = Some(ConfirmationReferences(
-        acknowledgementReference = ackRef,
-        transactionId = tID,
-        paymentReference = Some("payref"),
-        paymentAmount = Some("12")
-      ))
-    )
-
-    "return the status of REJECTED" in new Setup {
-      when(mockCTDataRepository.retrieveByAckRef(ArgumentMatchers.any()))
-        .thenReturn(Future.successful(Option(submission)))
-
-      when(mockCTDataRepository.updateSubmissionStatus(ArgumentMatchers.any(), ArgumentMatchers.any()))
-        .thenReturn(Future.successful(RegistrationStatus.REJECTED))
-
-      await(service.rejectRegistration(ackRef)) shouldBe Option(RegistrationStatus.REJECTED)
-    }
-
-    "return a runtime error" in new Setup {
-      when(mockCTDataRepository.retrieveByAckRef(ArgumentMatchers.any()))
-        .thenReturn(Future.successful(None))
-
-      await(service.rejectRegistration(ackRef)) shouldBe None
-    }
-  }
-
 }

@@ -169,27 +169,16 @@ trait CorporationTaxRegistrationController extends BaseController with Authentic
     Logger.debug(s"[CorporationTaxRegistrationController] [acknowledgementConfirmation] confirming for ack ${ackRef}")
     implicit request =>
       withJsonBody[AcknowledgementReferences] {
-
-        case accepted @ AcknowledgementReferences(Some(_), _, "04") =>
+        ackRefsPayload =>
           val timer = metrics.acknowledgementConfirmationCRTimer.time()
-          ctService.updateCTRecordWithAckRefs(ackRef, accepted) map {
-            case Some(_) =>
-              timer.stop()
+          ctService.updateCTRecordWithAckRefs(ackRef, ackRefsPayload) map {
+            case Some(record) => timer.stop()
               Logger.debug(s"[CorporationTaxRegistrationController] - [acknowledgementConfirmation] : Updated Record")
               metrics.ctutrConfirmationCounter.inc(1)
               Ok
-            case None =>
-              timer.stop()
+            case None => timer.stop()
               NotFound("Ack ref not found")
           }
-
-        case AcknowledgementReferences(_, _, "04") =>
-          Logger.error("CT_ACCEPTED_MISSING_UTR")
-          Future.successful(BadRequest("Accepted but no CTUTR provided"))
-
-        case rejected =>
-          Logger.error("CT_REJECTED")
-          ctService.rejectRegistration(ackRef) map {_ => Ok}
       }
   }
 
