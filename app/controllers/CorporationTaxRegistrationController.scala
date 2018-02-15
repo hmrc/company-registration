@@ -22,11 +22,13 @@ import auth._
 import models.{AcknowledgementReferences, ConfirmationReferences, CorporationTaxRegistrationRequest}
 import play.api.Logger
 import play.api.libs.json.{JsObject, JsValue, Json}
-import play.api.mvc.{Action, AnyContent, AnyContentAsJson}
+import play.api.mvc.{Action, AnyContent, AnyContentAsJson, Request}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.{CorporationTaxRegistrationService, MetricsService}
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import services.{CompanyRegistrationDoesNotExist, RegistrationProgressUpdated}
+import uk.gov.hmrc.auth.core.retrieve.Retrievals.credentials
+import uk.gov.hmrc.play.microservice.controller.BaseController
 
 class CorporationTaxRegistrationControllerImpl @Inject()(val metricsService: MetricsService,
                                                          val authConnector: AuthClientConnector) extends CorporationTaxRegistrationController {
@@ -34,7 +36,7 @@ class CorporationTaxRegistrationControllerImpl @Inject()(val metricsService: Met
   val resource: CorporationTaxRegistrationMongoRepository = Repositories.cTRepository
 }
 
-trait CorporationTaxRegistrationController extends AuthorisedController {
+trait CorporationTaxRegistrationController extends BaseController with AuthorisedActions {
 
   val ctService : CorporationTaxRegistrationService
   val metricsService : MetricsService
@@ -88,11 +90,14 @@ trait CorporationTaxRegistrationController extends AuthorisedController {
   }
 
   //HO5-1 and HO6
-  def handleSubmission(registrationID : String): Action[JsValue] = AuthorisedAction(registrationID).async(parse.json){
+  def handleSubmission(registrationID : String): Action[JsValue] =
+    AuthorisedAction(registrationID).retrieve(credentials).async(parse.json){ credentials =>
     implicit request =>
+      val requestAsAnyContentAsJson: Request[AnyContentAsJson] = request.map(AnyContentAsJson)
       withJsonBody[ConfirmationReferences] { refs =>
         val timer = metricsService.updateReferencesCRTimer.time()
-        ctService.handleSubmission(registrationID, refs)(hc, request.map(js => AnyContentAsJson(js))) map { references =>
+        ctService.handleSubmission(registrationID, credentials.providerId, refs)(
+          hc, requestAsAnyContentAsJson, isAdmin = false) map { references =>
           timer.stop()
           Logger.info(s"[Confirmation Refs] Acknowledgement ref:${references.acknowledgementReference} " +
             s"- Transaction id:${references.transactionId} - Payment ref:${references.paymentReference}")

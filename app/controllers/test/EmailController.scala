@@ -18,20 +18,21 @@ package controllers.test
 
 import javax.inject.Inject
 
-import auth.{AuthClientConnector, AuthorisedController}
+import auth.{AuthClientConnector, AuthorisedActions}
 import models.Email
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.EmailService
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
+import uk.gov.hmrc.play.microservice.controller.BaseController
 
 class EmailControllerImpl @Inject()(val emailService: EmailService,
                                     val authConnector: AuthClientConnector) extends EmailController {
   val resource: CorporationTaxRegistrationMongoRepository = Repositories.cTRepository
 }
 
-trait EmailController extends AuthorisedController {
+trait EmailController extends BaseController with AuthorisedActions {
 
   val emailService: EmailService
 

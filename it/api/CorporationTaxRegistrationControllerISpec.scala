@@ -186,8 +186,13 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
 
   "handleSubmission" should {
 
+    val authProviderId = "testAuthProviderId"
+    val authorisedRetrievals = Json.obj(
+      "internalId" -> internalId,
+      "credentials" -> Json.obj("providerId" -> authProviderId, "providerType" -> "testType"))
+
     "return Confirmation References when registration is in Held status" in new Setup {
-      stubAuthorise(internalId)
+      stubAuthorise(200, authorisedRetrievals)
 
       await(ctRepository.insert(heldRegistration.copy(confirmationReferences = Some(confRefsWithPayment))))
 
@@ -197,7 +202,7 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
     }
 
     "update Confirmation References when registration is in Held status (new HO6)" in new Setup {
-      stubAuthorise(internalId)
+      stubAuthorise(200, authorisedRetrievals)
 
       await(ctRepository.insert(heldRegistration))
 
@@ -219,8 +224,7 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
       """.stripMargin
 
       "registration is in Draft status and update Confirmation References with Ack Ref and Payment infos (old HO6)" in new Setup {
-        stubAuthorise(internalId)
-        setupSimpleAuthMocks(internalId)
+        stubAuthorise(200, authorisedRetrievals)
 
         System.setProperty("feature.registerInterest", "false")
         System.setProperty("feature.etmpHoldingPen", "true")
@@ -240,12 +244,12 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
       }
 
       "registration is in Draft status and update Confirmation References but DES submission failed (old HO6)" in new Setup {
+        stubAuthorise(200, authorisedRetrievals)
+
         System.setProperty("feature.registerInterest", "false")
         System.setProperty("feature.etmpHoldingPen", "true")
 
         await(ctRepository.insert(draftRegistration))
-
-        setupSimpleAuthMocks(internalId)
 
         stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
         stubPost(s"/business-registration/corporation-tax", 403, "")
@@ -259,6 +263,8 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
       }
 
       "registration is in Locked status (old HO6)" in new Setup {
+        stubAuthorise(200, authorisedRetrievals)
+
         val confRefsWithPayment = ConfirmationReferences(
           acknowledgementReference = ackRef,
           transactionId = transId,
@@ -271,8 +277,6 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
         System.setProperty("feature.etmpHoldingPen", "true")
 
         await(ctRepository.insert(lockedRegistration))
-
-        setupSimpleAuthMocks(internalId)
 
         stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
         stubPost(s"/business-registration/corporation-tax", 200, """{"a": "b"}""")
@@ -287,6 +291,8 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
       }
 
       "registration is in Draft status and update Confirmation References with Ack Ref (new HO5-1)" in new Setup {
+        stubAuthorise(200, authorisedRetrievals)
+
         val confRefsWithoutPayment = ConfirmationReferences(
           acknowledgementReference = ackRef,
           transactionId = transId,
@@ -298,8 +304,6 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
         System.setProperty("feature.etmpHoldingPen", "true")
 
         await(ctRepository.insert(draftRegistration))
-
-        setupSimpleAuthMocks(internalId)
 
         stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
         stubPost(s"/business-registration/corporation-tax", 200, """{"a": "b"}""")
@@ -314,6 +318,8 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
       }
 
       "registration is in Draft status and update Confirmation References with Ack Ref but DES submission FAILED (new HO5-1)" in new Setup {
+        stubAuthorise(200, authorisedRetrievals)
+
         val confRefsWithoutPayment = ConfirmationReferences(
           acknowledgementReference = ackRef,
           transactionId = transId,
@@ -325,8 +331,6 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
         System.setProperty("feature.etmpHoldingPen", "true")
 
         await(ctRepository.insert(draftRegistration))
-
-        setupSimpleAuthMocks(internalId)
 
         stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
         stubPost(s"/business-registration/corporation-tax", 403, "")
@@ -340,6 +344,8 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
       }
 
       "registration is in Locked status and update Confirmation References with Payment infos (new HO6)" in new Setup {
+        stubAuthorise(200, authorisedRetrievals)
+
         val confRefsWithoutPayment = ConfirmationReferences(
           acknowledgementReference = ackRef,
           transactionId = transId,
@@ -352,9 +358,6 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
         System.setProperty("feature.etmpHoldingPen", "true")
 
         await(ctRepository.insert(lockedRegistration))
-
-        stubAuthorise(internalId)
-        setupSimpleAuthMocks(internalId)
 
         stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
         stubPost(s"/business-registration/corporation-tax", 200, """{"a": "b"}""")

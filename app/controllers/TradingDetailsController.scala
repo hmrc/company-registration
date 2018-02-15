@@ -27,6 +27,7 @@ import play.api.mvc.Action
 import repositories.Repositories
 import services.{MetricsService, TradingDetailsService}
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
+import uk.gov.hmrc.play.microservice.controller.BaseController
 
 class TradingDetailsControllerImpl @Inject()(val metricsService: MetricsService,
                                              val tradingDetailsService: TradingDetailsService,
@@ -35,7 +36,7 @@ class TradingDetailsControllerImpl @Inject()(val metricsService: MetricsService,
 }
 
 
-trait TradingDetailsController extends AuthorisedController {
+trait TradingDetailsController extends BaseController with AuthorisedActions {
 
   val tradingDetailsService : TradingDetailsService
   val metricsService: MetricsService

@@ -28,7 +28,7 @@ import org.mockito.Mockito._
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import services.{CompanyRegistrationDoesNotExist, RegistrationProgressUpdated}
 import uk.gov.hmrc.auth.core.InsufficientConfidenceLevel
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.auth.core.retrieve.{~, Credentials}
 
 import scala.concurrent.Future
 
@@ -45,6 +45,7 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
 
   val regId = "reg-12345"
   val internalId = "int-12345"
+  val authProviderId = "auth-prov-id-12345"
 
   "createCorporationTaxRegistration" should {
 
@@ -172,19 +173,21 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
 
   "updateReferences" should {
 
+    val credentials = Credentials(authProviderId, "testProviderType")
+
     val confRefs = ConfirmationReferences("testTransactionId", "testPaymentRef", Some("testPaymentAmount"), Some(""))
     val request = FakeRequest().withBody(Json.toJson(confRefs))
 
     "return a 200 and an acknowledgement ref is one exists" in new Setup {
-      mockAuthorise(Future.successful(internalId))
+      mockAuthorise(Future.successful(new ~(internalId, credentials)))
       mockGetInternalId(Future.successful(Some(internalId)))
 
       val expectedRefs = ConfirmationReferences("BRCT00000000123", "tx", Some("py"), Some("12.00"))
 
-      when(mockCTDataService.handleSubmission(ArgumentMatchers.contains(regId), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any[HeaderCarrier], ArgumentMatchers.any()))
+      when(mockCTDataService.handleSubmission(eqTo(regId), any(), any())(any(), any(), eqTo(false)))
         .thenReturn(Future.successful(expectedRefs))
 
-      when(mockCTDataService.retrieveConfirmationReferences(ArgumentMatchers.eq(regId)))
+      when(mockCTDataService.retrieveConfirmationReferences(eqTo(regId)))
         .thenReturn(Future.successful(Some(expectedRefs)))
 
       val result = await(controller.handleSubmission(regId)(request))
