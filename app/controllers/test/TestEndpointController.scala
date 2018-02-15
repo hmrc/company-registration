@@ -21,7 +21,7 @@ import connectors.BusinessRegistrationConnector
 import helpers.DateHelper
 import models.ConfirmationReferences
 import play.api.libs.json.{JsObject, Json}
-import play.api.mvc.{Action, Result}
+import play.api.mvc.{Action, AnyContent, Result}
 import repositories._
 import services.CorporationTaxRegistrationService
 import uk.gov.hmrc.play.microservice.controller.BaseController
@@ -92,10 +92,11 @@ trait TestEndpointController extends BaseController {
       cTMongoRepository.updateSubmissionStatus(registrationId, "Held").map(_ => Ok)
   }
 
-  def updateConfirmationRefs(registrationId: String) = Action.async {
+  def updateConfirmationRefs(registrationId: String): Action[AnyContent] = Action.async {
     implicit request =>
       val confirmationRefs = ConfirmationReferences("", "testOnlyTransactionId", Some("testOnlyPaymentRef"), Some("12"))
-      cTService.handleSubmission(registrationId, confirmationRefs).map(_ => Ok)
+      cTService.handleSubmission(registrationId, "testAuthProviderId", confirmationRefs)(hc, request, isAdmin = false)
+        .map(_ => Ok)
   }
 
   def removeTaxRegistrationInformation(registrationId: String) = Action.async {

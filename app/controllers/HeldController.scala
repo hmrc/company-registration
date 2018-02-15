@@ -24,6 +24,7 @@ import play.api.mvc.{Action, AnyContent}
 import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmissionMongoRepository, Repositories}
 import services.RegistrationHoldingPenService
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
+import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.Future
 
@@ -33,7 +34,7 @@ class HeldControllerImpl @Inject()(val authConnector: AuthClientConnector) exten
   val resource: CorporationTaxRegistrationMongoRepository = Repositories.cTRepository
 }
 
-trait HeldController extends AuthorisedController {
+trait HeldController extends BaseController with AuthorisedActions {
 
   val resource: CorporationTaxRegistrationMongoRepository
   val heldRepo: HeldSubmissionMongoRepository

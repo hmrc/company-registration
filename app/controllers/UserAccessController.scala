@@ -19,21 +19,23 @@ package controllers
 import javax.inject.Inject
 
 import auth._
-import connectors.AuthConnector
 import play.api.libs.json.Json
+import play.api.mvc.{Action, AnyContent}
 import services.{MetricsService, UserAccessService}
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
+import uk.gov.hmrc.play.microservice.controller.BaseController
+
 import scala.concurrent.Future
 
 class UserAccessControllerImp @Inject() (val authConnector: AuthClientConnector,
                                          val metricsService: MetricsService,
                                          val userAccessService: UserAccessService) extends UserAccessController
 
-trait UserAccessController extends AuthenticatedController {
+trait UserAccessController extends BaseController with AuthenticatedActions {
   val userAccessService: UserAccessService
   val metricsService: MetricsService
 
-  def checkUserAccess = AuthenticatedAction.retrieve(internalId).async { intId =>
+  def checkUserAccess: Action[AnyContent] = AuthenticatedAction.retrieve(internalId).async { intId =>
     implicit request =>
       val timer = metricsService.userAccessCRTimer.time()
       userAccessService.checkUserAccess(intId) flatMap {

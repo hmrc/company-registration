@@ -14,6 +14,16 @@
  * limitations under the License.
  */
 
-package models.admin
+package auth
 
-case class Admin(credId: String)
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+
+trait AuthResource {
+
+  val resource : AuthorisationResource[String]
+
+  def fetchInternalID(regId : String): Future[Option[String]] = {
+    resource.getInternalId(regId).map(_.map{ case(_, intId) => intId })
+  }
+}

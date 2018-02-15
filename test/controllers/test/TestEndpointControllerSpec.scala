@@ -18,28 +18,26 @@ package controllers.test
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import connectors.BusinessRegistrationConnector
+import helpers.BaseSpec
 import models.ConfirmationReferences
 import org.mockito.ArgumentMatchers
-import org.scalatest.mock.MockitoSugar
+import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import repositories._
 import services.CorporationTaxRegistrationService
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 import org.mockito.Mockito._
 import play.api.test.Helpers._
 
 import scala.concurrent.Future
 
-class TestEndpointControllerSpec extends UnitSpec with MockitoSugar {
+class TestEndpointControllerSpec extends BaseSpec {
 
   implicit val system = ActorSystem("CR")
   implicit val mat = ActorMaterializer()
 
   val mockThrottleRepository = mock[ThrottleMongoRepository]
   val mockCTRepository = mock[CorporationTaxRegistrationMongoRepository]
-  val mockBusRegConnector = mock[BusinessRegistrationConnector]
   val mockHeldRepository = mock[HeldSubmissionRepository]
   val mockCTService = mock[CorporationTaxRegistrationService]
   val mockStateRepository = mock[StateDataMongoRepository]
@@ -150,7 +148,7 @@ class TestEndpointControllerSpec extends UnitSpec with MockitoSugar {
     val confirmationRefs = ConfirmationReferences("", "testTransID", Some("testPaymentRef"), Some("12"))
 
     "return a 200 if the document was successfully updated with a set of confirmation refs" in new Setup {
-      when(mockCTService.handleSubmission(ArgumentMatchers.eq(registrationId), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockCTService.handleSubmission(eqTo(registrationId), any(), any())(any(), any(), eqTo(false)))
         .thenReturn(Future.successful(confirmationRefs))
 
       val result = await(controller.updateConfirmationRefs(registrationId)(FakeRequest()))

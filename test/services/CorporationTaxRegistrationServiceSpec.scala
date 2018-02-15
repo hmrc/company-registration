@@ -25,7 +25,6 @@ import helpers.MongoMocks
 import mocks.SCRSMocks
 import models.RegistrationStatus._
 import models._
-import models.admin.Admin
 import models.des._
 import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers
@@ -62,6 +61,9 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
   val regId = "reg-id-12345"
   val transId = "trans-id-12345"
   val timestamp = "2016-10-27T17:06:23.000Z"
+  val authProviderId = "auth-prov-id-12345"
+
+  implicit val isAdmin: Boolean = false
 
   class Setup {
     val service = new CorporationTaxRegistrationService {
@@ -92,7 +94,6 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
       val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository = mockCTDataRepository
       val sequenceRepository: SequenceRepository = mockSequenceRepository
       val stateDataRepository: StateDataRepository = mockStateDataRepository
-      val microserviceAuthConnector: AuthConnector = mockAuthConnector
       val brConnector: BusinessRegistrationConnector = mockBRConnector
       val heldSubmissionRepository: HeldSubmissionRepository = mockHeldSubmissionRepository
       val submissionCheckAPIConnector: IncorporationCheckAPIConnector = mockIncorporationCheckAPIConnector
@@ -102,8 +103,9 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
       val currentDateTime: DateTime = dateTime
 
       override def isRegistrationDraftOrLocked(regId: String) = Future.successful(true)
-      override def submitPartial(rID: String, refs: ConfirmationReferences, admin: Option[Admin] = None)
-                                (implicit hc: HeaderCarrier, req: Request[AnyContent]) = Future.successful(refs)
+
+      override def submitPartial(rID: String, authProvId: String, refs: ConfirmationReferences)
+                                (implicit hc: HeaderCarrier, req: Request[AnyContent], isAdmin: Boolean) = Future.successful(refs)
     }
   }
 
@@ -301,7 +303,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
 
       val confRefs = ho6RequestBody
 
-      val result: ConfirmationReferences = await(stubbedService.handleSubmission(regId, ho6RequestBody))
+      val result: ConfirmationReferences = await(stubbedService.handleSubmission(regId, authProviderId, ho6RequestBody))
       result shouldBe confRefs
     }
 
@@ -315,7 +317,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
       when(mockCTDataRepository.retrieveConfirmationReferences(eqTo(regId)))
         .thenReturn(Future.successful(Some(confRefs)))
 
-      val result = await(service.handleSubmission(regId, ho6RequestBody))
+      val result = await(service.handleSubmission(regId, authProviderId, ho6RequestBody))
       result shouldBe confRefs
     }
 
@@ -333,7 +335,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
       when(mockCTDataRepository.updateConfirmationReferences(eqTo(regId), eqTo(confRefs)))
           .thenReturn(Future.successful(Some(confRefs)))
 
-      val result = await(service.handleSubmission(regId, confRefs))
+      val result = await(service.handleSubmission(regId, authProviderId, confRefs))
       result shouldBe confRefs
     }
 
@@ -343,7 +345,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
       when(mockCTDataRepository.retrieveConfirmationReferences(eqTo(regId)))
         .thenReturn(Future.successful(None))
 
-      intercept[RuntimeException](await(service.handleSubmission(regId, ho6RequestBody)))
+      intercept[RuntimeException](await(service.handleSubmission(regId, authProviderId, ho6RequestBody)))
     }
   }
 
@@ -514,21 +516,6 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
     }
   }
 
-  "retrieveCredId" should {
-
-    val gatewayId = "testGatewayID"
-    val userIDs = UserIds("foo", "bar")
-    val authority = Authority("testURI", gatewayId, "testUserDetailsLink", userIDs)
-
-    "return the credential id" in new Setup {
-      when(mockAuthConnector.getCurrentAuthority()(any()))
-        .thenReturn(Future.successful(Some(authority)))
-
-      val result: String = await(service.retrieveCredId)
-      result shouldBe gatewayId
-    }
-  }
-
   "retrieveBRMetadata" should {
 
     val businessRegistration = BusinessRegistration(
@@ -687,7 +674,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
 
       val interimDesRegistration = InterimDesRegistration(
         ackRef,
-        Metadata(sessionId, credId, "en", dateTime, Director),
+        Metadata(sessionId, authProviderId, "en", dateTime, Director),
         InterimCorporationTax(
           corporationTaxRegistration.companyDetails.get.companyName,
           returnsOnCT61 = false,
@@ -703,12 +690,10 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
 
       when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
-      when(mockAuthConnector.getCurrentAuthority()(ArgumentMatchers.any()))
-        .thenReturn(Future.successful(Some(authority)))
       when(mockCTDataRepository.retrieveCorporationTaxRegistration(eqTo(registrationId)))
         .thenReturn(Future.successful(Some(corporationTaxRegistration)))
 
-      val result = service.buildPartialDesSubmission(registrationId, ackRef)
+      val result = service.buildPartialDesSubmission(registrationId, ackRef, authProviderId)
       await(result).toString shouldBe interimDesRegistration.toString
     }
   }

@@ -16,9 +16,10 @@
 
 package mocks
 
-import connectors.{AuthConnector, Authority, IncorporationCheckAPIConnector}
+import connectors.{AuthConnector, Authority, BusinessRegistrationConnector, IncorporationCheckAPIConnector}
 import models._
 import org.mockito.ArgumentMatchers
+import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
 import org.mockito.stubbing.OngoingStubbing
 import org.scalatest.mock.MockitoSugar
@@ -45,6 +46,7 @@ trait SCRSMocks
   lazy val mockMetrics = mock[MetricsService]
   lazy val mockHeldSubRepo = mock[HeldSubmissionMongoRepository]
   lazy val mockRegHoldingPen = mock[RegistrationHoldingPenService]
+  val mockBusRegConnector = mock[BusinessRegistrationConnector]
 
   object CTServiceMocks {
     def createCTDataRecord(result: CorporationTaxRegistration): OngoingStubbing[Future[CorporationTaxRegistration]] = {
@@ -58,8 +60,7 @@ trait SCRSMocks
     }
 
     def updateConfirmationReferences(regID: String, returns: ConfirmationReferences)(implicit hc: HeaderCarrier) = {
-      when(mockCTDataService.handleSubmission(ArgumentMatchers.contains(regID), ArgumentMatchers.eq(ConfirmationReferences("transactID", "payRef", Some("payAmount"), Some(""))))
-      (ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockCTDataService.handleSubmission(eqTo(regID), any(), eqTo(ConfirmationReferences("transactID", "payRef", Some("payAmount"), Some(""))))(any(), any(), any()))
         .thenReturn(Future.successful(returns))
     }
   }

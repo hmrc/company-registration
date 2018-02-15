@@ -19,9 +19,9 @@ package controllers.admin
 import javax.inject.{Inject, Singleton}
 
 import models.{ConfirmationReferences, HO6RegistrationInformation}
-import models.admin.{Admin, HO6Identifiers, HO6Response}
+import models.admin.{HO6Identifiers, HO6Response}
 import play.api.Logger
-import play.api.libs.json.{JsObject, JsValue, Json}
+import play.api.libs.json.{Format, JsObject, JsValue, Json}
 import play.api.mvc.{Action, _}
 import services.CorporationTaxRegistrationService
 import services.admin.AdminService
@@ -62,25 +62,24 @@ trait AdminController extends BaseController with FutureInstances with Applicati
 
   def updateConfirmationReferences(): Action[JsValue] = Action.async(BodyParsers.parse.json) {
     implicit request =>
-      implicit val format = HO6Identifiers.format
-      withJsonBody[HO6Identifiers] { identifiers =>
-        val strideUser = identifiers.strideUser
-        val confirmationReferences = buildConfirmationRefs(identifiers)
-        val updatedHc = updateHeaderCarrierWithSessionId(identifiers.sessionId)
-        val admin = Admin(identifiers.credId)
-        fetchStatus(identifiers.registrationId) { statusBefore =>
-          ctService.handleSubmission(identifiers.registrationId, confirmationReferences, Some(admin))(updatedHc, request.map(js => AnyContentAsJson(js))) flatMap {
+      implicit val format: Format[HO6Identifiers] = HO6Identifiers.format
+      withJsonBody[HO6Identifiers] { ids =>
+        val confirmationReferences = buildConfirmationRefs(ids)
+        val updatedHc = updateHeaderCarrierWithSessionId(ids.sessionId)
+        fetchStatus(ids.registrationId) { statusBefore =>
+          ctService.handleSubmission(ids.registrationId, ids.credId, confirmationReferences)(
+            updatedHc, request.map(AnyContentAsJson), isAdmin = true).flatMap{
             references =>
               Logger.info(s"[Admin Confirmation Refs] Acknowledgement ref : ${references.acknowledgementReference} " +
                 s"- Transaction id : ${references.transactionId} - Payment ref : ${references.paymentReference}")
-              buildResponse(strideUser, isSuccess = true, statusBefore, identifiers)
+              buildResponse(isSuccess = true, statusBefore, ids)
           } recoverWith {
             case _: CorporationTaxRegistrationService#FailedToGetCTData =>
-              Logger.error(s"[Admin] [updateConfirmationReferences] No CT data found for regId : ${identifiers.registrationId}")
-              buildResponse(strideUser, isSuccess = false, statusBefore, identifiers)
+              Logger.error(s"[Admin] [updateConfirmationReferences] No CT data found for regId : ${ids.registrationId}")
+              buildResponse(isSuccess = false, statusBefore, ids)
             case ex: Exception =>
-              Logger.error(s"[Admin] [updateConfirmationReferences] Exception thrown for regId : ${identifiers.registrationId}", ex)
-              buildResponse(strideUser, isSuccess = false, statusBefore, identifiers)
+              Logger.error(s"[Admin] [updateConfirmationReferences] Exception thrown for regId : ${ids.registrationId}", ex)
+              buildResponse(isSuccess = false, statusBefore, ids)
           }
         }
       }
@@ -91,12 +90,12 @@ trait AdminController extends BaseController with FutureInstances with Applicati
       adminService.ctutrCheck(id) map (Ok(_))
   }
 
-  private def buildResponse(strideUser: String, isSuccess: Boolean, statusBefore: String, identifiers: HO6Identifiers)(implicit hc: HeaderCarrier): Future[Result] = {
+  private def buildResponse(isSuccess: Boolean, statusBefore: String, identifiers: HO6Identifiers)(implicit hc: HeaderCarrier): Future[Result] = {
     fetchStatus(identifiers.registrationId) { statusAfter =>
       val response = HO6Response(success = isSuccess, statusBefore, statusAfter)
       val jsonResponse = Json.toJson[HO6Response](response)(HO6Response.format)
       val result = (if(isSuccess) Ok(jsonResponse) else NotFound(jsonResponse)).pure[Future]
-      auditAdminEvent(strideUser, identifiers, response) flatMap {
+      auditAdminEvent(identifiers.strideUser, identifiers, response) flatMap {
         case AuditResult.Success => result
         case AuditResult.Failure(errMsg, _) =>
           Logger.error(s"[Admin] [Audit] - Failed to audit HO6 admin release event for regId : ${identifiers.registrationId} - reason - $errMsg")

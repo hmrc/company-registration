@@ -25,6 +25,7 @@ import play.api.mvc.{Action, AnyContent}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.{AccountingDetailsService, MetricsService, PrepareAccountService}
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
+import uk.gov.hmrc.play.microservice.controller.BaseController
 
 
 class AccountingDetailsControllerImpl @Inject()(val metricsService: MetricsService,
@@ -34,7 +35,7 @@ class AccountingDetailsControllerImpl @Inject()(val metricsService: MetricsServi
   val accountingDetailsService: AccountingDetailsService = AccountingDetailsService
 }
 
-trait AccountingDetailsController extends AuthorisedController {
+trait AccountingDetailsController extends BaseController with AuthorisedActions {
 
   val metricsService: MetricsService
   val accountingDetailsService: AccountingDetailsService

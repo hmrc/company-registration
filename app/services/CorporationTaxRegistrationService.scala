@@ -23,7 +23,6 @@ import config.MicroserviceAuditConnector
 import connectors._
 import helpers.DateHelper
 import models.RegistrationStatus._
-import models.admin.Admin
 import models.des._
 import models.{BusinessRegistration, ConfirmationReferences, CorporationTaxRegistration, _}
 import org.joda.time.{DateTime, DateTimeZone}
@@ -45,7 +44,6 @@ object CorporationTaxRegistrationService extends CorporationTaxRegistrationServi
   val stateDataRepository: StateDataMongoRepository = Repositories.stateDataRepository
   val heldSubmissionRepository: HeldSubmissionMongoRepository = Repositories.heldSubmissionRepository
 
-  val microserviceAuthConnector = AuthConnector
   val brConnector = BusinessRegistrationConnector
   val auditConnector = MicroserviceAuditConnector
   val submissionCheckAPIConnector = IncorporationCheckAPIConnector
@@ -64,7 +62,6 @@ trait CorporationTaxRegistrationService extends DateHelper {
   val cTRegistrationRepository: CorporationTaxRegistrationRepository
   val sequenceRepository: SequenceRepository
   val stateDataRepository: StateDataRepository
-  val microserviceAuthConnector: AuthConnector
   val brConnector: BusinessRegistrationConnector
   val heldSubmissionRepository: HeldSubmissionRepository
   val auditConnector: AuditConnector
@@ -123,10 +120,10 @@ trait CorporationTaxRegistrationService extends DateHelper {
   def isConfirmationPaymentRefsEmpty(refs: ConfirmationReferences): Boolean =
     refs.paymentReference.isEmpty && refs.paymentAmount.isEmpty
 
-  def handleSubmission(rID: String, refs: ConfirmationReferences, admin: Option[Admin] = None)
-                      (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[ConfirmationReferences] = {
+  def handleSubmission(rID: String, authProvId: String, refs: ConfirmationReferences)
+                      (implicit hc: HeaderCarrier, req: Request[AnyContent], isAdmin: Boolean): Future[ConfirmationReferences] = {
     isRegistrationDraftOrLocked(rID).ifM(
-      ifTrue = submitPartial(rID, refs, admin),
+      ifTrue = submitPartial(rID, authProvId, refs),
       ifFalse = {
         Logger.info(s"[CorporationTaxRegistrationService] [updateConfirmationReferences] - Confirmation refs for Reg ID: $rID already exist")
         cTRegistrationRepository.retrieveConfirmationReferences(rID) flatMap {
@@ -141,8 +138,8 @@ trait CorporationTaxRegistrationService extends DateHelper {
     )
   }
 
-  def submitPartial(rID: String, refs: ConfirmationReferences, admin: Option[Admin] = None)
-                   (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[ConfirmationReferences] = {
+  def submitPartial(rID: String, authProvId: String, refs: ConfirmationReferences)
+                   (implicit hc: HeaderCarrier, req: Request[AnyContent], isAdmin: Boolean): Future[ConfirmationReferences] = {
     cTRegistrationRepository.retrieveConfirmationReferences(rID) flatMap {
       case None =>
         for {
@@ -156,7 +153,10 @@ trait CorporationTaxRegistrationService extends DateHelper {
       case Some(cr) =>
         Future.successful(cr)
     } flatMap { cr =>
-        sendPartialSubmission(rID, cr, admin) map {if(_) cr else throw new RuntimeException("Document did not update successfully")}
+        sendPartialSubmission(rID, authProvId, cr).ifM(
+          ifTrue = Future.successful(cr),
+          ifFalse = throw new RuntimeException("Document did not update successfully")
+        )
     }
   }
 
@@ -176,14 +176,14 @@ trait CorporationTaxRegistrationService extends DateHelper {
     )(status => status == DRAFT || status == LOCKED)
   }
 
-  private[services] def sendPartialSubmission(regId: String, confRefs: ConfirmationReferences, admin: Option[Admin] = None)
-                           (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[Boolean] = {
+  private[services] def sendPartialSubmission(regId: String, authProvId: String, confRefs: ConfirmationReferences)
+                                             (implicit hc: HeaderCarrier, req: Request[AnyContent], isAdmin: Boolean): Future[Boolean] = {
     for{
-      partialSubmission         <- buildPartialDesSubmission(regId, confRefs.acknowledgementReference, admin)
+      partialSubmission         <- buildPartialDesSubmission(regId, confRefs.acknowledgementReference, authProvId)
       _                         <- registerInterest(regId, confRefs.transactionId)
-      _                         <- storePartial(regId, confRefs.acknowledgementReference, partialSubmission, admin)
+      _                         <- storePartial(regId, confRefs.acknowledgementReference, partialSubmission)
       partialSubmissionAsJson    = Json.toJson(partialSubmission).as[JsObject]
-      _                         <- auditUserPartialSubmission(regId, partialSubmissionAsJson, admin)
+      _                         <- auditUserPartialSubmission(regId, authProvId, partialSubmissionAsJson)
       success                   <- cTRegistrationRepository.updateRegistrationToHeld(regId, confRefs) map (_.isDefined)
     } yield success
   }
@@ -206,18 +206,17 @@ trait CorporationTaxRegistrationService extends DateHelper {
     if(registerInterestRequired()) incorpInfoConnector.registerInterest(regId, transactionId) else Future.successful(false)
   }
 
-  private[services] def storePartial(rID: String, ackRef: String, heldSubmission: InterimDesRegistration, admin: Option[Admin] = None)
+  private[services] def storePartial(rID: String, ackRef: String, heldSubmission: InterimDesRegistration)
                                     (implicit hc: HeaderCarrier, req: Request[AnyContent]) = {
     val submissionAsJson = Json.toJson(heldSubmission).as[JsObject]
     storePartialSubmission(rID, ackRef, submissionAsJson)
   }
 
-  private[services] def auditUserPartialSubmission(regId: String, partialSubmission: JsObject, admin: Option[Admin] = None)
+  private[services] def auditUserPartialSubmission(regId: String, authProvId: String, partialSubmission: JsObject)
                                                   (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[AuditResult] = {
     for{
       ctRegistration     <- cTRegistrationRepository.retrieveCompanyDetails(regId)
-      credId             <- admin.fold(retrieveAuthProviderId)(_.credId.pure[Future])
-      auditResult        <- auditUserSubmission(regId, ctRegistration.get.ppob, credId, partialSubmission)
+      auditResult        <- auditUserSubmission(regId, ctRegistration.get.ppob, authProvId, partialSubmission)
     } yield auditResult
   }
 
@@ -239,8 +238,6 @@ trait CorporationTaxRegistrationService extends DateHelper {
     }
   }
 
-  private[services] def retrieveAuthProviderId(implicit hc: HeaderCarrier) = microserviceAuthConnector.getUserDetails map (_.get.authProviderId)
-
   private[services] def auditUserSubmission(rID: String, ppob: PPOB, authProviderId: String, jsSubmission: JsObject)(implicit hc: HeaderCarrier, req: Request[AnyContent]) = {
     import PPOB.RO
 
@@ -252,31 +249,19 @@ trait CorporationTaxRegistrationService extends DateHelper {
     auditConnector.sendExtendedEvent(event)
   }
 
-  private[services] def buildPartialDesSubmission(regId: String, ackRef: String, admin: Option[Admin] = None)(implicit hc: HeaderCarrier): Future[InterimDesRegistration] = {
+  private[services] def buildPartialDesSubmission(regId: String, ackRef: String, authProvId: String)
+                                                 (implicit hc: HeaderCarrier, isAdmin: Boolean): Future[InterimDesRegistration] = {
 
     // TODO - check behaviour if session header is missing
     val sessionId = hc.headers.collect { case ("X-Session-ID", x) => x }.head
 
     for {
-      credId <- admin.fold(retrieveCredId)(a => Future.successful(a.credId))
-      brMetadata <- retrieveBRMetadata(regId, admin.isDefined)
+      brMetadata <- retrieveBRMetadata(regId, isAdmin)
       ctData <- retrieveCTData(regId)
     } yield {
-      buildInterimSubmission(ackRef, sessionId, credId, brMetadata, ctData, currentDateTime)
+      buildInterimSubmission(ackRef, sessionId, authProvId, brMetadata, ctData, currentDateTime)
     }
   }
-
-  private[services] class FailedToGetCredId extends NoStackTrace
-
-  //Todo remove this
-  private[services] def retrieveCredId(implicit hc: HeaderCarrier): Future[String] = {
-    microserviceAuthConnector.getCurrentAuthority flatMap {
-      case Some(a) => Future.successful(a.gatewayId)
-      case _ => Future.failed(new FailedToGetCredId)
-    }
-  }
-
-  private[services] class FailedToGetBRMetadata extends NoStackTrace
 
   private[services] def retrieveBRMetadata(regId: String, isAdmin: Boolean = false)(implicit hc: HeaderCarrier): Future[BusinessRegistration] = {
     (if(isAdmin) brConnector.adminRetrieveMetadata(regId) else brConnector.retrieveMetadata(regId)) flatMap {
@@ -367,10 +352,6 @@ trait CorporationTaxRegistrationService extends DateHelper {
     Future.sequence(regIds.map(check))
   }
 
-  private[services] def registerInterestRequired(): Boolean = SCRSFeatureSwitches.registerInterest.enabled
-
-  private[services] def toETMPHoldingPen: Boolean = SCRSFeatureSwitches.etmpHoldingPen.enabled
-
   def locateOldHeldSubmissions(implicit hc : HeaderCarrier): Future[String] = {
     cTRegistrationRepository.retrieveAllWeekOldHeldSubmissions().map {submissions =>
       if (submissions.nonEmpty) {
@@ -388,4 +369,10 @@ trait CorporationTaxRegistrationService extends DateHelper {
       }
     }
   }
+
+  private[services] class FailedToGetCredId extends NoStackTrace
+  private[services] class FailedToGetBRMetadata extends NoStackTrace
+
+  private[services] def registerInterestRequired(): Boolean = SCRSFeatureSwitches.registerInterest.enabled
+  private[services] def toETMPHoldingPen: Boolean = SCRSFeatureSwitches.etmpHoldingPen.enabled
 }

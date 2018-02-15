@@ -23,43 +23,41 @@ import uk.gov.hmrc.auth.core.AuthProvider.GovernmentGateway
 import uk.gov.hmrc.auth.core.retrieve.{Retrieval, SimpleRetrieval}
 import uk.gov.hmrc.auth.core.retrieve.~
 import uk.gov.hmrc.auth.core.{AuthorisationException, _}
-import uk.gov.hmrc.play.microservice.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
+import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.Future
 
-trait AuthenticatedController extends MicroserviceAuthorisedFunctions with BaseController {
-  private[auth] val IGNORE_BODY: BodyParser[AnyContent] = BodyParsers.parse.ignore(AnyContentAsEmpty: AnyContent)
+trait AuthenticatedActions extends MicroserviceAuthorisedFunctions {
+  self: BaseController =>
+
   private[auth] val predicate = ConfidenceLevel.L50 and AuthProviders(GovernmentGateway)
+
   val internalId: Retrieval[String] = SimpleRetrieval("internalId", Reads.StringReads)
 
   object AuthenticatedAction extends ActionBuilder[Request] {
 
     override def invokeBlock[T](request: Request[T], block: (Request[T]) => Future[Result]): Future[Result] = {
       implicit val req: Request[T] = request
-      authorised(predicate)(block(request)).recover(authErrorHandling[T])
+      authorised(predicate)(block(request)).recover(authenticationErrorHandling[T])
     }
 
     def retrieve[T](retrieval: Retrieval[T]) = new AuthenticatedWithRetrieval(retrieval)
 
-    class AuthenticatedWithRetrieval[T](retrieval: Retrieval[T]) {
+    class AuthenticatedWithRetrieval[T](retrieval: Retrieval[T]) extends AsyncRequest[T] {
 
-      private def withRetrieval[A](bodyParser: BodyParser[A])(f: T => Action[A]): Action[A] = {
+      override protected[auth] def withRetrieval[A](bodyParser: BodyParser[A])(f: T => Action[A]): Action[A] = {
         Action.async(bodyParser) {
           implicit request =>
-            authConnector.authorise(predicate, retrieval).flatMap(f(_)(request)).recover(authErrorHandling[A])
+            authConnector.authorise(predicate, retrieval)
+              .flatMap(f(_)(request))
+              .recover(authenticationErrorHandling[A])
         }
-      }
-
-      def async(body: T => Request[AnyContent] => Future[Result]): Action[AnyContent] = async(IGNORE_BODY)(body)
-
-      def async[A](parser: BodyParser[A])(body: T => Request[A] => Future[Result]): Action[A] = {
-        withRetrieval(parser)(r => Action.async(parser)(body(r)))
       }
     }
   }
 
-  private def authErrorHandling[A](implicit request: Request[A]): PartialFunction[Throwable, Result] = {
+  private def authenticationErrorHandling[A](implicit request: Request[A]): PartialFunction[Throwable, Result] = {
     case _: NoActiveSession =>
       Logger.error(s"User has no active session when trying to access ${request.path}")
       Unauthorized
@@ -69,48 +67,42 @@ trait AuthenticatedController extends MicroserviceAuthorisedFunctions with BaseC
   }
 }
 
-trait AuthorisedController extends Authed with AuthenticatedController {
+trait AuthorisedActions extends AuthenticatedActions with AuthResource {
+  self: BaseController =>
 
   case class AuthorisedAction(regId: String) extends ActionBuilder[Request] {
 
     override def invokeBlock[A](request: Request[A], block: (Request[A]) => Future[Result]): Future[Result] = {
       implicit val req: Request[A] = request
-      authorised(ConfidenceLevel.L50).retrieve(internalId) { intId =>
+      authorised(ConfidenceLevel.L50).retrieve(internalId) { authIntId =>
         fetchInternalID(regId).flatMap {
-          case Some(documentIntId) if intId == documentIntId => block(request)
+          case Some(documentIntId) if authIntId == documentIntId => block(request)
           case Some(_) => throw new UnauthorisedAccess
-          case None => throw new NoCTDocumentFound
+          case None    => throw new NoCTDocumentFound
         }
-      }.recover(authErrorHandling[A](regId))
+      }.recover(authorisationErrorHandling[A](regId))
     }
 
     def retrieve[T](retrieval: Retrieval[T]) = new AuthorisedWithRetrieval(retrieval)
 
-    class AuthorisedWithRetrieval[T](retrieval: Retrieval[T]) {
+    class AuthorisedWithRetrieval[T](retrieval: Retrieval[T]) extends AsyncRequest[T] {
 
-      private def withRetrieval[A](bodyParser: BodyParser[A])(f: T => Action[A]): Action[A] = {
+      override protected[auth] def withRetrieval[A](bodyParser: BodyParser[A])(block: T => Action[A]): Action[A] = {
         Action.async(bodyParser) {
           implicit request =>
-            authConnector.authorise(predicate, internalId and retrieval).flatMap{ case (intId ~ retrievals) =>
+            authConnector.authorise(predicate, internalId and retrieval).flatMap{ case (authIntId ~ retrievals) =>
               fetchInternalID(regId).flatMap {
-                case Some(documentIntId) if intId == documentIntId => f(retrievals)(request)
+                case Some(documentIntId) if authIntId == documentIntId => block(retrievals)(request)
                 case Some(_) => throw new UnauthorisedAccess
-                case None => throw new NoCTDocumentFound
+                case None    => throw new NoCTDocumentFound
               }
-            }.recover(authErrorHandling[A](regId))
+            }.recover(authorisationErrorHandling[A](regId))
         }
-      }
-
-
-      def async(body: T => Request[AnyContent] => Future[Result]): Action[AnyContent] = async(IGNORE_BODY)(body)
-
-      def async[A](parser: BodyParser[A])(body: T => Request[A] => Future[Result]): Action[A] = {
-        withRetrieval(parser)(r => Action.async(parser)(body(r)))
       }
     }
   }
 
-  private def authErrorHandling[A](regId: String)(implicit request: Request[A]): PartialFunction[Throwable, Result] = {
+  private def authorisationErrorHandling[A](regId: String)(implicit request: Request[A]): PartialFunction[Throwable, Result] = {
     case _: NoActiveSession =>
       Logger.error(s"User with regId $regId has no active session when trying to access ${request.path}")
       Unauthorized
@@ -123,5 +115,17 @@ trait AuthorisedController extends Authed with AuthenticatedController {
     case e: AuthorisationException =>
       Logger.error(s"User forbidden when trying to access ${request.path}", e)
       Forbidden
+  }
+}
+
+trait AsyncRequest[T] {
+  private val IGNORE_BODY: BodyParser[AnyContent] = BodyParsers.parse.ignore(AnyContentAsEmpty: AnyContent)
+
+  protected def withRetrieval[A](bodyParser: BodyParser[A])(f: T => Action[A]): Action[A]
+
+  def async(body: T => Request[AnyContent] => Future[Result]): Action[AnyContent] = async(IGNORE_BODY)(body)
+
+  def async[A](parser: BodyParser[A])(body: T => Request[A] => Future[Result]): Action[A] = {
+    withRetrieval(parser)(r => Action.async(parser)(body(r)))
   }
 }

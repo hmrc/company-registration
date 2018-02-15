@@ -84,5 +84,14 @@ trait WiremockHelper {
       ))
   }
 
+  def stubAuthorise(status: Int, body: JsObject) = {
+    stubFor(post(urlMatching("/auth/authorise"))
+      .willReturn(
+        aResponse()
+          .withStatus(status)
+          .withBody(body.toString())
+      ))
+  }
+
   def stubAuthorise(internalId: String): StubMapping = stubAuthorise(200, "internalId" -> internalId)
 }
