@@ -54,7 +54,7 @@ class CTUTRMongoRepositoryISpec
     )
 
     val validAckRefs = AcknowledgementReferences(
-      ctUtr = "CTUTR123456789",
+      ctUtr = Option("CTUTR123456789"),
       timestamp = "856412556487",
       status = "success"
     )
