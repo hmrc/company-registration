@@ -133,7 +133,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     )
 
     val validAckRefs = AcknowledgementReferences(
-      ctUtr = "CTUTR123456789",
+      ctUtr = Option("CTUTR123456789"),
       timestamp = "856412556487",
       status = "success"
     )
@@ -449,7 +449,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       )),
       tradingDetails = Some(TradingDetails("true")),
       status = status,
-      acknowledgementReferences = if (ctutr) Some(AcknowledgementReferences("ctutr", "timestamp", "accepted")) else None,
+      acknowledgementReferences = if (ctutr) Some(AcknowledgementReferences(Option("ctutr"), "timestamp", "accepted")) else None,
       createdTime = DateTime.parse("2017-09-04T14:49:48.261"),
       lastSignedIn = DateTime.parse("2017-09-04T14:49:48.261")
     )
@@ -493,7 +493,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       tradingDetails = Some(TradingDetails("true")),
       status = status,
       confirmationReferences = Some(ConfirmationReferences(acknowledgementReference = ackRef, "txId", None, None)),
-      acknowledgementReferences = if (ctutr) Some(AcknowledgementReferences("ctutr", "timestamp", "accepted")) else None,
+      acknowledgementReferences = if (ctutr) Some(AcknowledgementReferences(Option("ctutr"), "timestamp", "accepted")) else None,
       createdTime = DateTime.parse("2017-09-04T14:49:48.261"),
       lastSignedIn = DateTime.parse("2017-09-04T14:49:48.261")
     )

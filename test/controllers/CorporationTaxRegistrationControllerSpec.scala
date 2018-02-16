@@ -20,15 +20,15 @@ import fixtures.CorporationTaxRegistrationFixture
 import helpers.BaseSpec
 import mocks.{AuthorisationMocks, MockMetricsService}
 import models.{AcknowledgementReferences, ConfirmationReferences}
+import org.mockito.ArgumentMatchers.{any, eq => eqTo}
+import org.mockito.Mockito._
 import org.mockito.{ArgumentCaptor, ArgumentMatchers}
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import org.mockito.Mockito._
-import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import services.{CompanyRegistrationDoesNotExist, RegistrationProgressUpdated}
 import uk.gov.hmrc.auth.core.InsufficientConfidenceLevel
-import uk.gov.hmrc.auth.core.retrieve.{~, Credentials}
+import uk.gov.hmrc.auth.core.retrieve.{Credentials, ~}
 
 import scala.concurrent.Future
 
@@ -204,49 +204,83 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
   }
 
   "acknowledgementConfirmation" should {
+
+    def request(ctutr: Boolean, code: String) = FakeRequest().withBody(Json.toJson(AcknowledgementReferences(if (ctutr) Option("aaa") else None, "bbb", code)))
+
     "return a bad request" when {
       "given invalid json" in new Setup {
         val request = FakeRequest().withBody(Json.toJson(""))
         val result = await(controller.acknowledgementConfirmation("TestAckRef")(request))
         status(result) shouldBe BAD_REQUEST
       }
-    }
+      "given an Accepted response without a CTUTR" in new Setup {
+        val json = Json.toJson(AcknowledgementReferences(None, "bbb", "04"))
 
-    "return an OK" when {
-
-      val ackRef = "TestAckRef"
-
-      val refs = AcknowledgementReferences("aaa", "bbb", "ccc")
-
-      val jsonBody = Json.toJson(refs)
-
-      val request = FakeRequest().withBody(jsonBody)
-
-      "a CT record cannot be found against the given ack ref" in new Setup {
-        when(mockCTDataService.updateCTRecordWithAckRefs(ArgumentMatchers.eq(ackRef), ArgumentMatchers.eq(refs)))
-          .thenReturn(Future.successful(Some(validHeldCorporationTaxRegistration)))
-
-        val result = controller.acknowledgementConfirmation(ackRef)(request)
-        status(result) shouldBe OK
+        val request = FakeRequest().withBody(Json.toJson(json))
+        val result = await(controller.acknowledgementConfirmation("TestAckRef")(request))
+        status(result) shouldBe BAD_REQUEST
       }
     }
 
-    "return an AckRefNotFound" when {
-
+    "return an OK" when {
       val ackRef = "TestAckRef"
+      val accepted = List("04", "05")
 
-      val refs = AcknowledgementReferences("aaa", "bbb", "ccc")
+      "given an Accepted response with a CTUTR" in new Setup {
+        when(mockCTDataService.updateCTRecordWithAckRefs(ArgumentMatchers.eq(ackRef), ArgumentMatchers.any()))
+          .thenReturn(Future.successful(Some(validHeldCorporationTaxRegistration)))
 
-      val jsonBody = Json.toJson(refs)
+        accepted foreach { code =>
+          val result = controller.acknowledgementConfirmation(ackRef)(request(ctutr = true, code))
+          status(result) shouldBe OK
+        }
+      }
 
-      val request = FakeRequest().withBody(jsonBody)
+      "given any Rejected response" which {
+        val rejections = List("06", "07", "08", "09", "10")
 
-      "a CT record cannot be found against the given ack ref" in new Setup {
-        when(mockCTDataService.updateCTRecordWithAckRefs(eqTo(ackRef), eqTo(refs)))
-          .thenReturn(Future.successful(None))
+        val rejected = Some(
+          validHeldCorporationTaxRegistration
+          .copy(acknowledgementReferences = Some(AcknowledgementReferences(None, "Timestamp", "06")))
+        )
 
-        val result = controller.acknowledgementConfirmation(ackRef)(request)
-        status(result) shouldBe NOT_FOUND
+        "has a CTUTR" in new Setup {
+          when(mockCTDataService.updateCTRecordWithAckRefs(ArgumentMatchers.eq(ackRef), ArgumentMatchers.any()))
+            .thenReturn(Future.successful(rejected))
+
+          val ctutrExists = controller.acknowledgementConfirmation(ackRef)(request(ctutr = true, rejections.head))
+          status(ctutrExists) shouldBe OK
+        }
+
+        "has no CTUTR" in new Setup {
+            when(mockCTDataService.updateCTRecordWithAckRefs(ArgumentMatchers.eq(ackRef), ArgumentMatchers.any()))
+              .thenReturn(Future.successful(rejected))
+            rejections.tail foreach { code =>
+              val result = controller.acknowledgementConfirmation(ackRef)(request(ctutr = false, code))
+              status(result) shouldBe OK
+            }
+        }
+      }
+
+      "return an AckRefNotFound" when {
+        val ackRef = "TestAckRef"
+
+        "a CT record cannot be found against the given ack ref" in new Setup {
+          when(mockCTDataService.updateCTRecordWithAckRefs(eqTo(ackRef), any()))
+            .thenReturn(Future.successful(None))
+
+          val result = controller.acknowledgementConfirmation(ackRef)(request(ctutr = true, "04"))
+          status(result) shouldBe NOT_FOUND
+        }
+      }
+
+      "return a RuntimeException" when {
+        val ackRef = "TestAckRef"
+
+        "the status provided is not recognised by the contract" in new Setup {
+          val result = controller.acknowledgementConfirmation(ackRef)(request(ctutr = true, "I'm a surprise"))
+          intercept[RuntimeException](await(result))
+        }
       }
     }
   }

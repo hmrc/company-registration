@@ -80,18 +80,13 @@ trait CorporationTaxRegistrationService extends DateHelper {
     }
   }
 
-  def updateCTRecordWithAckRefs(ackRef: String, refPayload: AcknowledgementReferences): Future[Option[CorporationTaxRegistration]] = {
+
+  def updateCTRecordWithAckRefs(ackRef: String, etmpNotification: AcknowledgementReferences): Future[Option[CorporationTaxRegistration]] = {
     cTRegistrationRepository.retrieveByAckRef(ackRef) flatMap {
       case Some(record) =>
-        record.acknowledgementReferences match {
-          case Some(_) =>
-            Logger.info(s"[CorporationTaxRegistrationService] - [updateCTRecordWithAckRefs] : Record previously updated")
-            Future.successful(Some(record))
-          case None =>
-            cTRegistrationRepository.updateCTRecordWithAcknowledgments(ackRef, record.copy(acknowledgementReferences = Some(refPayload), status = "acknowledged")) map {
-              _ => Some(record)
-            }
-        }
+          cTRegistrationRepository.updateCTRecordWithAcknowledgments(ackRef, record.copy(acknowledgementReferences = Some(etmpNotification), status = "acknowledged")) map {
+            _ => Some(record)
+          }
       case None =>
         Logger.info(s"[CorporationTaxRegistrationService] - [updateCTRecordWithAckRefs] : No record could not be found using this ackref")
         Future.successful(None)

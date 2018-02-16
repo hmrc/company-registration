@@ -20,7 +20,6 @@ import javax.inject.Inject
 
 import auth._
 import models.{AcknowledgementReferences, ConfirmationReferences, CorporationTaxRegistrationRequest}
-import play.api.Logger
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.{Action, AnyContent, AnyContentAsJson, Request}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
@@ -29,6 +28,9 @@ import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import services.{CompanyRegistrationDoesNotExist, RegistrationProgressUpdated}
 import uk.gov.hmrc.auth.core.retrieve.Retrievals.credentials
 import uk.gov.hmrc.play.microservice.controller.BaseController
+import utils.Logging
+
+import scala.concurrent.Future
 
 class CorporationTaxRegistrationControllerImpl @Inject()(val metricsService: MetricsService,
                                                          val authConnector: AuthClientConnector) extends CorporationTaxRegistrationController {
@@ -36,7 +38,7 @@ class CorporationTaxRegistrationControllerImpl @Inject()(val metricsService: Met
   val resource: CorporationTaxRegistrationMongoRepository = Repositories.cTRepository
 }
 
-trait CorporationTaxRegistrationController extends BaseController with AuthorisedActions {
+trait CorporationTaxRegistrationController extends BaseController with AuthorisedActions with Logging {
 
   val ctService : CorporationTaxRegistrationService
   val metricsService : MetricsService
@@ -99,7 +101,7 @@ trait CorporationTaxRegistrationController extends BaseController with Authorise
         ctService.handleSubmission(registrationID, credentials.providerId, refs)(
           hc, requestAsAnyContentAsJson, isAdmin = false) map { references =>
           timer.stop()
-          Logger.info(s"[Confirmation Refs] Acknowledgement ref:${references.acknowledgementReference} " +
+          logger.info(s"[Confirmation Refs] Acknowledgement ref:${references.acknowledgementReference} " +
             s"- Transaction id:${references.transactionId} - Payment ref:${references.paymentReference}")
           Ok(Json.toJson[ConfirmationReferences](references))
         }
@@ -118,17 +120,37 @@ trait CorporationTaxRegistrationController extends BaseController with Authorise
   }
 
   def acknowledgementConfirmation(ackRef : String): Action[JsValue] = Action.async[JsValue](parse.json) {
-    Logger.debug(s"[CorporationTaxRegistrationController] [acknowledgementConfirmation] confirming for ack ${ackRef}")
+    logger.debug(s"[CorporationTaxRegistrationController] [acknowledgementConfirmation] confirming for ack ${ackRef}")
     implicit request =>
-      withJsonBody[AcknowledgementReferences]{ ackRefsPayload =>
-        val timer = metricsService.acknowledgementConfirmationCRTimer.time()
-        ctService.updateCTRecordWithAckRefs(ackRef, ackRefsPayload) map {
-          case Some(_) => timer.stop()
-            Logger.debug(s"[CorporationTaxRegistrationController] - [acknowledgementConfirmation] : Updated Record")
-            metricsService.ctutrConfirmationCounter.inc(1)
-            Ok
-          case None => timer.stop()
-            NotFound("Ack ref not found")
+      withJsonBody[AcknowledgementReferences]{ etmpNotification =>
+
+        (etmpNotification.ctUtr.isDefined, etmpNotification.status) match {
+
+          case accepted @ (true, "04" | "05") => {
+            val timer = metricsService.acknowledgementConfirmationCRTimer.time()
+            ctService.updateCTRecordWithAckRefs(ackRef, etmpNotification) map {
+              case Some(_) =>
+                timer.stop()
+                metricsService.ctutrConfirmationCounter.inc(1)
+                Ok
+              case None =>
+                timer.stop()
+                NotFound(s"Document not found for Ack ref: $ackRef")
+            }
+          }
+
+          case rejected @ (_, "06" | "07" | "08" | "09" | "10") => {
+            logger.pagerDuty("CT_REJECTED", s"Received a Rejected response code (${etmpNotification.status}) from ETMP for ackRef: $ackRef")
+            ctService.updateCTRecordWithAckRefs(ackRef, etmpNotification.copy(ctUtr = None)) map { _ => Ok }
+          }
+
+          case missingCTUTR @ (_, "04" | "05") => {
+            logger.pagerDuty("CT_ACCEPTED_MISSING_UTR", s"Received an Accepted response code (${etmpNotification.status}) from ETMP without a CTUTR for ackRef: $ackRef")
+            Future.successful(BadRequest(s"Accepted but no CTUTR provided for ackRef: $ackRef"))
+          }
+
+          case unrecognised =>
+            Future.failed(new RuntimeException(s"Unknown notification code (${etmpNotification.status}) received from ETMP for ackRef: $ackRef"))
         }
       }
   }

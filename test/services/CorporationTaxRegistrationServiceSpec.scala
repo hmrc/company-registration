@@ -702,7 +702,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
 
     val ackRef = "testAckRef"
 
-    val refs = AcknowledgementReferences("aaa", "bbb", "ccc")
+    val refs = AcknowledgementReferences(Option("aaa"), "bbb", "ccc")
 
     val updated = validHeldCorporationTaxRegistration.copy(acknowledgementReferences = Some(refs), status = "acknowledged")
 
@@ -728,14 +728,6 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
 
         val result = await(service.updateCTRecordWithAckRefs(ackRef, refs))
         result shouldBe Some(validHeldCorporationTaxRegistration)
-      }
-
-      "the ct record has been found but has been already updated" in new Setup {
-        when(mockCTDataRepository.retrieveByAckRef(eqTo(ackRef)))
-          .thenReturn(Future.successful(Some(updated)))
-
-        val result = await(service.updateCTRecordWithAckRefs(ackRef, refs))
-        result shouldBe Some(updated)
       }
     }
   }
