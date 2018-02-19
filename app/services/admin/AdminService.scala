@@ -24,7 +24,6 @@ import connectors.IncorporationInformationConnector
 import helpers.DateFormatter
 import models.HO6RegistrationInformation
 import models.admin.{HO6Identifiers, HO6Response}
-import models.validation.IDRegex._
 import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.Request
@@ -87,19 +86,9 @@ trait AdminService extends DateFormatter {
   }(refs => Option(refs.transactionId)))
 
   def ctutrCheck(id: String): Future[JsObject] = {
-    fetchStatusAndCTUTRExistence(id) map {
+    corpTaxRegRepo.retrieveStatusAndExistenceOfCTUTR(id) map {
       case Some((status, ctutr)) => Json.obj("status" -> status, "ctutr" -> ctutr)
       case _ => Json.obj()
-    }
-  }
-
-  private def fetchStatusAndCTUTRExistence(id: String): Future[Option[(String, Boolean)]] = {
-    id match {
-      case regId()      => corpTaxRegRepo.retrieveStatusAndExistenceOfCTUTR(id)
-      case ackRef()     => corpTaxRegRepo.retrieveStatusAndExistenceOfCTUTRByAckRef(id)
-      case unrecognised =>
-        Logger.error(s"ID provided was neither a RegId nor an AckRef. Id: $id")
-        Future.successful(None)
     }
   }
 }

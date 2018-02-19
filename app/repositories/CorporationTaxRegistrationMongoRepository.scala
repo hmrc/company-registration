@@ -82,8 +82,7 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def updateRegistrationToHeld(regId: String, confRefs: ConfirmationReferences): Future[Option[CorporationTaxRegistration]]
   def retrieveAllWeekOldHeldSubmissions() : Future[List[CorporationTaxRegistration]]
   def retrieveLockedRegIDs() : Future[List[String]]
-  def retrieveStatusAndExistenceOfCTUTR(regId: String): Future[Option[(String, Boolean)]]
-  def retrieveStatusAndExistenceOfCTUTRByAckRef(ackRef: String): Future[Option[(String, Boolean)]]
+  def retrieveStatusAndExistenceOfCTUTR(ackRef: String): Future[Option[(String, Boolean)]]
 }
 
 private[repositories] class MissingCTDocument(regId: String) extends NoStackTrace
@@ -413,20 +412,15 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
     res.map{ docs => docs.map(_.registrationID) }
   }
 
-  def dropCollection = collection.drop()
-
-  override def retrieveStatusAndExistenceOfCTUTR(regId: String) = {
-    retrieveCorporationTaxRegistration(regId) map { optionDoc =>
-      optionDoc map { doc =>
-        doc.status -> doc.acknowledgementReferences.isDefined
-      }
-    }
-  }
-
-  override def retrieveStatusAndExistenceOfCTUTRByAckRef(ackRef: String) = {
-    retrieveByAckRef(ackRef) map { optionDoc =>
-      optionDoc map { doc =>
-        doc.status -> doc.acknowledgementReferences.isDefined
+  override def retrieveStatusAndExistenceOfCTUTR(ackRef: String): Future[Option[(String, Boolean)]] = {
+    for {
+      maybeRegistration <- retrieveByAckRef(ackRef)
+    } yield {
+      for {
+        document <- maybeRegistration
+        etmpAckRefs <- document.acknowledgementReferences
+      } yield {
+        etmpAckRefs.status -> etmpAckRefs.ctUtr.isDefined
       }
     }
   }

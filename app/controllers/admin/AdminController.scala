@@ -85,7 +85,7 @@ trait AdminController extends BaseController with FutureInstances with Applicati
       }
   }
 
-  def ctutrCheck(id: String) = Action.async {
+  def ctutrCheck(id: String): Action[AnyContent] = Action.async {
     implicit request =>
       adminService.ctutrCheck(id) map (Ok(_))
   }

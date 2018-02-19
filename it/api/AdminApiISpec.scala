@@ -489,23 +489,6 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with Login
     def path(id: String) = s"/$id/ctutr"
 
     "successfully return a 200 with valid JSON" when {
-      "fetched by RegId" in new Setup {
-        insertCorpTax(draftRegistration.copy(registrationID = testRegistrationID))
-        ctRegCount shouldBe 1
-
-        val result: WSResponse = await(client(path(testRegistrationID)).get())
-        val expectedJson: JsValue = Json.parse(
-          """
-          |{
-          |  "status": "draft",
-          |  "ctutr": false
-          |}
-        """.
-            stripMargin)
-
-        result.status shouldBe 200
-        result.json shouldBe expectedJson
-      }
       "fetched by AckRef" in new Setup {
         insertCorpTax(heldRegistration(testRegistrationID).copy(
           confirmationReferences = Option(
@@ -514,7 +497,7 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with Login
             )),
             acknowledgementReferences = Option(
               AcknowledgementReferences(
-              Option("ctutr"), "timestamp", "accepted"
+              Option("ctutr"), "timestamp", "04"
             ))
           )
         )
@@ -524,12 +507,53 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with Login
         val expectedJson: JsValue = Json.parse(
           """
           |{
-          |  "status": "held",
+          |  "status": "04",
           |  "ctutr": true
           |}
         """.
             stripMargin)
 
+        result.status shouldBe 200
+        result.json shouldBe expectedJson
+      }
+      "fetched by AckRef without a CT-UTR" in new Setup {
+        insertCorpTax(heldRegistration(testRegistrationID).copy(
+          confirmationReferences = Option(
+            ConfirmationReferences(
+              acknowledgementReference = testAckowledgementReference, "transID", None, None
+            )),
+          acknowledgementReferences = Option(
+            AcknowledgementReferences(
+              None, "timestamp", "06"
+            ))
+        )
+        )
+        ctRegCount shouldBe 1
+
+        val result: WSResponse = await(client(path(testAckowledgementReference)).get())
+        val expectedJson: JsValue = Json.parse(
+          """
+            |{
+            |  "status": "06",
+            |  "ctutr": false
+            |}
+          """.
+            stripMargin)
+
+        result.status shouldBe 200
+        result.json shouldBe expectedJson
+      }
+      "not fetched by something other than an ack ref" in new Setup {
+        insertCorpTax(draftRegistration)
+        ctRegCount shouldBe 1
+
+        val result: WSResponse = await(client(path(testRegistrationID)).get())
+        val expectedJson: JsValue = Json.parse(
+          """
+            |{
+            |}
+          """.
+            stripMargin)
         result.status shouldBe 200
         result.json shouldBe expectedJson
       }

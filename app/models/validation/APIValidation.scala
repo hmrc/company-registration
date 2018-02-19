@@ -107,9 +107,3 @@ trait AddressValidator {
   val postcodeValidator = readToFmt(length(20) keepAnd pattern("^[A-Z]{1,2}[0-9][0-9A-Z]? [0-9][A-Z]{2}$".r))
   val countryValidator = readToFmt(length(20) keepAnd pattern("^[A-Za-z0-9]{1}[A-Za-z 0-9]{0,19}$".r))
 }
-
-
-object IDRegex {
-  val ackRef = """^BRCT\d{11}$""".r
-  val regId  = """^\d{1,10}$""".r
-}

@@ -47,6 +47,7 @@ class AdminControllerSpec extends UnitSpec with MockitoSugar {
   }
 
   val regId = "reg-12345"
+  val ackRef = "BRCT000000001"
 
   "fetchHO6RegistrationInformation" should {
 
@@ -148,17 +149,17 @@ class AdminControllerSpec extends UnitSpec with MockitoSugar {
     "return valid JSON responses" in new Setup {
       val outputs = List(
         """{}""",
-        """{"status": "draft", "ctutr": false}""",
-        """{"status": "submitted", "ctutr": true}"""
+        """{"status": "06", "ctutr": false}""",
+        """{"status": "04", "ctutr": true}"""
       ).map{js => Json.parse(js).as[JsObject]}
 
       val mocks = outputs map Future.successful
 
       when(mockAdminService.ctutrCheck(any()))
-        .thenReturn(mocks(0), mocks(1), mocks(2))
+        .thenReturn(mocks.head, mocks(1), mocks(2))
 
       outputs foreach { expected =>
-        val result: Result = await(controller.ctutrCheck(regId)(FakeRequest()))
+        val result: Result = await(controller.ctutrCheck(ackRef)(FakeRequest()))
 
         status(result) shouldBe 200
         jsonBodyOf(result) shouldBe expected
