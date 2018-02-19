@@ -84,7 +84,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
   def updateCTRecordWithAckRefs(ackRef: String, etmpNotification: AcknowledgementReferences): Future[Option[CorporationTaxRegistration]] = {
     cTRegistrationRepository.retrieveByAckRef(ackRef) flatMap {
       case Some(record) =>
-          cTRegistrationRepository.updateCTRecordWithAcknowledgments(ackRef, record.copy(acknowledgementReferences = Some(etmpNotification), status = "acknowledged")) map {
+          cTRegistrationRepository.updateCTRecordWithAcknowledgments(ackRef, record.copy(acknowledgementReferences = Some(etmpNotification), status = RegistrationStatus.ACKNOWLEDGED)) map {
             _ => Some(record)
           }
       case None =>

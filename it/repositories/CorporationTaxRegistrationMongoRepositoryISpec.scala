@@ -429,49 +429,6 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     }
   }
 
-  "retrieveStatusAndExistenceOfCTUTR" should {
-
-    val regId = "123454321"
-
-    def corporationTaxRegistration(status: String, ctutr: Boolean) = CorporationTaxRegistration(
-      internalId = "testID",
-      registrationID = regId,
-      formCreationTimestamp = "testDateTime",
-      language = "en",
-      companyDetails = Some(CompanyDetails(
-        "testCompanyName",
-        CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
-        PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"), None, "txid"))),
-        "testJurisdiction"
-      )),
-      contactDetails = Some(ContactDetails(
-        "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
-      )),
-      tradingDetails = Some(TradingDetails("true")),
-      status = status,
-      acknowledgementReferences = if (ctutr) Some(AcknowledgementReferences(Option("ctutr"), "timestamp", "accepted")) else None,
-      createdTime = DateTime.parse("2017-09-04T14:49:48.261"),
-      lastSignedIn = DateTime.parse("2017-09-04T14:49:48.261")
-    )
-
-    "retrieve nothing when registration is not found" in new Setup {
-      val result = await(repository.retrieveStatusAndExistenceOfCTUTR("Non-existent RegId"))
-      result shouldBe None
-    }
-    "retrieve a CTUTR (as a Boolean) when document is SUBMITTED" in new Setup {
-      await(setupCollection(repository, corporationTaxRegistration(RegistrationStatus.SUBMITTED, ctutr = true)))
-
-      val result = await(repository.retrieveStatusAndExistenceOfCTUTR(regId))
-      result shouldBe Option(RegistrationStatus.SUBMITTED -> true)
-    }
-    "retrieve no CTUTR (as a Boolean) when document is DRAFT" in new Setup {
-      await(setupCollection(repository, corporationTaxRegistration(RegistrationStatus.DRAFT, ctutr = false)))
-
-      val result = await(repository.retrieveStatusAndExistenceOfCTUTR(regId))
-      result shouldBe Option(RegistrationStatus.DRAFT -> false)
-    }
-  }
-
   "retrieveStatusAndExistenceOfCTUTRByAckRef" should {
 
     val ackRef = "BRCT09876543210"
@@ -491,28 +448,28 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
       )),
       tradingDetails = Some(TradingDetails("true")),
-      status = status,
+      status = RegistrationStatus.ACKNOWLEDGED,
       confirmationReferences = Some(ConfirmationReferences(acknowledgementReference = ackRef, "txId", None, None)),
-      acknowledgementReferences = if (ctutr) Some(AcknowledgementReferences(Option("ctutr"), "timestamp", "accepted")) else None,
+      acknowledgementReferences = Some(AcknowledgementReferences(Option("ctutr").filter(_ => ctutr), "timestamp", status)),
       createdTime = DateTime.parse("2017-09-04T14:49:48.261"),
       lastSignedIn = DateTime.parse("2017-09-04T14:49:48.261")
     )
 
     "retrieve nothing when registration is not found" in new Setup {
-      val result = await(repository.retrieveStatusAndExistenceOfCTUTRByAckRef("Non-existent AckRef"))
+      val result = await(repository.retrieveStatusAndExistenceOfCTUTR("Non-existent AckRef"))
       result shouldBe None
     }
-    "retrieve a CTUTR (as a Boolean) when document is SUBMITTED" in new Setup {
-      await(setupCollection(repository, corporationTaxRegistration(RegistrationStatus.SUBMITTED, ctutr = true)))
+    "retrieve a CTUTR (as a Boolean) when the ackref status is 04" in new Setup {
+      await(setupCollection(repository, corporationTaxRegistration("04", ctutr = true)))
 
-      val result = await(repository.retrieveStatusAndExistenceOfCTUTRByAckRef(ackRef))
-      result shouldBe Option(RegistrationStatus.SUBMITTED -> true)
+      val result = await(repository.retrieveStatusAndExistenceOfCTUTR(ackRef))
+      result shouldBe Option("04" -> true)
     }
-    "retrieve no CTUTR (as a Boolean) when document is DRAFT" in new Setup {
-      await(setupCollection(repository, corporationTaxRegistration(RegistrationStatus.HELD, ctutr = false)))
+    "retrieve no CTUTR (as a Boolean) when the ackref status is 06" in new Setup {
+      await(setupCollection(repository, corporationTaxRegistration("06", ctutr = false)))
 
-      val result = await(repository.retrieveStatusAndExistenceOfCTUTRByAckRef(ackRef))
-      result shouldBe Option(RegistrationStatus.HELD -> false)
+      val result = await(repository.retrieveStatusAndExistenceOfCTUTR(ackRef))
+      result shouldBe Option("06" -> false)
     }
   }
 }

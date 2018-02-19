@@ -119,59 +119,27 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar {
 
   "adminCTUTRCheck" should {
     "return the Status and presence of CTUTR as valid JSON" when {
-       "using a valid RegId" in new Setup {
-         val id = "12345"
-         val expected = Json.parse(
-           """
-             |{
-             | "status": "draft",
-             | "ctutr": false
-             |}
-           """.stripMargin
-         )
-
-         when(mockCorpTaxRegistrationRepo.retrieveStatusAndExistenceOfCTUTR(any()))
-           .thenReturn(Future.successful(Option(RegistrationStatus.DRAFT -> false)))
-
-         val result = await(service.ctutrCheck(id))
-
-         result shouldBe expected
-      }
        "using a valid AckRef" in new Setup {
          val id = "BRCT09876543210"
          val expected = Json.parse(
            """
              |{
-             | "status": "submitted",
+             | "status": "04",
              | "ctutr": true
              |}
            """.stripMargin
          )
 
-         when(mockCorpTaxRegistrationRepo.retrieveStatusAndExistenceOfCTUTRByAckRef(any()))
-           .thenReturn(Future.successful(Option(RegistrationStatus.SUBMITTED -> true)))
+         when(mockCorpTaxRegistrationRepo.retrieveStatusAndExistenceOfCTUTR(any()))
+           .thenReturn(Future.successful(Option("04" -> true)))
 
          val result = await(service.ctutrCheck(id))
 
          result shouldBe expected
       }
-    }
-    "return the Status and presence of CTUTR as valid JSON" when {
-      "the ID doesn't match the format of a RegId or AckRef" in new Setup {
-        val result = await(service.ctutrCheck("unexpected"))
-        result shouldBe Json.parse("{}")
-      }
-      "the valid RegId retrieves no stored document" in new Setup {
-        val id = "12345"
-        when(mockCorpTaxRegistrationRepo.retrieveStatusAndExistenceOfCTUTR(any()))
-          .thenReturn(Future.successful(None))
-
-        val result = await(service.ctutrCheck(id))
-        result shouldBe Json.parse("{}")
-      }
       "the valid AckRef retrieves no stored document" in new Setup {
         val id = "BRCT09876543210"
-        when(mockCorpTaxRegistrationRepo.retrieveStatusAndExistenceOfCTUTRByAckRef(any()))
+        when(mockCorpTaxRegistrationRepo.retrieveStatusAndExistenceOfCTUTR(any()))
           .thenReturn(Future.successful(None))
 
         val result = await(service.ctutrCheck(id))

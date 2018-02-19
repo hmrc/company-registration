@@ -27,11 +27,12 @@ import scala.language.implicitConversions
 
 
 object RegistrationStatus {
-  val DRAFT     = "draft"
-  val LOCKED    = "locked"
-  val HELD      = "held"
-  val SUBMITTED = "submitted"
-  val REJECTED  = "rejected"
+  val DRAFT         = "draft"
+  val LOCKED        = "locked"
+  val HELD          = "held"
+  val SUBMITTED     = "submitted"
+  val REJECTED      = "rejected"
+  val ACKNOWLEDGED  = "acknowledged"
 }
 
 case class CorporationTaxRegistration(internalId: String,

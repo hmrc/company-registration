@@ -704,7 +704,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
 
     val refs = AcknowledgementReferences(Option("aaa"), "bbb", "ccc")
 
-    val updated = validHeldCorporationTaxRegistration.copy(acknowledgementReferences = Some(refs), status = "acknowledged")
+    val updated = validHeldCorporationTaxRegistration.copy(acknowledgementReferences = Some(refs), status = RegistrationStatus.ACKNOWLEDGED)
 
     val successfulWrite = mockWriteResult()
 
