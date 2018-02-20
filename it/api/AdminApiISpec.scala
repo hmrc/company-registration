@@ -559,4 +559,50 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with Login
       }
     }
   }
+
+  "POST /admin/:id/ctutr" should {
+
+    val testRegistrationID = "12345678"
+    val testAckowledgementReference = "BRCT01234567890"
+    def path(id: String) = s"/$id/ctutr"
+
+    "successfully return a 200 with valid JSON" when {
+      "updating an ackref with a CT-UTR" in new Setup {
+        insertCorpTax(heldRegistration(testRegistrationID).copy(
+          confirmationReferences = Option(
+            ConfirmationReferences(
+              acknowledgementReference = testAckowledgementReference, "transID", None, None
+            )),
+          acknowledgementReferences = Option(
+            AcknowledgementReferences(
+              None, "timestamp", "06"
+            ))
+        ))
+        ctRegCount shouldBe 1
+
+        val result: WSResponse = await(client(path(testAckowledgementReference)).post({
+          Json.parse("""{"ctutr" : "test"}""")
+        }))
+        val expectedJson: JsValue = Json.parse(
+          """
+            |{
+            |  "status": "04",
+            |  "ctutr": true
+            |}
+          """.
+            stripMargin)
+
+        result.status shouldBe 200
+        result.json shouldBe expectedJson
+      }
+
+      "trying to update non-existent ackref with a CT-UTR" in new Setup {
+        val result: WSResponse = await(client(path(testAckowledgementReference)).post({
+          Json.parse("""{"ctutr" : "test"}""")
+        }))
+
+        result.status shouldBe 204
+      }
+    }
+  }
 }
