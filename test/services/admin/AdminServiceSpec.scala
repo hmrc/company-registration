@@ -17,23 +17,21 @@
 package services.admin
 
 import connectors.IncorporationInformationConnector
-import models.{ConfirmationReferences, IncorpStatus, RegistrationStatus}
+import models._
 import org.joda.time.DateTime
-import org.scalatest.mock.MockitoSugar
-import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmissionData, HeldSubmissionMongoRepository}
-import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.test.UnitSpec
+import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
-import play.api.Logger
+import org.scalatest.mockito.MockitoSugar
 import play.api.libs.json.Json
 import play.api.mvc.{AnyContent, Request}
 import play.api.test.FakeRequest
+import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmissionData, HeldSubmissionMongoRepository}
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
-import uk.gov.hmrc.http.HeaderCarrier
-
-import scala.util.matching.Regex
 
 class AdminServiceSpec extends UnitSpec with MockitoSugar {
 
@@ -145,6 +143,65 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar {
         val result = await(service.ctutrCheck(id))
         result shouldBe Json.parse("{}")
       }
+    }
+  }
+
+  "updateRegistrationWithAdminCTReference" should {
+    "update a registration with the new admin ct reference" in new Setup {
+      val ctUtr = "ctUtr"
+      val timestamp = "timestamp"
+      val expected = Some(
+        CorporationTaxRegistration(
+          internalId = "testID",
+          registrationID = "registrationId",
+          formCreationTimestamp = "dd-mm-yyyy",
+          language = "en",
+          status = RegistrationStatus.HELD,
+          companyDetails = Some(CompanyDetails(
+            "testCompanyName",
+            CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
+            PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"), None, "txid"))),
+            "testJurisdiction"
+          )),
+          contactDetails = Some(ContactDetails(
+            "testFirstName",
+            Some("testMiddleName"),
+            "testSurname",
+            Some("0123456789"),
+            Some("0123456789"),
+            Some("test@email.co.uk")
+          )),
+          tradingDetails = Some(TradingDetails("false")),
+          heldTimestamp = None,
+          confirmationReferences = Some(ConfirmationReferences(
+            acknowledgementReference = "ackRef",
+            transactionId = "tID",
+            paymentReference = Some("payref"),
+            paymentAmount = Some("12")
+          )),
+          acknowledgementReferences = Some(AcknowledgementReferences(
+            Some(ctUtr), timestamp, "04"
+          ))
+        )
+      )
+
+      when(mockCorpTaxRegistrationRepo.updateRegistrationWithAdminCTReference(ArgumentMatchers.any(), ArgumentMatchers.any()))
+        .thenReturn(Future.successful(expected))
+
+      val result = await(service.updateRegistrationWithCTReference("ackRef", "ctUtr"))
+      result shouldBe Some(Json.parse(
+        s"""{
+           |"status": "04",
+           |"ctutr" : true
+        }""".stripMargin))
+    }
+
+    "do not update a registration with the new admin ct reference that does not exist" in new Setup {
+      when(mockCorpTaxRegistrationRepo.updateRegistrationWithAdminCTReference(ArgumentMatchers.any(), ArgumentMatchers.any()))
+        .thenReturn(Future.successful(None))
+
+      val result = await(service.updateRegistrationWithCTReference("ackRef", "ctUtr"))
+      result shouldBe None
     }
   }
 }

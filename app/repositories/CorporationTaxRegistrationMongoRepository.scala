@@ -29,9 +29,8 @@ import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.DB
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.bson.{BSONDocument, _}
+import reactivemongo.bson.{BSONDocument, BSONReader, _}
 import reactivemongo.play.json.BSONFormats
-import reactivemongo.bson.BSONReader
 import reactivemongo.play.json.ImplicitBSONHandlers.BSONDocumentWrites
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
@@ -83,6 +82,7 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def retrieveAllWeekOldHeldSubmissions() : Future[List[CorporationTaxRegistration]]
   def retrieveLockedRegIDs() : Future[List[String]]
   def retrieveStatusAndExistenceOfCTUTR(ackRef: String): Future[Option[(String, Boolean)]]
+  def updateRegistrationWithAdminCTReference(ackRef : String, ctUtr : String) : Future[Option[CorporationTaxRegistration]]
 }
 
 private[repositories] class MissingCTDocument(regId: String) extends NoStackTrace
@@ -421,6 +421,26 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
         etmpAckRefs <- document.acknowledgementReferences
       } yield {
         etmpAckRefs.status -> etmpAckRefs.ctUtr.isDefined
+      }
+    }
+  }
+
+  override def updateRegistrationWithAdminCTReference(ackRef: String, ctUtr: String): Future[Option[CorporationTaxRegistration]] = {
+    val timestamp = CorporationTaxRegistration.now.toString()
+    val ackRefs = AcknowledgementReferences(Some(ctUtr), timestamp, "04")
+
+    val selector = BSONDocument("confirmationReferences.acknowledgement-reference" -> BSONString(ackRef))
+    val modifier = BSONDocument("$set" -> BSONFormats.readAsBSONValue(Json.obj(
+      "status" -> RegistrationStatus.ACKNOWLEDGED,
+      "acknowledgementReferences" -> Json.toJson(ackRefs)(AcknowledgementReferences.format(MongoValidation))
+    )).get)
+
+    collection.findAndUpdate(selector, modifier) map {
+      _.result[CorporationTaxRegistration] map {cr =>
+        cr.copy(
+          acknowledgementReferences = Some(ackRefs),
+          status = RegistrationStatus.ACKNOWLEDGED
+        )
       }
     }
   }

@@ -4,3 +4,4 @@ GET        /migrate-held-submissions                                  @controlle
 POST       /update-confirmation-references                            @controllers.admin.AdminController.updateConfirmationReferences
 
 GET        /:identifier/ctutr                                         @controllers.admin.AdminController.ctutrCheck(identifier)
+POST       /:identifier/ctutr                                         @controllers.admin.AdminController.ctutrUpdate(identifier)

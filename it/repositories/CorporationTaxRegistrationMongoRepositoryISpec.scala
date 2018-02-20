@@ -472,4 +472,60 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       result shouldBe Option("06" -> false)
     }
   }
+
+  "updateRegistrationWithAdminCTReference" should {
+
+    val ackRef = "BRCT09876543210"
+    val dateTime = DateTime.parse("2017-09-04T14:49:48.261")
+    val regId = "regId"
+    val confRefs = Some(ConfirmationReferences(acknowledgementReference = ackRef, "txId", None, None))
+    val timestamp = DateTime.now().toString
+
+    def corporationTaxRegistration(status: String, ctutr: Boolean) = CorporationTaxRegistration(
+      internalId = "testID",
+      registrationID = regId,
+      formCreationTimestamp = "testDateTime",
+      language = "en",
+      companyDetails = Some(CompanyDetails(
+        "testCompanyName",
+        CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
+        PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"), None, "txid"))),
+        "testJurisdiction"
+      )),
+      contactDetails = Some(ContactDetails(
+        "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+      )),
+      tradingDetails = Some(TradingDetails("true")),
+      status = RegistrationStatus.DRAFT,
+      confirmationReferences = confRefs,
+      acknowledgementReferences = Some(AcknowledgementReferences(Option("ctutr").filter(_ => ctutr), timestamp, status)),
+      createdTime = dateTime,
+      lastSignedIn = dateTime
+    )
+
+    "update a registration with an admin ct reference" in new Setup {
+      val newUtr = "newUtr"
+      val newStatus = "04"
+
+      await(setupCollection(repository, corporationTaxRegistration("06", ctutr = false)))
+
+      val Some(result) : Option[CorporationTaxRegistration] = await(repository.updateRegistrationWithAdminCTReference(ackRef, newUtr))
+      val Some(expected): Option[CorporationTaxRegistration] = Some(corporationTaxRegistration("06", ctutr = false).copy(
+        acknowledgementReferences = Some(AcknowledgementReferences(Some(newUtr), result.acknowledgementReferences.get.timestamp, newStatus)),
+        status = RegistrationStatus.ACKNOWLEDGED
+      ))
+
+      result shouldBe expected
+    }
+
+    "do not update a registration that does not exist" in new Setup {
+      val newUtr = "newUtr"
+      val newStatus = "04"
+
+      val result : Option[CorporationTaxRegistration] = await(repository.updateRegistrationWithAdminCTReference(ackRef, newUtr))
+      val expected : Option[CorporationTaxRegistration] = None
+
+      result shouldBe expected
+    }
+  }
 }

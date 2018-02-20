@@ -18,7 +18,7 @@ package controllers.admin
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import models.HO6RegistrationInformation
+import models._
 import org.scalatest.mock.MockitoSugar
 import play.api.libs.json.{JsObject, Json}
 import play.api.test.FakeRequest
@@ -28,6 +28,7 @@ import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
 import play.api.mvc.Result
 import services.CorporationTaxRegistrationService
+import play.api.http.Status._
 
 import scala.concurrent.Future
 
@@ -164,6 +165,64 @@ class AdminControllerSpec extends UnitSpec with MockitoSugar {
         status(result) shouldBe 200
         jsonBodyOf(result) shouldBe expected
       }
+    }
+  }
+
+  val expected = Some(
+    CorporationTaxRegistration(
+      internalId = "testID",
+      registrationID = "registrationId",
+      formCreationTimestamp = "dd-mm-yyyy",
+      language = "en",
+      status = RegistrationStatus.HELD,
+      companyDetails = Some(CompanyDetails(
+        "testCompanyName",
+        CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
+        PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"), None, "txid"))),
+        "testJurisdiction"
+      )),
+      contactDetails = Some(ContactDetails(
+        "testFirstName",
+        Some("testMiddleName"),
+        "testSurname",
+        Some("0123456789"),
+        Some("0123456789"),
+        Some("test@email.co.uk")
+      )),
+      tradingDetails = Some(TradingDetails("false")),
+      heldTimestamp = None,
+      confirmationReferences = Some(ConfirmationReferences(
+        acknowledgementReference = "ackRef",
+        transactionId = "tID",
+        paymentReference = Some("payref"),
+        paymentAmount = Some("12")
+      ))
+    )
+  )
+
+  "ctUtrUpdate" should {
+    val jsrequest = FakeRequest().withBody(Json.parse("""{"ctutr" : "test"}"""))
+
+    "return a success" in new Setup {
+      val json = """{"status": "04", "ctutr": true}"""
+      val emptyMock = Future.successful(Option(Json.parse(json).as[JsObject]))
+
+      when(mockAdminService.updateRegistrationWithCTReference(any(), any()))
+        .thenReturn(emptyMock)
+
+      val result: Result = await(controller.ctutrUpdate(ackRef)(jsrequest))
+
+      status(result) shouldBe OK
+      jsonBodyOf(result) shouldBe Json.parse(json).as[JsObject]
+    }
+
+    "return no content if nothing was updated" in new Setup {
+      when(mockAdminService.updateRegistrationWithCTReference(any(), any()))
+        .thenReturn(Future.successful(None))
+
+      val result: Result = await(controller.ctutrUpdate(ackRef)(jsrequest))
+
+      status(result) shouldBe NO_CONTENT
     }
   }
 }

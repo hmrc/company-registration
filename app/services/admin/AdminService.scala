@@ -22,7 +22,7 @@ import audit.AdminReleaseAuditEvent
 import config.MicroserviceAuditConnector
 import connectors.IncorporationInformationConnector
 import helpers.DateFormatter
-import models.HO6RegistrationInformation
+import models.{AcknowledgementReferences, CorporationTaxRegistration, HO6RegistrationInformation}
 import models.admin.{HO6Identifiers, HO6Response}
 import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
@@ -89,6 +89,15 @@ trait AdminService extends DateFormatter {
     corpTaxRegRepo.retrieveStatusAndExistenceOfCTUTR(id) map {
       case Some((status, ctutr)) => Json.obj("status" -> status, "ctutr" -> ctutr)
       case _ => Json.obj()
+    }
+  }
+
+  def updateRegistrationWithCTReference(ackRef : String, ctUtr : String) : Future[Option[JsObject]] = {
+    corpTaxRegRepo.updateRegistrationWithAdminCTReference(ackRef, ctUtr) map { _ flatMap { cr =>
+        cr.acknowledgementReferences map { acknowledgementRefs =>
+          Json.obj("status" -> acknowledgementRefs.status, "ctutr" -> acknowledgementRefs.ctUtr.isDefined)
+        }
+      }
     }
   }
 }

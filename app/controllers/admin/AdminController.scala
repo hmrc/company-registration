@@ -90,6 +90,17 @@ trait AdminController extends BaseController with FutureInstances with Applicati
       adminService.ctutrCheck(id) map (Ok(_))
   }
 
+  def ctutrUpdate(id: String): Action[JsValue] = Action.async(BodyParsers.parse.json) {
+    implicit request =>
+      withJsonBody[JsObject] { json =>
+        val ctutr = (json \ "ctutr").as[String]
+        adminService.updateRegistrationWithCTReference(id, ctutr) map {
+          case Some(js) => Ok(js)
+          case _ => NoContent
+        }
+      }
+  }
+
   private def buildResponse(isSuccess: Boolean, statusBefore: String, identifiers: HO6Identifiers)(implicit hc: HeaderCarrier): Future[Result] = {
     fetchStatus(identifiers.registrationId) { statusAfter =>
       val response = HO6Response(success = isSuccess, statusBefore, statusAfter)
