@@ -18,21 +18,21 @@ package services.admin
 
 import javax.inject.{Inject, Singleton}
 
-import audit.AdminReleaseAuditEvent
+import audit.{AdminCTReferenceEvent, AdminReleaseAuditEvent}
 import config.MicroserviceAuditConnector
 import connectors.IncorporationInformationConnector
 import helpers.DateFormatter
-import models.{AcknowledgementReferences, CorporationTaxRegistration, HO6RegistrationInformation}
-import models.admin.{HO6Identifiers, HO6Response}
+import models.HO6RegistrationInformation
+import models.admin.{AdminCTReferenceDetails, HO6Identifiers, HO6Response}
 import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.Request
 import repositories.{CorpTaxRegistrationRepo, CorporationTaxRegistrationMongoRepository, HeldSubmissionMongoRepository, HeldSubmissionRepo}
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-import uk.gov.hmrc.http.HeaderCarrier
+import scala.concurrent.Future
 
 @Singleton
 class AdminServiceImpl @Inject()(corpTaxRepo: CorpTaxRegistrationRepo, heldSubMongo: HeldSubmissionRepo, val incorpInfoConnector: IncorporationInformationConnector) extends AdminService {
@@ -92,10 +92,17 @@ trait AdminService extends DateFormatter {
     }
   }
 
-  def updateRegistrationWithCTReference(ackRef : String, ctUtr : String) : Future[Option[JsObject]] = {
+  def updateRegistrationWithCTReference(ackRef : String, ctUtr : String, username : String)(implicit hc : HeaderCarrier) : Future[Option[JsObject]] = {
     corpTaxRegRepo.updateRegistrationWithAdminCTReference(ackRef, ctUtr) map { _ flatMap { cr =>
         cr.acknowledgementReferences map { acknowledgementRefs =>
-          Json.obj("status" -> acknowledgementRefs.status, "ctutr" -> acknowledgementRefs.ctUtr.isDefined)
+          val timestamp = Json.obj("timestamp" -> Json.toJson(nowAsZonedDateTime)(zonedDateTimeWrites))
+          val refDetails = AdminCTReferenceDetails(acknowledgementRefs.ctUtr, ctUtr)
+
+          auditConnector.sendExtendedEvent(
+            new AdminCTReferenceEvent(timestamp, username, Json.toJson(refDetails)(AdminCTReferenceDetails.adminAuditWrites).as[JsObject])
+          )
+
+          Json.obj("status" -> "04", "ctutr" -> true)
         }
       }
     }

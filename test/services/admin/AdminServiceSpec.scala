@@ -16,12 +16,15 @@
 
 package services.admin
 
+import audit.{AdminCTReferenceEvent, RegistrationAuditEvent}
 import connectors.IncorporationInformationConnector
 import models._
 import org.joda.time.DateTime
-import org.mockito.ArgumentMatchers
+import org.mockito.{ArgumentCaptor, ArgumentMatchers}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.concurrent.Eventually
 import org.scalatest.mockito.MockitoSugar
 import play.api.libs.json.Json
 import play.api.mvc.{AnyContent, Request}
@@ -29,11 +32,12 @@ import play.api.test.FakeRequest
 import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmissionData, HeldSubmissionMongoRepository}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
 import uk.gov.hmrc.play.test.UnitSpec
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
-class AdminServiceSpec extends UnitSpec with MockitoSugar {
+class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEach with Eventually {
 
   val mockHeldSubmissionRepo: HeldSubmissionMongoRepository = mock[HeldSubmissionMongoRepository]
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
@@ -47,6 +51,10 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar {
       val incorpInfoConnector: IncorporationInformationConnector = mockIncorpInfoConnector
       val corpTaxRegRepo: CorporationTaxRegistrationMongoRepository = mockCorpTaxRegistrationRepo
     }
+  }
+
+  override def beforeEach() {
+    reset(mockAuditConnector)
   }
 
   val regId = "reg-id-12345"
@@ -147,60 +155,105 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar {
   }
 
   "updateRegistrationWithAdminCTReference" should {
+    val timestamp = "timestamp"
+    def makeReg(utr : Option[String]) = CorporationTaxRegistration(
+      internalId = "testID",
+      registrationID = "registrationId",
+      formCreationTimestamp = "dd-mm-yyyy",
+      language = "en",
+      status = RegistrationStatus.HELD,
+      companyDetails = Some(CompanyDetails(
+        "testCompanyName",
+        CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
+        PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"), None, "txid"))),
+        "testJurisdiction"
+      )),
+      contactDetails = Some(ContactDetails(
+        "testFirstName",
+        Some("testMiddleName"),
+        "testSurname",
+        Some("0123456789"),
+        Some("0123456789"),
+        Some("test@email.co.uk")
+      )),
+      tradingDetails = Some(TradingDetails("false")),
+      heldTimestamp = None,
+      confirmationReferences = Some(ConfirmationReferences(
+        acknowledgementReference = "ackRef",
+        transactionId = "tID",
+        paymentReference = Some("payref"),
+        paymentAmount = Some("12")
+      )),
+      acknowledgementReferences = Some(AcknowledgementReferences(
+        utr, timestamp, utr.map(_ => "04").getOrElse("06")
+      ))
+    )
+
     "update a registration with the new admin ct reference" in new Setup {
-      val ctUtr = "ctUtr"
-      val timestamp = "timestamp"
-      val expected = Some(
-        CorporationTaxRegistration(
-          internalId = "testID",
-          registrationID = "registrationId",
-          formCreationTimestamp = "dd-mm-yyyy",
-          language = "en",
-          status = RegistrationStatus.HELD,
-          companyDetails = Some(CompanyDetails(
-            "testCompanyName",
-            CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
-            PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"), None, "txid"))),
-            "testJurisdiction"
-          )),
-          contactDetails = Some(ContactDetails(
-            "testFirstName",
-            Some("testMiddleName"),
-            "testSurname",
-            Some("0123456789"),
-            Some("0123456789"),
-            Some("test@email.co.uk")
-          )),
-          tradingDetails = Some(TradingDetails("false")),
-          heldTimestamp = None,
-          confirmationReferences = Some(ConfirmationReferences(
-            acknowledgementReference = "ackRef",
-            transactionId = "tID",
-            paymentReference = Some("payref"),
-            paymentAmount = Some("12")
-          )),
-          acknowledgementReferences = Some(AcknowledgementReferences(
-            Some(ctUtr), timestamp, "04"
-          ))
-        )
-      )
+      val ctUtr = "oldIncorrectUtr"
+      val expected = Some(makeReg(Some(ctUtr)))
 
       when(mockCorpTaxRegistrationRepo.updateRegistrationWithAdminCTReference(ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(expected))
 
-      val result = await(service.updateRegistrationWithCTReference("ackRef", "ctUtr"))
+      when(mockAuditConnector.sendExtendedEvent(ArgumentMatchers.any[AdminCTReferenceEvent]())(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any[ExecutionContext]()))
+        .thenReturn(Future.successful(Success))
+
+      val newUtr = "newFreshUtr"
+      val result = await(service.updateRegistrationWithCTReference("ackRef", newUtr, "test"))
       result shouldBe Some(Json.parse(
         s"""{
            |"status": "04",
            |"ctutr" : true
         }""".stripMargin))
+
+      val captor = ArgumentCaptor.forClass(classOf[AdminCTReferenceEvent])
+
+      eventually {
+        verify(mockAuditConnector, times(1)).sendExtendedEvent(captor.capture())(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any[ExecutionContext]())
+      }
+      val audit = captor.getAllValues
+
+      audit.get(0).auditType shouldBe "adminCtReference"
+      (audit.get(0).detail \ "utrChanges" \ "previousUtr").as[String] shouldBe ctUtr
+      (audit.get(0).detail \ "utrChanges" \ "newUtr"     ).as[String] shouldBe newUtr
+    }
+
+    "update a previously rejected registration with the new admin ct reference" in new Setup {
+      val ctUtr = "oldIncorrectUtr"
+      val expected = Some(makeReg(None))
+
+      when(mockCorpTaxRegistrationRepo.updateRegistrationWithAdminCTReference(ArgumentMatchers.any(), ArgumentMatchers.any()))
+        .thenReturn(Future.successful(expected))
+
+      when(mockAuditConnector.sendExtendedEvent(ArgumentMatchers.any[AdminCTReferenceEvent]())(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any[ExecutionContext]()))
+        .thenReturn(Future.successful(Success))
+
+      val newUtr = "newFreshUtr"
+      val result = await(service.updateRegistrationWithCTReference("ackRef", newUtr, "test"))
+      result shouldBe Some(Json.parse(
+        s"""{
+           |"status": "04",
+           |"ctutr" : true
+        }""".stripMargin))
+
+      val captor = ArgumentCaptor.forClass(classOf[AdminCTReferenceEvent])
+
+      eventually {
+        verify(mockAuditConnector, times(1)).sendExtendedEvent(captor.capture())(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any[ExecutionContext]())
+      }
+      val audit = captor.getAllValues
+
+      audit.get(0).auditType shouldBe "adminCtReference"
+      (audit.get(0).detail \ "utrChanges" \ "previousUtr").as[String] shouldBe "NO-UTR"
+      (audit.get(0).detail \ "utrChanges" \ "newUtr"     ).as[String] shouldBe newUtr
     }
 
     "do not update a registration with the new admin ct reference that does not exist" in new Setup {
       when(mockCorpTaxRegistrationRepo.updateRegistrationWithAdminCTReference(ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(None))
 
-      val result = await(service.updateRegistrationWithCTReference("ackRef", "ctUtr"))
+      val result = await(service.updateRegistrationWithCTReference("ackRef", "ctUtr", "test"))
       result shouldBe None
     }
   }

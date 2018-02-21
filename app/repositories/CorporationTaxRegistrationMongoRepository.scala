@@ -436,12 +436,7 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
     )).get)
 
     collection.findAndUpdate(selector, modifier) map {
-      _.result[CorporationTaxRegistration] map {cr =>
-        cr.copy(
-          acknowledgementReferences = Some(ackRefs),
-          status = RegistrationStatus.ACKNOWLEDGED
-        )
-      }
+      _.result[CorporationTaxRegistration]
     }
   }
 }

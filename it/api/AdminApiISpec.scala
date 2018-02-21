@@ -581,7 +581,7 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with Login
         ctRegCount shouldBe 1
 
         val result: WSResponse = await(client(path(testAckowledgementReference)).post({
-          Json.parse("""{"ctutr" : "test"}""")
+          Json.parse("""{"ctutr" : "test", "username" : "user"}""")
         }))
         val expectedJson: JsValue = Json.parse(
           """
@@ -598,7 +598,7 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with Login
 
       "trying to update non-existent ackref with a CT-UTR" in new Setup {
         val result: WSResponse = await(client(path(testAckowledgementReference)).post({
-          Json.parse("""{"ctutr" : "test"}""")
+          Json.parse("""{"ctutr" : "test", "username" : "user"}""")
         }))
 
         result.status shouldBe 204

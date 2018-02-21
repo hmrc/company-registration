@@ -29,6 +29,7 @@ import org.mockito.Mockito._
 import play.api.mvc.Result
 import services.CorporationTaxRegistrationService
 import play.api.http.Status._
+import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.Future
 
@@ -36,6 +37,7 @@ class AdminControllerSpec extends UnitSpec with MockitoSugar {
 
   implicit val act = ActorSystem()
   implicit val mat = ActorMaterializer()
+  implicit val hc = HeaderCarrier()
 
   val mockAdminService: AdminService = mock[AdminService]
   val mockCTService: CorporationTaxRegistrationService = mock[CorporationTaxRegistrationService]
@@ -201,13 +203,17 @@ class AdminControllerSpec extends UnitSpec with MockitoSugar {
   )
 
   "ctUtrUpdate" should {
-    val jsrequest = FakeRequest().withBody(Json.parse("""{"ctutr" : "test"}"""))
+    val jsrequest = FakeRequest().withBody(Json.parse("""
+        |{
+        | "ctutr" : "test",
+        | "username" : "user"
+        |}""".stripMargin))
 
     "return a success" in new Setup {
       val json = """{"status": "04", "ctutr": true}"""
       val emptyMock = Future.successful(Option(Json.parse(json).as[JsObject]))
 
-      when(mockAdminService.updateRegistrationWithCTReference(any(), any()))
+      when(mockAdminService.updateRegistrationWithCTReference(any(), any(), any())(any()))
         .thenReturn(emptyMock)
 
       val result: Result = await(controller.ctutrUpdate(ackRef)(jsrequest))
@@ -217,7 +223,7 @@ class AdminControllerSpec extends UnitSpec with MockitoSugar {
     }
 
     "return no content if nothing was updated" in new Setup {
-      when(mockAdminService.updateRegistrationWithCTReference(any(), any()))
+      when(mockAdminService.updateRegistrationWithCTReference(any(), any(), any())(any()))
         .thenReturn(Future.successful(None))
 
       val result: Result = await(controller.ctutrUpdate(ackRef)(jsrequest))
