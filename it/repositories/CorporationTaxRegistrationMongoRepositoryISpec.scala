@@ -510,15 +510,11 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       await(setupCollection(repository, corporationTaxRegistration("06", ctutr = false)))
 
       val Some(result) : Option[CorporationTaxRegistration] = await(repository.updateRegistrationWithAdminCTReference(ackRef, newUtr))
-      val Some(expected): Option[CorporationTaxRegistration] = Some(corporationTaxRegistration("06", ctutr = false).copy(
-        acknowledgementReferences = Some(AcknowledgementReferences(Some(newUtr), result.acknowledgementReferences.get.timestamp, newStatus)),
-        status = RegistrationStatus.ACKNOWLEDGED
-      ))
 
-      result shouldBe expected
+      result shouldBe corporationTaxRegistration("06", ctutr = false)
     }
 
-    "do not update a registration that does not exist" in new Setup {
+    "not update a registration that does not exist" in new Setup {
       val newUtr = "newUtr"
       val newStatus = "04"
 

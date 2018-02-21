@@ -94,7 +94,8 @@ trait AdminController extends BaseController with FutureInstances with Applicati
     implicit request =>
       withJsonBody[JsObject] { json =>
         val ctutr = (json \ "ctutr").as[String]
-        adminService.updateRegistrationWithCTReference(id, ctutr) map {
+        val strideUser = (json \ "username").as[String]
+        adminService.updateRegistrationWithCTReference(id, ctutr, strideUser) map {
           case Some(js) => Ok(js)
           case _ => NoContent
         }
