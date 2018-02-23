@@ -38,7 +38,7 @@ import play.api.mvc.{AnyContent, Request}
 import play.api.test.FakeRequest
 import repositories._
 import uk.gov.hmrc.http.logging.SessionId
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, Upstream4xxResponse, Upstream5xxResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
 
@@ -481,7 +481,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
       when(mockDesConnector.ctSubmission(eqTo(ackRef), eqTo(partialSubmission), eqTo(regId), any())(any()))
         .thenReturn(Future.successful(HttpResponse(200)))
 
-      val result: HeldSubmissionData = await(service.storePartialSubmission(regId, ackRef, partialSubmission))
+      val result: HeldSubmissionData = await(service.storePartialSubmission(regId, ackRef, partialSubmission, authProviderId))
       val heldSubmissionWithSameSubmissionTime: HeldSubmissionData = heldSubmissionData.copy(heldTime = result.heldTime)
 
       result shouldBe heldSubmissionWithSameSubmissionTime
@@ -497,9 +497,35 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
       when(mockHeldSubmissionRepository.storePartialSubmission(eqTo(regId), eqTo(ackRef), eqTo(partialSubmission)))
         .thenReturn(Future.successful(Some(heldSubmissionData)))
 
-      await(service.storePartialSubmission(regId, ackRef, partialSubmission)) shouldBe heldSubmissionData
+      await(service.storePartialSubmission(regId, ackRef, partialSubmission, authProviderId)) shouldBe heldSubmissionData
 
       verify(mockDesConnector, times(0)).ctSubmission(eqTo(ackRef), eqTo(partialSubmission), eqTo(regId), any())(any())
+    }
+
+    "throw a Runtime exception, save sessionID/credID when the ETMP feature flag is enabled and submission DES to fails on a 400" in new Setup {
+      System.setProperty("feature.etmpHoldingPen", "true")
+
+      when(mockDesConnector.ctSubmission(eqTo(ackRef), eqTo(partialSubmission), eqTo(regId), any())(any()))
+        .thenReturn(Future.failed(Upstream4xxResponse("fail", 400, 400)))
+      when(mockCTDataRepository.storeSessionIdentifiers(eqTo(regId), any(), any()))
+        .thenReturn(Future.successful(true))
+
+      intercept[Upstream4xxResponse](await(service.storePartialSubmission(regId, ackRef, partialSubmission, authProviderId)))
+
+      verify(mockDesConnector, times(1)).ctSubmission(eqTo(ackRef), eqTo(partialSubmission), eqTo(regId), any())(any())
+    }
+
+    "throw a Runtime exception, save sessionID/credID when the ETMP feature flag is enabled and submission DES to fails on a 500" in new Setup {
+      System.setProperty("feature.etmpHoldingPen", "true")
+
+      when(mockDesConnector.ctSubmission(eqTo(ackRef), eqTo(partialSubmission), eqTo(regId), any())(any()))
+        .thenReturn(Future.failed(Upstream5xxResponse("fail", 500, 500)))
+      when(mockCTDataRepository.storeSessionIdentifiers(eqTo(regId), any(), any()))
+        .thenReturn(Future.successful(true))
+
+      intercept[Upstream5xxResponse](await(service.storePartialSubmission(regId, ackRef, partialSubmission, authProviderId)))
+
+      verify(mockDesConnector, times(1)).ctSubmission(eqTo(ackRef), eqTo(partialSubmission), eqTo(regId), any())(any())
     }
 
     "throw a Runtime exception when the ETMP feature flag is disabled and the repository returns a None" in new Setup {
@@ -510,7 +536,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
       when(mockHeldSubmissionRepository.storePartialSubmission(eqTo(regId), eqTo(ackRef), eqTo(partialSubmission)))
         .thenReturn(Future.successful(None))
 
-      intercept[RuntimeException](await(service.storePartialSubmission(regId, ackRef, partialSubmission)))
+      intercept[RuntimeException](await(service.storePartialSubmission(regId, ackRef, partialSubmission, authProviderId)))
 
       verify(mockDesConnector, times(0)).ctSubmission(eqTo(ackRef), eqTo(partialSubmission), eqTo(regId), any())(any())
     }

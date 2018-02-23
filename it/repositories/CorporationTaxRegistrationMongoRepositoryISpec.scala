@@ -524,4 +524,115 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       result shouldBe expected
     }
   }
+
+  "retrieveSessionIdentifiers" should {
+    val regId = "12345"
+    val (defaultSID, defaultCID) = ("oldSessID", "oldCredId")
+
+    val timestamp = DateTime.now()
+    def corporationTaxRegistration(regId: String, alreadyHasSessionIds: Boolean = false) = CorporationTaxRegistration(
+      internalId = "testID",
+      registrationID = regId,
+      formCreationTimestamp = "testDateTime",
+      language = "en",
+      companyDetails = Some(CompanyDetails(
+        "testCompanyName",
+        CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
+        PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"), None, "txid"))),
+        "testJurisdiction"
+      )),
+      contactDetails = Some(ContactDetails(
+        "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+      )),
+      tradingDetails = Some(TradingDetails("true")),
+      status = RegistrationStatus.DRAFT,
+      createdTime = timestamp,
+      lastSignedIn = timestamp,
+      sessionIdentifiers = if(alreadyHasSessionIds) Some(SessionIds(defaultSID, defaultCID)) else None
+    )
+
+    "retrieve session identifiers" when {
+      "a document exists and has identifiers" in new Setup {
+        await(setupCollection(repository, corporationTaxRegistration(regId, alreadyHasSessionIds = true)))
+
+        await(repository.retrieveSessionIdentifiers(regId)) shouldBe Some(SessionIds(defaultSID, defaultCID))
+      }
+
+    }
+    "return a None" when {
+      "a document exists and does not have identifiers" in new Setup {
+        await(setupCollection(repository, corporationTaxRegistration(regId)))
+
+        await(repository.retrieveSessionIdentifiers(regId)) shouldBe None
+      }
+      "there is no Document" in new Setup {
+        await(repository.retrieveSessionIdentifiers(regId)) shouldBe None
+      }
+    }
+  }
+
+  "storeSessionIdentifiers" should {
+    val regId = "132"
+    val sessionId = "sessionId-12345"
+    val credId = "authorisedId"
+    val (defaultSID, defaultCID) = ("oldSessID", "oldCredId")
+
+    val timestamp = DateTime.now()
+    def corporationTaxRegistration(regId: String, alreadyHasSessionIds: Boolean = false) = CorporationTaxRegistration(
+      internalId = "testID",
+      registrationID = regId,
+      formCreationTimestamp = "testDateTime",
+      language = "en",
+      companyDetails = Some(CompanyDetails(
+        "testCompanyName",
+        CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
+        PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"), None, "txid"))),
+        "testJurisdiction"
+      )),
+      contactDetails = Some(ContactDetails(
+        "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+      )),
+      tradingDetails = Some(TradingDetails("true")),
+      status = RegistrationStatus.DRAFT,
+      createdTime = timestamp,
+      lastSignedIn = timestamp,
+      sessionIdentifiers = if(alreadyHasSessionIds) Some(SessionIds(defaultSID, defaultCID)) else None
+    )
+
+    "successfully write encrpyted identifiers to mongo" when {
+
+      "a document exists" in new Setup {
+        await(setupCollection(repository, corporationTaxRegistration(regId)))
+        await(repository.retrieveCorporationTaxRegistration(regId)) map {
+          doc => doc.sessionIdentifiers
+        } shouldBe Some(None)
+
+        await(repository.storeSessionIdentifiers(regId, sessionId, credId))
+
+        await(repository.retrieveCorporationTaxRegistration(regId)) map {
+          doc => doc.sessionIdentifiers
+        } shouldBe Some(Some(SessionIds(sessionId, credId)))
+      }
+      "a document exists and already has old session Ids" in new Setup {
+
+        await(setupCollection(repository, corporationTaxRegistration(regId, alreadyHasSessionIds = true)))
+        await(repository.retrieveCorporationTaxRegistration(regId)) map {
+          doc => doc.sessionIdentifiers
+        } shouldBe Some(Some(SessionIds(defaultSID, defaultCID)))
+
+
+        await(repository.storeSessionIdentifiers(regId, sessionId, credId))
+
+        await(repository.retrieveCorporationTaxRegistration(regId)) map {
+          doc => doc.sessionIdentifiers
+        } shouldBe Some(Some(SessionIds(sessionId, credId)))
+      }
+    }
+
+    "unsuccessful" when {
+      "no document exists" in new Setup {
+        await(repository.storeSessionIdentifiers(regId, sessionId, credId)) shouldBe false
+      }
+    }
+  }
 }
