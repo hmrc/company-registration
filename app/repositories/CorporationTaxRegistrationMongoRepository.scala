@@ -29,7 +29,7 @@ import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.DB
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.bson.{BSONDocument, BSONReader, _}
+import reactivemongo.bson.{BSONDocument, _}
 import reactivemongo.play.json.BSONFormats
 import reactivemongo.play.json.ImplicitBSONHandlers.BSONDocumentWrites
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
@@ -83,6 +83,8 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def retrieveLockedRegIDs() : Future[List[String]]
   def retrieveStatusAndExistenceOfCTUTR(ackRef: String): Future[Option[(String, Boolean)]]
   def updateRegistrationWithAdminCTReference(ackRef : String, ctUtr : String) : Future[Option[CorporationTaxRegistration]]
+  def storeSessionIdentifiers(regId: String, sessionId: String, credId: String) : Future[Boolean]
+  def retrieveSessionIdentifiers(regId: String) : Future[Option[SessionIds]]
 }
 
 private[repositories] class MissingCTDocument(regId: String) extends NoStackTrace
@@ -438,5 +440,22 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
     collection.findAndUpdate(selector, modifier) map {
       _.result[CorporationTaxRegistration]
     }
+  }
+
+  override def storeSessionIdentifiers(regId: String, sessionId: String, credId: String) : Future[Boolean] = {
+    val selector = registrationIDSelector(regId)
+    val modifier = BSONDocument(
+      "$set" -> BSONFormats.readAsBSONValue(
+        Json.obj("sessionIdentifiers" -> Json.toJson(SessionIds(sessionId, credId)))
+      ).get
+    )
+
+    collection.update(selector, modifier) map { _.nModified == 1 }
+  }
+
+  override def retrieveSessionIdentifiers(regId: String) : Future[Option[SessionIds]] = {
+    for {
+      taxRegistration <- collection.find(registrationIDSelector(regId)).one[CorporationTaxRegistration]
+    } yield taxRegistration flatMap (_.sessionIdentifiers)
   }
 }

@@ -53,7 +53,8 @@ case class CorporationTaxRegistration(internalId: String,
                                       verifiedEmail: Option[Email] = None,
                                       createdTime: DateTime = CorporationTaxRegistration.now,
                                       lastSignedIn: DateTime = CorporationTaxRegistration.now,
-                                      heldTimestamp: Option[DateTime] = None
+                                      heldTimestamp: Option[DateTime] = None,
+                                      sessionIdentifiers: Option[SessionIds] = None
                                      )
 
 object CorporationTaxRegistration {
@@ -79,7 +80,8 @@ object CorporationTaxRegistration {
       (__ \ "verifiedEmail").readNullable[Email] and
       (__ \ "createdTime").read[DateTime] and
       (__ \ "lastSignedIn").read[DateTime].orElse(Reads.pure(CorporationTaxRegistration.now)) and
-      (__ \ "heldTimestamp").readNullable[DateTime]
+      (__ \ "heldTimestamp").readNullable[DateTime] and
+      (__ \ "sessionIdentifiers").readNullable[SessionIds]
     )(CorporationTaxRegistration.apply _)
 
     val writes = (
@@ -101,7 +103,8 @@ object CorporationTaxRegistration {
       (__ \ "verifiedEmail").writeNullable[Email] and
       (__ \ "createdTime").write[DateTime] and
       (__ \ "lastSignedIn").write[DateTime] and
-      (__ \ "heldTimestamp").writeNullable[DateTime]
+      (__ \ "heldTimestamp").writeNullable[DateTime] and
+      (__ \ "sessionIdentifiers").writeNullable[SessionIds]
     )(unlift(CorporationTaxRegistration.unapply))
 
     Format(reads, writes)
@@ -340,4 +343,15 @@ object HO6RegistrationInformation {
       (__ \ "companyName").writeNullable[String] and
       (__ \ "registrationProgress").writeNullable[String]
     )(unlift(HO6RegistrationInformation.unapply))
+}
+
+
+case class SessionIds(sessionId: String,
+                      credId: String)
+
+object SessionIds {
+  implicit val format: Format[SessionIds] = (
+    (__ \ "sessionId").format[String](MongoValidation.cryptoFormat) and
+      (__ \ "credId").format[String](MongoValidation.cryptoFormat)
+    )(SessionIds.apply, unlift(SessionIds.unapply))
 }

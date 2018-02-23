@@ -18,7 +18,7 @@ package api
 
 import itutil.{IntegrationSpecBase, LoginStub, WiremockHelper}
 import models.RegistrationStatus._
-import models.{AccountingDetails, CHROAddress, CompanyDetails, ConfirmationReferences, ContactDetails, CorporationTaxRegistration, Email, PPOB, PPOBAddress, TradingDetails}
+import models._
 import play.api.Application
 import play.api.http.HeaderNames
 import uk.gov.hmrc.http.{HeaderNames => GovHeaderNames}
@@ -240,6 +240,7 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
 
         val reg = await(ctRepository.findAll()).head
         reg.confirmationReferences shouldBe Some(confRefsWithPayment)
+        reg.sessionIdentifiers shouldBe None
         reg.status shouldBe HELD
       }
 
@@ -259,6 +260,7 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
 
         val reg = await(ctRepository.findAll()).head
         reg.confirmationReferences shouldBe Some(confRefsWithPayment)
+        reg.sessionIdentifiers shouldBe Some(SessionIds(SessionId, authProviderId))
         reg.status shouldBe LOCKED
       }
 
@@ -287,6 +289,7 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
 
         val reg = await(ctRepository.findAll()).head
         reg.confirmationReferences shouldBe Some(confRefsWithPayment)
+        reg.sessionIdentifiers shouldBe None
         reg.status shouldBe HELD
       }
 
@@ -314,6 +317,7 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
 
         val reg = await(ctRepository.findAll()).head
         reg.confirmationReferences shouldBe Some(confRefsWithoutPayment)
+        reg.sessionIdentifiers shouldBe None
         reg.status shouldBe HELD
       }
 
@@ -340,6 +344,7 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
 
         val reg = await(ctRepository.findAll()).head
         reg.confirmationReferences shouldBe Some(confRefsWithoutPayment)
+        reg.sessionIdentifiers shouldBe Some(SessionIds(SessionId, authProviderId))
         reg.status shouldBe LOCKED
       }
 
@@ -368,6 +373,7 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
 
         val reg = await(ctRepository.findAll()).head
         reg.confirmationReferences shouldBe Some(confRefsWithPayment)
+        reg.sessionIdentifiers shouldBe None
         reg.status shouldBe HELD
       }
     }

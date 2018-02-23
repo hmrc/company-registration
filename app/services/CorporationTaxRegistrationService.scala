@@ -176,7 +176,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
     for{
       partialSubmission         <- buildPartialDesSubmission(regId, confRefs.acknowledgementReference, authProvId)
       _                         <- registerInterest(regId, confRefs.transactionId)
-      _                         <- storePartial(regId, confRefs.acknowledgementReference, partialSubmission)
+      _                         <- storePartial(regId, confRefs.acknowledgementReference, partialSubmission, authProvId)
       partialSubmissionAsJson    = Json.toJson(partialSubmission).as[JsObject]
       _                         <- auditUserPartialSubmission(regId, authProvId, partialSubmissionAsJson)
       success                   <- cTRegistrationRepository.updateRegistrationToHeld(regId, confRefs) map (_.isDefined)
@@ -201,10 +201,10 @@ trait CorporationTaxRegistrationService extends DateHelper {
     if(registerInterestRequired()) incorpInfoConnector.registerInterest(regId, transactionId) else Future.successful(false)
   }
 
-  private[services] def storePartial(rID: String, ackRef: String, heldSubmission: InterimDesRegistration)
+  private[services] def storePartial(rID: String, ackRef: String, heldSubmission: InterimDesRegistration, authProvId : String)
                                     (implicit hc: HeaderCarrier, req: Request[AnyContent]) = {
     val submissionAsJson = Json.toJson(heldSubmission).as[JsObject]
-    storePartialSubmission(rID, ackRef, submissionAsJson)
+    storePartialSubmission(rID, ackRef, submissionAsJson, authProvId)
   }
 
   private[services] def auditUserPartialSubmission(regId: String, authProvId: String, partialSubmission: JsObject)
@@ -215,11 +215,16 @@ trait CorporationTaxRegistrationService extends DateHelper {
     } yield auditResult
   }
 
-  private[services] def storePartialSubmission(regId: String, ackRef: String, partialSubmission: JsObject)
+  private[services] def storePartialSubmission(regId: String, ackRef: String, partialSubmission: JsObject, authProvId : String)
                                               (implicit hc: HeaderCarrier): Future[HeldSubmissionData] = {
     if(toETMPHoldingPen){
       desConnector.ctSubmission(ackRef, partialSubmission, regId) map {
         _ => HeldSubmissionData(regId, ackRef, partialSubmission.toString)
+      } recoverWith {
+        case e =>
+          val sessionId = hc.headers.collect { case ("X-Session-ID", x) => x }.head
+          Logger.warn(s"[storePartialSubmission] Saved session identifers for regId: $regId")
+          cTRegistrationRepository.storeSessionIdentifiers(regId, sessionId, authProvId) map (throw e)
       }
     } else {
       heldSubmissionRepository.retrieveSubmissionByAckRef(ackRef) flatMap {
