@@ -57,6 +57,9 @@ sealed trait RegistrationProgress
 case object RegistrationProgressUpdated extends RegistrationProgress
 case object CompanyRegistrationDoesNotExist extends RegistrationProgress
 
+sealed trait FailedPartialForLockedTopup extends NoStackTrace
+case object NoSessionIdentifiersInDocument extends FailedPartialForLockedTopup
+
 trait CorporationTaxRegistrationService extends DateHelper {
 
   val cTRegistrationRepository: CorporationTaxRegistrationRepository
@@ -171,6 +174,23 @@ trait CorporationTaxRegistrationService extends DateHelper {
     )(status => status == DRAFT || status == LOCKED)
   }
 
+  def setupPartialForTopupOnLocked(transID : String)(implicit hc : HeaderCarrier, req: Request[AnyContent], isAdmin: Boolean): Future[Boolean] = {
+    val result: Future[Boolean] = cTRegistrationRepository.retrieveRegistrationByTransactionID(transID) flatMap {
+      case Some(reg) => (reg.sessionIdentifiers, reg.confirmationReferences) match {
+        case _ if reg.status != RegistrationStatus.LOCKED =>
+          throw new RuntimeException(s"[setupPartialForTopup] Document status of txID: $transID was not locked, was ${reg.status}")
+        case (Some(sIds), Some(confRefs)) => sendPartialSubmission(reg.registrationID, sIds.credId, confRefs)
+        case _ =>
+          Logger.warn(s"[setupPartialForTopup] No session identifiers or conf refs for registration with txID: $transID")
+          throw NoSessionIdentifiersInDocument
+      }
+      case _ => throw new RuntimeException(s"[setupPartialForTopup] Could not find registration by txID: $transID")
+    }
+
+    Logger.info(s"[setupPartialForTopup] Updated locked document of txId: $transID to held for topup")
+    result
+  }
+
   private[services] def sendPartialSubmission(regId: String, authProvId: String, confRefs: ConfirmationReferences)
                                              (implicit hc: HeaderCarrier, req: Request[AnyContent], isAdmin: Boolean): Future[Boolean] = {
     for{
@@ -222,9 +242,14 @@ trait CorporationTaxRegistrationService extends DateHelper {
         _ => HeldSubmissionData(regId, ackRef, partialSubmission.toString)
       } recoverWith {
         case e =>
-          val sessionId = hc.headers.collect { case ("X-Session-ID", x) => x }.head
-          Logger.warn(s"[storePartialSubmission] Saved session identifers for regId: $regId")
-          cTRegistrationRepository.storeSessionIdentifiers(regId, sessionId, authProvId) map (throw e)
+          hc.headers.collect { case ("X-Session-ID", x) => x }.headOption match {
+            case Some(xSesID) =>
+              Logger.warn(s"[storePartialSubmission] Saved session identifers for regId: $regId")
+              cTRegistrationRepository.storeSessionIdentifiers(regId, xSesID, authProvId) map (throw e)
+            case _            =>
+              Logger.warn(s"[storePartialSubmission] No session identifiers to save for regID: $regId")
+              throw e
+          }
       }
     } else {
       heldSubmissionRepository.retrieveSubmissionByAckRef(ackRef) flatMap {
@@ -245,6 +270,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
       case (RO, _) => (None, None)
       case (_, Some(address)) => (Some(address.txid), address.uprn)
     }
+
     val event = new UserRegistrationSubmissionEvent(SubmissionEventDetail(rID, authProviderId, txID, uprn, ppob.addressType, jsSubmission))(hc, req)
     auditConnector.sendExtendedEvent(event)
   }
@@ -252,14 +278,20 @@ trait CorporationTaxRegistrationService extends DateHelper {
   private[services] def buildPartialDesSubmission(regId: String, ackRef: String, authProvId: String)
                                                  (implicit hc: HeaderCarrier, isAdmin: Boolean): Future[InterimDesRegistration] = {
 
-    // TODO - check behaviour if session header is missing
-    val sessionId = hc.headers.collect { case ("X-Session-ID", x) => x }.head
+    val sessionIdentifiersResult: Future[(String, String, Boolean)] = hc.headers.collect { case ("X-Session-ID", x) => x }.headOption match {
+      case Some(sesID) => Future.successful((sesID, authProvId, isAdmin))
+      case None => cTRegistrationRepository.retrieveSessionIdentifiers(regId) map {
+        case Some(sessionIdentifiers) => (sessionIdentifiers.sessionId, sessionIdentifiers.credId, true)
+        case None => throw new RuntimeException(s"[buildPartialDesSubmission] No session identifiers available for DES submission")
+      }
+    }
 
     for {
-      brMetadata <- retrieveBRMetadata(regId, isAdmin)
+      (sessID, credID, admin) <- sessionIdentifiersResult
+      brMetadata <- retrieveBRMetadata(regId, admin)
       ctData <- retrieveCTData(regId)
     } yield {
-      buildInterimSubmission(ackRef, sessionId, authProvId, brMetadata, ctData, currentDateTime)
+      buildInterimSubmission(ackRef, sessID, credID, brMetadata, ctData, currentDateTime)
     }
   }
 

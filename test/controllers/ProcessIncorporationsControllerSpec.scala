@@ -21,18 +21,17 @@ import akka.stream.ActorMaterializer
 import fixtures.AuthFixture
 import models.IncorpStatus
 import org.joda.time.DateTime
-import org.joda.time.format.DateTimeFormat
-import org.scalatest.mock.MockitoSugar
-import play.api.libs.json.{JsObject, Json}
-import play.api.test.FakeRequest
-import play.api.test.Helpers.call
-import services.{MetricsService, RegistrationHoldingPenService}
-import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.concurrent.Eventually
+import org.scalatest.mock.MockitoSugar
 import play.api.Logger
 import play.api.libs.json.Reads._
+import play.api.libs.json.{JsObject, Json}
+import play.api.test.FakeRequest
+import play.api.test.Helpers.call
+import services.{CorporationTaxRegistrationService, RegistrationHoldingPenService}
+import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
 
 import scala.concurrent.Future
 
@@ -47,31 +46,33 @@ class ProcessIncorporationsControllerSpec extends UnitSpec with MockitoSugar wit
   val crn = "crn-12345"
 
   val mockRegHoldingPenService = mock[RegistrationHoldingPenService]
+  val mockCorpRegTaxService = mock[CorporationTaxRegistrationService]
 
   class Setup {
     val controller = new ProcessIncorporationsController {
       override val regHoldingPenService = mockRegHoldingPenService
+      override val corpTaxRegService = mockCorpRegTaxService
     }
   }
 
   val rejectedIncorpJson = Json.parse(
     s"""
-      |{
-      |  "SCRSIncorpStatus":{
-      |    "IncorpSubscriptionKey":{
-      |      "subscriber":"abc123",
-      |      "discriminator":"CT100",
-      |      "transactionId":"$transactionId"
-      |    },
-      |    "SCRSIncorpSubscription":{
-      |      "callbackUrl":"www.testUpdate.com"
-      |    },
-      |    "IncorpStatusEvent":{
-      |      "status":"rejected",
-      |      "description":"description"
-      |    }
-      |  }
-      |}
+       |{
+       |  "SCRSIncorpStatus":{
+       |    "IncorpSubscriptionKey":{
+       |      "subscriber":"abc123",
+       |      "discriminator":"CT100",
+       |      "transactionId":"$transactionId"
+       |    },
+       |    "SCRSIncorpSubscription":{
+       |      "callbackUrl":"www.testUpdate.com"
+       |    },
+       |    "IncorpStatusEvent":{
+       |      "status":"rejected",
+       |      "description":"description"
+       |    }
+       |  }
+       |}
     """.stripMargin).as[JsObject]
 
   val rejectedIncorpStatus = IncorpStatus(transactionId, "rejected", None, Some("description"), None)
@@ -159,13 +160,13 @@ class ProcessIncorporationsControllerSpec extends UnitSpec with MockitoSugar wit
 
         intercept[RuntimeException](await(call(controller.processIncorp, request)))
 
-          eventually {
+        eventually {
 
-            logEvents.size shouldBe 2
+          logEvents.size shouldBe 2
 
-            val res = logEvents.map(_.getMessage) contains "FAILED_DES_TOPUP"
+          val res = logEvents.map(_.getMessage) contains "FAILED_DES_TOPUP"
 
-            res shouldBe true
+          res shouldBe true
 
         }
       }
@@ -174,30 +175,24 @@ class ProcessIncorporationsControllerSpec extends UnitSpec with MockitoSugar wit
 
   "Invalid Data" should {
 
-    "return a 500 response for non admin flow" in new Setup {
-
+    "return a 202 response for non admin flow" in new Setup {
       when(mockRegHoldingPenService.updateIncorp(any(), any())(any())).thenReturn(Future.successful(false))
-
+      when(mockCorpRegTaxService.setupPartialForTopupOnLocked(any())(any(), any(), any())).thenReturn(Future.successful(false))
       val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
-
       val result = await(call(controller.processIncorp, request))
+
+      status(result) shouldBe 202
+    }
+
+
+    "return a 500 response for admin flow" in new Setup {
+      when(mockRegHoldingPenService.updateIncorp(any(), any())(any())).thenReturn(Future.successful(false))
+      val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
+      val result = await(call(controller.processAdminIncorp, request))
 
       status(result) shouldBe 400
 
     }
-
-
-  "return a 500 response for admin flow" in new Setup {
-
-    when(mockRegHoldingPenService.updateIncorp(any(), any())(any())).thenReturn(Future.successful(false))
-
-    val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
-
-    val result = await(call(controller.processAdminIncorp, request))
-
-    status(result) shouldBe 400
-
   }
-}
 
 }

@@ -528,12 +528,12 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
       await(service.updateSubmissionWithIncorporation(incorpSuccess, validCR)) shouldBe true
     }
-    "return true for a Locked registration" in new SetupNoProcess {
+    "return false for a Locked registration" in new SetupNoProcess {
       val lockedReg = validCR.copy(status = LOCKED)
       when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
         .thenReturn(Future.successful(Some(lockedReg)))
 
-      await(service.updateSubmissionWithIncorporation(incorpSuccess, lockedReg)) shouldBe true
+      await(service.updateSubmissionWithIncorporation(incorpSuccess, lockedReg)) shouldBe false
     }
     "return true for a submission that is already 'Submitted" in new SetupNoProcess {
       when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
@@ -541,7 +541,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
       await(service.updateSubmissionWithIncorporation(incorpSuccess, submittedCR)) shouldBe true
     }
-    "return false for a submission that is neither 'Held' nor 'Submitted'" in new SetupNoProcess {
+    "throw UnexpectedStatus for a submission that is neither 'Held' nor 'Submitted'" in new SetupNoProcess {
       when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
         .thenReturn(Future.successful(Some(failCaseCR)))
 
@@ -636,7 +636,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
     }
 
-    "return a FailedToUpdateSubmissionWithAcceptedIncorp when processing an accepted incorporation returns a false" in new SetupBoolean {
+    "return a future false when processing an accepted incorporation returns a false" in new SetupBoolean {
 //      when(mockAuditConnector.sendExtendedEvent(ArgumentMatchers.any[RegistrationAuditEvent]())(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any[ExecutionContext]()))
 //        .thenReturn(Future.successful(Success))
 
@@ -644,7 +644,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
         .thenReturn(Future.successful(Some(validCR)))
       
-      intercept[FailedToUpdateSubmissionWithAcceptedIncorp.type](await(serviceFalse.processIncorporationUpdate(incorpSuccess)) shouldBe false)
+      await(serviceFalse.processIncorporationUpdate(incorpSuccess)) shouldBe false
 
 //      verify(mockAuditConnector, times(1)).sendExtendedEvent(captor.capture())(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any[ExecutionContext]())
 //
@@ -701,6 +701,19 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
         .thenReturn(Future.successful(true))
 
       await(service.processIncorporationUpdate(incorpRejected)) shouldBe true
+    }
+
+    "return a future false, do not top up on rejected incorporation in LOCKED state" in new Setup {
+      when(mockHeldRepo.retrieveSubmissionByAckRef(ArgumentMatchers.eq(testAckRef)))
+        .thenReturn(Future.successful(None))
+
+      when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
+        .thenReturn(Future.successful(Some(validCR.copy(status = LOCKED))))
+
+      when(mockAuditConnector.sendExtendedEvent(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+        .thenReturn(Future.successful(Success))
+
+      await(service.processIncorporationUpdate(incorpRejected)) shouldBe false
     }
 
     "return an exception when processing a rejected incorporation without held data and Des returns a 500" in new Setup{

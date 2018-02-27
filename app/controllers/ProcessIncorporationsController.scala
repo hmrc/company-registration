@@ -21,19 +21,23 @@ import javax.inject.Inject
 import models._
 import play.api.Logger
 import play.api.libs.json.JsValue
-import play.api.mvc.Action
-import services.{MetricsService, RegistrationHoldingPenService}
+import play.api.mvc.{Action, AnyContentAsJson, Request}
+import services.{CorporationTaxRegistrationService, MetricsService, NoSessionIdentifiersInDocument, RegistrationHoldingPenService}
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import uk.gov.hmrc.play.microservice.controller.BaseController
+
+import scala.concurrent.Future
 
 class ProcessIncorporationsControllerImp @Inject()(metricsService: MetricsService)
   extends ProcessIncorporationsController {
   override val regHoldingPenService = RegistrationHoldingPenService
+  override val corpTaxRegService = CorporationTaxRegistrationService
 }
 
 trait ProcessIncorporationsController extends BaseController {
 
   val regHoldingPenService: RegistrationHoldingPenService
+  val corpTaxRegService: CorporationTaxRegistrationService
 
   private def logFailedTopup(txId: String) = {
     Logger.error("FAILED_DES_TOPUP")
@@ -45,10 +49,15 @@ trait ProcessIncorporationsController extends BaseController {
 
       implicit val reads = IncorpStatus.reads
       withJsonBody[IncorpStatus]{ incorp =>
-        regHoldingPenService.updateIncorp(incorp) map {
-          if(_) { Ok } else {
-            logFailedTopup(incorp.transactionId)
-            BadRequest
+        val requestAsAnyContentAsJson: Request[AnyContentAsJson] = request.map(AnyContentAsJson)
+        regHoldingPenService.updateIncorp(incorp) flatMap {
+          if(_) Future.successful(Ok) else {
+            corpTaxRegService.setupPartialForTopupOnLocked(incorp.transactionId)(hc, requestAsAnyContentAsJson, isAdmin = false) map { _ =>
+              Accepted
+            } recover {
+              case NoSessionIdentifiersInDocument => Ok
+              case e : Exception => throw e
+            }
           }
         } recover {
           case e =>

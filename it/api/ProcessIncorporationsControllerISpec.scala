@@ -19,8 +19,8 @@ package api
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import itutil.{IntegrationSpecBase, LoginStub, MongoIntegrationSpec, WiremockHelper}
-import models.RegistrationStatus.{HELD, DRAFT, LOCKED}
-import models.{AccountingDetails, ConfirmationReferences, CorporationTaxRegistration, Email}
+import models.RegistrationStatus.{DRAFT, HELD, LOCKED}
+import models._
 import org.joda.time.DateTime
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -54,7 +54,9 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
     "microservice.services.des-service.authorization-token" -> "testAuthToken",
     "microservice.services.des-topup-service.host" -> mockHost,
     "microservice.services.des-topup-service.port" -> mockPort,
-    "microservice.services.doNotIndendToTradeDefaultDate" -> "MTkwMC0wMS0wMQ=="
+    "microservice.services.doNotIndendToTradeDefaultDate" -> "MTkwMC0wMS0wMQ==",
+    "microservice.services.business-registration.host" -> s"$mockHost",
+    "microservice.services.business-registration.port" -> s"$mockPort"
   )
 
   override implicit lazy val app: Application = new GuiceApplicationBuilder()
@@ -97,18 +99,32 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
       paymentReference = Some(payRef),
       paymentAmount = Some("12")
     )),
-    companyDetails =  None,
     accountingDetails = Some(AccountingDetails(
       status = AccountingDetails.FUTURE_DATE,
       activeDate = Some(activeDate))),
-    tradingDetails = None,
-    contactDetails = None,
     verifiedEmail = Some(Email(
       address = "testEmail@address.com",
       emailType = "testType",
       linkSent = true,
       verified = true,
       returnLinkEmailSent = true
+    )),
+    companyDetails =  Some(CompanyDetails(
+      companyName = "testCompanyName",
+      CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
+      PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"), None, "txid"))),
+      jurisdiction = "testJurisdiction"
+    )),
+    tradingDetails = Some(TradingDetails(
+      regularPayments = "true"
+    )),
+    contactDetails = Some(ContactDetails(
+      firstName = "testContactFirstName",
+      middleName = Some("testContactMiddleName"),
+      surname = "testContactLastName",
+      phone = Some("02072899066"),
+      mobile = Some("07567293726"),
+      email = Some("test@email.co.uk")
     )),
     registrationProgress = Some("ho5"),
     acknowledgementReferences = None,
@@ -164,7 +180,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
   val crn = "012345"
   val prepDate = "2018-07-31"
 
-  def jsonIncorpStatus(incorpDate: String) =
+  def jsonIncorpStatus(incorpDate: String): String =
     s"""
       |{
       |  "SCRSIncorpStatus": {
@@ -185,7 +201,26 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
       |}
       """.stripMargin
 
-  def jsonAppendDataForSubmission(incorpDate: String) = Json.parse(
+  def jsonIncorpStatusRejected: String =
+    s"""
+       |{
+       |  "SCRSIncorpStatus": {
+       |    "IncorpSubscriptionKey": {
+       |      "subscriber":"$subscriber",
+       |      "discriminator":"$regime",
+       |      "transactionId": "$transId"
+       |    },
+       |    "SCRSIncorpSubscription":{
+       |      "callbackUrl":"www.url.com"
+       |    },
+       |    "IncorpStatusEvent": {
+       |      "status": "rejected"
+       |    }
+       |  }
+       |}
+      """.stripMargin
+
+  def jsonAppendDataForSubmission(incorpDate: String): JsObject = Json.parse(
     s"""
        |{
        |   "registration": {
@@ -303,9 +338,9 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
     }
 
     "handle an error response" when {
-      "it is a 400" in new Setup {
-        val incorpDate = "2017-07-24"
+      val incorpDate = "2017-07-24"
 
+      "it is a 400" in new Setup {
         await(ctRepository.insert(heldRegistration))
         await(heldRepository.storePartialSubmission(regId, ackRef, heldJson))
 
@@ -318,8 +353,6 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
         response.status shouldBe 400
       }
       "it is a 409" in new Setup {
-        val incorpDate = "2017-07-24"
-
         await(ctRepository.insert(heldRegistration))
         await(heldRepository.storePartialSubmission(regId, ackRef, heldJson))
 
@@ -331,21 +364,161 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
         val response = await(client("/process-incorp").post(jsonIncorpStatus(incorpDate)))
         response.status shouldBe 200
       }
-      "registration is Locked by returning 200 to cancel the II subscription" in new Setup {
-        val incorpDate = "2017-07-24"
+      "registration is Locked by returning 202 to postpone the II notification" in new Setup {
+        val businessRegistrationResponse = s"""
+                                              |{
+                                              |  "registrationID":"$regId",
+                                              |  "formCreationTimestamp":"2017-08-09T11:48:20+01:00",
+                                              |  "language":"en",
+                                              |  "completionCapacity":"director"
+                                              |}
+        """.stripMargin
 
-        await(ctRepository.insert(heldRegistration.copy(status = LOCKED)))
+        await(ctRepository.insert(heldRegistration.copy(
+          status = LOCKED, sessionIdentifiers = Some(SessionIds("sessID", "credID"))
+        )))
 
         setupSimpleAuthMocks()
+
         stubPost("/hmrc/email", 202, "")
         val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
 
+        System.setProperty("feature.registerInterest", "false")
+        System.setProperty("feature.etmpHoldingPen", "true")
+
+        stubGet(s"/business-registration/admin/business-tax-registration/$regId", 200, businessRegistrationResponse)
+        stubPost(s"/business-registration/corporation-tax", 200, """{"a": "b"}""")
+
+        val response = await(client("/process-incorp").post(jsonIncorpStatus(incorpDate)))
+        response.status shouldBe 202
+
+        val reg = await(ctRepository.findAll()).head
+        reg.status shouldBe HELD
+      }
+      "registration is Locked, but the update to held fails" in new Setup {
+        val businessRegistrationResponse = s"""
+                                              |{
+                                              |  "registrationID":"$regId",
+                                              |  "formCreationTimestamp":"2017-08-09T11:48:20+01:00",
+                                              |  "language":"en",
+                                              |  "completionCapacity":"director"
+                                              |}
+        """.stripMargin
+
+        await(ctRepository.insert(heldRegistration.copy(
+          status = LOCKED, sessionIdentifiers = Some(SessionIds("sessID", "credID"))
+        )))
+
+        setupSimpleAuthMocks()
+
+        stubPost("/hmrc/email", 202, "")
+        val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
+
+        System.setProperty("feature.registerInterest", "false")
+        System.setProperty("feature.etmpHoldingPen", "true")
+
+        stubGet(s"/business-registration/admin/business-tax-registration/$regId", 200, businessRegistrationResponse)
+        stubPost(s"/business-registration/corporation-tax", 400, """{"a": "b"}""")
+
+        val response = await(client("/process-incorp").post(jsonIncorpStatus(incorpDate)))
+        response.status shouldBe 400
+
+        val reg = await(ctRepository.findAll()).head
+        reg.status shouldBe LOCKED
+      }
+      "registration is Locked, but cannot submit on behalf due to no session identifiers" in new Setup {
+        val businessRegistrationResponse = s"""
+                                              |{
+                                              |  "registrationID":"$regId",
+                                              |  "formCreationTimestamp":"2017-08-09T11:48:20+01:00",
+                                              |  "language":"en",
+                                              |  "completionCapacity":"director"
+                                              |}
+        """.stripMargin
+
+        await(ctRepository.insert(heldRegistration.copy(
+          status = LOCKED
+        )))
+
+        setupSimpleAuthMocks()
+
+        stubPost("/hmrc/email", 202, "")
+        val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
+
+        System.setProperty("feature.registerInterest", "false")
+        System.setProperty("feature.etmpHoldingPen", "true")
+
+        stubGet(s"/business-registration/admin/business-tax-registration/$regId", 200, businessRegistrationResponse)
+
         val response = await(client("/process-incorp").post(jsonIncorpStatus(incorpDate)))
         response.status shouldBe 200
+
+        val reg = await(ctRepository.findAll()).head
+        reg.status shouldBe LOCKED
+      }
+      "registration is Locked by returning 202 to postpone the II rejected notification" in new Setup {
+        val businessRegistrationResponse = s"""
+                                              |{
+                                              |  "registrationID":"$regId",
+                                              |  "formCreationTimestamp":"2017-08-09T11:48:20+01:00",
+                                              |  "language":"en",
+                                              |  "completionCapacity":"director"
+                                              |}
+        """.stripMargin
+
+        await(ctRepository.insert(heldRegistration.copy(
+          status = LOCKED, sessionIdentifiers = Some(SessionIds("sessID", "credID"))
+        )))
+
+        setupSimpleAuthMocks()
+
+        stubPost("/hmrc/email", 202, "")
+        val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
+
+        System.setProperty("feature.registerInterest", "false")
+        System.setProperty("feature.etmpHoldingPen", "true")
+
+        stubGet(s"/business-registration/admin/business-tax-registration/$regId", 200, businessRegistrationResponse)
+        stubPost(s"/business-registration/corporation-tax", 200, """{"a": "b"}""")
+
+        val response = await(client("/process-incorp").post(jsonIncorpStatusRejected))
+        response.status shouldBe 202
+
+        val reg = await(ctRepository.findAll()).head
+        reg.status shouldBe HELD
+      }
+      "registration is Locked, but the update to held fails on a rejection" in new Setup {
+        val businessRegistrationResponse = s"""
+                                              |{
+                                              |  "registrationID":"$regId",
+                                              |  "formCreationTimestamp":"2017-08-09T11:48:20+01:00",
+                                              |  "language":"en",
+                                              |  "completionCapacity":"director"
+                                              |}
+        """.stripMargin
+
+        await(ctRepository.insert(heldRegistration.copy(
+          status = LOCKED, sessionIdentifiers = Some(SessionIds("sessID", "credID"))
+        )))
+
+        setupSimpleAuthMocks()
+
+        stubPost("/hmrc/email", 202, "")
+        val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
+
+        System.setProperty("feature.registerInterest", "false")
+        System.setProperty("feature.etmpHoldingPen", "true")
+
+        stubGet(s"/business-registration/admin/business-tax-registration/$regId", 200, businessRegistrationResponse)
+        stubPost(s"/business-registration/corporation-tax", 400, """{"a": "b"}""")
+
+        val response = await(client("/process-incorp").post(jsonIncorpStatusRejected))
+        response.status shouldBe 400
+
+        val reg = await(ctRepository.findAll()).head
+        reg.status shouldBe LOCKED
       }
       "it is a 499" in new Setup {
-        val incorpDate = "2017-07-24"
-
         await(ctRepository.insert(heldRegistration))
         await(heldRepository.storePartialSubmission(regId, ackRef, heldJson))
 
@@ -358,8 +531,6 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
         response.status shouldBe 502
       }
       "it is a 501" in new Setup {
-        val incorpDate = "2017-07-24"
-
         await(ctRepository.insert(heldRegistration))
         await(heldRepository.storePartialSubmission(regId, ackRef, heldJson))
 
