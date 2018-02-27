@@ -96,7 +96,7 @@ trait AdminService extends DateFormatter {
     corpTaxRegRepo.updateRegistrationWithAdminCTReference(ackRef, ctUtr) map { _ flatMap { cr =>
         cr.acknowledgementReferences map { acknowledgementRefs =>
           val timestamp = Json.obj("timestamp" -> Json.toJson(nowAsZonedDateTime)(zonedDateTimeWrites))
-          val refDetails = AdminCTReferenceDetails(acknowledgementRefs.ctUtr, ctUtr)
+          val refDetails = AdminCTReferenceDetails(acknowledgementRefs.ctUtr, ctUtr,acknowledgementRefs.status,"04")
 
           auditConnector.sendExtendedEvent(
             new AdminCTReferenceEvent(timestamp, username, Json.toJson(refDetails)(AdminCTReferenceDetails.adminAuditWrites).as[JsObject])
