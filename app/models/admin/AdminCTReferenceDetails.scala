@@ -18,7 +18,7 @@ package models.admin
 
 import play.api.libs.json.{Format, JsValue, Json, Writes}
 
-case class AdminCTReferenceDetails(previousUtr: Option[String], newUtr : String)
+case class AdminCTReferenceDetails(previousUtr: Option[String], newUtr : String, previousStatus: String, newStatus: String)
 
 object AdminCTReferenceDetails {
   val format: Format[AdminCTReferenceDetails] = Json.format[AdminCTReferenceDetails]
@@ -30,6 +30,10 @@ object AdminCTReferenceDetails {
       Json.obj("utrChanges" -> Json.obj(
         "previousUtr" -> prevUtr,
         "newUtr" -> o.newUtr
+      ),
+      "statusChanges" -> Json.obj(
+        "previousStatus" -> o.previousStatus,
+        "newStatus" -> o.newStatus
       ))
     }
   }
