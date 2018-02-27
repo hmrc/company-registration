@@ -70,6 +70,8 @@ trait DesConnector extends ServicesConfig with AuditService with RawResponseRead
         response
       } recoverWith {
         case ex: Upstream4xxResponse =>
+          Logger.error("DES_SUBMISSION_400")
+          Logger.warn(s"[DesConnector] [ctSubmission] Submission to DES was invalid for regId: $journeyId AckRef: $ackRef")
           val event = new DesSubmissionEventFailure(journeyId, submission)
           auditConnector.sendExtendedEvent(event)
           throw ex
@@ -86,6 +88,8 @@ trait DesConnector extends ServicesConfig with AuditService with RawResponseRead
         response
       } recoverWith {
         case ex: Upstream4xxResponse =>
+          Logger.error("DES_SUBMISSION_400")
+          Logger.warn(s"[DesConnector] [ctTopUpSubmission] Top up submission to DES was invalid for regId: $journeyId AckRef: $ackRef")
           val event = new DesSubmissionEventFailure(journeyId, submission)
           auditConnector.sendExtendedEvent(event)
           throw ex

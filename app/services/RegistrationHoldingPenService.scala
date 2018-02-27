@@ -122,37 +122,51 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
     item.status match {
       case "accepted" =>
         for {
-          ctReg <- fetchRegistrationByTxId(item.transactionId)
-          _ <- ctReg.verifiedEmail.fold(Future.successful(false)) { email => sendEmailService.sendVATEmail(email.address) }
-          result <- updateSubmissionWithIncorporation(item, ctReg, isAdmin)
+          ctReg            <- fetchRegistrationByTxId(item.transactionId)
+          _                <- ctReg.verifiedEmail.fold(Future.successful(false)) { email => sendEmailService.sendVATEmail(email.address) }
+          result           <- updateSubmissionWithIncorporation(item, ctReg, isAdmin)
         } yield {
-          if (result) result else throw FailedToUpdateSubmissionWithAcceptedIncorp
+          result
         }
       case "rejected" =>
         val reason = item.statusDescription.fold("No reason given")(f => " Reason given:" + f)
-        Logger.info("Incorporation rejected for Transaction: " + item.transactionId + reason)
+        Logger.info("[processIncorporationUpdate] Incorporation rejected for Transaction: " + item.transactionId + reason)
         for {
-          ctReg <- fetchRegistrationByTxId(item.transactionId)
-          _ <- auditFailedIncorporation(item, ctReg)
-          _ <- processIncorporationRejectionSubmission(item, ctReg, ctReg.registrationID, isAdmin)
-          crRejected <- ctRepository.updateSubmissionStatus(ctReg.registrationID, "rejected")
+          ctReg            <- fetchRegistrationByTxId(item.transactionId)
+          submissionResult <- updateSubmissionWithRejectedIncorp(item, ctReg, isAdmin)
         } yield {
-          if (crRejected == "rejected") true else throw FailedToUpdateSubmissionWithRejectedIncorp
+          submissionResult
         }
     }
   }
 
   private[services] def updateSubmissionWithIncorporation(item: IncorpUpdate, ctReg: CorporationTaxRegistration, isAdmin: Boolean = false)(implicit hc: HeaderCarrier): Future[Boolean] = {
-    import RegistrationStatus.{HELD, SUBMITTED, LOCKED}
+    import RegistrationStatus.{HELD, LOCKED, SUBMITTED}
+    ctReg.status match {
+      case LOCKED     =>
+        Logger.warn(s"[updateSubmissionWithIncorporation] Top-up delayed on LOCKED document. Sending partial first. TxId:${item.transactionId} regId: ${ctReg.registrationID}.")
+        Future.successful(false)
+      case HELD       => updateHeldSubmission(item, ctReg, ctReg.registrationID, isAdmin)
+      case SUBMITTED  => updateSubmittedSubmission(ctReg)
+      case unknown    => updateOtherSubmission(ctReg.registrationID, item.transactionId, unknown)
+    }
+  }
+
+  private[services] def updateSubmissionWithRejectedIncorp(item: IncorpUpdate, ctReg: CorporationTaxRegistration, isAdmin: Boolean = false)
+                                                          (implicit hc: HeaderCarrier): Future[Boolean] = {
+    import RegistrationStatus.LOCKED
     ctReg.status match {
       case LOCKED =>
-        Logger.error("FAILED_DES_TOPUP")
-        Logger.info("FAILED_DES_TOPUP" +
-          s" Top-up failed. TxId:${item.transactionId} regId: ${ctReg.registrationID} is LOCKED. Cancelling II subscription")
-        Future.successful(true)
-      case HELD => updateHeldSubmission(item, ctReg, ctReg.registrationID, isAdmin)
-      case SUBMITTED => updateSubmittedSubmission(ctReg)
-      case unknown => updateOtherSubmission(ctReg.registrationID, item.transactionId, unknown)
+        Logger.warn(s"[updateSubmissionWithRejectedIncorp] Rejection top-up delayed on LOCKED document. Sending partial first. TxId:${item.transactionId} regId: ${ctReg.registrationID}.")
+        Future.successful(false)
+      case _ =>
+        for {
+          _           <- auditFailedIncorporation(item, ctReg)
+          _           <- processIncorporationRejectionSubmission(item, ctReg, ctReg.registrationID, isAdmin)
+          crRejected  <- ctRepository.updateSubmissionStatus(ctReg.registrationID, "rejected")
+        } yield {
+          if (crRejected == "rejected") true else throw FailedToUpdateSubmissionWithRejectedIncorp
+        }
     }
   }
 
@@ -170,7 +184,7 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
           processSuccessDesResponse(item, ctReg, auditDetail, isAdmin)
         } recover {
           case e =>
-            Logger.error(s"""Submission to DES failed for ack ref ${ackRef}. Corresponding RegID: $journeyId and Transaction ID: ${item.transactionId}""")
+            Logger.error(s"""[updateHeldSubmission] Submission to DES failed for ack ref ${ackRef}. Corresponding RegID: $journeyId and Transaction ID: ${item.transactionId}""")
             throw e
         }
       case None => processMissingAckRefForTxID(item.transactionId)

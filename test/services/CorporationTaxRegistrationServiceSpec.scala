@@ -18,6 +18,7 @@ package services
 
 import java.util.UUID
 
+import audit.{RegistrationAuditEvent, UserRegistrationSubmissionEvent}
 import cats.data.OptionT
 import connectors._
 import fixtures.{AuthFixture, CorporationTaxRegistrationFixture}
@@ -40,9 +41,10 @@ import repositories._
 import uk.gov.hmrc.http.logging.SessionId
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, Upstream4xxResponse, Upstream5xxResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
 import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with CorporationTaxRegistrationFixture
   with AuthFixture with MongoMocks with LogCapturing with Eventually {
@@ -722,6 +724,63 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
       val result = service.buildPartialDesSubmission(registrationId, ackRef, authProviderId)
       await(result).toString shouldBe interimDesRegistration.toString
     }
+
+    "return a valid partial DES submission if the sessionID is available in mongo" in new Setup {
+      implicit val hc = HeaderCarrier()
+
+      val interimDesRegistration = InterimDesRegistration(
+        ackRef,
+        Metadata(sessionId, authProviderId, "en", dateTime, Director),
+        InterimCorporationTax(
+          corporationTaxRegistration.companyDetails.get.companyName,
+          returnsOnCT61 = false,
+          Some(BusinessAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"))),
+          BusinessContactName(
+            corporationTaxRegistration.contactDetails.get.firstName,
+            corporationTaxRegistration.contactDetails.get.middleName,
+            corporationTaxRegistration.contactDetails.get.surname
+          ),
+          BusinessContactDetails(Some("0123456789"), Some("0123456789"), Some("test@email.co.uk"))
+        )
+      )
+
+      when(mockCTDataRepository.retrieveSessionIdentifiers(eqTo(registrationId)))
+        .thenReturn(Future.successful(Some(SessionIds(sessionId, authProviderId))))
+      when(mockBRConnector.adminRetrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any()))
+        .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
+      when(mockCTDataRepository.retrieveCorporationTaxRegistration(eqTo(registrationId)))
+        .thenReturn(Future.successful(Some(corporationTaxRegistration)))
+
+      val result = service.buildPartialDesSubmission(registrationId, ackRef, authProviderId)
+      await(result).toString shouldBe interimDesRegistration.toString
+    }
+
+    "throw a RunTime exception if there is no sessionID in the header carrier or mongo" in new Setup {
+      implicit val hc = HeaderCarrier()
+
+      val interimDesRegistration = InterimDesRegistration(
+        ackRef,
+        Metadata(sessionId, authProviderId, "en", dateTime, Director),
+        InterimCorporationTax(
+          corporationTaxRegistration.companyDetails.get.companyName,
+          returnsOnCT61 = false,
+          Some(BusinessAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"))),
+          BusinessContactName(
+            corporationTaxRegistration.contactDetails.get.firstName,
+            corporationTaxRegistration.contactDetails.get.middleName,
+            corporationTaxRegistration.contactDetails.get.surname
+          ),
+          BusinessContactDetails(Some("0123456789"), Some("0123456789"), Some("test@email.co.uk"))
+        )
+      )
+
+      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+        .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
+      when(mockCTDataRepository.retrieveCorporationTaxRegistration(eqTo(registrationId)))
+        .thenReturn(Future.successful(Some(corporationTaxRegistration)))
+
+      intercept[RuntimeException](await(service.buildPartialDesSubmission(registrationId, ackRef, authProviderId)))
+    }
   }
 
   "updateCTRecordWithAckRefs" should {
@@ -856,6 +915,124 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
             include(s"Held submission older than one week of regID: $registrationId txID: $tID heldDate: ${heldTime.get.toString})")
         }
       }
+    }
+  }
+
+  "setup partial for topup" should {
+    val registrationId = "testRegId"
+    val tID = "transID"
+    val ackRef = "ackRef"
+    val companyDetails = CompanyDetails(
+      "testCompanyName",
+      CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
+      PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"), None, "txid"))),
+      "testJurisdiction"
+    )
+    val sessIds = SessionIds(
+      sessionId = "sessID",
+      credId = "credID"
+    )
+    val confRefs = ConfirmationReferences(
+      acknowledgementReference = ackRef,
+      transactionId = tID,
+      paymentReference = Some("payref"),
+      paymentAmount = Some("12")
+    )
+
+    val lockedSubmission = CorporationTaxRegistration(
+      internalId = "testID",
+      registrationID = registrationId,
+      formCreationTimestamp = dateTime.toString,
+      language = "en",
+      status = RegistrationStatus.LOCKED,
+      companyDetails = Some(companyDetails),
+      contactDetails = Some(ContactDetails(
+        "testFirstName",
+        Some("testMiddleName"),
+        "testSurname",
+        Some("0123456789"),
+        Some("0123456789"),
+        Some("test@email.co.uk")
+      )),
+      tradingDetails = Some(TradingDetails("false")),
+      heldTimestamp = Some(DateTime.now()),
+      confirmationReferences = Some(confRefs),
+      sessionIdentifiers = Some(sessIds)
+    )
+
+    val businessRegistration = BusinessRegistration(
+      registrationId,
+      "testTimeStamp",
+      "en",
+      Some("Director")
+    )
+
+    implicit val hc = HeaderCarrier()
+
+    "submit partial if the document is locked" in new Setup {
+      System.setProperty("feature.etmpHoldingPen", "true")
+
+      when(mockCTDataRepository.retrieveRegistrationByTransactionID(any()))
+        .thenReturn(Future.successful(Some(lockedSubmission)))
+      when(mockCTDataRepository.retrieveSessionIdentifiers(any()))
+        .thenReturn(Future.successful(Some(sessIds)))
+      when(mockBRConnector.adminRetrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any()))
+        .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
+      when(mockCTDataRepository.retrieveCorporationTaxRegistration(ArgumentMatchers.anyString()))
+        .thenReturn(Future.successful(Some(lockedSubmission)))
+      when(mockDesConnector.ctSubmission(any(), any(), any(), any())(any()))
+        .thenReturn(Future.successful(HttpResponse(200)))
+      when(mockCTDataRepository.retrieveCompanyDetails(any()))
+        .thenReturn(Future.successful(Some(companyDetails)))
+      when(mockAuditConnector.sendExtendedEvent(ArgumentMatchers.any[UserRegistrationSubmissionEvent]())(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any[ExecutionContext]()))
+        .thenReturn(Future.successful(Success))
+      when(mockCTDataRepository.updateRegistrationToHeld(eqTo(registrationId), eqTo(confRefs)))
+        .thenReturn(Future.successful(Some(lockedSubmission.copy(status = RegistrationStatus.HELD))))
+
+      val result = await(service.setupPartialForTopupOnLocked(tID))
+      result shouldBe true
+    }
+
+    "fail to submit a partial for a topup if the session identifiers are not present" in new Setup {
+      System.setProperty("feature.etmpHoldingPen", "true")
+
+      when(mockCTDataRepository.retrieveRegistrationByTransactionID(any()))
+        .thenReturn(Future.successful(Some(lockedSubmission)))
+      when(mockCTDataRepository.retrieveSessionIdentifiers(any()))
+        .thenReturn(Future.successful(None))
+      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+        .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
+      when(mockCTDataRepository.retrieveCorporationTaxRegistration(ArgumentMatchers.anyString()))
+        .thenReturn(Future.successful(Some(lockedSubmission)))
+      when(mockDesConnector.ctSubmission(any(), any(), any(), any())(any()))
+        .thenReturn(Future.successful(HttpResponse(200)))
+      when(mockCTDataRepository.retrieveCompanyDetails(any()))
+        .thenReturn(Future.successful(Some(companyDetails)))
+
+      intercept[RuntimeException](await(service.setupPartialForTopupOnLocked(tID)))
+    }
+
+    "fail to submit a partial for a topup if the auth prov ID is not present" in new Setup {
+      when(mockCTDataRepository.retrieveRegistrationByTransactionID(any()))
+        .thenReturn(Future.successful(Some(lockedSubmission.copy(sessionIdentifiers = None))))
+
+      intercept[NoSessionIdentifiersInDocument.type](await(service.setupPartialForTopupOnLocked(tID)))
+    }
+
+    "fail to submit a partial for a topup if there is no registration" in new Setup {
+      when(mockCTDataRepository.retrieveRegistrationByTransactionID(any()))
+        .thenReturn(Future.successful(None))
+
+      intercept[RuntimeException](await(service.setupPartialForTopupOnLocked(tID)))
+    }
+
+    "fail to submit a partial for a topup if the registration is not locked" in new Setup {
+      when(mockCTDataRepository.retrieveRegistrationByTransactionID(any()))
+        .thenReturn(Future.successful(Some(lockedSubmission.copy(
+          status = RegistrationStatus.DRAFT
+        ))))
+
+      intercept[RuntimeException](await(service.setupPartialForTopupOnLocked(tID)))
     }
   }
 }
