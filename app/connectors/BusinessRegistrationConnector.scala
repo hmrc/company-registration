@@ -16,6 +16,8 @@
 
 package connectors
 
+import javax.inject.Inject
+
 import config.WSHttp
 import models.{BusinessRegistration, BusinessRegistrationRequest}
 import org.joda.time.DateTime
@@ -26,6 +28,11 @@ import uk.gov.hmrc.play.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+
+class BusinessRegistrationConnectorImpl @Inject()() extends BusinessRegistrationConnector with ServicesConfig {
+  lazy val businessRegUrl = baseUrl("business-registration")
+  val http : CoreGet with CorePost with CorePatch = WSHttp
+}
 
 object BusinessRegistrationConnector extends BusinessRegistrationConnector with ServicesConfig {
   lazy val businessRegUrl = baseUrl("business-registration")
@@ -87,8 +94,22 @@ trait BusinessRegistrationConnector {
         case 200 => true
       }
     } recover {
-      case ex: NotFoundException =>
+      case _ =>
         Logger.info(s"[BusinessRegistrationConnector] [removeMetadata] - Received a NotFound status code when attempting to remove a metadata document for regId - $registrationId")
+        false
+    }
+  }
+
+  def adminRemoveMetadata(registrationId: String): Future[Boolean] = {
+    implicit val hc = HeaderCarrier()
+    http.GET[HttpResponse](s"$businessRegUrl/business-registration/admin/business-tax-registration/remove/$registrationId") map {
+      _.status match {
+        case 200 => true
+        case _ => throw new RuntimeException("Unexpected response code received")
+      }
+    } recover {
+      case _ =>
+        Logger.info(s"[BusinessRegistrationConnector] [adminRemoveMetadata] - Received a NotFound status code when attempting to remove a metadata document for regId - $registrationId")
         false
     }
   }

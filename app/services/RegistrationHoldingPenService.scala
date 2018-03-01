@@ -114,7 +114,13 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
       ctDeleted <- ctRepository.removeTaxRegistrationById(regId)
       metadataDeleted <- brConnector.removeMetadata(regId)
     } yield {
-      if (ctDeleted && metadataDeleted) true else throw FailedToDeleteSubmissionData
+      if (ctDeleted && metadataDeleted) {
+        Logger.info(s"[deleteRejectedSubmissionData] Successfully deleted registration with regId: $regId")
+        true
+      } else {
+        Logger.error(s"[deleteRejectedSubmissionData] Failed to delete registration with regId: $regId")
+        throw FailedToDeleteSubmissionData
+      }
     }
   }
 
