@@ -25,6 +25,7 @@ import org.mockito.ArgumentMatchers.any
 import org.scalatest.concurrent.Eventually
 import play.api.Logger
 import play.api.libs.json.Json
+import services.admin.AdminServiceImpl
 
 import scala.concurrent.Future
 
@@ -33,10 +34,11 @@ class AppStartupJobsSpec extends UnitSpec with MockitoSugar with LogCapturing
 
   val mockHeldRepo: HeldSubmissionMongoRepository = mock[HeldSubmissionMongoRepository]
   val mockCTRepo: CorporationTaxRegistrationMongoRepository = mock[CorporationTaxRegistrationMongoRepository]
+  val mockAdminService: AdminServiceImpl = mock[AdminServiceImpl]
 
   trait Setup {
 
-    val appStartupJobs: AppStartupJobs = new AppStartupJobs {
+    val appStartupJobs: AppStartupJobs = new AppStartupJobs(mockAdminService) {
       override lazy val heldRepo: HeldSubmissionMongoRepository = mockHeldRepo
       override lazy val ctRepo: CorporationTaxRegistrationMongoRepository = mockCTRepo
     }

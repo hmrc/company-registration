@@ -20,7 +20,7 @@ import javax.inject.{Inject, Singleton}
 
 import audit.{AdminCTReferenceEvent, AdminReleaseAuditEvent}
 import config.MicroserviceAuditConnector
-import connectors.IncorporationInformationConnector
+import connectors.{BusinessRegistrationConnector, IncorporationInformationConnector}
 import helpers.DateFormatter
 import models.HO6RegistrationInformation
 import models.admin.{AdminCTReferenceDetails, HO6Identifiers, HO6Response}
@@ -28,6 +28,7 @@ import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.Request
 import repositories.{CorpTaxRegistrationRepo, CorporationTaxRegistrationMongoRepository, HeldSubmissionMongoRepository, HeldSubmissionRepo}
+import services.FailedToDeleteSubmissionData
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 
@@ -35,7 +36,12 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 @Singleton
-class AdminServiceImpl @Inject()(corpTaxRepo: CorpTaxRegistrationRepo, heldSubMongo: HeldSubmissionRepo, val incorpInfoConnector: IncorporationInformationConnector) extends AdminService {
+class AdminServiceImpl @Inject()(
+                                 corpTaxRepo: CorpTaxRegistrationRepo,
+                                 heldSubMongo: HeldSubmissionRepo,
+                                 val brConnector: BusinessRegistrationConnector,
+                                 val incorpInfoConnector: IncorporationInformationConnector) extends AdminService {
+
   val corpTaxRegRepo: CorporationTaxRegistrationMongoRepository = corpTaxRepo.repo
   val heldSubRepo: HeldSubmissionMongoRepository = heldSubMongo.store
   val auditConnector = MicroserviceAuditConnector
@@ -43,10 +49,11 @@ class AdminServiceImpl @Inject()(corpTaxRepo: CorpTaxRegistrationRepo, heldSubMo
 
 trait AdminService extends DateFormatter {
 
-  val corpTaxRegRepo: CorporationTaxRegistrationMongoRepository
-  val heldSubRepo: HeldSubmissionMongoRepository
-  val auditConnector: AuditConnector
+  val corpTaxRegRepo:      CorporationTaxRegistrationMongoRepository
+  val heldSubRepo:         HeldSubmissionMongoRepository
+  val auditConnector:      AuditConnector
   val incorpInfoConnector: IncorporationInformationConnector
+  val brConnector:         BusinessRegistrationConnector
 
   def fetchHO6RegistrationInformation(regId: String): Future[Option[HO6RegistrationInformation]] = corpTaxRegRepo.fetchHO6Information(regId)
 
@@ -104,6 +111,22 @@ trait AdminService extends DateFormatter {
 
           Json.obj("status" -> "04", "ctutr" -> true)
         }
+      }
+    }
+  }
+
+
+  def deleteRejectedSubmissionData(regId: String): Future[Boolean] = {
+    for {
+      ctDeleted       <- corpTaxRegRepo.removeTaxRegistrationById(regId)
+      metadataDeleted <- brConnector.adminRemoveMetadata(regId)
+    } yield {
+      if (ctDeleted && metadataDeleted) {
+        Logger.info(s"[deleteRejectedSubmissionData] Successfully deleted registration with regId: $regId")
+        true
+      } else {
+        Logger.error(s"[deleteRejectedSubmissionData] Failed to delete registration with regId: $regId")
+        throw FailedToDeleteSubmissionData
       }
     }
   }

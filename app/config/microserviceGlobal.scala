@@ -20,16 +20,17 @@ import javax.inject.{Inject, Singleton}
 
 import com.typesafe.config.Config
 import jobs.{CheckSubmissionJob, MetricsJob, MissingIncorporationJob}
+import net.ceedubs.ficus.Ficus._
 import play.api.{Application, Configuration, Logger, Play}
+import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmissionMongoRepository, Repositories}
+import services.CorporationTaxRegistrationService
+import services.admin.AdminServiceImpl
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
+import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode}
 import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
-import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
-import net.ceedubs.ficus.Ficus._
-import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmission, HeldSubmissionMongoRepository, Repositories}
-import services.CorporationTaxRegistrationService
-import uk.gov.hmrc.play.scheduling.RunningOfScheduledJobs
 import uk.gov.hmrc.play.microservice.filters.{AuditFilter, LoggingFilter, MicroserviceFilterSupport}
+import uk.gov.hmrc.play.scheduling.RunningOfScheduledJobs
 
 import scala.concurrent.Future
 
@@ -80,6 +81,14 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
     import java.util.Base64
     val regIdConf = app.configuration.getString("registrationList").getOrElse("")
     val regIdList = new String(Base64.getDecoder.decode(regIdConf), "UTF-8")
+    val removalList = new String(
+      Base64.getDecoder.decode(
+        app.configuration.getString("removalList").getOrElse("")
+      ),
+      "UTF-8"
+    )
+
+    app.injector.instanceOf[AppStartupJobs].removeRegistrations(removalList.split(","))
 
     CorporationTaxRegistrationService.checkDocumentStatus(regIdList.split(","))
 
@@ -88,7 +97,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
 }
 
 @Singleton
-class AppStartupJobs {
+class AppStartupJobs @Inject()(val service: AdminServiceImpl) {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -112,6 +121,13 @@ class AppStartupJobs {
           }
         }
       }
+    }
+  }
+
+  def removeRegistrations(regIds: Seq[String]): Unit = {
+    for(id <- regIds) {
+      Logger.info(s"Deleting registration with regId: $id")
+      service.deleteRejectedSubmissionData(id)
     }
   }
 }

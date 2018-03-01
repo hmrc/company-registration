@@ -18,7 +18,7 @@ package config
 
 import auth.{AuthClientConnector, AuthClientConnectorImpl}
 import com.google.inject.AbstractModule
-import connectors.{IncorporationInformationConnector, IncorporationInformationConnectorImpl}
+import connectors.{BusinessRegistrationConnector, BusinessRegistrationConnectorImpl, IncorporationInformationConnector, IncorporationInformationConnectorImpl}
 import controllers._
 import controllers.admin.{AdminController, AdminControllerImpl}
 import controllers.test.{EmailController, EmailControllerImpl}
@@ -52,6 +52,7 @@ class Module extends AbstractModule {
 
     //connectors
     bind(classOf[IncorporationInformationConnector]).to(classOf[IncorporationInformationConnectorImpl])
+    bind(classOf[BusinessRegistrationConnector]).to(classOf[BusinessRegistrationConnectorImpl])
     bind(classOf[AuthClientConnector]).to(classOf[AuthClientConnectorImpl])
   }
 

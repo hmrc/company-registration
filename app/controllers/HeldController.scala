@@ -57,8 +57,7 @@ trait HeldController extends BaseController with AuthorisedActions {
   def deleteSubmissionData(regId: String): Action[AnyContent] = AuthorisedAction(regId).async {
     implicit request =>
       service.deleteRejectedSubmissionData(regId).map {
-        case true  => Ok
-        case false => NotFound
+        if(_) Ok else NotFound
       }
   }
 }

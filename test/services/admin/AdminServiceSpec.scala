@@ -16,16 +16,17 @@
 
 package services.admin
 
-import audit.{AdminCTReferenceEvent, RegistrationAuditEvent}
-import connectors.IncorporationInformationConnector
+import audit.AdminCTReferenceEvent
+import connectors.{BusinessRegistrationConnector, IncorporationInformationConnector}
 import models._
 import org.joda.time.DateTime
-import org.mockito.{ArgumentCaptor, ArgumentMatchers}
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito._
+import org.mockito.Mockito.{when, _}
+import org.mockito.{ArgumentCaptor, ArgumentMatchers}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.Eventually
 import org.scalatest.mockito.MockitoSugar
+import services.FailedToDeleteSubmissionData
 import play.api.libs.json.Json
 import play.api.mvc.{AnyContent, Request}
 import play.api.test.FakeRequest
@@ -43,6 +44,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
   val mockIncorpInfoConnector: IncorporationInformationConnector = mock[IncorporationInformationConnector]
   val mockCorpTaxRegistrationRepo: CorporationTaxRegistrationMongoRepository = mock[CorporationTaxRegistrationMongoRepository]
+  val mockBusRegConnector = mock[BusinessRegistrationConnector]
 
   class Setup {
     val service = new AdminService {
@@ -50,6 +52,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
       val auditConnector: AuditConnector = mockAuditConnector
       val incorpInfoConnector: IncorporationInformationConnector = mockIncorpInfoConnector
       val corpTaxRegRepo: CorporationTaxRegistrationMongoRepository = mockCorpTaxRegistrationRepo
+      val brConnector: BusinessRegistrationConnector = mockBusRegConnector
     }
   }
 
@@ -255,6 +258,43 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
 
       val result = await(service.updateRegistrationWithCTReference("ackRef", "ctUtr", "test"))
       result shouldBe None
+    }
+  }
+
+  "deleteRejectedSubmissionData" should {
+    "delete a registration" when {
+      "it exists" in new Setup {
+        when(mockBusRegConnector.adminRemoveMetadata(any()))
+          .thenReturn(Future.successful(true))
+        when(mockCorpTaxRegistrationRepo.removeTaxRegistrationById(any()))
+          .thenReturn(Future.successful(true))
+
+        await(service.deleteRejectedSubmissionData(regId)) shouldBe true
+      }
+    }
+    "not delete a registration" when {
+      "it does not exist any of the databases" in new Setup {
+        val inputs = List((true, false), (false, true), (false, false))
+
+        for((brResult, crResult) <- inputs) {
+          when(mockBusRegConnector.adminRemoveMetadata(any()))
+            .thenReturn(
+              Future.successful(brResult)
+            )
+          when(mockCorpTaxRegistrationRepo.removeTaxRegistrationById(any()))
+            .thenReturn(
+              Future.successful(crResult)
+            )
+
+          intercept[FailedToDeleteSubmissionData.type](await(service.deleteRejectedSubmissionData(regId)))
+        }
+      }
+      "an error is thrown" in new Setup {
+        when(mockCorpTaxRegistrationRepo.removeTaxRegistrationById(any()))
+          .thenReturn(Future.failed(new RuntimeException))
+
+        intercept[RuntimeException](await(service.deleteRejectedSubmissionData(regId)))
+      }
     }
   }
 }
