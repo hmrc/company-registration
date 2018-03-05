@@ -24,6 +24,7 @@ import cats.implicits._
 import models._
 import models.validation.MongoValidation
 import org.joda.time.{DateTime, DateTimeZone}
+import play.api.Logger
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.DB
@@ -85,6 +86,7 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def updateRegistrationWithAdminCTReference(ackRef : String, ctUtr : String) : Future[Option[CorporationTaxRegistration]]
   def storeSessionIdentifiers(regId: String, sessionId: String, credId: String) : Future[Boolean]
   def retrieveSessionIdentifiers(regId: String) : Future[Option[SessionIds]]
+  def updateTransactionId(updateFrom: String, updateTo: String): Future[String]
 }
 
 private[repositories] class MissingCTDocument(regId: String) extends NoStackTrace
@@ -144,7 +146,6 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
     collection.find(query).one[CorporationTaxRegistration]
   }
 
-
   override def retrieveRegistrationByTransactionID(transactionID: String): Future[Option[CorporationTaxRegistration]] = {
     val selector = BSONDocument("confirmationReferences.transaction-id" -> BSONString(transactionID))
     collection.find(selector).one[CorporationTaxRegistration]
@@ -154,6 +155,27 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
   private[repositories] def registrationIDSelector(registrationID: String): BSONDocument = BSONDocument(
     "registrationID" -> BSONString(registrationID)
   )
+
+  private[repositories] def transactionIdSelector(transactionId: String): BSONDocument = BSONDocument(
+    "confirmationReferences.transaction-id" -> BSONString(transactionId)
+  )
+
+  override def updateTransactionId(updateFrom: String, updateTo: String): Future[String] = {
+    val selector = transactionIdSelector(updateFrom)
+    val modifier = BSONDocument("$set" -> BSONDocument("confirmationReferences.transaction-id" -> updateTo))
+    collection.update(selector, modifier) map { res =>
+      if (res.nModified == 0) {
+        Logger.error(s"[CorporationTaxRegistrationMongoRepository] [updateTransactionId] No document with transId: $updateFrom was found")
+        throw new RuntimeException("Did not update transaction ID")
+      } else {
+        updateTo
+      }
+    } recover {
+      case e =>
+        Logger.error(s"[CorporationTaxRegistrationMongoRepository] [updateTransactionId] Unable to update transId: $updateFrom to $updateTo", e)
+        throw e
+    }
+  }
 
   override def createCorporationTaxRegistration(ctReg: CorporationTaxRegistration): Future[CorporationTaxRegistration] = {
     collection.insert(ctReg) map (_ => ctReg)

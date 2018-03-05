@@ -58,6 +58,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
 
   override def beforeEach() {
     reset(mockAuditConnector)
+    reset(mockCorpTaxRegistrationRepo)
   }
 
   val regId = "reg-id-12345"
@@ -294,6 +295,30 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
           .thenReturn(Future.failed(new RuntimeException))
 
         intercept[RuntimeException](await(service.deleteRejectedSubmissionData(regId)))
+      }
+    }
+  }
+
+  "updateTransactionId" should {
+
+    val updateFrom = "TRANS-123456789"
+    val updateTo = "TRANS-0123456789"
+
+    "update the transaction id" when {
+      "the transaction id exists in the database" in new Setup {
+        when(mockCorpTaxRegistrationRepo.updateTransactionId(any(), any()))
+          .thenReturn(Future.successful(updateTo))
+
+        await(service.updateTransactionId(updateFrom, updateTo)) shouldBe true
+      }
+    }
+
+    "not update a transaction id" when {
+      "the transaction id does not exist in the database" in new Setup {
+        when(mockCorpTaxRegistrationRepo.updateTransactionId(any(), any()))
+          .thenReturn(Future.failed(new RuntimeException("")))
+
+        await(service.updateTransactionId(updateFrom, updateTo)) shouldBe false
       }
     }
   }
