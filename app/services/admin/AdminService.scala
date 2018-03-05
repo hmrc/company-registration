@@ -130,4 +130,12 @@ trait AdminService extends DateFormatter {
       }
     }
   }
+
+  def updateTransactionId(updateFrom: String, updateTo: String): Future[Boolean] = {
+    corpTaxRegRepo.updateTransactionId(updateFrom, updateTo) map {
+      _ == updateTo
+    } recover {
+      case _ => false
+    }
+  }
 }

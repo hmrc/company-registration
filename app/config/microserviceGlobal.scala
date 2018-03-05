@@ -90,6 +90,21 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
 
     app.injector.instanceOf[AppStartupJobs].removeRegistrations(removalList.split(","))
 
+    val updateTransFrom = new String(
+      Base64.getDecoder.decode(
+        app.configuration.getString("updateTransId.from").getOrElse("")
+      ),
+      "UTF8"
+    )
+    val updateTransTo = new String(
+      Base64.getDecoder.decode(
+        app.configuration.getString("updateTransId.to").getOrElse("")
+      ),
+      "UTF8"
+    )
+
+    app.injector.instanceOf[AppStartupJobs].updateTransId(updateTransFrom.trim, updateTransTo.trim)
+
     CorporationTaxRegistrationService.checkDocumentStatus(regIdList.split(","))
 
     super.onStart(app)
@@ -128,6 +143,18 @@ class AppStartupJobs @Inject()(val service: AdminServiceImpl) {
     for(id <- regIds) {
       Logger.info(s"Deleting registration with regId: $id")
       service.deleteRejectedSubmissionData(id)
+    }
+  }
+
+  def updateTransId(updateTransFrom: String, updateTransTo: String): Unit = {
+    if(updateTransFrom.nonEmpty && updateTransTo.nonEmpty) {
+      service.updateTransactionId(updateTransFrom, updateTransTo) map { result =>
+        if(result) {
+          Logger.info(s"Updated transaction id from $updateTransFrom to $updateTransTo")
+        }
+      }
+    } else {
+      Logger.info("[AppStartupJobs] [updateTransId] Config missing or empty to update a transaction id")
     }
   }
 }

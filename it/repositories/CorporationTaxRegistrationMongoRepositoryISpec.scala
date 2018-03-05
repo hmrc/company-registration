@@ -24,6 +24,7 @@ import org.joda.time.DateTime
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import reactivemongo.api.commands.WriteResult
+import reactivemongo.bson.{BSONDocument, BSONString}
 import uk.gov.hmrc.mongo.MongoSpecSupport
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
@@ -632,6 +633,52 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     "unsuccessful" when {
       "no document exists" in new Setup {
         await(repository.storeSessionIdentifiers(regId, sessionId, credId)) shouldBe false
+      }
+    }
+  }
+
+  "transactionIdSelector" should {
+    "return a mapping between a documents transaction id and the value provided" in new Setup {
+      val transactionId = "fakeTransId"
+      val mapping = BSONDocument("confirmationReferences.transaction-id" -> BSONString(transactionId))
+      repository.transactionIdSelector(transactionId) shouldBe mapping
+    }
+  }
+
+  "updateTransactionId" should {
+    "update a document with the new transaction id" when {
+      "a document is present in the database" in new Setup {
+        val regId = "registrationId"
+
+        def corporationTaxRegistration(transId: String) = CorporationTaxRegistration(
+          internalId = "testID",
+          registrationID = regId,
+          formCreationTimestamp = "testDateTime",
+          language = "en",
+          confirmationReferences = Some(ConfirmationReferences("ackRef", transId, None, None))
+        )
+
+        val updateFrom = "updateFrom"
+        val updateTo = "updateTo"
+
+        await(repository.insert(corporationTaxRegistration(updateFrom)))
+        await(repository.updateTransactionId(updateFrom, updateTo)) shouldBe updateTo
+        await(repository.retrieveCorporationTaxRegistration(regId)) flatMap {
+          doc => doc.confirmationReferences
+        } shouldBe Some(ConfirmationReferences("ackRef", updateTo, None, None))
+      }
+    }
+    "fail to update a document" when {
+      "a document is not present in the database" in new Setup {
+        val regId = "registrationId"
+
+        val updateFrom = "updateFrom"
+        val updateTo = "updateTo"
+
+        intercept[RuntimeException](await(repository.updateTransactionId(updateFrom, updateTo)))
+        await(repository.retrieveCorporationTaxRegistration(regId)) flatMap {
+          doc => doc.confirmationReferences
+        } shouldBe None
       }
     }
   }
