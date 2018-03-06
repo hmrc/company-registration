@@ -118,9 +118,10 @@ trait AdminService extends DateFormatter {
 
   def deleteRejectedSubmissionData(regId: String): Future[Boolean] = {
     for {
-      heldDeleted <- heldSubRepo.removeHeldDocument(regId)
+      ctDeleted       <- corpTaxRegRepo.removeTaxRegistrationById(regId)
+      metadataDeleted <- brConnector.adminRemoveMetadata(regId)
     } yield {
-      if (heldDeleted) {
+      if (ctDeleted && metadataDeleted) {
         Logger.info(s"[deleteRejectedSubmissionData] Successfully deleted registration with regId: $regId")
         true
       } else {
