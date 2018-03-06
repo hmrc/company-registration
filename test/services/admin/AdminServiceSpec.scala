@@ -17,7 +17,7 @@
 package services.admin
 
 import audit.AdminCTReferenceEvent
-import connectors.{BusinessRegistrationConnector, IncorporationInformationConnector}
+import connectors.{BusinessRegistrationConnector, DesConnector, IncorporationInformationConnector}
 import models._
 import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers.any
@@ -26,12 +26,12 @@ import org.mockito.{ArgumentCaptor, ArgumentMatchers}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.Eventually
 import org.scalatest.mockito.MockitoSugar
-import services.FailedToDeleteSubmissionData
 import play.api.libs.json.Json
 import play.api.mvc.{AnyContent, Request}
 import play.api.test.FakeRequest
 import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmissionData, HeldSubmissionMongoRepository}
-import uk.gov.hmrc.http.HeaderCarrier
+import services.FailedToDeleteSubmissionData
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
 import uk.gov.hmrc.play.test.UnitSpec
@@ -45,6 +45,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
   val mockIncorpInfoConnector: IncorporationInformationConnector = mock[IncorporationInformationConnector]
   val mockCorpTaxRegistrationRepo: CorporationTaxRegistrationMongoRepository = mock[CorporationTaxRegistrationMongoRepository]
   val mockBusRegConnector = mock[BusinessRegistrationConnector]
+  val mockDesConnector = mock[DesConnector]
 
   class Setup {
     val service = new AdminService {
@@ -53,12 +54,15 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
       val incorpInfoConnector: IncorporationInformationConnector = mockIncorpInfoConnector
       val corpTaxRegRepo: CorporationTaxRegistrationMongoRepository = mockCorpTaxRegistrationRepo
       val brConnector: BusinessRegistrationConnector = mockBusRegConnector
+      val desConnector: DesConnector = mockDesConnector
     }
   }
 
   override def beforeEach() {
     reset(mockAuditConnector)
+    reset(mockBusRegConnector)
     reset(mockCorpTaxRegistrationRepo)
+    reset(mockDesConnector)
   }
 
   val regId = "reg-id-12345"
@@ -269,8 +273,10 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
           .thenReturn(Future.successful(true))
         when(mockCorpTaxRegistrationRepo.removeTaxRegistrationById(any()))
           .thenReturn(Future.successful(true))
+        when(mockHeldSubmissionRepo.removeHeldDocument(any()))
+          .thenReturn(Future.successful(true))
 
-        await(service.deleteRejectedSubmissionData(regId)) shouldBe true
+        await(service.adminDeleteSubmission(regId)) shouldBe true
       }
     }
     "not delete a registration" when {
@@ -286,15 +292,17 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
             .thenReturn(
               Future.successful(crResult)
             )
+          when(mockHeldSubmissionRepo.removeHeldDocument(any()))
+            .thenReturn(Future.successful(true))
 
-          intercept[FailedToDeleteSubmissionData.type](await(service.deleteRejectedSubmissionData(regId)))
+          intercept[FailedToDeleteSubmissionData.type](await(service.adminDeleteSubmission(regId)))
         }
       }
       "an error is thrown" in new Setup {
         when(mockCorpTaxRegistrationRepo.removeTaxRegistrationById(any()))
           .thenReturn(Future.failed(new RuntimeException))
 
-        intercept[RuntimeException](await(service.deleteRejectedSubmissionData(regId)))
+        intercept[RuntimeException](await(service.adminDeleteSubmission(regId)))
       }
     }
   }
@@ -319,6 +327,152 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
           .thenReturn(Future.failed(new RuntimeException("")))
 
         await(service.updateTransactionId(updateFrom, updateTo)) shouldBe false
+      }
+    }
+  }
+
+  "deleteLimboCase" should {
+
+    val regId = "myRegID"
+    val companyName = "dtl ynapmoc"
+
+    def makeReg(status: String, compName: String, ackRefExists : Boolean, companyDetailsExists : Boolean = true) = CorporationTaxRegistration(
+      internalId = "testID",
+      registrationID = regId,
+      formCreationTimestamp = "dd-mm-yyyy",
+      language = "en",
+      status = status,
+      companyDetails = if(companyDetailsExists) {
+        Some(CompanyDetails(
+          compName,
+          CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
+          PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"), None, "txid"))),
+          "testJurisdiction"
+        ))
+      } else {
+        None
+      },
+      contactDetails = Some(ContactDetails(
+        "testFirstName",
+        Some("testMiddleName"),
+        "testSurname",
+        Some("0123456789"),
+        Some("0123456789"),
+        Some("test@email.co.uk")
+      )),
+      tradingDetails = Some(TradingDetails("false")),
+      heldTimestamp = None,
+      confirmationReferences = if(ackRefExists) {
+        Some(ConfirmationReferences(
+          acknowledgementReference = "ackRef",
+          transactionId = "tID",
+          paymentReference = Some("payref"),
+          paymentAmount = Some("12")
+        ))
+      } else {
+        None
+      },
+      acknowledgementReferences = None
+    )
+
+    "delete a limbo case" when {
+      "the regId and company name match on a draft document" in new Setup {
+        when(mockCorpTaxRegistrationRepo.retrieveCorporationTaxRegistration(any()))
+          .thenReturn(Future.successful(Some(makeReg(RegistrationStatus.DRAFT, companyName, ackRefExists = false))))
+        when(mockBusRegConnector.adminRemoveMetadata(any()))
+          .thenReturn(Future.successful(true))
+        when(mockCorpTaxRegistrationRepo.removeTaxRegistrationById(any()))
+          .thenReturn(Future.successful(true))
+        when(mockHeldSubmissionRepo.removeHeldDocument(any()))
+          .thenReturn(Future.successful(true))
+
+        await(service.deleteLimboCase(regId, companyName)) shouldBe true
+
+        verify(mockCorpTaxRegistrationRepo, times(1)).retrieveCorporationTaxRegistration(any())
+        verify(mockBusRegConnector, times(1)).adminRemoveMetadata(any())
+        verify(mockCorpTaxRegistrationRepo, times(1)).removeTaxRegistrationById(any())
+      }
+      "the regId and company name match on a locked document" in new Setup {
+        when(mockCorpTaxRegistrationRepo.retrieveCorporationTaxRegistration(any()))
+          .thenReturn(Future.successful(Some(makeReg(RegistrationStatus.LOCKED, companyName, ackRefExists = false))))
+        when(mockBusRegConnector.adminRemoveMetadata(any()))
+          .thenReturn(Future.successful(true))
+        when(mockCorpTaxRegistrationRepo.removeTaxRegistrationById(any()))
+          .thenReturn(Future.successful(true))
+        when(mockHeldSubmissionRepo.removeHeldDocument(any()))
+          .thenReturn(Future.successful(true))
+
+        await(service.deleteLimboCase(regId, companyName)) shouldBe true
+
+        verify(mockCorpTaxRegistrationRepo, times(1)).retrieveCorporationTaxRegistration(any())
+        verify(mockBusRegConnector, times(1)).adminRemoveMetadata(any())
+        verify(mockCorpTaxRegistrationRepo, times(1)).removeTaxRegistrationById(any())
+      }
+    }
+    "delete a limbo case and send a rejected top up" when {
+      "the document already has Acknowledgement References" in new Setup {
+        when(mockCorpTaxRegistrationRepo.retrieveCorporationTaxRegistration(any()))
+          .thenReturn(Future.successful(Some(makeReg(RegistrationStatus.LOCKED, companyName, ackRefExists = true))))
+        when(mockBusRegConnector.adminRemoveMetadata(any()))
+          .thenReturn(Future.successful(true))
+        when(mockCorpTaxRegistrationRepo.removeTaxRegistrationById(any()))
+          .thenReturn(Future.successful(true))
+        when(mockHeldSubmissionRepo.removeHeldDocument(any()))
+          .thenReturn(Future.successful(true))
+        when(mockDesConnector.topUpCTSubmission(any(), any(), any(), any())(any()))
+          .thenReturn(Future.successful(HttpResponse(200)))
+
+        await(service.deleteLimboCase(regId, companyName)) shouldBe true
+
+        verify(mockCorpTaxRegistrationRepo, times(1)).retrieveCorporationTaxRegistration(any())
+        verify(mockBusRegConnector, times(1)).adminRemoveMetadata(any())
+        verify(mockCorpTaxRegistrationRepo, times(1)).removeTaxRegistrationById(any())
+        verify(mockDesConnector, times(1)).topUpCTSubmission(any(), any(), any(), any())(any())
+      }
+    }
+    "not delete anything" when {
+      def verifyNotDeleted() = {
+        verify(mockBusRegConnector, times(0)).adminRemoveMetadata(any())
+        verify(mockCorpTaxRegistrationRepo, times(0)).removeTaxRegistrationById(any())
+        verify(mockDesConnector, times(0)).topUpCTSubmission(any(), any(), any(), any())(any())
+      }
+
+      "when the document does not exist" in new Setup {
+        when(mockCorpTaxRegistrationRepo.retrieveCorporationTaxRegistration(any()))
+          .thenReturn(Future.successful(None))
+
+        intercept[RuntimeException](await(service.deleteLimboCase(regId, companyName)))
+
+        verify(mockCorpTaxRegistrationRepo, times(1)).retrieveCorporationTaxRegistration(any())
+        verifyNotDeleted()
+      }
+
+      "when the status of the document is incorrect" in new Setup {
+        when(mockCorpTaxRegistrationRepo.retrieveCorporationTaxRegistration(any()))
+          .thenReturn(Future.successful(Some(makeReg(RegistrationStatus.HELD, companyName, ackRefExists = false))))
+
+        intercept[RuntimeException](await(service.deleteLimboCase(regId, companyName)))
+
+        verify(mockCorpTaxRegistrationRepo, times(1)).retrieveCorporationTaxRegistration(any())
+        verifyNotDeleted()
+      }
+      "when the document has no company details" in new Setup {
+        when(mockCorpTaxRegistrationRepo.retrieveCorporationTaxRegistration(any()))
+          .thenReturn(Future.successful(Some(makeReg(RegistrationStatus.LOCKED, companyName, ackRefExists = false, companyDetailsExists = false))))
+
+        intercept[RuntimeException](await(service.deleteLimboCase(regId, companyName)))
+
+        verify(mockCorpTaxRegistrationRepo, times(1)).retrieveCorporationTaxRegistration(any())
+        verifyNotDeleted()
+      }
+      "when the document's company name does not match the company name provided in the arguments" in new Setup {
+        when(mockCorpTaxRegistrationRepo.retrieveCorporationTaxRegistration(any()))
+          .thenReturn(Future.successful(Some(makeReg(RegistrationStatus.LOCKED, "NotTheSameAsTheArgumentCompanyName", ackRefExists = false))))
+
+        intercept[RuntimeException](await(service.deleteLimboCase(regId, companyName)))
+
+        verify(mockCorpTaxRegistrationRepo, times(1)).retrieveCorporationTaxRegistration(any())
+        verifyNotDeleted()
       }
     }
   }

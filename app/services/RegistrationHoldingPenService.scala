@@ -180,15 +180,13 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
     getAckRef(ctReg) match {
       case Some(ackRef) =>
         val fResponse = for {
-          heldData <- fetchHeldData(ackRef)
+          heldData   <- fetchHeldData(ackRef)
           submission <- constructSubmission(item, ctReg, ackRef, heldData)
-          _ <- processAcceptedSubmission(item, ackRef, ctReg, submission, heldData, isAdmin)
-        } yield {
-          submission
-        }
-        fResponse flatMap { auditDetail =>
-          processSuccessDesResponse(item, ctReg, auditDetail, isAdmin)
-        } recover {
+          _          <- processAcceptedSubmission(item, ackRef, ctReg, submission, heldData, isAdmin)
+          submitted  <- ctRepository.updateHeldToSubmitted(ctReg.registrationID, item.crn.get, formatTimestamp(now))
+        } yield submitted
+
+        fResponse recover {
           case e =>
             Logger.error(s"""[updateHeldSubmission] Submission to DES failed for ack ref ${ackRef}. Corresponding RegID: $journeyId and Transaction ID: ${item.transactionId}""")
             throw e
@@ -226,23 +224,12 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
       case Some(ackRef) =>
         for {
           heldData <- fetchHeldData(ackRef)
-          topUpRejectedSubmission <- constructRejectedSubmission(item, ctReg, ackRef, heldData)
+          topUpRejectedSubmission = heldData.fold(Option(buildTopUpRejectionSubmission(ackRef)))(_ => None)
           processed <- processRejectedSubmission(item, ackRef, ctReg, topUpRejectedSubmission, heldData, isAdmin)
         } yield {
           processed
         }
       case None => processMissingAckRefForTxID(item.transactionId)
-    }
-  }
-
-  private[services] def processSuccessDesResponse(item: IncorpUpdate, ctReg: CorporationTaxRegistration, auditDetail: JsObject, isAdmin: Boolean = false)
-                                                 (implicit hc: HeaderCarrier): Future[Boolean] = {
-    for {
-    //_ <- auditDesSubmission(ctReg.registrationID, auditDetail, isAdmin)
-      updated <- ctRepository.updateHeldToSubmitted(ctReg.registrationID, item.crn.get, formatTimestamp(now))
-    //deleted <- heldRepo.removeHeldDocument(ctReg.registrationID)
-    } yield {
-      updated //&& deleted
     }
   }
 
@@ -335,15 +322,6 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
     heldData match {
       case Some(heldData) => constructFullSubmission(item, ctReg, ackRef, heldData)
       case None => constructTopUpSubmission(item, ctReg, ackRef)
-    }
-  }
-
-  def constructRejectedSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration, ackRef: String, heldData: Option[HeldSubmission]): Future[Option[JsObject]] = {
-
-    heldData match {
-      case Some(heldData) => Future.successful(None)
-      case None => Future.successful(Some(buildTopUpRejectionSubmission(item.status, ackRef)))
-
     }
   }
 
@@ -479,12 +457,11 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
       )
   }
 
-  private[services] def buildTopUpRejectionSubmission(status: String, ackRef: String): JsObject = {
-
+  private[services] def buildTopUpRejectionSubmission(ackRef: String): JsObject = {
     Json.obj(
       "status" -> "Rejected",
-      "acknowledgementReference" -> ackRef)
-
+      "acknowledgementReference" -> ackRef
+    )
   }
 
   private[services] def postSubmissionToDes(ackRef: String, submission: JsObject, journeyId: String, isAdmin: Boolean = false,

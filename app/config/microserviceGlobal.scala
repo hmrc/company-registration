@@ -76,7 +76,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
       Logger.info(s"RegIds with locked status:$message")
     }
 
-    app.injector.instanceOf[AppStartupJobs].getHeldDocsInfo
+    //app.injector.instanceOf[AppStartupJobs].getHeldDocsInfo
 
     import java.util.Base64
     val regIdConf = app.configuration.getString("registrationList").getOrElse("")
@@ -84,11 +84,16 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
     val removalList = new String(
       Base64.getDecoder.decode(
         app.configuration.getString("removalList").getOrElse("")
-      ),
-      "UTF-8"
+      ), "UTF-8"
     )
 
-    app.injector.instanceOf[AppStartupJobs].removeRegistrations(removalList.split(","))
+    val limboCases = new String(
+      Base64.getDecoder.decode(
+        app.configuration.getString("limboCase").getOrElse("")
+      ), "UTF-8"
+    )
+
+    app.injector.instanceOf[AppStartupJobs].removeLimboCases(limboCases.split(","))
 
     val updateTransFrom = new String(
       Base64.getDecoder.decode(
@@ -103,9 +108,9 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
       "UTF8"
     )
 
-    app.injector.instanceOf[AppStartupJobs].updateTransId(updateTransFrom.trim, updateTransTo.trim)
+    //app.injector.instanceOf[AppStartupJobs].updateTransId(updateTransFrom.trim, updateTransTo.trim)
 
-    CorporationTaxRegistrationService.checkDocumentStatus(regIdList.split(","))
+    //CorporationTaxRegistrationService.checkDocumentStatus(regIdList.split(","))
 
     super.onStart(app)
   }
@@ -142,7 +147,7 @@ class AppStartupJobs @Inject()(val service: AdminServiceImpl) {
   def removeRegistrations(regIds: Seq[String]): Unit = {
     for(id <- regIds) {
       Logger.info(s"Deleting registration with regId: $id")
-      service.deleteRejectedSubmissionData(id)
+      service.adminDeleteSubmission(id)
     }
   }
 
@@ -156,5 +161,21 @@ class AppStartupJobs @Inject()(val service: AdminServiceImpl) {
     } else {
       Logger.info("[AppStartupJobs] [updateTransId] Config missing or empty to update a transaction id")
     }
+  }
+
+  def removeLimboCases(regIds: Seq[String]): Unit = {
+    val limboRegex = """(.*)#(.*)""".r
+    def splitter(s: String) = s match {
+      case limboRegex(id, companyName) => Some(id, companyName)
+      case _ => None
+    }
+
+    Future.sequence(
+      regIds.flatMap(splitter) map { case (regId, companyName) =>
+        service.deleteLimboCase(regId, companyName) recover {
+          case ex : Exception => Logger.warn(s"[removeLimboCases] $ex")
+        }
+      }
+    )
   }
 }
