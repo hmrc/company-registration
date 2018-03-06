@@ -24,10 +24,9 @@ import uk.gov.hmrc.http.CorePost
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.config.inject
 
-class AuthClientConnectorImpl @Inject()(config: inject.ServicesConfig,
-                                        wsHttp: WSHttp) extends AuthClientConnector {
+class AuthClientConnectorImpl @Inject()(config: inject.ServicesConfig) extends AuthClientConnector {
   override val serviceUrl: String = config.baseUrl("auth")
-  override def http: CorePost = wsHttp
+  override def http: CorePost = WSHttp
 }
 
 object AuthClientConnector extends AuthClientConnector with ServicesConfig {

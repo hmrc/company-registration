@@ -28,11 +28,11 @@ import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.Future
 
-class ProcessIncorporationsControllerImp @Inject()(metricsService: MetricsService)
-  extends ProcessIncorporationsController {
-  override val regHoldingPenService = RegistrationHoldingPenService
-  override val corpTaxRegService = CorporationTaxRegistrationService
-}
+class ProcessIncorporationsControllerImpl @Inject()(
+        metricsService: MetricsService,
+        val regHoldingPenService: RegistrationHoldingPenService,
+        val corpTaxRegService: CorporationTaxRegistrationService
+      ) extends ProcessIncorporationsController
 
 trait ProcessIncorporationsController extends BaseController {
 

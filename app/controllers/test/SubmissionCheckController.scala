@@ -16,7 +16,7 @@
 
 package controllers.test
 
-import javax.inject.{Inject, Singleton}
+import javax.inject.Inject
 
 import jobs.CheckSubmissionJob
 import org.joda.time.Duration
@@ -28,23 +28,24 @@ import uk.gov.hmrc.lock.LockKeeper
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 
 
-object SubmissionCheckController
-  extends SubmissionCheckController {
-  val service = RegistrationHoldingPenService
+class SubmissionCheckControllerImpl @Inject()(
+       val service: RegistrationHoldingPenService,
+       val checkSubmissionJob: CheckSubmissionJob,
+       val repositories: Repositories
+     ) extends SubmissionCheckController {
   val name = "check-submission-test-endpoint"
   override lazy val lock: LockKeeper = new LockKeeper() {
     override val lockId = s"$name-lock"
-    override val forceLockReleaseAfter: Duration = CheckSubmissionJob.lockTimeout
-    override val repo = Repositories.lockRepository
+    override val forceLockReleaseAfter: Duration = checkSubmissionJob.lockTimeout
+    override val repo = repositories.lockRepository
   }
 }
 
 trait SubmissionCheckController extends BaseController {
 
-  val service : RegistrationHoldingPenService
+  val service: RegistrationHoldingPenService
   val name: String
   val lock: LockKeeper
 
@@ -53,7 +54,7 @@ trait SubmissionCheckController extends BaseController {
       lock.tryLock[String] {
         Logger.info(s"[Test] [SubmissionCheckController] Triggered $name")
         service.updateNextSubmissionByTimepoint recover {
-          case ex: RegistrationHoldingPenService.FailedToRetrieveByTxId =>
+          case ex: service.FailedToRetrieveByTxId =>
             ex.getClass.toString
           case ex =>
             ex.getClass.toString

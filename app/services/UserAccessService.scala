@@ -16,29 +16,30 @@
 
 package services
 
-import javax.inject.{Inject, Singleton}
+import javax.inject.Inject
 
 import connectors.{BusinessRegistrationConnector, BusinessRegistrationNotFoundResponse, BusinessRegistrationSuccessResponse}
 import models.{CorporationTaxRegistration, UserAccessLimitReachedResponse, UserAccessSuccessResponse}
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json.{JsValue, Json}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.config.ServicesConfig
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.util.control.NoStackTrace
-import uk.gov.hmrc.http.HeaderCarrier
 
 
-class UserAccessServiceImp @Inject() (throttleServ: ThrottleService) extends UserAccessService with ServicesConfig {
-  val brConnector = BusinessRegistrationConnector
-  val ctService = CorporationTaxRegistrationService
-  val ctRepository = Repositories.cTRepository
-  val throttleService = throttleServ
-  //$COVERAGE-OFF$
+class UserAccessServiceImpl @Inject()(
+        val throttleService: ThrottleService,
+        val ctService: CorporationTaxRegistrationService,
+        val brConnector: BusinessRegistrationConnector,
+        val repositories: Repositories
+      ) extends UserAccessService with ServicesConfig {
+
+  val ctRepository = repositories.cTRepository
   val threshold = getConfInt("throttle-threshold", throw new Exception("Could not find Threshold in config"))
-  //$COVERAGE-ON$
 }
 
 private[services] class MissingRegistration(regId: String) extends NoStackTrace

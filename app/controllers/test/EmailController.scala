@@ -28,8 +28,9 @@ import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 class EmailControllerImpl @Inject()(val emailService: EmailService,
-                                    val authConnector: AuthClientConnector) extends EmailController {
-  val resource: CorporationTaxRegistrationMongoRepository = Repositories.cTRepository
+                                    val authConnector: AuthClientConnector,
+                                    val repositories: Repositories) extends EmailController {
+  val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 }
 
 trait EmailController extends BaseController with AuthorisedActions {

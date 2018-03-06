@@ -27,7 +27,7 @@ import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.Future
 
-class UserAccessControllerImp @Inject() (val authConnector: AuthClientConnector,
+class UserAccessControllerImpl @Inject()(val authConnector: AuthClientConnector,
                                          val metricsService: MetricsService,
                                          val userAccessService: UserAccessService) extends UserAccessController
 

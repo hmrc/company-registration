@@ -16,23 +16,24 @@
 
 package connectors
 
+import javax.inject.Inject
+
 import config.WSHttp
 import models.SubmissionCheckResponse
 import play.api.Logger
+import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.play.http._
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
 import scala.concurrent.Future
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import scala.util.control.NoStackTrace
-import uk.gov.hmrc.http.{ BadRequestException, HeaderCarrier, HttpException, HttpGet, HttpPost, NotFoundException, Upstream4xxResponse, Upstream5xxResponse }
 
-object IncorporationCheckAPIConnector extends IncorporationCheckAPIConnector with ServicesConfig {
+class SubmissionAPIFailure extends NoStackTrace
+
+class IncorporationCheckAPIConnectorImpl @Inject()() extends IncorporationCheckAPIConnector with ServicesConfig {
   override lazy val proxyUrl = baseUrl("company-registration-frontend")
   override lazy val http = WSHttp
 }
-
-class SubmissionAPIFailure extends NoStackTrace
 
 trait IncorporationCheckAPIConnector {
 

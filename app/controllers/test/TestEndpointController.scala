@@ -17,6 +17,8 @@
 package controllers.test
 
 
+import javax.inject.Inject
+
 import connectors.BusinessRegistrationConnector
 import helpers.DateHelper
 import models.ConfirmationReferences
@@ -29,14 +31,15 @@ import uk.gov.hmrc.play.microservice.controller.BaseController
 import scala.concurrent.ExecutionContext.Implicits.global
 
 
-object TestEndpointController
-  extends TestEndpointController {
-  val throttleMongoRepository = Repositories.throttleRepository
-  val cTMongoRepository = Repositories.cTRepository
-  val bRConnector = BusinessRegistrationConnector
-  val heldRepository = Repositories.heldSubmissionRepository
-  val cTService = CorporationTaxRegistrationService
-  val stateRepo = Repositories.stateDataRepository
+class TestEndpointControllerImpl @Inject()(
+        val cTService: CorporationTaxRegistrationService,
+        val bRConnector: BusinessRegistrationConnector,
+        val repositories: Repositories
+      ) extends TestEndpointController {
+  val throttleMongoRepository = repositories.throttleRepository
+  val cTMongoRepository = repositories.cTRepository
+  val heldRepository = repositories.heldSubmissionRepository
+  val stateRepo = repositories.stateDataRepository
 }
 
 trait TestEndpointController extends BaseController {

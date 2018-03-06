@@ -18,6 +18,7 @@ package services
 
 import java.time.LocalTime
 import java.util.Base64
+import javax.inject.Inject
 
 import audit._
 import config.MicroserviceAuditConnector
@@ -27,7 +28,7 @@ import models._
 import org.joda.time.DateTime
 import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
-import repositories._
+import repositories.{Repositories, _}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpErrorFunctions, HttpResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.config.ServicesConfig
@@ -37,19 +38,20 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.control.NoStackTrace
 
-object RegistrationHoldingPenService
-  extends RegistrationHoldingPenService with ServicesConfig {
-  override val desConnector = DesConnector
-  override val incorporationCheckAPIConnector = IncorporationCheckAPIConnector
-  override val stateDataRepository = Repositories.stateDataRepository
-  override val ctRepository = Repositories.cTRepository
-  override val heldRepo = Repositories.heldSubmissionRepository
-  override val accountingService = AccountingDetailsService
-  override val brConnector = BusinessRegistrationConnector
-  override val auditConnector = MicroserviceAuditConnector
-  override val microserviceAuthConnector = AuthConnector
-  val sendEmailService = SendEmailService
+class RegistrationHoldingPenServiceImpl @Inject()(
+        val desConnector: DesConnector,
+        val incorporationCheckAPIConnector: IncorporationCheckAPIConnector,
+        val accountingService: AccountingDetailsService,
+        val brConnector: BusinessRegistrationConnector,
+        val sendEmailService: SendEmailService,
+        val microserviceAuthConnector: AuthConnector,
+        val repositories: Repositories
+     ) extends RegistrationHoldingPenService with ServicesConfig {
 
+  val stateDataRepository = repositories.stateDataRepository
+  val ctRepository = repositories.cTRepository
+  val heldRepo = repositories.heldSubmissionRepository
+  lazy val auditConnector = MicroserviceAuditConnector
   val addressLine4FixRegID = getConfString("address-line-4-fix.regId", throw new Exception("could not find config key address-line-4-fix.regId"))
   val amendedAddressLine4 = getConfString("address-line-4-fix.address-line-4", throw new Exception("could not find config key address-line-4-fix.address-line-4"))
   val blockageLoggingDay = getConfString("check-submission-job.schedule.blockage-logging-day", throw new RuntimeException(s"Could not find config schedule.blockage-logging-day"))

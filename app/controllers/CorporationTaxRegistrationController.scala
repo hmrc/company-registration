@@ -32,10 +32,14 @@ import utils.Logging
 
 import scala.concurrent.Future
 
-class CorporationTaxRegistrationControllerImpl @Inject()(val metricsService: MetricsService,
-                                                         val authConnector: AuthClientConnector) extends CorporationTaxRegistrationController {
-  val ctService: CorporationTaxRegistrationService = CorporationTaxRegistrationService
-  val resource: CorporationTaxRegistrationMongoRepository = Repositories.cTRepository
+class CorporationTaxRegistrationControllerImpl @Inject()(
+        val metricsService: MetricsService,
+        val authConnector: AuthClientConnector,
+        val ctService: CorporationTaxRegistrationService,
+        val repositories: Repositories
+      ) extends CorporationTaxRegistrationController {
+
+  val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 }
 
 trait CorporationTaxRegistrationController extends BaseController with AuthorisedActions with Logging {

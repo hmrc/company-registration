@@ -21,7 +21,8 @@ import com.google.inject.AbstractModule
 import connectors._
 import controllers._
 import controllers.admin.{AdminController, AdminControllerImpl}
-import controllers.test.{EmailController, EmailControllerImpl}
+import controllers.test._
+import jobs.{CheckSubmissionJob, CheckSubmissionJobImpl, MissingIncorporationJob, MissingIncorporationJobImpl}
 import services._
 import services.admin.{AdminService, AdminServiceImpl}
 import uk.gov.hmrc.play.config.inject.{DefaultServicesConfig, ServicesConfig}
@@ -29,45 +30,67 @@ import uk.gov.hmrc.play.config.inject.{DefaultServicesConfig, ServicesConfig}
 class Module extends AbstractModule {
 
   override def configure(): Unit = {
+    bindJobs()
+    bindConfig()
+    bindControllers()
+    bindServices()
+    bindConnectors()
+  }
 
-    //config
+  private def bindJobs() = {
+    bind(classOf[CheckSubmissionJob]).to(classOf[CheckSubmissionJobImpl])
+    bind(classOf[MissingIncorporationJob]).to(classOf[MissingIncorporationJobImpl])
+  }
+
+  private def bindConfig() = {
     bind(classOf[MicroserviceAppConfig]).to(classOf[MicroserviceAppConfigImpl])
     bind(classOf[ServicesConfig]).to(classOf[DefaultServicesConfig])
-    bind(classOf[WSHttp]).to(classOf[WSHttpImpl])
+  }
 
-    // controllers
+  private def bindControllers() = {
     bind(classOf[EmailController]) to classOf[EmailControllerImpl]
     bind(classOf[AccountingDetailsController]) to classOf[AccountingDetailsControllerImpl]
-    bind(classOf[ProcessIncorporationsController]) to classOf[ProcessIncorporationsControllerImp]
+    bind(classOf[ProcessIncorporationsController]) to classOf[ProcessIncorporationsControllerImpl]
     bind(classOf[CompanyDetailsController]) to classOf[CompanyDetailsControllerImpl]
     bind(classOf[ContactDetailsController]) to classOf[ContactDetailsControllerImpl]
     bind(classOf[CorporationTaxRegistrationController]) to classOf[CorporationTaxRegistrationControllerImpl]
     bind(classOf[TradingDetailsController]) to classOf[TradingDetailsControllerImpl]
-    bind(classOf[UserAccessController]) to classOf[UserAccessControllerImp]
+    bind(classOf[UserAccessController]) to classOf[UserAccessControllerImpl]
     bind(classOf[AdminController]) to classOf[AdminControllerImpl]
     bind(classOf[HeldController]) to classOf[HeldControllerImpl]
     bind(classOf[AccountingDetailsController]) to classOf[AccountingDetailsControllerImpl]
+    bind(classOf[SubmissionCheckController]) to classOf[SubmissionCheckControllerImpl]
+    bind(classOf[TestEndpointController]) to classOf[TestEndpointControllerImpl]
+  }
 
-    bindServices()
+  private def bindServices() {
+    bind(classOf[AdminService]).to(classOf[AdminServiceImpl])
+    bind(classOf[AuditService]).to(classOf[AuditServiceImpl])
+    bind(classOf[AccountingDetailsService]).to(classOf[AccountingDetailsServiceImpl])
+    bind(classOf[MetricsService]) to classOf[MetricsServiceImpl]
+    bind(classOf[CompanyDetailsService]) to classOf[CompanyDetailsServiceImpl]
+    bind(classOf[ContactDetailsService]) to classOf[ContactDetailsServiceImpl]
+    bind(classOf[CorporationTaxRegistrationService]) to classOf[CorporationTaxRegistrationServiceImpl]
+    bind(classOf[CorporationTaxRegistrationService]) to classOf[CorporationTaxRegistrationServiceImpl]
+    bind(classOf[EmailService]) to classOf[EmailServiceImpl]
+    bind(classOf[HeldSubmissionController]) to classOf[HeldSubmissionControllerImpl]
+    bind(classOf[SendEmailService]) to classOf[SendEmailServiceImpl]
+    bind(classOf[MetricsService]) to classOf[MetricsServiceImpl]
+    bind(classOf[PrepareAccountService]) to classOf[PrepareAccountServiceImpl]
+    bind(classOf[ThrottleService]) to classOf[ThrottleServiceImpl]
+    bind(classOf[TradingDetailsService]) to classOf[TradingDetailsServiceImpl]
+    bind(classOf[UserAccessService]) to classOf[UserAccessServiceImpl]
+    bind(classOf[RegistrationHoldingPenService]) to classOf[RegistrationHoldingPenServiceImpl]
+  }
 
-    //connectors
+  private def bindConnectors() = {
     bind(classOf[IncorporationInformationConnector]).to(classOf[IncorporationInformationConnectorImpl])
     bind(classOf[BusinessRegistrationConnector]).to(classOf[BusinessRegistrationConnectorImpl])
     bind(classOf[DesConnector]).to(classOf[DesConnectorImpl])
     bind(classOf[AuthClientConnector]).to(classOf[AuthClientConnectorImpl])
-  }
-
-
-  private def bindServices() {
-    bind(classOf[AdminService]).to(classOf[AdminServiceImpl])
-    bind(classOf[MetricsService]) to classOf[MetricsServiceImp]
-    bind(classOf[CompanyDetailsService]) to classOf[CompanyDetailsServiceImp]
-    bind(classOf[ContactDetailsService]) to classOf[ContactDetailsServiceImp]
-    bind(classOf[EmailService]) to classOf[EmailServiceImp]
-    bind(classOf[MetricsService]) to classOf[MetricsServiceImp]
-    bind(classOf[PrepareAccountService]) to classOf[PrepareAccountServiceImp]
-    bind(classOf[ThrottleService]) to classOf[ThrottleServiceImp]
-    bind(classOf[TradingDetailsService]) to classOf[TradingDetailsServiceImp]
-    bind(classOf[UserAccessService]) to classOf[UserAccessServiceImp]
+    bind(classOf[AuthConnector]).to(classOf[AuthConnectorImpl])
+    bind(classOf[SendEmailConnector]).to(classOf[SendEmailConnectorImpl])
+    bind(classOf[DesConnector]).to(classOf[DesConnectorImpl])
+    bind(classOf[IncorporationCheckAPIConnector]).to(classOf[IncorporationCheckAPIConnectorImpl])
   }
 }

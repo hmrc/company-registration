@@ -16,18 +16,18 @@
 
 package services
 
-import javax.inject.{Inject, Singleton}
+import javax.inject.Inject
 
 import models.TradingDetails
-import uk.gov.hmrc.play.microservice.controller.BaseController
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
+import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 
-class TradingDetailsServiceImp extends TradingDetailsService {
-  val corporationTaxRegistrationRepository = Repositories.cTRepository
+class TradingDetailsServiceImpl @Inject()(val repositories: Repositories) extends TradingDetailsService {
+  val corporationTaxRegistrationRepository = repositories.cTRepository
 }
 
 trait TradingDetailsService extends BaseController {

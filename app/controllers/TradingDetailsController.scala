@@ -31,8 +31,9 @@ import uk.gov.hmrc.play.microservice.controller.BaseController
 
 class TradingDetailsControllerImpl @Inject()(val metricsService: MetricsService,
                                              val tradingDetailsService: TradingDetailsService,
-                                             val authConnector: AuthClientConnector) extends TradingDetailsController {
-  val resource: CorporationTaxRegistrationMongoRepository = Repositories.cTRepository
+                                             val authConnector: AuthClientConnector,
+                                             val repositories: Repositories) extends TradingDetailsController {
+  val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 }
 
 

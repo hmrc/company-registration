@@ -16,39 +16,36 @@
 
 package services
 
+import javax.inject.Inject
+
 import connectors.{AuthConnector, SendEmailConnector}
 import models.SendEmailRequest
-import play.api.mvc.{AnyContent, Request}
-import sun.security.krb5.internal.AuthContext
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.config.ServicesConfig
 
 import scala.concurrent.Future
-import uk.gov.hmrc.http.HeaderCarrier
 
+class SendEmailServiceImpl @Inject()(
+        val microserviceAuthConnector: AuthConnector,
+        val emailConnector: SendEmailConnector
+      ) extends SendEmailService with ServicesConfig
 
-object SendEmailService extends SendEmailService with ServicesConfig {
-  val microserviceAuthConnector = AuthConnector
-  val emailConnector = SendEmailConnector
-
-}
-  trait SendEmailService {
+trait SendEmailService {
 
     val RegisterForVATTemplate = "register_your_company_register_vat_email"
-
-
     val microserviceAuthConnector: AuthConnector
     val emailConnector: SendEmailConnector
 
-      private[services] def generateVATEmailRequest(emailAddress: Seq[String]): SendEmailRequest = {
-        SendEmailRequest(
-          to = emailAddress,
-          templateId = RegisterForVATTemplate,
-          parameters = Map(),
-          force = true
-        )
+    private[services] def generateVATEmailRequest(emailAddress: Seq[String]): SendEmailRequest = {
+      SendEmailRequest(
+        to = emailAddress,
+        templateId = RegisterForVATTemplate,
+        parameters = Map(),
+        force = true
+      )
     }
 
     def sendVATEmail(emailAddress :String)(implicit hc: HeaderCarrier): Future[Boolean] = {
-      SendEmailConnector.requestEmail(generateVATEmailRequest(Seq(emailAddress)))
+      emailConnector.requestEmail(generateVATEmailRequest(Seq(emailAddress)))
     }
   }

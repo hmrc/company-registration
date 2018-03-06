@@ -16,16 +16,31 @@
 
 package jobs
 
+import javax.inject.Inject
+
 import org.joda.time.Duration
 import play.api.Logger
 import repositories.Repositories
-import services.{CorporationTaxRegistrationService}
+import services.CorporationTaxRegistrationService
 import uk.gov.hmrc.lock.LockKeeper
 import uk.gov.hmrc.play.scheduling.ExclusiveScheduledJob
 import utils.SCRSFeatureSwitches
 
 import scala.concurrent.{ExecutionContext, Future}
 import uk.gov.hmrc.http.HeaderCarrier
+
+class MissingIncorporationJobImpl @Inject()(
+        val ctRegService: CorporationTaxRegistrationService,
+        val repositories: Repositories
+      ) extends MissingIncorporationJob {
+
+  val name = "missing-incorporation-job"
+  override lazy val lock: LockKeeper = new LockKeeper() {
+    override val lockId = s"$name-lock"
+    override val forceLockReleaseAfter: Duration = lockTimeout
+    override val repo = repositories.lockRepository
+  }
+}
 
 trait MissingIncorporationJob extends ExclusiveScheduledJob with JobConfig {
 
@@ -52,15 +67,4 @@ trait MissingIncorporationJob extends ExclusiveScheduledJob with JobConfig {
     }
   }
   //$COVERAGE-ON$
-}
-
-object MissingIncorporationJob extends MissingIncorporationJob {
-  val name = "missing-incorporation-job"
-  lazy val ctRegService = CorporationTaxRegistrationService
-
-  override lazy val lock: LockKeeper = new LockKeeper() {
-    override val lockId = s"$name-lock"
-    override val forceLockReleaseAfter: Duration = lockTimeout
-    override val repo = Repositories.lockRepository
-  }
 }

@@ -18,7 +18,7 @@ package config
 
 import fixtures.CorporationTaxRegistrationFixture
 import org.scalatest.mock.MockitoSugar
-import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmission, HeldSubmissionMongoRepository}
+import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmission, HeldSubmissionMongoRepository, Repositories}
 import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
 import org.mockito.Mockito._
 import org.mockito.ArgumentMatchers.any
@@ -33,15 +33,27 @@ class AppStartupJobsSpec extends UnitSpec with MockitoSugar with LogCapturing
   with CorporationTaxRegistrationFixture with Eventually {
 
   val mockHeldRepo: HeldSubmissionMongoRepository = mock[HeldSubmissionMongoRepository]
-  val mockCTRepo: CorporationTaxRegistrationMongoRepository = mock[CorporationTaxRegistrationMongoRepository]
+  val mockCTRepository: CorporationTaxRegistrationMongoRepository = mock[CorporationTaxRegistrationMongoRepository]
   val mockAdminService: AdminServiceImpl = mock[AdminServiceImpl]
+  val mockRepositories: Repositories = mock[Repositories]
+
+  val expectedLockedReg = List()
+  val expectedRegStats  = Map.empty[String,Int]
 
   trait Setup {
+    when(mockRepositories.cTRepository)
+      .thenReturn(mockCTRepository)
 
-    val appStartupJobs: AppStartupJobs = new AppStartupJobs(mockAdminService) {
-      override lazy val heldRepo: HeldSubmissionMongoRepository = mockHeldRepo
-      override lazy val ctRepo: CorporationTaxRegistrationMongoRepository = mockCTRepo
-    }
+    when(mockRepositories.heldSubmissionRepository)
+      .thenReturn(mockHeldRepo)
+
+    when(mockCTRepository.retrieveLockedRegIDs())
+      .thenReturn(Future.successful(expectedLockedReg))
+
+    when(mockCTRepository.getRegistrationStats())
+      .thenReturn(Future.successful(expectedRegStats))
+
+    val appStartupJobs: AppStartupJobs = new AppStartupJobs(mockAdminService, mockRepositories)
   }
 
   "getHeldDocsInfo" should {
@@ -54,7 +66,7 @@ class AppStartupJobsSpec extends UnitSpec with MockitoSugar with LogCapturing
 
     val regId2 = "reg-2"
     val ackRef2 = "ack-2"
-    val heldSubmission2 = HeldSubmission(regId1, ackRef1, json)
+    val heldSubmission2 = HeldSubmission(regId2, ackRef2, json)
 
     val ctDoc1 = validHeldCTRegWithData(regId1, Some(ackRef1))
     val ctDoc2 = validHeldCTRegWithData(regId2, Some(ackRef2))
@@ -64,16 +76,18 @@ class AppStartupJobsSpec extends UnitSpec with MockitoSugar with LogCapturing
       when(mockHeldRepo.getAllHeldDocs)
         .thenReturn(Future.successful(Seq(heldSubmission1, heldSubmission2)))
 
-      when(mockCTRepo.retrieveCorporationTaxRegistration(any()))
+      when(mockCTRepository.retrieveCorporationTaxRegistration(any()))
         .thenReturn(Future.successful(Some(ctDoc1)), Future.successful(Some(ctDoc2)))
 
       withCaptureOfLoggingFrom(Logger){ logEvents =>
         await(appStartupJobs.getHeldDocsInfo)
 
         eventually {
-          logEvents.size shouldBe 2
+          logEvents.size shouldBe 4
 
           val expectedLogs = List(
+            s"[RegStats] $expectedRegStats",
+            s"RegIds with locked status:$expectedLockedReg",
             s"[HeldDocs] status : held - reg Id : $regId1 - conf refs : txId : TX1 - ack ref : $ackRef1",
             s"[HeldDocs] status : held - reg Id : $regId2 - conf refs : txId : TX1 - ack ref : $ackRef2"
           )
