@@ -265,33 +265,21 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
   "deleteRejectedSubmissionData" should {
     "delete a registration" when {
       "it exists" in new Setup {
-        when(mockBusRegConnector.adminRemoveMetadata(any()))
-          .thenReturn(Future.successful(true))
-        when(mockCorpTaxRegistrationRepo.removeTaxRegistrationById(any()))
+        when(mockHeldSubmissionRepo.removeHeldDocument(any()))
           .thenReturn(Future.successful(true))
 
         await(service.deleteRejectedSubmissionData(regId)) shouldBe true
       }
     }
     "not delete a registration" when {
-      "it does not exist any of the databases" in new Setup {
-        val inputs = List((true, false), (false, true), (false, false))
+      "it does not exist in the held database" in new Setup {
+        when(mockHeldSubmissionRepo.removeHeldDocument(any()))
+          .thenReturn(Future.successful(false))
 
-        for((brResult, crResult) <- inputs) {
-          when(mockBusRegConnector.adminRemoveMetadata(any()))
-            .thenReturn(
-              Future.successful(brResult)
-            )
-          when(mockCorpTaxRegistrationRepo.removeTaxRegistrationById(any()))
-            .thenReturn(
-              Future.successful(crResult)
-            )
-
-          intercept[FailedToDeleteSubmissionData.type](await(service.deleteRejectedSubmissionData(regId)))
-        }
+        intercept[FailedToDeleteSubmissionData.type](await(service.deleteRejectedSubmissionData(regId)))
       }
       "an error is thrown" in new Setup {
-        when(mockCorpTaxRegistrationRepo.removeTaxRegistrationById(any()))
+        when(mockHeldSubmissionRepo.removeHeldDocument(any()))
           .thenReturn(Future.failed(new RuntimeException))
 
         intercept[RuntimeException](await(service.deleteRejectedSubmissionData(regId)))
