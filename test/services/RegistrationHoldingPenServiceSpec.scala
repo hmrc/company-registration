@@ -16,29 +16,27 @@
 
 package services
 
-import java.util.{Base64, UUID}
+import java.util.UUID
 
-import audit.{DesSubmissionEvent, DesTopUpSubmissionEvent, RegistrationAuditEvent, SuccessfulIncorporationAuditEvent}
+import audit.{RegistrationAuditEvent, SuccessfulIncorporationAuditEvent}
 import connectors._
 import fixtures.CorporationTaxRegistrationFixture
-import models.{AccountPrepDetails, AccountingDetails, CorporationTaxRegistration, Email, IncorpUpdate, SubmissionCheckResponse, SubmissionDates}
-import org.jboss.netty.handler.codec.base64.Base64Decoder
+import models._
 import org.joda.time.DateTime
-import org.mockito.{ArgumentCaptor, ArgumentMatchers}
-import org.scalatest.mock.MockitoSugar
-import play.api.libs.json.{JsObject, JsPath, JsString, Json}
-import repositories.{CorporationTaxRegistrationRepository, HeldSubmission, HeldSubmissionRepository, StateDataRepository}
-import uk.gov.hmrc.play.http._
-import uk.gov.hmrc.play.test.UnitSpec
 import org.mockito.Mockito._
+import org.mockito.{ArgumentCaptor, ArgumentMatchers}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.Eventually
+import org.scalatest.mock.MockitoSugar
+import play.api.libs.json.{JsObject, JsString, Json}
+import repositories.{CorporationTaxRegistrationRepository, HeldSubmission, HeldSubmissionRepository, StateDataRepository}
+import uk.gov.hmrc.play.test.UnitSpec
 //import services.RegistrationHoldingPenService.MissingAccountingDates
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, InternalServerException, Upstream4xxResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
 
 import scala.concurrent.{ExecutionContext, Future}
-import uk.gov.hmrc.http.{ HeaderCarrier, HttpResponse, InternalServerException, Upstream4xxResponse }
 
 class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with CorporationTaxRegistrationFixture with BeforeAndAfterEach with Eventually {
 
@@ -90,9 +88,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
   }
 
   trait SetupMockedAudit {
-    val service = new mockService {
-      override def processSuccessDesResponse(item: IncorpUpdate, ctReg: CorporationTaxRegistration, auditDetail: JsObject, isAdmin:Boolean)(implicit hc: HeaderCarrier) = Future.successful(true)
-    }
+    val service = new mockService {}
   }
 
   class SetupWithAddressLine4Fix(regId: String, addressLine4: String) {
@@ -228,7 +224,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
   "buildTopUp Rejection Submission" should {
     "be able to create rejected Json according to the Schema of API4" in new Setup {
-      val result = service.buildTopUpRejectionSubmission(rejectedStatus, testAckRef)
+      val result = service.buildTopUpRejectionSubmission(testAckRef)
 
       result shouldBe validRejectedTopUpDesSubmission
     }
@@ -619,40 +615,19 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
     }
 
     "return a future true when processing an accepted incorporation" in new SetupBoolean {
-//      when(mockAuditConnector.sendExtendedEvent(ArgumentMatchers.any[RegistrationAuditEvent]())(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any[ExecutionContext]()))
-//        .thenReturn(Future.successful(Success))
-//
-//      val captor = ArgumentCaptor.forClass(classOf[RegistrationAuditEvent])
-
       when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
         .thenReturn(Future.successful(Some(validCR)))
       when(mockSendEmailService.sendVATEmail(ArgumentMatchers.eq("testemail.com"))(ArgumentMatchers.any[HeaderCarrier]())).thenReturn(Future.successful(true))
       await(serviceTrue.processIncorporationUpdate(incorpSuccess)) shouldBe true
-//
-//      verify(mockAuditConnector, times(1)).sendExtendedEvent(captor.capture())(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any[ExecutionContext]())
-//
-//      val audit = captor.getValue
-//      audit.auditType shouldBe "successIncorpInformation"
-
     }
 
     "return a future false when processing an accepted incorporation returns a false" in new SetupBoolean {
-//      when(mockAuditConnector.sendExtendedEvent(ArgumentMatchers.any[RegistrationAuditEvent]())(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any[ExecutionContext]()))
-//        .thenReturn(Future.successful(Success))
-
-//      val captor = ArgumentCaptor.forClass(classOf[RegistrationAuditEvent])
       when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
         .thenReturn(Future.successful(Some(validCR)))
       
       await(serviceFalse.processIncorporationUpdate(incorpSuccess)) shouldBe false
-
-//      verify(mockAuditConnector, times(1)).sendExtendedEvent(captor.capture())(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any[ExecutionContext]())
-//
-//      val audit = captor.getValue
-//      audit.auditType shouldBe "successIncorpInformation"
-
-
     }
+
     "return a future true when processing a rejected incorporation with held data" in new Setup{
 
       when(mockHeldRepo.retrieveSubmissionByAckRef(ArgumentMatchers.eq(testAckRef)))

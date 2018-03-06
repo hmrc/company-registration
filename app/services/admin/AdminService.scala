@@ -20,20 +20,22 @@ import javax.inject.{Inject, Singleton}
 
 import audit.{AdminCTReferenceEvent, AdminReleaseAuditEvent}
 import config.MicroserviceAuditConnector
-import connectors.{BusinessRegistrationConnector, IncorporationInformationConnector}
+import connectors.{BusinessRegistrationConnector, DesConnector, IncorporationInformationConnector}
 import helpers.DateFormatter
 import models.HO6RegistrationInformation
+import models.RegistrationStatus._
 import models.admin.{AdminCTReferenceDetails, HO6Identifiers, HO6Response}
 import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.Request
 import repositories.{CorpTaxRegistrationRepo, CorporationTaxRegistrationMongoRepository, HeldSubmissionMongoRepository, HeldSubmissionRepo}
 import services.FailedToDeleteSubmissionData
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.util.{Failure, Success}
 
 @Singleton
 class AdminServiceImpl @Inject()(
@@ -45,12 +47,14 @@ class AdminServiceImpl @Inject()(
   val corpTaxRegRepo: CorporationTaxRegistrationMongoRepository = corpTaxRepo.repo
   val heldSubRepo: HeldSubmissionMongoRepository = heldSubMongo.store
   val auditConnector = MicroserviceAuditConnector
+  val desConnector = DesConnector
 }
 
 trait AdminService extends DateFormatter {
 
   val corpTaxRegRepo:      CorporationTaxRegistrationMongoRepository
   val heldSubRepo:         HeldSubmissionMongoRepository
+  val desConnector:        DesConnector
   val auditConnector:      AuditConnector
   val incorpInfoConnector: IncorporationInformationConnector
   val brConnector:         BusinessRegistrationConnector
@@ -116,16 +120,17 @@ trait AdminService extends DateFormatter {
   }
 
 
-  def deleteRejectedSubmissionData(regId: String): Future[Boolean] = {
+  def adminDeleteSubmission(regId: String): Future[Boolean] = {
     for {
       ctDeleted       <- corpTaxRegRepo.removeTaxRegistrationById(regId)
+      _               <- heldSubRepo.removeHeldDocument(regId)
       metadataDeleted <- brConnector.adminRemoveMetadata(regId)
     } yield {
       if (ctDeleted && metadataDeleted) {
-        Logger.info(s"[deleteRejectedSubmissionData] Successfully deleted registration with regId: $regId")
+        Logger.info(s"[adminDeleteSubmission] Successfully deleted registration with regId: $regId")
         true
       } else {
-        Logger.error(s"[deleteRejectedSubmissionData] Failed to delete registration with regId: $regId")
+        Logger.error(s"[adminDeleteSubmission] Failed to delete registration with regId: $regId")
         throw FailedToDeleteSubmissionData
       }
     }
@@ -136,6 +141,34 @@ trait AdminService extends DateFormatter {
       _ == updateTo
     } recover {
       case _ => false
+    }
+  }
+
+  def deleteLimboCase(regId: String, companyName: String): Future[Boolean] = {
+    def exceptionText(text : String): String = s"[deleteLimboCase] $text on regId: $regId"
+    def clearDownEtmpSubmission(ackRef : String, journeyId : String)(implicit hc : HeaderCarrier): Future[HttpResponse] = {
+      val submission = Json.obj(
+        "status" -> "Rejected",
+        "acknowledgementReference" -> ackRef
+      )
+
+      desConnector.topUpCTSubmission(ackRef, submission, journeyId)
+    }
+
+    corpTaxRegRepo.retrieveCorporationTaxRegistration(regId) flatMap {
+      case Some(doc) =>
+        (doc.companyDetails, doc.status) match {
+          case (Some(cd), DRAFT | LOCKED) if cd.companyName == companyName =>
+            doc.confirmationReferences map { confRefs =>
+              implicit val hc = HeaderCarrier()
+              clearDownEtmpSubmission(confRefs.acknowledgementReference, regId)
+            }
+            adminDeleteSubmission(regId)
+          case (Some(cd), DRAFT | LOCKED)  => throw new RuntimeException(exceptionText(s"$companyName did not match company name"))
+          case (_       , DRAFT | LOCKED)  => throw new RuntimeException(exceptionText("Company details missing"))
+          case _                           => throw new RuntimeException(exceptionText(s"Status of ${doc.status} was not draft/locked"))
+        }
+      case None => throw new RuntimeException(exceptionText("Could not find document"))
     }
   }
 }
