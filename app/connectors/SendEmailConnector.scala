@@ -16,6 +16,8 @@
 
 package connectors
 
+import javax.inject.Inject
+
 import config.WSHttp
 import models.SendEmailRequest
 import play.api.Logger
@@ -29,16 +31,14 @@ import scala.util.control.NoStackTrace
 
 private[connectors] class EmailErrorResponse(s: String) extends NoStackTrace
 
-object SendEmailConnector extends SendEmailConnector with ServicesConfig with HttpErrorFunctions  {
+class SendEmailConnectorImpl @Inject()() extends SendEmailConnector with ServicesConfig with HttpErrorFunctions  {
   val http: CoreGet with CorePost with CorePut = WSHttp
-    val sendEmailURL = getConfString("email.sendEmailURL", throw new Exception("email.sendEmailURL not found"))
-
+  val sendEmailURL = getConfString("email.sendEmailURL", throw new Exception("email.sendEmailURL not found"))
 }
 
 trait SendEmailConnector extends HttpErrorFunctions {
   val http : CorePost with CorePut
   val sendEmailURL : String
-
 
   def requestEmail(EmailRequest : SendEmailRequest)(implicit hc: HeaderCarrier): Future[Boolean] = {
     def errorMsg(status: String, ex: HttpException) = {

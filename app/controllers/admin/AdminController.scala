@@ -16,29 +16,29 @@
 
 package controllers.admin
 
-import javax.inject.{Inject, Singleton}
+import javax.inject.Inject
 
-import models.{ConfirmationReferences, HO6RegistrationInformation}
+import cats.instances.FutureInstances
+import cats.syntax.{ApplicativeSyntax, FlatMapSyntax}
 import models.admin.{HO6Identifiers, HO6Response}
+import models.{ConfirmationReferences, HO6RegistrationInformation}
 import play.api.Logger
 import play.api.libs.json.{Format, JsObject, JsValue, Json}
 import play.api.mvc.{Action, _}
 import services.CorporationTaxRegistrationService
 import services.admin.AdminService
-import uk.gov.hmrc.play.microservice.controller.BaseController
-import cats.instances.FutureInstances
-import cats.syntax.{ApplicativeSyntax, FlatMapSyntax}
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.logging.SessionId
 import uk.gov.hmrc.play.audit.http.connector.AuditResult
+import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.http.logging.SessionId
 
-@Singleton
-class AdminControllerImpl @Inject()(val adminService: AdminService) extends AdminController {
-  lazy val ctService = CorporationTaxRegistrationService
-}
+class AdminControllerImpl @Inject()(
+        val adminService: AdminService,
+        val ctService: CorporationTaxRegistrationService
+      ) extends AdminController
 
 trait AdminController extends BaseController with FutureInstances with ApplicativeSyntax with FlatMapSyntax {
 

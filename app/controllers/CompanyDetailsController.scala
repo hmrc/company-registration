@@ -29,8 +29,9 @@ import uk.gov.hmrc.play.microservice.controller.BaseController
 
 class CompanyDetailsControllerImpl @Inject()(val metricsService: MetricsService,
                                              val companyDetailsService: CompanyDetailsService,
-                                             val authConnector: AuthClientConnector) extends CompanyDetailsController {
-  val resource: CorporationTaxRegistrationMongoRepository = Repositories.cTRepository
+                                             val authConnector: AuthClientConnector,
+                                             val repositories: Repositories) extends CompanyDetailsController {
+  val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 }
 
 trait CompanyDetailsController extends BaseController with AuthorisedActions {

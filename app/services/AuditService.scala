@@ -16,6 +16,8 @@
 
 package services
 
+import javax.inject.Inject
+
 import audit.{CTRegistrationAuditEvent, CTRegistrationSubmissionAuditEventDetails, DesResponse}
 import config.MicroserviceAuditConnector
 import play.api.libs.json.JsObject
@@ -25,8 +27,8 @@ import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
 import scala.concurrent.Future
 
-object AuditService extends AuditService {
-  val auditConnector = MicroserviceAuditConnector
+class AuditServiceImpl @Inject()() extends AuditService {
+  lazy val auditConnector = MicroserviceAuditConnector
 }
 
 trait AuditService {

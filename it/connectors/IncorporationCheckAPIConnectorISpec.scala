@@ -44,6 +44,8 @@ class IncorporationCheckAPIConnectorISpec extends IntegrationSpecBase {
 
   def asDate(date: String) = DateTime.parse(date, DateTimeFormat.forPattern("yyyy-MM-dd"))
 
+  val incorporationCheckAPIConnector: IncorporationCheckAPIConnector = app.injector.instanceOf[IncorporationCheckAPIConnector]
+
   "IncorporationCheckAPIConnector" should {
     "process a full response as expected" in {
       stubGet("/internal/check-submission.*", 200, s"""{
@@ -63,7 +65,7 @@ class IncorporationCheckAPIConnectorISpec extends IntegrationSpecBase {
         Seq(IncorpUpdate("t","s",Some("c"),Some(asDate("2017-05-06")), "tp", None)),
         "foo"
       )
-      val actual = await(IncorporationCheckAPIConnector.checkSubmission(None))
+      val actual = await(incorporationCheckAPIConnector.checkSubmission(None))
 
       actual shouldBe expected
     }
@@ -81,7 +83,7 @@ class IncorporationCheckAPIConnectorISpec extends IntegrationSpecBase {
         Seq(IncorpUpdate("t","s",None,None, "tp", None)),
         "foo"
       )
-      val actual = await(IncorporationCheckAPIConnector.checkSubmission(None))
+      val actual = await(incorporationCheckAPIConnector.checkSubmission(None))
 
       actual shouldBe expected
     }
@@ -101,7 +103,7 @@ class IncorporationCheckAPIConnectorISpec extends IntegrationSpecBase {
         IncorpUpdate("t2","s2",None,None, "tp2", None)
       ), "foo"
       )
-      val actual = await(IncorporationCheckAPIConnector.checkSubmission(None))
+      val actual = await(incorporationCheckAPIConnector.checkSubmission(None))
 
       actual shouldBe expected
     }
@@ -110,7 +112,7 @@ class IncorporationCheckAPIConnectorISpec extends IntegrationSpecBase {
       stubGet("/internal/check-submission.*", 200, """{"items":[],"links":{"next":"foo"}}""")
 
       val expected = SubmissionCheckResponse( Seq(), "foo" )
-      val actual = await(IncorporationCheckAPIConnector.checkSubmission(None))
+      val actual = await(incorporationCheckAPIConnector.checkSubmission(None))
 
       actual shouldBe expected
     }

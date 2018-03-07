@@ -16,7 +16,7 @@
 
 package repositories
 
-import javax.inject.{Inject, Singleton}
+import javax.inject.Inject
 
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
@@ -56,7 +56,6 @@ object HeldSubmissionData {
 
 private class DeletionFailure(val message: String) extends NoStackTrace
 
-@Singleton
 class HeldSubmissionRepo @Inject()(mongo: ReactiveMongoComponent) {
   val db = mongo.mongoConnector.db
   val store = new HeldSubmissionMongoRepository(db)

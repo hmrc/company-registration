@@ -16,46 +16,25 @@
 
 package connectors
 
+import javax.inject.Inject
+
 import config.WSHttp
+import models.{Authority, UserDetailsModel, UserIds}
 import play.api.Logger
 import play.api.http.Status._
-import play.api.libs.json.Json
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
 import scala.concurrent.Future
 
-case class Authority(
-                      uri: String,
-                      gatewayId: String,
-                      userDetailsLink: String,
-                      ids: UserIds
-                    )
-
-case class UserIds(internalId : String,
-                   externalId : String)
-
-case class UserDetailsModel(name: String,
-                            email: String,
-                            affinityGroup: String,
-                            description: Option[String] = None,
-                            lastName: Option[String] = None,
-                            dateOfBirth: Option[String] = None,
-                            postcode: Option[String] = None,
-                            authProviderId: String,
-                            authProviderType: String)
-
-object UserDetailsModel{
-  implicit val format = Json.format[UserDetailsModel]
+class AuthConnectorImpl @Inject()() extends AuthConnector with ServicesConfig {
+  lazy val serviceUrl = baseUrl("auth")
+  val authorityUri = "auth/authority"
+  val http: CoreGet with CorePost = WSHttp
 }
 
-
-object UserIds {
-  implicit val format = Json.format[UserIds]
-}
-
-trait AuthConnector extends ServicesConfig with RawResponseReads {
+trait AuthConnector extends RawResponseReads {
 
   def serviceUrl: String
 
@@ -82,7 +61,7 @@ trait AuthConnector extends ServicesConfig with RawResponseReads {
                 Some(Authority(uri, gatewayId, userDetails, ids))
             }
           }
-          case status => Future.successful(None)
+          case _ => Future.successful(None)
         }
     }
   }
@@ -93,12 +72,4 @@ trait AuthConnector extends ServicesConfig with RawResponseReads {
       case _ => Future.successful(None)
     }
   }
-}
-
-object AuthConnector extends AuthConnector {
-  // $COVERAGE-OFF$
-  lazy val serviceUrl = baseUrl("auth")
-  // $COVERAGE-OFF$
-  val authorityUri = "auth/authority"
-  val http: CoreGet with CorePost = WSHttp
 }

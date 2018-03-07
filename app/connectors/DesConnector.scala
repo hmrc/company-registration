@@ -20,8 +20,8 @@ import javax.inject.Inject
 
 import audit.DesSubmissionEventFailure
 import config.{MicroserviceAuditConnector, WSHttp}
+import play.api.Logger
 import play.api.libs.json.{JsObject, Writes}
-import play.api.{Logger, Play}
 import services.{AuditService, MetricsService}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.logging.Authorization
@@ -29,6 +29,14 @@ import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
 import scala.concurrent.Future
+
+class DesConnectorImpl @Inject()(val metricsService: MetricsService) extends DesConnector with ServicesConfig {
+  lazy val auditConnector = MicroserviceAuditConnector
+  lazy val serviceURL = baseUrl("des-service")
+  lazy val urlHeaderEnvironment: String = getConfString("des-service.environment", throw new Exception("could not find config value for des-service.environment"))
+  lazy val urlHeaderAuthorization: String = s"Bearer ${getConfString("des-service.authorization-token",
+    throw new Exception("could not find config value for des-service.authorization-token"))}"
+}
 
 trait DesConnector extends AuditService with RawResponseReads with HttpErrorFunctions {
 
@@ -109,27 +117,4 @@ trait DesConnector extends AuditService with RawResponseReads with HttpErrorFunc
   private def cPOST[I, O](url: String, body: I, headers: Seq[(String, String)] = Seq.empty)(implicit wts: Writes[I], rds: HttpReads[O], hc: HeaderCarrier) =
     http.POST[I, O](url, body, headers)(wts = wts, rds = rds, hc = createHeaderCarrier(hc), implicitly)
 
-}
-
-object DesConnector extends DesConnector with ServicesConfig {
-  // $COVERAGE-OFF$
-  val auditConnector = MicroserviceAuditConnector
-  lazy val serviceURL = baseUrl("des-service")
-  lazy val urlHeaderEnvironment: String = getConfString("des-service.environment", throw new Exception("could not find config value for des-service.environment"))
-  lazy val urlHeaderAuthorization: String = s"Bearer ${getConfString("des-service.authorization-token",
-    throw new Exception("could not find config value for des-service.authorization-token"))}"
-
-  val metricsService = Play.current.injector.instanceOf[MetricsService]
-  // $COVERAGE-ON$
-}
-
-class DesConnectorImpl @Inject()(val metricsService: MetricsService) extends DesConnector with ServicesConfig {
-  // $COVERAGE-OFF$
-  val auditConnector = MicroserviceAuditConnector
-  lazy val serviceURL = baseUrl("des-service")
-  lazy val urlHeaderEnvironment: String = getConfString("des-service.environment", throw new Exception("could not find config value for des-service.environment"))
-  lazy val urlHeaderAuthorization: String = s"Bearer ${getConfString("des-service.authorization-token",
-    throw new Exception("could not find config value for des-service.authorization-token"))}"
-
-  // $COVERAGE-ON$
 }

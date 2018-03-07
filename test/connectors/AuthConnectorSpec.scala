@@ -19,19 +19,17 @@ package connectors
 import java.util.UUID
 
 import mocks.SCRSMocks
-import org.mockito.Mockito._
+import models.{Authority, UserIds}
 import org.mockito.ArgumentMatchers
-import org.scalatest.{BeforeAndAfter, WordSpecLike}
+import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
-import play.api.libs.json.{JsValue, Json}
-import play.api.test.FakeApplication
-import play.api.test.Helpers._
-import uk.gov.hmrc.play.http._
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
+import org.scalatest.{BeforeAndAfter, WordSpecLike}
+import play.api.libs.json.Json
+import uk.gov.hmrc.http.logging.SessionId
+import uk.gov.hmrc.http.{HeaderCarrier, HttpGet, HttpPost, HttpResponse}
+import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
-import uk.gov.hmrc.http.{ HeaderCarrier, HttpGet, HttpPost, HttpResponse }
-import uk.gov.hmrc.http.logging.SessionId
 
 /**
   * Created by crispy on 03/08/16.

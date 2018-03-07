@@ -28,10 +28,13 @@ import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.Future
 
-class HeldControllerImpl @Inject()(val authConnector: AuthClientConnector) extends HeldController {
-  val service: RegistrationHoldingPenService = RegistrationHoldingPenService
-  val heldRepo: HeldSubmissionMongoRepository = Repositories.heldSubmissionRepository
-  val resource: CorporationTaxRegistrationMongoRepository = Repositories.cTRepository
+class HeldControllerImpl @Inject()(
+        val authConnector: AuthClientConnector,
+        val service: RegistrationHoldingPenService,
+        val repositories: Repositories
+      ) extends HeldController {
+  val heldRepo: HeldSubmissionMongoRepository = repositories.heldSubmissionRepository
+  val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 }
 
 trait HeldController extends BaseController with AuthorisedActions {

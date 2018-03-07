@@ -16,11 +16,11 @@
 
 package services.admin
 
-import javax.inject.{Inject, Singleton}
+import javax.inject.Inject
 
 import audit.{AdminCTReferenceEvent, AdminReleaseAuditEvent}
 import config.MicroserviceAuditConnector
-import connectors.{BusinessRegistrationConnector, DesConnector, DesConnectorImpl, IncorporationInformationConnector}
+import connectors.{BusinessRegistrationConnector, DesConnector, IncorporationInformationConnector}
 import helpers.DateFormatter
 import models.HO6RegistrationInformation
 import models.RegistrationStatus._
@@ -36,7 +36,6 @@ import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-@Singleton
 class AdminServiceImpl @Inject()(
                                  corpTaxRepo: CorpTaxRegistrationRepo,
                                  heldSubMongo: HeldSubmissionRepo,
@@ -46,7 +45,7 @@ class AdminServiceImpl @Inject()(
 
   val corpTaxRegRepo: CorporationTaxRegistrationMongoRepository = corpTaxRepo.repo
   val heldSubRepo: HeldSubmissionMongoRepository = heldSubMongo.store
-  val auditConnector = MicroserviceAuditConnector
+  lazy val auditConnector = MicroserviceAuditConnector
 }
 
 trait AdminService extends DateFormatter {

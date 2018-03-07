@@ -16,6 +16,8 @@
 
 package services
 
+import javax.inject.Inject
+
 import audit.{SubmissionEventDetail, UserRegistrationSubmissionEvent}
 import cats.data.OptionT
 import cats.implicits._
@@ -38,17 +40,20 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.control.NoStackTrace
 
-object CorporationTaxRegistrationService extends CorporationTaxRegistrationService {
-  val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository = Repositories.cTRepository
-  val sequenceRepository: SequenceMongoRepository = Repositories.sequenceRepository
-  val stateDataRepository: StateDataMongoRepository = Repositories.stateDataRepository
-  val heldSubmissionRepository: HeldSubmissionMongoRepository = Repositories.heldSubmissionRepository
+class CorporationTaxRegistrationServiceImpl @Inject()(
+        val submissionCheckAPIConnector: IncorporationCheckAPIConnector,
+        val brConnector: BusinessRegistrationConnector,
+        val desConnector: DesConnector,
+        val incorpInfoConnector: IncorporationInformationConnector,
+        val repositories: Repositories
+      ) extends CorporationTaxRegistrationService {
 
-  val brConnector = BusinessRegistrationConnector
-  val auditConnector = MicroserviceAuditConnector
-  val submissionCheckAPIConnector = IncorporationCheckAPIConnector
-  val desConnector = DesConnector
-  lazy val incorpInfoConnector = IncorporationInformationConnector
+  val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
+  val sequenceRepository: SequenceMongoRepository = repositories.sequenceRepository
+  val stateDataRepository: StateDataMongoRepository = repositories.stateDataRepository
+  val heldSubmissionRepository: HeldSubmissionMongoRepository = repositories.heldSubmissionRepository
+
+  lazy val auditConnector = MicroserviceAuditConnector
 
   def currentDateTime: DateTime = DateTime.now(DateTimeZone.UTC)
 }

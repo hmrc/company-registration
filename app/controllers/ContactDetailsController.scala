@@ -29,8 +29,9 @@ import uk.gov.hmrc.play.microservice.controller.BaseController
 
 class ContactDetailsControllerImpl @Inject()(val metricsService: MetricsService,
                                              val contactDetailsService: ContactDetailsService,
-                                             val authConnector: AuthClientConnector) extends ContactDetailsController {
-  override val resource: CorporationTaxRegistrationMongoRepository = Repositories.cTRepository
+                                             val authConnector: AuthClientConnector,
+                                             val repositories: Repositories) extends ContactDetailsController {
+  override val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 }
 
 trait ContactDetailsController extends BaseController with AuthorisedActions {

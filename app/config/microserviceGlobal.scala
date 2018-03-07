@@ -16,14 +16,13 @@
 
 package config
 
-import javax.inject.{Inject, Singleton}
+import javax.inject.Inject
 
 import com.typesafe.config.Config
-import jobs.{CheckSubmissionJob, MetricsJob, MissingIncorporationJob}
+import jobs.MetricsJob
 import net.ceedubs.ficus.Ficus._
 import play.api.{Application, Configuration, Logger, Play}
 import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmissionMongoRepository, Repositories}
-import services.CorporationTaxRegistrationService
 import services.admin.AdminServiceImpl
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
 import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
@@ -62,19 +61,10 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
 
   override val authFilter: Option[AuthorisationFilter] = None
 
-  override val scheduledJobs = Seq(CheckSubmissionJob, MissingIncorporationJob, MetricsJob)
+  override val scheduledJobs = Seq(MetricsJob)
 
   override def onStart(app : play.api.Application) : scala.Unit = {
 
-    import scala.concurrent.ExecutionContext.Implicits.global
-    Repositories.cTRepository.getRegistrationStats() map {
-      stats => Logger.info(s"[RegStats] ${stats}")
-    }
-
-    Repositories.cTRepository.retrieveLockedRegIDs() map { regIds =>
-      val message = regIds.map(rid => s" RegId: $rid")
-      Logger.info(s"RegIds with locked status:$message")
-    }
 
     //app.injector.instanceOf[AppStartupJobs].getHeldDocsInfo
 
@@ -116,13 +106,22 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
   }
 }
 
-@Singleton
-class AppStartupJobs @Inject()(val service: AdminServiceImpl) {
+class AppStartupJobs @Inject()(val service: AdminServiceImpl,
+                               val repositories: Repositories) {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  lazy val heldRepo: HeldSubmissionMongoRepository = Repositories.heldSubmissionRepository
-  lazy val ctRepo: CorporationTaxRegistrationMongoRepository = Repositories.cTRepository
+  lazy val heldRepo: HeldSubmissionMongoRepository = repositories.heldSubmissionRepository
+  lazy val ctRepo: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
+
+  ctRepo.getRegistrationStats() map {
+    stats => Logger.info(s"[RegStats] ${stats}")
+  }
+
+  ctRepo.retrieveLockedRegIDs() map { regIds =>
+    val message = regIds.map(rid => s" RegId: $rid")
+    Logger.info(s"RegIds with locked status:$message")
+  }
 
   def getHeldDocsInfo : Future[Unit] = {
     heldRepo.getAllHeldDocs map {

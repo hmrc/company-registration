@@ -34,11 +34,6 @@ class BusinessRegistrationConnectorImpl @Inject()() extends BusinessRegistration
   val http : CoreGet with CorePost with CorePatch = WSHttp
 }
 
-object BusinessRegistrationConnector extends BusinessRegistrationConnector with ServicesConfig {
-  lazy val businessRegUrl = baseUrl("business-registration")
-  val http : CoreGet with CorePost with CorePatch = WSHttp
-}
-
 sealed trait BusinessRegistrationResponse
 case class BusinessRegistrationSuccessResponse(response: BusinessRegistration) extends BusinessRegistrationResponse
 case object BusinessRegistrationNotFoundResponse extends BusinessRegistrationResponse

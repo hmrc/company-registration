@@ -16,7 +16,7 @@
 
 package services
 
-import javax.inject.{Inject, Singleton}
+import javax.inject.Inject
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
@@ -27,11 +27,12 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 
-class PrepareAccountServiceImp @Inject() (system: ActorSystem) extends PrepareAccountService {
+class PrepareAccountServiceImpl @Inject()(system: ActorSystem,
+                                          val repositories: Repositories) extends PrepareAccountService {
 
   implicit val materializer = ActorMaterializer()(system)
 
-  val repository = Repositories.cTRepository
+  val repository = repositories.cTRepository
 
 }
 trait PrepareAccountService {

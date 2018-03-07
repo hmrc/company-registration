@@ -16,11 +16,10 @@
 
 package config
 
-import javax.inject.{Inject, Singleton}
+import javax.inject.Inject
 
 import uk.gov.hmrc.play.config.inject.ServicesConfig
 
-@Singleton
 class MicroserviceAppConfigImpl @Inject()(val config: ServicesConfig) extends MicroserviceAppConfig
 
 trait MicroserviceAppConfig {

@@ -16,7 +16,7 @@
 
 package mocks
 
-import connectors.{AuthConnector, Authority, BusinessRegistrationConnector, IncorporationCheckAPIConnector}
+import connectors.{AuthConnector, BusinessRegistrationConnector, IncorporationCheckAPIConnector}
 import models._
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
@@ -25,9 +25,9 @@ import org.mockito.stubbing.OngoingStubbing
 import org.scalatest.mock.MockitoSugar
 import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmissionMongoRepository, SequenceRepository, StateDataRepository}
 import services._
+import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.Future
-import uk.gov.hmrc.http.HeaderCarrier
 
 trait SCRSMocks
   extends WSHttpMock

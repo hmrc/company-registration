@@ -30,9 +30,10 @@ import uk.gov.hmrc.play.microservice.controller.BaseController
 
 class AccountingDetailsControllerImpl @Inject()(val metricsService: MetricsService,
                                                 val prepareAccountService: PrepareAccountService,
-                                                val authConnector: AuthClientConnector) extends AccountingDetailsController {
-  val resource: CorporationTaxRegistrationMongoRepository = Repositories.cTRepository
-  val accountingDetailsService: AccountingDetailsService = AccountingDetailsService
+                                                val accountingDetailsService: AccountingDetailsService,
+                                                val authConnector: AuthClientConnector,
+                                                val repositories: Repositories) extends AccountingDetailsController {
+  val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 }
 
 trait AccountingDetailsController extends BaseController with AuthorisedActions {

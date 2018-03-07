@@ -16,7 +16,7 @@
 
 package services
 
-import javax.inject.{Inject, Singleton}
+import javax.inject.Inject
 
 import com.codahale.metrics.{Counter, Gauge, Timer}
 import com.kenshoo.play.metrics.{Metrics, MetricsDisabledException}
@@ -26,11 +26,11 @@ import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-@Singleton
-class MetricsServiceImp @Inject() (metricsInstance: Metrics) extends MetricsService {
+class MetricsServiceImpl @Inject()(metricsInstance: Metrics,
+                                   val repositories: Repositories) extends MetricsService {
 
   override val metrics: Metrics = metricsInstance
-  override lazy val ctRepository: CorporationTaxRegistrationMongoRepository = Repositories.cTRepository
+  override lazy val ctRepository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 
   override val ctutrConfirmationCounter: Counter = metrics.defaultRegistry.counter("ctutr-confirmation-counter")
 

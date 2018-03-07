@@ -16,39 +16,29 @@
 
 package connectors
 
-import javax.inject.{Inject, Singleton}
+import javax.inject.Inject
 
 import config.{MicroserviceAppConfig, WSHttp}
-import models.IncorpStatus
 import play.api.Logger
+import play.api.http.Status.ACCEPTED
 import play.api.libs.json.{JsObject, Json}
-import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.play.http.ws.{WSGet, WSPost}
-import play.api.http.Status.{ACCEPTED, OK}
 import play.api.mvc.Request
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
+import uk.gov.hmrc.play.http.ws.{WSGet, WSPost}
 
 import scala.concurrent.Future
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import scala.util.control.NoStackTrace
-import uk.gov.hmrc.http.{ HeaderCarrier, HttpResponse }
 
 class SubscriptionFailure(msg: String) extends NoStackTrace {
   override def getMessage: String = msg
 }
 
-@Singleton
 class IncorporationInformationConnectorImpl @Inject()(config: MicroserviceAppConfig) extends IncorporationInformationConnector {
   val url: String = config.incorpInfoUrl
   val http: WSGet with WSPost = WSHttp
   val regime: String = config.regime
   val subscriber: String = config.subscriber
-}
-
-object IncorporationInformationConnector extends IncorporationInformationConnector with ServicesConfig {
-  val url: String = baseUrl("incorporation-information")
-  val http: WSGet with WSPost = WSHttp
-  val regime: String = getConfString("regime", throw new RuntimeException("[IncorporationInformationConnector] Could not find regime in config"))
-  val subscriber: String = getConfString("subscriber", throw new RuntimeException("[IncorporationInformationConnector]Could not find subscriber in config"))
 }
 
 trait IncorporationInformationConnector {

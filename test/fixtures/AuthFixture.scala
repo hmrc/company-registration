@@ -16,7 +16,8 @@
 
 package fixtures
 
-import connectors.{Authority, UserIds}
+import models.{Authority, UserIds}
+
 
 trait AuthFixture {
 
