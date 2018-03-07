@@ -80,19 +80,14 @@ class AppStartupJobsSpec extends UnitSpec with MockitoSugar with LogCapturing
         .thenReturn(Future.successful(Some(ctDoc1)), Future.successful(Some(ctDoc2)))
 
       withCaptureOfLoggingFrom(Logger){ logEvents =>
-        await(appStartupJobs.getHeldDocsInfo)
-
         eventually {
-          logEvents.size shouldBe 4
-
+          await(appStartupJobs.getHeldDocsInfo)
           val expectedLogs = List(
-            s"[RegStats] $expectedRegStats",
-            s"RegIds with locked status:$expectedLockedReg",
             s"[HeldDocs] status : held - reg Id : $regId1 - conf refs : txId : TX1 - ack ref : $ackRef1",
             s"[HeldDocs] status : held - reg Id : $regId2 - conf refs : txId : TX1 - ack ref : $ackRef2"
           )
 
-          logEvents.map(_.getMessage) should contain theSameElementsAs expectedLogs
+          expectedLogs.diff(logEvents.map(_.getMessage)) shouldBe List.empty
         }
       }
     }
@@ -101,10 +96,11 @@ class AppStartupJobsSpec extends UnitSpec with MockitoSugar with LogCapturing
       when(mockHeldRepo.getAllHeldDocs)
         .thenReturn(Future.successful(Seq()))
 
-      withCaptureOfLoggingFrom(Logger) { logEvents =>
-        await(appStartupJobs.getHeldDocsInfo)
-
-        logEvents.size shouldBe 0
+      withCaptureOfLoggingFrom(Logger){ logEvents =>
+        eventually {
+          await(appStartupJobs.getHeldDocsInfo)
+          logEvents.size shouldBe 0
+        }
       }
     }
   }
