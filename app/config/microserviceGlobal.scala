@@ -83,7 +83,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
       ), "UTF-8"
     )
 
-    app.injector.instanceOf[AppStartupJobs].removeLimboCases(limboCases.split(","))
+    app.injector.instanceOf[AppStartupJobs].removeRegistrations(removalList.split(","))
 
     val updateTransFrom = new String(
       Base64.getDecoder.decode(
