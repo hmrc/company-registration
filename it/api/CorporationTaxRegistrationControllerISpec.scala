@@ -16,18 +16,20 @@
 
 package api
 
+import auth.Crypto
 import itutil.{IntegrationSpecBase, LoginStub, WiremockHelper}
 import models.RegistrationStatus._
 import models._
 import play.api.Application
 import play.api.http.HeaderNames
-import uk.gov.hmrc.http.{HeaderNames => GovHeaderNames}
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json._
 import play.api.libs.ws.WS
 import play.modules.reactivemongo.MongoDbConnection
 import reactivemongo.api.commands.WriteResult
+import reactivemongo.play.json._
 import repositories.{CorporationTaxRegistrationMongoRepository, SequenceMongoRepository}
+import uk.gov.hmrc.http.{HeaderNames => GovHeaderNames}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -92,6 +94,7 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
   val activeDate = "2017-07-23"
   val payRef = "pay-ref-2345"
   val payAmount = "12"
+  val ctutr = "CTUTR123456789"
 
   val confRefsWithPayment = ConfirmationReferences(
     acknowledgementReference = ackRef,
@@ -167,6 +170,33 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
     registrationProgress = Some("ho5"),
     acknowledgementReferences = None,
     accountsPreparation = None
+  )
+
+  val validConfirmationReferences = ConfirmationReferences(
+    acknowledgementReference = "BRCT12345678910",
+    transactionId = "TX1",
+    paymentReference = Some("PY1"),
+    paymentAmount = Some("12.00")
+  )
+
+  val validAckRefs = AcknowledgementReferences(
+    ctUtr = Some(ctutr),
+    timestamp = "856412556487",
+    status = "success"
+  )
+
+  val fullCorporationTaxRegistration = CorporationTaxRegistration(
+    internalId = internalId,
+    registrationID = regId,
+    status = ACKNOWLEDGED,
+    formCreationTimestamp = "2001-12-31T12:00:00Z",
+    language = "en",
+    acknowledgementReferences = Some(validAckRefs),
+    confirmationReferences = Some(validConfirmationReferences),
+    companyDetails = None,
+    accountingDetails = None,
+    tradingDetails = None,
+    contactDetails = None
   )
 
   def jsonConfirmationRefs(ackReference: String = "", paymentRef: Option[String] = None, paymentAmount: Option[String] = None): String = {
@@ -375,6 +405,26 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
         reg.confirmationReferences shouldBe Some(confRefsWithPayment)
         reg.sessionIdentifiers shouldBe None
         reg.status shouldBe HELD
+      }
+    }
+
+    "GET /corporation-tax-registration" should {
+
+      "return a 200 and an unencrypted CT-UTR" in new Setup {
+        stubAuthorise(200, authorisedRetrievals)
+
+        await(ctRepository.insert(fullCorporationTaxRegistration))
+
+        val ctRegJson = await(ctRepository.collection.find(Json.obj()).one[JsObject]).get
+
+        val encryptedCtUtr = ctRegJson \ "acknowledgementReferences" \ "ct-utr"
+
+        encryptedCtUtr.get shouldBe Crypto.wts.writes(ctutr)
+
+        val response = await(client(s"/$regId/corporation-tax-registration").get())
+
+        response.status shouldBe 200
+        (response.json \ "acknowledgementReferences" \ "ctUtr").get.as[String] shouldBe ctutr
       }
     }
   }
