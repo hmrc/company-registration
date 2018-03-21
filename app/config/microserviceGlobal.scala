@@ -129,7 +129,8 @@ class AppStartupJobs @Inject()(val service: AdminServiceImpl,
         Logger.info(s"[CompanyName] " +
           s"status : ${ctDoc.status} - " +
           s"reg Id : ${ctDoc.registrationID} - " +
-          s"Company Name : ${ctDoc.companyDetails.fold("")(companyDetails => companyDetails.companyName)}")
+          s"Company Name : ${ctDoc.companyDetails.fold("")(companyDetails => companyDetails.companyName)} - " +
+          s"Trans ID : ${ctDoc.confirmationReferences.fold("")(confRefs => confRefs.transactionId)}")
       }}
   }
 
