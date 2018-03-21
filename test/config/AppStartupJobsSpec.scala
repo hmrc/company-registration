@@ -65,8 +65,6 @@ class AppStartupJobsSpec extends UnitSpec with MockitoSugar with LogCapturing
 
 
     "log specific company name relating to reg id passed in" in new Setup {
-
-
       when(mockCTRepository.retrieveCorporationTaxRegistration(any()))
         .thenReturn(Future.successful(Some(ctDoc1)))
 
@@ -74,7 +72,7 @@ class AppStartupJobsSpec extends UnitSpec with MockitoSugar with LogCapturing
         eventually {
           await(appStartupJobs.getCTCompanyName(regId1))
           val expectedLogs = List(
-            s"[CompanyName] status : held - reg Id : $regId1 - Company Name : $companyName"
+            s"[CompanyName] status : held - reg Id : $regId1 - Company Name : $companyName - Trans ID : TX1"
           )
 
           expectedLogs.diff(logEvents.map(_.getMessage)) shouldBe List.empty
