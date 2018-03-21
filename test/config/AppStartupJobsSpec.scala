@@ -56,35 +56,25 @@ class AppStartupJobsSpec extends UnitSpec with MockitoSugar with LogCapturing
     val appStartupJobs: AppStartupJobs = new AppStartupJobs(mockAdminService, mockRepositories)
   }
 
-  "getHeldDocsInfo" should {
-
-    val json = Json.obj("foo" -> "bar")
+  "get Company Name" should {
 
     val regId1 = "reg-1"
-    val ackRef1 = "ack-1"
-    val heldSubmission1 = HeldSubmission(regId1, ackRef1, json)
+    val companyName = "ACME ltd"
 
-    val regId2 = "reg-2"
-    val ackRef2 = "ack-2"
-    val heldSubmission2 = HeldSubmission(regId2, ackRef2, json)
+    val ctDoc1 = validCTRegWithCompanyName(regId1, companyName)
 
-    val ctDoc1 = validHeldCTRegWithData(regId1, Some(ackRef1))
-    val ctDoc2 = validHeldCTRegWithData(regId2, Some(ackRef2))
 
-    "log specific registration information relating to each held document found in the held repo" in new Setup {
+    "log specific company name relating to reg id passed in" in new Setup {
 
-      when(mockHeldRepo.getAllHeldDocs)
-        .thenReturn(Future.successful(Seq(heldSubmission1, heldSubmission2)))
 
       when(mockCTRepository.retrieveCorporationTaxRegistration(any()))
-        .thenReturn(Future.successful(Some(ctDoc1)), Future.successful(Some(ctDoc2)))
+        .thenReturn(Future.successful(Some(ctDoc1)))
 
       withCaptureOfLoggingFrom(Logger){ logEvents =>
         eventually {
-          await(appStartupJobs.getHeldDocsInfo)
+          await(appStartupJobs.getCTCompanyName(regId1))
           val expectedLogs = List(
-            s"[HeldDocs] status : held - reg Id : $regId1 - conf refs : txId : TX1 - ack ref : $ackRef1",
-            s"[HeldDocs] status : held - reg Id : $regId2 - conf refs : txId : TX1 - ack ref : $ackRef2"
+            s"[CompanyName] status : held - reg Id : $regId1 - Company Name : $companyName"
           )
 
           expectedLogs.diff(logEvents.map(_.getMessage)) shouldBe List.empty
@@ -92,16 +82,5 @@ class AppStartupJobsSpec extends UnitSpec with MockitoSugar with LogCapturing
       }
     }
 
-    "not log anything is there are no documents in the held repo" in new Setup {
-      when(mockHeldRepo.getAllHeldDocs)
-        .thenReturn(Future.successful(Seq()))
-
-      withCaptureOfLoggingFrom(Logger){ logEvents =>
-        eventually {
-          await(appStartupJobs.getHeldDocsInfo)
-          logEvents.size shouldBe 0
-        }
-      }
-    }
   }
 }

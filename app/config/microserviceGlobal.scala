@@ -66,8 +66,8 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
   override def onStart(app : play.api.Application) : scala.Unit = {
 
 
-    //app.injector.instanceOf[AppStartupJobs].getHeldDocsInfo
-
+    val regid = app.configuration.getString("companyNameRegID").getOrElse("")
+    app.injector.instanceOf[AppStartupJobs].getCTCompanyName(regid)
     import java.util.Base64
     val regIdConf = app.configuration.getString("registrationList").getOrElse("")
     val regIdList = new String(Base64.getDecoder.decode(regIdConf), "UTF-8")
@@ -123,24 +123,14 @@ class AppStartupJobs @Inject()(val service: AdminServiceImpl,
     Logger.info(s"RegIds with locked status:$message")
   }
 
-  def getHeldDocsInfo : Future[Unit] = {
-    heldRepo.getAllHeldDocs map {
-      _ foreach { held =>
-        ctRepo.retrieveCorporationTaxRegistration(held.regId) map {
-          _ map { ctDoc =>
-            Logger.info(s"[HeldDocs] " +
-              s"status : ${ctDoc.status} - " +
-              s"reg Id : ${ctDoc.registrationID} - " +
-              s"""conf refs : ${ctDoc.confirmationReferences.fold("none"){ refs =>
-                s"txId : ${refs.transactionId} - " +
-                s"ack ref : ${refs.acknowledgementReference}"
-              }}"""
-            )
-            Unit
-          }
-        }
-      }
-    }
+  def getCTCompanyName(rid: String) : Future[Unit] = {
+    ctRepo.retrieveCorporationTaxRegistration(rid) map {
+      _ foreach { ctDoc =>
+        Logger.info(s"[CompanyName] " +
+          s"status : ${ctDoc.status} - " +
+          s"reg Id : ${ctDoc.registrationID} - " +
+          s"Company Name : ${ctDoc.companyDetails.fold("")(companyDetails => companyDetails.companyName)}")
+      }}
   }
 
   def removeRegistrations(regIds: Seq[String]): Unit = {
