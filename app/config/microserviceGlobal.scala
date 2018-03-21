@@ -124,7 +124,7 @@ class AppStartupJobs @Inject()(val service: AdminServiceImpl,
   }
 
   def getCTCompanyName(rid: String) : Future[Unit] = {
-    ctRepo.retrieveCorporationTaxRegistration(rid) map {
+    ctRepo.retrieveMultipleCorporationTaxRegistration(rid) map {
       _ foreach { ctDoc =>
         Logger.info(s"[CompanyName] " +
           s"status : ${ctDoc.status} - " +

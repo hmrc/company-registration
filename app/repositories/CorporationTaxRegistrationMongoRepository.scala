@@ -52,6 +52,7 @@ object CorporationTaxRegistrationMongo extends ReactiveMongoFormats {
 trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegistration, BSONObjectID]{
   def createCorporationTaxRegistration(metadata: CorporationTaxRegistration): Future[CorporationTaxRegistration]
   def retrieveCorporationTaxRegistration(regID: String): Future[Option[CorporationTaxRegistration]]
+  def retrieveMultipleCorporationTaxRegistration(regID: String): Future[List[CorporationTaxRegistration]]
   def retrieveRegistrationByTransactionID(regID: String): Future[Option[CorporationTaxRegistration]]
   def retrieveCompanyDetails(registrationID: String): Future[Option[CompanyDetails]]
   def retrieveAccountingDetails(registrationID: String): Future[Option[AccountingDetails]]
@@ -183,6 +184,11 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
   override def retrieveCorporationTaxRegistration(registrationID: String): Future[Option[CorporationTaxRegistration]] = {
     val selector = registrationIDSelector(registrationID)
     collection.find(selector).one[CorporationTaxRegistration]
+  }
+
+  override def retrieveMultipleCorporationTaxRegistration(registrationID: String): Future[List[CorporationTaxRegistration]] = {
+    val selector = registrationIDSelector(registrationID)
+    collection.find(selector).cursor[CorporationTaxRegistration]().collect[List]()
   }
 
   override def updateCompanyDetails(registrationID: String, companyDetails: CompanyDetails): Future[Option[CompanyDetails]] = {
