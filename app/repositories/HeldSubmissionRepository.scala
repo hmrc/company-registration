@@ -22,7 +22,7 @@ import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.DB
+import reactivemongo.api.{DB, ReadPreference}
 import reactivemongo.api.commands.DefaultWriteResult
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONObjectID, BSONString}
@@ -142,7 +142,11 @@ class HeldSubmissionMongoRepository(mongo: () => DB)
     }
   }
 
-  def getAllHeldDocs : Future[Seq[HeldSubmission]] =  {
-    findAll() map(_ map mapHeldSubmission)
+  def getAllHeldDocsP : Future[Seq[HeldSubmission]] =  {
+    collection.find(BSONDocument()).cursor[HeldSubmissionData](ReadPreference.primary).collect[Seq]() map(_ map mapHeldSubmission)
+  }
+
+  def getAllHeldDocsS : Future[Seq[HeldSubmission]] =  {
+    collection.find(BSONDocument()).cursor[HeldSubmissionData](ReadPreference.secondary).collect[Seq]() map(_ map mapHeldSubmission)
   }
 }
