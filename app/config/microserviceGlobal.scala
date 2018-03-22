@@ -22,7 +22,7 @@ import com.typesafe.config.Config
 import jobs.MetricsJob
 import net.ceedubs.ficus.Ficus._
 import play.api.{Application, Configuration, Logger, Play}
-import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmissionMongoRepository, Repositories}
+import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmission, HeldSubmissionMongoRepository, Repositories}
 import services.admin.AdminServiceImpl
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
 import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
@@ -84,6 +84,8 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
     )
 
     app.injector.instanceOf[AppStartupJobs].removeRegistrations(removalList.split(","))
+    app.injector.instanceOf[AppStartupJobs].getHeldDocsInfoPrimary()
+    app.injector.instanceOf[AppStartupJobs].getHeldDocsInfoSecondary()
 
     val updateTransFrom = new String(
       Base64.getDecoder.decode(
@@ -150,6 +152,26 @@ class AppStartupJobs @Inject()(val service: AdminServiceImpl,
       }
     } else {
       Logger.info("[AppStartupJobs] [updateTransId] Config missing or empty to update a transaction id")
+    }
+  }
+
+  def getHeldDocsInfoPrimary() : Future[Unit] = {
+    heldRepo.getAllHeldDocsP map {
+      _ foreach { held =>
+        Logger.info(s"[HeldDocs Pri] " +
+          s"regid : ${held.regId} - " +
+          s"ack ref : ${held.ackRef} - ")
+      }
+    }
+  }
+
+  def getHeldDocsInfoSecondary() : Future[Unit] = {
+    heldRepo.getAllHeldDocsS map {
+      _ foreach { held =>
+        Logger.info(s"[HeldDocs Sec] " +
+          s"regid : ${held.regId} - " +
+          s"ack ref : ${held.ackRef} - ")
+      }
     }
   }
 
