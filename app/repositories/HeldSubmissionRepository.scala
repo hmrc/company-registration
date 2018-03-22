@@ -147,6 +147,6 @@ class HeldSubmissionMongoRepository(mongo: () => DB)
   }
 
   def getAllHeldDocsS : Future[Seq[HeldSubmission]] =  {
-    collection.find(BSONDocument()).cursor[HeldSubmissionData](ReadPreference.secondary).collect[Seq]() map(_ map mapHeldSubmission)
+    collection.find(BSONDocument()).cursor[HeldSubmissionData](ReadPreference.nearest).collect[Seq]() map(_ map mapHeldSubmission)
   }
 }

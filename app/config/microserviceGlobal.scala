@@ -84,8 +84,9 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
     )
 
     app.injector.instanceOf[AppStartupJobs].removeRegistrations(removalList.split(","))
-    app.injector.instanceOf[AppStartupJobs].getHeldDocsInfoPrimary()
-    app.injector.instanceOf[AppStartupJobs].getHeldDocsInfoSecondary()
+    (1 to 5) foreach {
+      _ => app.injector.instanceOf[AppStartupJobs].getHeldDocsInfoSecondary()
+    }
 
     val updateTransFrom = new String(
       Base64.getDecoder.decode(
