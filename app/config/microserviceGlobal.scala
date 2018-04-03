@@ -65,6 +65,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
 
   override def onStart(app : play.api.Application) : scala.Unit = {
 
+    val startupJobs = app.injector.instanceOf[AppStartupJobs]
 
     val regid = app.configuration.getString("companyNameRegID").getOrElse("")
     app.injector.instanceOf[AppStartupJobs].getCTCompanyName(regid)
@@ -100,6 +101,8 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
       ),
       "UTF8"
     )
+
+    startupJobs.fetchIndexes()
 
     //app.injector.instanceOf[AppStartupJobs].updateTransId(updateTransFrom.trim, updateTransTo.trim)
 
@@ -190,5 +193,25 @@ class AppStartupJobs @Inject()(val service: AdminServiceImpl,
         }
       }
     )
+  }
+
+  def fetchIndexes(): Future[Unit] = {
+    ctRepo.fetchIndexes().map { list =>
+      Logger.info(s"[Indexes] There are ${list.size} indexes")
+      list.foreach{ index =>
+        Logger.info(s"[Indexes]\n " +
+          s"name : ${index.eventualName}\n " +
+          s"""keys : ${index.key match {
+            case Seq(s @ _*) => s"$s\n "
+            case Nil => "None\n "}}""" +
+          s"unique : ${index.unique}\n " +
+          s"background : ${index.background}\n " +
+          s"dropDups : ${index.dropDups}\n " +
+          s"sparse : ${index.sparse}\n " +
+          s"version : ${index.version}\n " +
+          s"partialFilter : ${index.partialFilter.map(_.values)}\n " +
+          s"options : ${index.options.values}")
+      }
+    }
   }
 }
