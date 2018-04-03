@@ -24,6 +24,7 @@ import org.joda.time.DateTime
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import reactivemongo.api.commands.WriteResult
+import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONString}
 import uk.gov.hmrc.mongo.MongoSpecSupport
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
@@ -42,6 +43,14 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     def insert(reg: CorporationTaxRegistration) = await(repository.insert(reg))
     def count = await(repository.count)
     def retrieve(regId: String) = await(repository.retrieveCorporationTaxRegistration(regId))
+  }
+
+  class SetupWithIndexes(indexList: List[Index]) {
+    val repository = new CorporationTaxRegistrationMongoRepository(mongo){
+      override def indexes = indexList
+    }
+    await(repository.drop)
+    await(repository.ensureIndexes)
   }
 
   def setupCollection(repo: CorporationTaxRegistrationMongoRepository, ctRegistration: CorporationTaxRegistration): Future[WriteResult] = {
@@ -679,6 +688,48 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         await(repository.retrieveCorporationTaxRegistration(regId)) flatMap {
           doc => doc.confirmationReferences
         } shouldBe None
+      }
+    }
+  }
+
+  "fetchIndexes" should {
+
+    val indexes = List(
+      Index(
+        key = Seq("indexKey" -> IndexType.Ascending),
+        name = Some("indexName"),
+        unique = true,
+        sparse = false,
+        version = Some(1)
+      ),
+      Index(
+        key = Seq("indexKey2" -> IndexType.Ascending),
+        name = Some("indexName2"),
+        unique = true,
+        sparse = false,
+        version = Some(1)
+      )
+    )
+
+    val _idIndex = Index(
+      key = Seq("_id" -> IndexType.Ascending),
+      name = Some("_id_"),
+      unique = false,
+      sparse = false,
+      version = Some(1)
+    )
+
+    val indexesWith_idIndex = _idIndex :: indexes
+
+    "return 3 indexes from the collection" when {
+      "2 indexes are initially created, excluding the _id index" in new SetupWithIndexes(indexes) {
+        val fetchedIndexes = await(repository.fetchIndexes())
+        fetchedIndexes should contain theSameElementsAs indexesWith_idIndex
+      }
+
+      "3 indexes are created, including the _id index" in new SetupWithIndexes(indexesWith_idIndex){
+        val fetchedIndexes = await(repository.fetchIndexes())
+        fetchedIndexes should contain theSameElementsAs indexesWith_idIndex
       }
     }
   }

@@ -32,7 +32,7 @@ import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, _}
 import reactivemongo.play.json.BSONFormats
-import reactivemongo.play.json.ImplicitBSONHandlers.BSONDocumentWrites
+import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
 
@@ -485,4 +485,6 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
       taxRegistration <- collection.find(registrationIDSelector(regId)).one[CorporationTaxRegistration]
     } yield taxRegistration flatMap (_.sessionIdentifiers)
   }
+
+  def fetchIndexes(): Future[List[Index]] = collection.indexesManager.list()
 }
