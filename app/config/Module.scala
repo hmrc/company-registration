@@ -18,14 +18,16 @@ package config
 
 import auth.{AuthClientConnector, AuthClientConnectorImpl}
 import com.google.inject.AbstractModule
+import com.google.inject.name.Names
 import connectors._
 import controllers._
 import controllers.admin.{AdminController, AdminControllerImpl}
 import controllers.test._
-import jobs.{CheckSubmissionJob, CheckSubmissionJobImpl, MissingIncorporationJob, MissingIncorporationJobImpl}
+import jobs._
 import services._
 import services.admin.{AdminService, AdminServiceImpl}
 import uk.gov.hmrc.play.config.inject.{DefaultServicesConfig, ServicesConfig}
+import uk.gov.hmrc.play.scheduling.ScheduledJob
 
 class Module extends AbstractModule {
 
@@ -40,6 +42,8 @@ class Module extends AbstractModule {
   private def bindJobs() = {
     bind(classOf[CheckSubmissionJob]).to(classOf[CheckSubmissionJobImpl])
     bind(classOf[MissingIncorporationJob]).to(classOf[MissingIncorporationJobImpl])
+    bind(classOf[ScheduledJob]).annotatedWith(Names.named("remove-stale-documents-job")).to(classOf[RemoveStaleDocumentsJobImpl])
+    bind(classOf[ScheduledJob]).annotatedWith(Names.named("metrics-job")).to(classOf[MetricsJobImpl])
   }
 
   private def bindConfig() = {
