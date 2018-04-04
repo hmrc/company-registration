@@ -16,7 +16,7 @@
 
 package services
 
-import fixtures.{CorporationTaxRegistrationFixture, MongoFixture}
+import fixtures.CorporationTaxRegistrationFixture
 import mocks.SCRSMocks
 import models.TradingDetails
 import org.mockito.ArgumentMatchers

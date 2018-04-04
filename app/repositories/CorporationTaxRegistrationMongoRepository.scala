@@ -27,9 +27,9 @@ import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.DB
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.indexes.{Index, IndexType}
+import reactivemongo.api.{Cursor, DB}
 import reactivemongo.bson.{BSONDocument, _}
 import reactivemongo.play.json.BSONFormats
 import reactivemongo.play.json.ImplicitBSONHandlers._
@@ -52,6 +52,7 @@ object CorporationTaxRegistrationMongo extends ReactiveMongoFormats {
 trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegistration, BSONObjectID]{
   def createCorporationTaxRegistration(metadata: CorporationTaxRegistration): Future[CorporationTaxRegistration]
   def retrieveCorporationTaxRegistration(regID: String): Future[Option[CorporationTaxRegistration]]
+  def retrieveStaleDocuments(count: Int): Future[List[CorporationTaxRegistration]]
   def retrieveMultipleCorporationTaxRegistration(regID: String): Future[List[CorporationTaxRegistration]]
   def retrieveRegistrationByTransactionID(regID: String): Future[Option[CorporationTaxRegistration]]
   def retrieveCompanyDetails(registrationID: String): Future[Option[CompanyDetails]]
@@ -487,4 +488,23 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
   }
 
   def fetchIndexes(): Future[List[Index]] = collection.indexesManager.list()
+
+  override def retrieveStaleDocuments(count: Int): Future[List[CorporationTaxRegistration]] = {
+    val query = Json.obj(
+      "status" -> Json.obj("$in" -> Json.arr("draft", "held", "locked")),
+       "$or" -> Json.arr(
+         Json.obj("lastSignedIn" -> Json.obj("$exists" -> false)),
+         Json.obj("lastSignedIn" -> Json.obj("$lte" -> DateTime.now(DateTimeZone.UTC).minusDays(90).getMillis))
+       )
+    )
+    val ascending = Json.obj("lastSignedIn" -> 1)
+    val logOnError = Cursor.ContOnError[List[CorporationTaxRegistration]]((_, ex) =>
+      Logger.error(s"[retrieveStaleDocuments] Mongo failed, problem occured in collect - ex: ${ex.getMessage}")
+    )
+
+    collection.find(query)
+      .sort(ascending)
+      .cursor[CorporationTaxRegistration]()
+      .collect[List](count, logOnError)
+  }
 }
