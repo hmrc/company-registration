@@ -16,11 +16,10 @@
 
 package models
 
-import org.joda.time.DateTimeZone
-import org.joda.time.DateTime
+import models.validation.{APIValidation, BaseJsonFormatting, MongoValidation}
+import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-import models.validation.{APIValidation, BaseJsonFormatting, MongoValidation}
 import reactivemongo.play.json.BSONFormats.BSONDocumentFormat
 
 import scala.language.implicitConversions
@@ -79,7 +78,7 @@ object CorporationTaxRegistration {
       (__ \ "submissionTimestamp").readNullable[String] and
       (__ \ "verifiedEmail").readNullable[Email] and
       (__ \ "createdTime").read[DateTime] and
-      (__ \ "lastSignedIn").read[DateTime].orElse(Reads.pure(CorporationTaxRegistration.now)) and
+      (__ \ "lastSignedIn").read[DateTime].map(_.withZone(DateTimeZone.UTC)).orElse(Reads.pure(CorporationTaxRegistration.now)) and
       (__ \ "heldTimestamp").readNullable[DateTime] and
       (__ \ "sessionIdentifiers").readNullable[SessionIds]
     )(CorporationTaxRegistration.apply _)

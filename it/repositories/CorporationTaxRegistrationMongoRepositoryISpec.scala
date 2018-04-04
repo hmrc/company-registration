@@ -18,29 +18,35 @@ package repositories
 
 import java.util.UUID
 
+import fixtures.CorporationTaxRegistrationFixture.ctRegistrationJson
 import models.RegistrationStatus._
 import models._
-import org.joda.time.DateTime
+import org.joda.time.{DateTime, DateTimeZone}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
+import play.api.libs.json.{JsObject, Json, OWrites}
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONString}
 import uk.gov.hmrc.mongo.MongoSpecSupport
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 class CorporationTaxRegistrationMongoRepositoryISpec
-  extends UnitSpec with MongoSpecSupport with BeforeAndAfterEach with ScalaFutures with Eventually with WithFakeApplication {
+  extends UnitSpec with MongoSpecSupport with BeforeAndAfterEach
+    with ScalaFutures with Eventually with WithFakeApplication {
 
   class Setup {
     val repository = new CorporationTaxRegistrationMongoRepository(mongo)
     await(repository.drop)
     await(repository.ensureIndexes)
 
+    implicit val jsObjWts: OWrites[JsObject] = OWrites(identity)
+
     def insert(reg: CorporationTaxRegistration) = await(repository.insert(reg))
+    def insertRaw(reg: JsObject) = await(repository.collection.insert(reg))
     def count = await(repository.count)
     def retrieve(regId: String) = await(repository.retrieveCorporationTaxRegistration(regId))
   }
@@ -56,6 +62,34 @@ class CorporationTaxRegistrationMongoRepositoryISpec
   def setupCollection(repo: CorporationTaxRegistrationMongoRepository, ctRegistration: CorporationTaxRegistration): Future[WriteResult] = {
     repo.insert(ctRegistration)
   }
+
+  val ackRef = "test-ack-ref"
+
+  def corporationTaxRegistration(status: String = "draft",
+                                 ctutr: Boolean = true,
+                                 lastSignedIn: DateTime = DateTime.now(DateTimeZone.UTC),
+                                 registrationStatus: String = RegistrationStatus.DRAFT,
+                                 regId: String = UUID.randomUUID().toString) = CorporationTaxRegistration(
+    status = status,
+    internalId = "testID",
+    registrationID = regId,
+    formCreationTimestamp = "testDateTime",
+    language = "en",
+    companyDetails = Some(CompanyDetails(
+      "testCompanyName",
+      CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
+      PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"), None, "txid"))),
+      "testJurisdiction"
+    )),
+    contactDetails = Some(ContactDetails(
+      "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+    )),
+    tradingDetails = Some(TradingDetails("true")),
+    confirmationReferences = Some(ConfirmationReferences(acknowledgementReference = ackRef, "txId", None, None)),
+    acknowledgementReferences = Some(AcknowledgementReferences(Option("ctutr").filter(_ => ctutr), "timestamp", status)),
+    createdTime = DateTime.parse("2017-09-04T14:49:48.261"),
+    lastSignedIn = lastSignedIn
+  )
 
   "retrieveCorporationTaxRegistration" should {
     "retrieve a registration with an invalid phone number" in new Setup {
@@ -182,7 +216,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       language = "en",
       confirmationReferences = Some(validConfirmationReferences),
       createdTime = DateTime.now,
-      lastSignedIn = DateTime.now
+      lastSignedIn = DateTime.now(DateTimeZone.UTC)
     )
 
     "return an optional ct record" when {
@@ -263,7 +297,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       )),
       tradingDetails = Some(TradingDetails("true")),
       createdTime = DateTime.now,
-      lastSignedIn = DateTime.now
+      lastSignedIn = DateTime.now(DateTimeZone.UTC)
     )
 
     "remove all details under that RegId from the collection" in new Setup {
@@ -367,7 +401,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         status = RegistrationStatus.HELD,
         confirmationReferences = Some(validConfirmationReferences),
         createdTime = dateTime,
-        lastSignedIn = dateTime,
+        lastSignedIn = dateTime.withZone(DateTimeZone.UTC),
         heldTimestamp = heldTs
       ))
 
@@ -510,7 +544,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       confirmationReferences = confRefs,
       acknowledgementReferences = Some(AcknowledgementReferences(Option("ctutr").filter(_ => ctutr), timestamp, status)),
       createdTime = dateTime,
-      lastSignedIn = dateTime
+      lastSignedIn = dateTime.withZone(DateTimeZone.UTC)
     )
 
     "update a registration with an admin ct reference" in new Setup {
@@ -727,10 +761,112 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         fetchedIndexes should contain theSameElementsAs indexesWith_idIndex
       }
 
-      "3 indexes are created, including the _id index" in new SetupWithIndexes(indexesWith_idIndex){
+      "3 indexes are created, including the _id index" in new SetupWithIndexes(indexesWith_idIndex) {
         val fetchedIndexes = await(repository.fetchIndexes())
         fetchedIndexes should contain theSameElementsAs indexesWith_idIndex
       }
+    }
+  }
+
+  "retrieveStaleDocuments" must {
+
+    val registration90DaysOldDraft: CorporationTaxRegistration = corporationTaxRegistration(
+      registrationStatus = "draft",
+      lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(90)
+    )
+
+    val registration91DaysOldLocked: CorporationTaxRegistration = corporationTaxRegistration(
+      registrationStatus = "locked",
+      lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(91)
+    )
+
+    val registration30DaysOldDraft: CorporationTaxRegistration = corporationTaxRegistration(
+      registrationStatus = "draft",
+      lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(30)
+    )
+
+    val registration91DaysOldDraft: CorporationTaxRegistration = corporationTaxRegistration(
+      registrationStatus = "draft",
+      lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(91)
+    )
+
+    val registration90DaysOldSubmitted: CorporationTaxRegistration = corporationTaxRegistration(
+      status = "submitted",
+      lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(90)
+    )
+
+    "return 0 documents" when {
+      "trying to fetch 1 but the database contains no documents" in new Setup {
+        await(repository.retrieveStaleDocuments(1)) shouldBe Nil
+      }
+
+      "the database contains 0 documents matching the query when trying to fetch 1" in new Setup {
+        insert(registration90DaysOldSubmitted)
+
+        await(repository.retrieveStaleDocuments(1)) shouldBe Nil
+      }
+    }
+
+    "return the oldest document" when {
+      "the database contains 1 document matching the query" in new Setup {
+        insert(registration90DaysOldDraft)
+
+        await(repository.retrieveStaleDocuments(1)).head.lastSignedIn.getChronology shouldBe List(registration90DaysOldDraft).head.lastSignedIn.getChronology
+      }
+
+      "the database contains multiple documents matching the query but the batch size was set to 1" in new Setup {
+        insert(registration90DaysOldDraft)
+        insert(registration91DaysOldDraft)
+
+        await(repository.retrieveStaleDocuments(1)) shouldBe List(registration91DaysOldDraft)
+      }
+    }
+
+    "return multiple documents in order of document age" when {
+      "the database contains multiple documents matching the query" in new Setup {
+        insert(registration90DaysOldDraft)
+        insert(registration91DaysOldDraft)
+
+        await(repository.retrieveStaleDocuments(2)) shouldBe List(registration91DaysOldDraft, registration90DaysOldDraft)
+      }
+
+      "the database contains multiple documents with the same time matching the query" in new Setup {
+        insert(registration91DaysOldDraft)
+        insert(registration91DaysOldLocked)
+
+        await(repository.retrieveStaleDocuments(2)) should contain theSameElementsAs List(registration91DaysOldDraft, registration91DaysOldLocked)
+      }
+
+      "2 of the documents match the query and 2 do not" in new Setup {
+        insert(registration90DaysOldDraft)
+        insert(registration91DaysOldLocked)
+        insert(registration30DaysOldDraft)
+        insert(registration90DaysOldSubmitted)
+
+        await(repository.retrieveStaleDocuments(5)) shouldBe List(registration91DaysOldLocked, registration90DaysOldDraft)
+      }
+    }
+
+    "not fail and continue" when {
+      "an invalid registration document is read" in new Setup {
+        val incorrectRegistration = ctRegistrationJson(
+          regId = registration91DaysOldDraft.registrationID,
+          lastSignedIn = registration91DaysOldDraft.lastSignedIn.getMillis,
+          malform = Some(Json.obj("registrationID" -> true))
+        )
+        insertRaw(incorrectRegistration)
+        insert(registration90DaysOldDraft)
+
+        await(repository.retrieveStaleDocuments(2)) shouldBe List(registration90DaysOldDraft)
+      }
+    }
+
+    "return a document if last signed in is not present" in new Setup {
+      val registrationId = "regId"
+      val registrationNoLastSignedIn = ctRegistrationJson(registrationId) - "lastSignedIn"
+      insertRaw(registrationNoLastSignedIn)
+      count shouldBe 1
+      await(repository.retrieveStaleDocuments(1)).size shouldBe 1
     }
   }
 }
