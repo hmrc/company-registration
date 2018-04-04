@@ -16,10 +16,12 @@
 
 package controllers
 
-import javax.inject.Inject
+import java.time.LocalTime
 
+import javax.inject.Inject
 import auth._
 import models.{AcknowledgementReferences, ConfirmationReferences, CorporationTaxRegistrationRequest}
+import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.{Action, AnyContent, AnyContentAsJson, Request}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
@@ -28,7 +30,7 @@ import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import services.{CompanyRegistrationDoesNotExist, RegistrationProgressUpdated}
 import uk.gov.hmrc.auth.core.retrieve.Retrievals.credentials
 import uk.gov.hmrc.play.microservice.controller.BaseController
-import utils.Logging
+import utils.{AlertLogging, Logging, PagerDutyKeys}
 
 import scala.concurrent.Future
 
@@ -36,13 +38,12 @@ class CorporationTaxRegistrationControllerImpl @Inject()(
         val metricsService: MetricsService,
         val authConnector: AuthClientConnector,
         val ctService: CorporationTaxRegistrationService,
-        val repositories: Repositories
-      ) extends CorporationTaxRegistrationController {
+        val repositories: Repositories) extends CorporationTaxRegistrationController {
 
   val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 }
 
-trait CorporationTaxRegistrationController extends BaseController with AuthorisedActions with Logging {
+trait CorporationTaxRegistrationController extends BaseController with AuthorisedActions with Logging with AlertLogging{
 
   val ctService : CorporationTaxRegistrationService
   val metricsService : MetricsService
@@ -144,12 +145,12 @@ trait CorporationTaxRegistrationController extends BaseController with Authorise
           }
 
           case rejected @ (_, "06" | "07" | "08" | "09" | "10") => {
-            logger.pagerDuty("CT_REJECTED", s"Received a Rejected response code (${etmpNotification.status}) from ETMP for ackRef: $ackRef")
+            pagerduty(PagerDutyKeys.CT_REJECTED, Some(s"Received a Rejected response code (${etmpNotification.status}) from ETMP for ackRef: $ackRef"))
             ctService.updateCTRecordWithAckRefs(ackRef, etmpNotification.copy(ctUtr = None)) map { _ => Ok }
           }
 
           case missingCTUTR @ (_, "04" | "05") => {
-            logger.pagerDuty("CT_ACCEPTED_MISSING_UTR", s"Received an Accepted response code (${etmpNotification.status}) from ETMP without a CTUTR for ackRef: $ackRef")
+            pagerduty(PagerDutyKeys.CT_ACCEPTED_MISSING_UTR, Some(s"Received an Accepted response code (${etmpNotification.status}) from ETMP without a CTUTR for ackRef: $ackRef"))
             Future.successful(BadRequest(s"Accepted but no CTUTR provided for ackRef: $ackRef"))
           }
 

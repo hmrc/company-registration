@@ -16,6 +16,8 @@
 
 package controllers
 
+import java.time.LocalTime
+
 import fixtures.CorporationTaxRegistrationFixture
 import helpers.BaseSpec
 import mocks.{AuthorisationMocks, MockMetricsService}
@@ -29,17 +31,19 @@ import play.api.test.Helpers._
 import services.{CompanyRegistrationDoesNotExist, RegistrationProgressUpdated}
 import uk.gov.hmrc.auth.core.InsufficientConfidenceLevel
 import uk.gov.hmrc.auth.core.retrieve.{Credentials, ~}
+import utils.AlertLogging
 
 import scala.concurrent.Future
 
 class CorporationTaxRegistrationControllerSpec extends BaseSpec with AuthorisationMocks with CorporationTaxRegistrationFixture {
-
-  class Setup {
+  class Setup (nowTime: LocalTime = LocalTime.parse("13:00:00")){
     val controller = new CorporationTaxRegistrationController {
       val ctService = mockCTDataService
       val resource = mockResource
       val authConnector = mockAuthClientConnector
       val metricsService = MockMetricsService
+      val alertLogging: AlertLogging = new AlertLogging {
+      }
     }
   }
 
