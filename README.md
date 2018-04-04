@@ -55,5 +55,5 @@ The error scenarios will return an error document, for example:
     "statusCode": 404,
     "message":"An existing Corporation Tax Registration record was not found"
 }
-```
+``` 
 
