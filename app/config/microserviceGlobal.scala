@@ -16,20 +16,19 @@
 
 package config
 
-import javax.inject.Inject
+import javax.inject.{Inject, Named, Singleton}
 
 import com.typesafe.config.Config
-import jobs.MetricsJob
 import net.ceedubs.ficus.Ficus._
 import play.api.{Application, Configuration, Logger, Play}
-import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmission, HeldSubmissionMongoRepository, Repositories}
+import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmissionMongoRepository, Repositories}
 import services.admin.AdminServiceImpl
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
 import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode}
 import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
 import uk.gov.hmrc.play.microservice.filters.{AuditFilter, LoggingFilter, MicroserviceFilterSupport}
-import uk.gov.hmrc.play.scheduling.RunningOfScheduledJobs
+import uk.gov.hmrc.play.scheduling.{RunningOfScheduledJobs, ScheduledJob}
 
 import scala.concurrent.Future
 
@@ -61,7 +60,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
 
   override val authFilter: Option[AuthorisationFilter] = None
 
-  override val scheduledJobs = Seq(MetricsJob)
+  override lazy val scheduledJobs = Play.current.injector.instanceOf[Jobs].lookupJobs()
 
   override def onStart(app : play.api.Application) : scala.Unit = {
 
@@ -104,12 +103,24 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
 
     startupJobs.fetchIndexes()
 
-    //app.injector.instanceOf[AppStartupJobs].updateTransId(updateTransFrom.trim, updateTransTo.trim)
-
-    //CorporationTaxRegistrationService.checkDocumentStatus(regIdList.split(","))
-
     super.onStart(app)
   }
+}
+
+trait JobsList {
+  def lookupJobs(): Seq[ScheduledJob] = Seq()
+}
+
+@Singleton
+class Jobs @Inject()(
+                      @Named("remove-stale-documents-job") removeStaleDocsJob: ScheduledJob,
+                      @Named("metrics-job") metricsJob: ScheduledJob
+                    ) extends JobsList {
+  override def lookupJobs(): Seq[ScheduledJob] =
+    Seq(
+      removeStaleDocsJob,
+      metricsJob
+    )
 }
 
 class AppStartupJobs @Inject()(val service: AdminServiceImpl,
@@ -121,7 +132,7 @@ class AppStartupJobs @Inject()(val service: AdminServiceImpl,
   lazy val ctRepo: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 
   ctRepo.getRegistrationStats() map {
-    stats => Logger.info(s"[RegStats] ${stats}")
+    stats => Logger.info(s"[RegStats] $stats")
   }
 
   ctRepo.retrieveLockedRegIDs() map { regIds =>

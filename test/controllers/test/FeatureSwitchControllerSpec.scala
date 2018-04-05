@@ -50,7 +50,8 @@ class FeatureSwitchControllerSpec extends UnitSpec with BeforeAndAfterEach {
           "missingIncorp false\n" +
           "registerInterest false\n" +
           "etmpHoldingPen false\n" +
-          "graphiteMetrics false\n"
+          "graphiteMetrics false\n" +
+          "removeStaleDocuments false\n"
     }
   }
 
