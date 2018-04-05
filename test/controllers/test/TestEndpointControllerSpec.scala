@@ -27,11 +27,14 @@ import play.api.test.FakeRequest
 import repositories._
 import services.CorporationTaxRegistrationService
 import org.mockito.Mockito._
+import play.api.Logger
+import play.api.mvc.{Action, AnyContent, Result}
 import play.api.test.Helpers._
+import uk.gov.hmrc.play.test.LogCapturing
 
 import scala.concurrent.Future
 
-class TestEndpointControllerSpec extends BaseSpec {
+class TestEndpointControllerSpec extends BaseSpec with LogCapturing {
 
   implicit val system = ActorSystem("CR")
   implicit val mat = ActorMaterializer()
@@ -167,6 +170,17 @@ class TestEndpointControllerSpec extends BaseSpec {
       val result = await(controller.updateTimePoint(timepoint)(FakeRequest()))
       status(result) shouldBe OK
       jsonBodyOf(result) shouldBe Json.toJson(timepoint)
+    }
+  }
+
+  "pagerDuty" must {
+    "log a pager duty with the message provided" in new Setup {
+      val message: String = "test-pager-duty"
+      withCaptureOfLoggingFrom(Logger) { logs =>
+        val result: Result = await(controller.pagerDuty(message)(FakeRequest()))
+        status(result) shouldBe OK
+        logs.head.getMessage shouldBe message
+      }
     }
   }
 }

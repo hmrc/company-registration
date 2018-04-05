@@ -22,6 +22,7 @@ import javax.inject.Inject
 import connectors.BusinessRegistrationConnector
 import helpers.DateHelper
 import models.ConfirmationReferences
+import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.{Action, AnyContent, Result}
 import repositories._
@@ -29,6 +30,7 @@ import services.CorporationTaxRegistrationService
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 
 class TestEndpointControllerImpl @Inject()(
@@ -110,5 +112,11 @@ trait TestEndpointController extends BaseController {
   def updateTimePoint(timepoint: String) = Action.async {
     implicit request =>
       stateRepo.updateTimepoint(timepoint).map(tp => Ok(Json.toJson(tp)))
+  }
+
+  def pagerDuty(name: String) = Action.async {
+    implicit request =>
+      Logger.error(name)
+      Future.successful(Ok)
   }
 }

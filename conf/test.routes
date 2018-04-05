@@ -3,6 +3,7 @@ GET        /drop-ct                                            @controllers.test
 GET        /fetch-held-submission/:registrationId              @controllers.test.TestEndpointController.fetchHeldData(registrationId: String)
 POST       /store-held-data/:registrationId                    @controllers.test.TestEndpointController.storeHeldData(registrationId: String, ackRef: String)
 GET        /update-timepoint/:timepoint                        @controllers.test.TestEndpointController.updateTimePoint(timepoint: String)
+GET        /pager-duty/:name                                   @controllers.test.TestEndpointController.pagerDuty(name: String)
 
 GET        /fetch-held-submission/:registrationId              @controllers.test.HeldSubmissionController.fetchHeldSubmission(registrationId: String)
 
