@@ -23,13 +23,14 @@ import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
+import play.api.Logger
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{AnyContent, Request}
 import play.api.test.FakeRequest
-import uk.gov.hmrc.play.test.UnitSpec
-import uk.gov.hmrc.http.{ HeaderCarrier, HttpResponse }
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
 
-class IncorporationInformationConnectorSpec extends UnitSpec with MockitoSugar with SCRSMocks with BusinessRegistrationFixture {
+class IncorporationInformationConnectorSpec extends UnitSpec with MockitoSugar with SCRSMocks with BusinessRegistrationFixture with LogCapturing {
 
   val tRegime = "testRegime"
   val tSubscriber = "testSubscriber"
@@ -105,6 +106,33 @@ class IncorporationInformationConnectorSpec extends UnitSpec with MockitoSugar w
         .thenReturn(HttpResponse(500))
 
       intercept[RuntimeException](await(connector.registerInterest(regId, txId)))
+    }
+  }
+
+  "checkNotIncorporated" should {
+    "return true" when {
+      "the CRN is not there" in new Setup {
+        val expectedURL = s"${connector.url}/incorporation-information/$txId/incorporation-update"
+        when(mockWSHttp.GET[HttpResponse](ArgumentMatchers.eq(expectedURL))(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
+          .thenReturn(HttpResponse(200))
+
+        await(connector.checkNotIncorporated(txId)) shouldBe true
+      }
+    }
+
+    "return an exception" when {
+      "the CRN is there" in new Setup {
+        val expectedURL = s"${connector.url}/incorporation-information/$txId/incorporation-update"
+        when(mockWSHttp.GET[HttpResponse](ArgumentMatchers.eq(expectedURL))(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
+          .thenReturn(HttpResponse(200, Some(Json.obj("crn" -> "crn"))))
+
+        withCaptureOfLoggingFrom(Logger) { logs =>
+          intercept[RuntimeException](await(connector.checkNotIncorporated(txId)))
+
+          logs.size shouldBe 1
+          logs.head.getMessage shouldBe "NINETY_DAY_DELETE_WARNING_CRN_FOUND"
+        }
+      }
     }
   }
 

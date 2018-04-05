@@ -98,6 +98,7 @@ trait SCRSFeatureSwitches {
   def registerInterest: FeatureSwitch = FeatureSwitch.getProperty("registerInterest")
   def etmpHoldingPen: FeatureSwitch = FeatureSwitch.getProperty("etmpHoldingPen")
   def graphiteMetrics: FeatureSwitch = FeatureSwitch.getProperty("graphiteMetrics")
+  def removeStaleDocuments: FeatureSwitch = FeatureSwitch.getProperty("removeStaleDocuments")
 
   def apply(name: String): Option[FeatureSwitch] = name match {
     case "submissionCheck" => Some(scheduler)
@@ -105,10 +106,11 @@ trait SCRSFeatureSwitches {
     case "etmpHoldingPen" => Some(etmpHoldingPen)
     case "missingIncorp" => Some(missingIncorp)
     case "graphiteMetrics" => Some(graphiteMetrics)
+    case "removeStaleDocuments" => Some(removeStaleDocuments)
     case _ => None
   }
 
   def all: Seq[FeatureSwitch] = {
-    Seq(scheduler, missingIncorp, registerInterest, etmpHoldingPen, graphiteMetrics)
+    Seq(scheduler, missingIncorp, registerInterest, etmpHoldingPen, graphiteMetrics, removeStaleDocuments)
   }
 }

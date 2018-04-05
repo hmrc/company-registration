@@ -16,20 +16,19 @@
 
 package config
 
-import javax.inject.Inject
+import javax.inject.{Inject, Named, Singleton}
 
 import com.typesafe.config.Config
-import jobs.MetricsJob
 import net.ceedubs.ficus.Ficus._
 import play.api.{Application, Configuration, Logger, Play}
-import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmission, HeldSubmissionMongoRepository, Repositories}
+import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmissionMongoRepository, Repositories}
 import services.admin.AdminServiceImpl
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
 import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode}
 import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
 import uk.gov.hmrc.play.microservice.filters.{AuditFilter, LoggingFilter, MicroserviceFilterSupport}
-import uk.gov.hmrc.play.scheduling.RunningOfScheduledJobs
+import uk.gov.hmrc.play.scheduling.{RunningOfScheduledJobs, ScheduledJob}
 
 import scala.concurrent.Future
 
@@ -61,7 +60,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
 
   override val authFilter: Option[AuthorisationFilter] = None
 
-  override val scheduledJobs = Seq(MetricsJob)
+  override lazy val scheduledJobs = Play.current.injector.instanceOf[Jobs].lookupJobs()
 
   override def onStart(app : play.api.Application) : scala.Unit = {
 
@@ -69,47 +68,31 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
 
     val regid = app.configuration.getString("companyNameRegID").getOrElse("")
     app.injector.instanceOf[AppStartupJobs].getCTCompanyName(regid)
-    import java.util.Base64
-    val regIdConf = app.configuration.getString("registrationList").getOrElse("")
-    val regIdList = new String(Base64.getDecoder.decode(regIdConf), "UTF-8")
-    val removalList = new String(
-      Base64.getDecoder.decode(
-        app.configuration.getString("removalList").getOrElse("")
-      ), "UTF-8"
-    )
 
-    val limboCases = new String(
-      Base64.getDecoder.decode(
-        app.configuration.getString("limboCase").getOrElse("")
-      ), "UTF-8"
-    )
-
-    app.injector.instanceOf[AppStartupJobs].removeRegistrations(removalList.split(","))
     (1 to 5) foreach {
       _ => app.injector.instanceOf[AppStartupJobs].getHeldDocsInfoSecondary()
     }
 
-    val updateTransFrom = new String(
-      Base64.getDecoder.decode(
-        app.configuration.getString("updateTransId.from").getOrElse("")
-      ),
-      "UTF8"
-    )
-    val updateTransTo = new String(
-      Base64.getDecoder.decode(
-        app.configuration.getString("updateTransId.to").getOrElse("")
-      ),
-      "UTF8"
-    )
-
     startupJobs.fetchIndexes()
-
-    //app.injector.instanceOf[AppStartupJobs].updateTransId(updateTransFrom.trim, updateTransTo.trim)
-
-    //CorporationTaxRegistrationService.checkDocumentStatus(regIdList.split(","))
 
     super.onStart(app)
   }
+}
+
+trait JobsList {
+  def lookupJobs(): Seq[ScheduledJob] = Seq()
+}
+
+@Singleton
+class Jobs @Inject()(
+                      @Named("remove-stale-documents-job") removeStaleDocsJob: ScheduledJob,
+                      @Named("metrics-job") metricsJob: ScheduledJob
+                    ) extends JobsList {
+  override def lookupJobs(): Seq[ScheduledJob] =
+    Seq(
+      removeStaleDocsJob,
+      metricsJob
+    )
 }
 
 class AppStartupJobs @Inject()(val service: AdminServiceImpl,
@@ -121,7 +104,7 @@ class AppStartupJobs @Inject()(val service: AdminServiceImpl,
   lazy val ctRepo: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 
   ctRepo.getRegistrationStats() map {
-    stats => Logger.info(s"[RegStats] ${stats}")
+    stats => Logger.info(s"[RegStats] $stats")
   }
 
   ctRepo.retrieveLockedRegIDs() map { regIds =>
@@ -138,13 +121,6 @@ class AppStartupJobs @Inject()(val service: AdminServiceImpl,
           s"Company Name : ${ctDoc.companyDetails.fold("")(companyDetails => companyDetails.companyName)} - " +
           s"Trans ID : ${ctDoc.confirmationReferences.fold("")(confRefs => confRefs.transactionId)}")
       }}
-  }
-
-  def removeRegistrations(regIds: Seq[String]): Unit = {
-    for(id <- regIds) {
-      Logger.info(s"Deleting registration with regId: $id")
-      service.adminDeleteSubmission(id)
-    }
   }
 
   def updateTransId(updateTransFrom: String, updateTransTo: String): Unit = {
@@ -177,22 +153,6 @@ class AppStartupJobs @Inject()(val service: AdminServiceImpl,
           s"ack ref : ${held.ackRef} - ")
       }
     }
-  }
-
-  def removeLimboCases(regIds: Seq[String]): Unit = {
-    val limboRegex = """(.*)#(.*)""".r
-    def splitter(s: String) = s match {
-      case limboRegex(id, companyName) => Some(id, companyName)
-      case _ => None
-    }
-
-    Future.sequence(
-      regIds.flatMap(splitter) map { case (regId, companyName) =>
-        service.deleteLimboCase(regId, companyName) recover {
-          case ex : Exception => Logger.warn(s"[removeLimboCases] $ex")
-        }
-      }
-    )
   }
 
   def fetchIndexes(): Future[Unit] = {
