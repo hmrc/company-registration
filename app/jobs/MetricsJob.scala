@@ -41,21 +41,6 @@ class MetricsJobImpl @Inject()(val metricsService: MetricsService) extends Metri
   }
 }
 
-object MetricsJob extends MetricsJob {
-  val name = "metrics-job"
-
-  lazy val app = Play.current
-  override lazy val metricsService: MetricsService = app.injector.instanceOf[MetricsService]
-  lazy val db: () => DefaultDB = new MongoDbConnection{}.db
-  override lazy val lock: LockKeeper = new LockKeeper() {
-    override val lockId = s"$name-lock"
-    override val forceLockReleaseAfter: Duration = lockTimeout
-    private implicit val mongo = new MongoDbConnection {}.db
-    override val repo = new LockRepository
-  }
-}
-
-
 trait MetricsJob extends ExclusiveScheduledJob with JobConfig with JobHelper {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()

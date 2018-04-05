@@ -26,6 +26,7 @@ import play.api.mvc.Request
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import uk.gov.hmrc.play.http.ws.{WSGet, WSPost}
+import utils.{AlertLogging, PagerDutyKeys}
 
 import scala.concurrent.Future
 import scala.util.control.NoStackTrace
@@ -41,7 +42,7 @@ class IncorporationInformationConnectorImpl @Inject()(config: MicroserviceAppCon
   val subscriber: String = config.subscriber
 }
 
-trait IncorporationInformationConnector {
+trait IncorporationInformationConnector extends AlertLogging {
 
   val url: String
   val http: WSGet with WSPost
@@ -73,6 +74,16 @@ trait IncorporationInformationConnector {
       case e =>
         Logger.error(s"[IncorporationInformationConnector] [registerInterest] failure registering interest for regId: $regId txId: $transactionId", e)
         throw new RuntimeException(s"forced registration of interest for regId : $regId - transactionId : $transactionId failed - reason : ", e)
+    }
+  }
+
+  def checkNotIncorporated(transactionID: String)(implicit hc: HeaderCarrier): Future[Boolean] = {
+    http.GET[HttpResponse](s"$url/incorporation-information/$transactionID/incorporation-update") map { res =>
+      val crn = (res.json \ "crn").asOpt[String]
+      if (crn.isEmpty) { true } else {
+        pagerduty(PagerDutyKeys.NINETY_DAY_DELETE_WARNING_CRN_FOUND)
+        throw new RuntimeException
+      }
     }
   }
 }

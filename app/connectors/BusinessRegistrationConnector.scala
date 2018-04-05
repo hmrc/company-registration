@@ -100,12 +100,13 @@ trait BusinessRegistrationConnector {
     http.GET[HttpResponse](s"$businessRegUrl/business-registration/admin/business-tax-registration/remove/$registrationId") map {
       _.status match {
         case 200 => true
-        case _ => throw new RuntimeException("Unexpected response code received")
+        case 404 =>
+          Logger.info(s"[BusinessRegistrationConnector] [adminRemoveMetadata] - Received a NotFound status code when attempting to remove a metadata document for regId - $registrationId")
+          false
       }
     } recover {
-      case _ =>
-        Logger.info(s"[BusinessRegistrationConnector] [adminRemoveMetadata] - Received a NotFound status code when attempting to remove a metadata document for regId - $registrationId")
-        false
+      case e =>
+        throw e
     }
   }
 

@@ -22,16 +22,18 @@ import audit.{AdminCTReferenceEvent, AdminReleaseAuditEvent}
 import config.MicroserviceAuditConnector
 import connectors.{BusinessRegistrationConnector, DesConnector, IncorporationInformationConnector}
 import helpers.DateFormatter
-import models.HO6RegistrationInformation
 import models.RegistrationStatus._
 import models.admin.{AdminCTReferenceDetails, HO6Identifiers, HO6Response}
+import models.{ConfirmationReferences, CorporationTaxRegistration, HO6RegistrationInformation}
+import org.joda.time.DateTime
 import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.Request
 import repositories.{CorpTaxRegistrationRepo, CorporationTaxRegistrationMongoRepository, HeldSubmissionMongoRepository, HeldSubmissionRepo}
 import services.FailedToDeleteSubmissionData
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
+import uk.gov.hmrc.play.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -41,21 +43,24 @@ class AdminServiceImpl @Inject()(
                                  heldSubMongo: HeldSubmissionRepo,
                                  val brConnector: BusinessRegistrationConnector,
                                  val desConnector: DesConnector,
-                                 val incorpInfoConnector: IncorporationInformationConnector) extends AdminService {
+                                 val incorpInfoConnector: IncorporationInformationConnector) extends AdminService with ServicesConfig {
 
   val corpTaxRegRepo: CorporationTaxRegistrationMongoRepository = corpTaxRepo.repo
   val heldSubRepo: HeldSubmissionMongoRepository = heldSubMongo.store
+  lazy val staleAmount: Int = getInt("staleDocumentAmount")
   lazy val auditConnector = MicroserviceAuditConnector
 }
 
 trait AdminService extends DateFormatter {
 
-  val corpTaxRegRepo:      CorporationTaxRegistrationMongoRepository
-  val heldSubRepo:         HeldSubmissionMongoRepository
-  val desConnector:        DesConnector
-  val auditConnector:      AuditConnector
+  val corpTaxRegRepo: CorporationTaxRegistrationMongoRepository
+  val heldSubRepo: HeldSubmissionMongoRepository
+  val desConnector: DesConnector
+  val auditConnector: AuditConnector
   val incorpInfoConnector: IncorporationInformationConnector
-  val brConnector:         BusinessRegistrationConnector
+  val brConnector: BusinessRegistrationConnector
+
+  val staleAmount: Int
 
   def fetchHO6RegistrationInformation(regId: String): Future[Option[HO6RegistrationInformation]] = corpTaxRegRepo.fetchHO6Information(regId)
 
@@ -87,9 +92,9 @@ trait AdminService extends DateFormatter {
     auditConnector.sendExtendedEvent(auditEvent)
   }
 
-  private[services] def fetchAllRegIdsFromHeldSubmissions: Future[List[String]] = heldSubRepo.findAll() map { list => list.map(_.registrationID)}
+  private[services] def fetchAllRegIdsFromHeldSubmissions: Future[List[String]] = heldSubRepo.findAll() map { list => list.map(_.registrationID) }
 
-  private[services] def fetchTransactionId(regId: String): Future[Option[String]] = corpTaxRegRepo.retrieveConfirmationReferences(regId).map(_.fold[Option[String]]{
+  private[services] def fetchTransactionId(regId: String): Future[Option[String]] = corpTaxRegRepo.retrieveConfirmationReferences(regId).map(_.fold[Option[String]] {
     Logger.error(s"[Admin] [fetchTransactionId] - Held submission found but transaction Id missing for regId $regId")
     None
   }(refs => Option(refs.transactionId)))
@@ -101,11 +106,12 @@ trait AdminService extends DateFormatter {
     }
   }
 
-  def updateRegistrationWithCTReference(ackRef : String, ctUtr : String, username : String)(implicit hc : HeaderCarrier) : Future[Option[JsObject]] = {
-    corpTaxRegRepo.updateRegistrationWithAdminCTReference(ackRef, ctUtr) map { _ flatMap { cr =>
+  def updateRegistrationWithCTReference(ackRef: String, ctUtr: String, username: String)(implicit hc: HeaderCarrier): Future[Option[JsObject]] = {
+    corpTaxRegRepo.updateRegistrationWithAdminCTReference(ackRef, ctUtr) map {
+      _ flatMap { cr =>
         cr.acknowledgementReferences map { acknowledgementRefs =>
           val timestamp = Json.obj("timestamp" -> Json.toJson(nowAsZonedDateTime)(zonedDateTimeWrites))
-          val refDetails = AdminCTReferenceDetails(acknowledgementRefs.ctUtr, ctUtr,acknowledgementRefs.status,"04")
+          val refDetails = AdminCTReferenceDetails(acknowledgementRefs.ctUtr, ctUtr, acknowledgementRefs.status, "04")
 
           auditConnector.sendExtendedEvent(
             new AdminCTReferenceEvent(timestamp, username, Json.toJson(refDetails)(AdminCTReferenceDetails.adminAuditWrites).as[JsObject])
@@ -118,17 +124,15 @@ trait AdminService extends DateFormatter {
   }
 
 
-  def adminDeleteSubmission(regId: String): Future[Boolean] = {
+  def adminDeleteSubmission(info: DocumentInfo): Future[Boolean] = {
     for {
-      ctDeleted       <- corpTaxRegRepo.removeTaxRegistrationById(regId)
-      _               <- heldSubRepo.removeHeldDocument(regId)
-      metadataDeleted <- brConnector.adminRemoveMetadata(regId)
+      metadataDeleted <- brConnector.adminRemoveMetadata(info.regId)
+      ctDeleted <- corpTaxRegRepo.removeTaxRegistrationById(info.regId)
     } yield {
       if (ctDeleted && metadataDeleted) {
-        Logger.info(s"[adminDeleteSubmission] Successfully deleted registration with regId: $regId")
+        Logger.info(s"[processStaleDocument] Deleted stale regId: ${info.regId} timestamp: ${info.lastSignedIn}")
         true
       } else {
-        Logger.error(s"[adminDeleteSubmission] Failed to delete registration with regId: $regId")
         throw FailedToDeleteSubmissionData
       }
     }
@@ -142,31 +146,61 @@ trait AdminService extends DateFormatter {
     }
   }
 
-  def deleteLimboCase(regId: String, companyName: String): Future[Boolean] = {
-    def exceptionText(text : String): String = s"[deleteLimboCase] $text on regId: $regId"
-    def clearDownEtmpSubmission(ackRef : String, journeyId : String)(implicit hc : HeaderCarrier): Future[HttpResponse] = {
-      val submission = Json.obj(
-        "status" -> "Rejected",
-        "acknowledgementReference" -> ackRef
-      )
+  def deleteStaleDocuments(): Future[Int] = {
+    for {
+      documents <- corpTaxRegRepo.retrieveStaleDocuments(staleAmount)
+      _         = Logger.info(s"[deleteStaleDocuments] Mongo query found ${documents.size} stale documents. Now processing.")
+      processed <- Future.sequence(documents map processStaleDocument)
+    } yield processed count (_ == true)
+  }
 
-      desConnector.topUpCTSubmission(ackRef, submission, journeyId)
+  case class DocumentInfo(regId: String, status: String, lastSignedIn: DateTime)
+
+  private def removeStaleDocument(documentInfo: DocumentInfo, optRefs : Option[ConfirmationReferences])(implicit hc: HeaderCarrier) = optRefs match {
+    case Some(confRefs) => checkIncorporation(documentInfo, confRefs) flatMap { _ =>
+      rejectNoneDraft(documentInfo, confRefs) flatMap { _ =>
+        adminDeleteSubmission(documentInfo)
+      }
     }
+    case None => adminDeleteSubmission(documentInfo)
+  }
 
-    corpTaxRegRepo.retrieveCorporationTaxRegistration(regId) flatMap {
-      case Some(doc) =>
-        (doc.companyDetails, doc.status) match {
-          case (Some(cd), DRAFT | LOCKED) if cd.companyName == companyName =>
-            doc.confirmationReferences map { confRefs =>
-              implicit val hc = HeaderCarrier()
-              clearDownEtmpSubmission(confRefs.acknowledgementReference, regId)
-            }
-            adminDeleteSubmission(regId)
-          case (Some(cd), DRAFT | LOCKED)  => throw new RuntimeException(exceptionText(s"$companyName did not match company name"))
-          case (_       , DRAFT | LOCKED)  => throw new RuntimeException(exceptionText("Company details missing"))
-          case _                           => throw new RuntimeException(exceptionText(s"Status of ${doc.status} was not draft/locked"))
-        }
-      case None => throw new RuntimeException(exceptionText("Could not find document"))
+  private[services] def processStaleDocument(doc: CorporationTaxRegistration): Future[Boolean] = {
+    implicit val hc = HeaderCarrier()
+    val documentInfo = DocumentInfo(doc.registrationID, doc.status, doc.lastSignedIn)
+
+    Logger.info(s"[processStaleDocument] Processing stale document of $documentInfo")
+
+    ((doc.status, doc.confirmationReferences) match {
+      case ((DRAFT | HELD | LOCKED), optRefs) => removeStaleDocument(documentInfo, optRefs)
+      case _                                  => Future.successful(false)
+    }) recover {
+      case e: Throwable =>
+        Logger.warn(s"[processStaleDocument] Failed to delete regId: ${documentInfo.regId} with throwable $e")
+        false
+    }
+  }
+
+  private def checkIncorporation(documentInfo: DocumentInfo, confRefs: ConfirmationReferences)(implicit hc: HeaderCarrier) = {
+    incorpInfoConnector.checkNotIncorporated(confRefs.transactionId) recover { case e : RuntimeException =>
+      Logger.warn(s"[processStaleDocument] Could not delete document with CRN: " +
+        s"regId: ${documentInfo.regId} transID: ${confRefs.transactionId} lastSignIn: ${documentInfo.lastSignedIn} status: ${documentInfo.status}"
+      )
+      throw e
+    }
+  }
+
+  private def rejectNoneDraft(info: DocumentInfo, confRefs: ConfirmationReferences)(implicit hc: HeaderCarrier) = {
+    def submission(ackRef: String) = Json.obj(
+      "status" -> "Rejected",
+      "acknowledgementReference" -> ackRef
+    )
+
+    if (info.status != DRAFT) {
+      val ackRef = confRefs.acknowledgementReference
+      desConnector.topUpCTSubmission(ackRef, submission(ackRef), info.regId) map { _ => true }
+    } else {
+      Future.successful(true)
     }
   }
 }
