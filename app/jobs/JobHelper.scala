@@ -60,7 +60,9 @@ trait JobHelper extends JobConfig {
         Logger.info(s"failed to acquire lock for $name")
         Result(s"$name failed")
     } recover {
-      case _: Exception => Result(s"$name failed")
+      case e: Exception =>
+        Logger.warn(s"$name job lock failed - exception : $e - message: ${e.getMessage}")
+        Result(s"$name failed")
     }
   }
 }
