@@ -128,6 +128,12 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
       name = Some("StatusHeldTimeIndex"),
       unique = false,
       sparse = false
+    ),
+    Index(
+      key = Seq("lastSignedIn" -> IndexType.Ascending),
+      name = Some("LastSignedInIndex"),
+      unique = false,
+      sparse = false
     )
   )
 
