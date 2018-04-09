@@ -109,6 +109,33 @@ class IncorporationInformationConnectorSpec extends UnitSpec with MockitoSugar w
     }
   }
 
+  "cancelSubscription" should {
+    "make a http DELETE request to Incorporation Information micro-service to register an interest and return 202" in new Setup {
+      when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.anyString())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
+        .thenReturn(HttpResponse(200))
+
+      await(connector.cancelSubscription(regId, txId)) shouldBe true
+    }
+    "make a http DELETE request to Incorporation Information micro-service to register an interest and return a 404" in new Setup {
+      when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.anyString())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
+        .thenReturn(HttpResponse(404))
+
+      await(connector.cancelSubscription(regId, txId)) shouldBe true
+    }
+    "not make a http DELETE request to Incorporation Information micro-service to register an interest and return any other 2xx" in new Setup {
+      when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.anyString())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
+        .thenReturn(HttpResponse(202))
+
+      intercept[RuntimeException](await(connector.cancelSubscription(regId, txId)))
+    }
+    "not make a http DELETE request to Incorporation Information micro-service to register an interest and return any 5xx" in new Setup {
+      when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.anyString())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
+        .thenReturn(HttpResponse(500))
+
+      intercept[RuntimeException](await(connector.cancelSubscription(regId, txId)))
+    }
+  }
+
   "checkNotIncorporated" should {
     "return true" when {
       "the CRN is not there" in new Setup {

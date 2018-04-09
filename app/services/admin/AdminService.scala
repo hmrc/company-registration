@@ -124,10 +124,16 @@ trait AdminService extends DateFormatter {
   }
 
 
-  def adminDeleteSubmission(info: DocumentInfo): Future[Boolean] = {
+  def adminDeleteSubmission(info: DocumentInfo, txId : Option[String])(implicit hc : HeaderCarrier): Future[Boolean] = {
+    val cancelSub = txId match {
+      case Some(tId) => incorpInfoConnector.cancelSubscription(info.regId, tId)
+      case _         => Future.successful(true)
+    }
+
     for {
+      _               <- cancelSub
       metadataDeleted <- brConnector.adminRemoveMetadata(info.regId)
-      ctDeleted <- corpTaxRegRepo.removeTaxRegistrationById(info.regId)
+      ctDeleted       <- corpTaxRegRepo.removeTaxRegistrationById(info.regId)
     } yield {
       if (ctDeleted && metadataDeleted) {
         Logger.info(s"[processStaleDocument] Deleted stale regId: ${info.regId} timestamp: ${info.lastSignedIn}")
@@ -159,10 +165,10 @@ trait AdminService extends DateFormatter {
   private def removeStaleDocument(documentInfo: DocumentInfo, optRefs : Option[ConfirmationReferences])(implicit hc: HeaderCarrier) = optRefs match {
     case Some(confRefs) => checkIncorporation(documentInfo, confRefs) flatMap { _ =>
       rejectNoneDraft(documentInfo, confRefs) flatMap { _ =>
-        adminDeleteSubmission(documentInfo)
+        adminDeleteSubmission(documentInfo, Some(confRefs.transactionId))
       }
     }
-    case None => adminDeleteSubmission(documentInfo)
+    case None => adminDeleteSubmission(documentInfo, None)
   }
 
   private[services] def processStaleDocument(doc: CorporationTaxRegistration): Future[Boolean] = {
