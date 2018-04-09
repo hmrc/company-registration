@@ -124,9 +124,12 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase {
         stubGet(s"/incorporation-information/$txID/incorporation-update", 200, s"""{}""")
         stubGet(s"/incorporation-information/$txID2/incorporation-update", 200, s"""{}""")
         stubGet(s"/incorporation-information/$txID3/incorporation-update", 200, s"""{}""")
-        stubGet(s"/business-registration/admin/business-tax-registration/remove/$regId", 200, """{}""")
+
         stubGet(s"/business-registration/admin/business-tax-registration/remove/$regId2", 200, """{}""")
         stubGet(s"/business-registration/admin/business-tax-registration/remove/$regId3", 200, """{}""")
+
+        stubDelete(s"/incorporation-information/subscribe/$txID3/regime/CT/subscriber/SCRS?force=true", 200, s"""""")
+        stubDelete(s"/incorporation-information/subscribe/$txID2/regime/CT/subscriber/SCRS?force=true", 200, s"""""")
 
         insert(corporationTaxRegistration(lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(84), regId = regId, txID = txID))
         insert(corporationTaxRegistration(lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(92), regId = regId2, txID = txID2))
@@ -148,6 +151,7 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase {
       "there is one stale document" in new Setup {
         stubGet(s"/incorporation-information/$txID/incorporation-update", 200, s"""{}""")
         stubGet(s"/business-registration/admin/business-tax-registration/remove/$regId", 200, """{}""")
+        stubDelete(s"/incorporation-information/subscribe/$txID/regime/CT/subscriber/SCRS?force=true", 200, s"""""")
 
         insert(corporationTaxRegistration(lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(93), regId = regId))
 
@@ -166,9 +170,9 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase {
         stubGet(s"/incorporation-information/$txID/incorporation-update", 200, s"""{}""")
         stubGet(s"/incorporation-information/$txID2/incorporation-update", 200, s"""{}""")
         stubGet(s"/incorporation-information/$txID3/incorporation-update", 200, s"""{}""")
-        stubGet(s"/business-registration/admin/business-tax-registration/remove/$regId", 200, """{}""")
-        stubGet(s"/business-registration/admin/business-tax-registration/remove/$regId2", 200, """{}""")
+
         stubGet(s"/business-registration/admin/business-tax-registration/remove/$regId3", 200, """{}""")
+        stubDelete(s"/incorporation-information/subscribe/$txID3/regime/CT/subscriber/SCRS?force=true", 200, s"""""")
 
         insert(corporationTaxRegistration(lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(84), regId = regId, txID = txID))
         insert(corporationTaxRegistration(lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(85), regId = regId2, txID = txID2))
