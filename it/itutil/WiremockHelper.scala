@@ -53,6 +53,15 @@ trait WiremockHelper {
       )
     )
 
+  def stubDelete(url: String, status: Integer, body: String) =
+    stubFor(delete(urlEqualTo(url))
+      .willReturn(
+        aResponse().
+          withStatus(status).
+          withBody(body)
+      )
+    )
+
   def stubPost(url: String, status: Integer, responseBody: String) = {
     removeStub(post(urlMatching(url)))
     stubFor(post(urlMatching(url))

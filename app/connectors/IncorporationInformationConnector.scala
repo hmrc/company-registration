@@ -20,12 +20,12 @@ import javax.inject.Inject
 
 import config.{MicroserviceAppConfig, WSHttp}
 import play.api.Logger
-import play.api.http.Status.ACCEPTED
+import play.api.http.Status.{ACCEPTED, OK, NOT_FOUND}
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.Request
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
-import uk.gov.hmrc.play.http.ws.{WSGet, WSPost}
+import uk.gov.hmrc.play.http.ws.{WSDelete, WSGet, WSPost}
 import utils.{AlertLogging, PagerDutyKeys}
 
 import scala.concurrent.Future
@@ -37,7 +37,7 @@ class SubscriptionFailure(msg: String) extends NoStackTrace {
 
 class IncorporationInformationConnectorImpl @Inject()(config: MicroserviceAppConfig) extends IncorporationInformationConnector {
   val url: String = config.incorpInfoUrl
-  val http: WSGet with WSPost = WSHttp
+  val http: WSGet with WSPost with WSDelete = WSHttp
   val regime: String = config.regime
   val subscriber: String = config.subscriber
 }
@@ -45,13 +45,17 @@ class IncorporationInformationConnectorImpl @Inject()(config: MicroserviceAppCon
 trait IncorporationInformationConnector extends AlertLogging {
 
   val url: String
-  val http: WSGet with WSPost
+  val http: WSGet with WSPost with WSDelete
 
   val regime: String
   val subscriber: String
 
   private[connectors] def buildUri(transactionId: String): String = {
     s"/incorporation-information/subscribe/$transactionId/regime/$regime/subscriber/$subscriber?force=true"
+  }
+
+  private[connectors] def buildCancelUri(transactionId: String): String = {
+    s"/incorporation-information/subscribe/$transactionId/regime/ct/subscriber/$subscriber?force=true"
   }
 
   def registerInterest(regId: String, transactionId: String, admin: Boolean = false)(implicit hc: HeaderCarrier, req: Request[_]): Future[Boolean] = {
@@ -74,6 +78,23 @@ trait IncorporationInformationConnector extends AlertLogging {
       case e =>
         Logger.error(s"[IncorporationInformationConnector] [registerInterest] failure registering interest for regId: $regId txId: $transactionId", e)
         throw new RuntimeException(s"forced registration of interest for regId : $regId - transactionId : $transactionId failed - reason : ", e)
+    }
+  }
+
+  def cancelSubscription(regId: String, transactionId: String)(implicit hc: HeaderCarrier): Future[Boolean] = {
+    http.DELETE[HttpResponse](s"$url${buildCancelUri(transactionId)}") map { res =>
+      res.status match {
+        case OK    =>
+          Logger.info(s"[IncorporationInformationConnector] [cancelSubscription] Cancelled subscription for regId: $regId txId: $transactionId ")
+          true
+        case NOT_FOUND =>
+          Logger.info(s"[IncorporationInformationConnector] [cancelSubscription] No subscription to cancel for regId: $regId txId: $transactionId ")
+          true
+      }
+    } recover {
+      case e =>
+        Logger.error(s"[IncorporationInformationConnector] [cancelSubscription] Error cancelling subscription for regId: $regId txId: $transactionId", e)
+        throw new RuntimeException(s"Failure to cancel subscription", e)
     }
   }
 
