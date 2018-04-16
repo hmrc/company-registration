@@ -202,7 +202,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
       partialSubmission         <- buildPartialDesSubmission(regId, confRefs.acknowledgementReference, authProvId)
       _                         <- registerInterest(regId, confRefs.transactionId)
       _                         <- storePartial(regId, confRefs.acknowledgementReference, partialSubmission, authProvId)
-      partialSubmissionAsJson    = Json.toJson(partialSubmission).as[JsObject]
+      partialSubmissionAsJson   = Json.toJson(partialSubmission).as[JsObject]
       _                         <- auditUserPartialSubmission(regId, authProvId, partialSubmissionAsJson)
       success                   <- cTRegistrationRepository.updateRegistrationToHeld(regId, confRefs) map (_.isDefined)
     } yield success
@@ -233,11 +233,13 @@ trait CorporationTaxRegistrationService extends DateHelper {
   }
 
   private[services] def auditUserPartialSubmission(regId: String, authProvId: String, partialSubmission: JsObject)
-                                                  (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[AuditResult] = {
-    for{
-      ctRegistration     <- cTRegistrationRepository.retrieveCompanyDetails(regId)
-      auditResult        <- auditUserSubmission(regId, ctRegistration.get.ppob, authProvId, partialSubmission)
-    } yield auditResult
+                                                  (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[Boolean] = {
+    cTRegistrationRepository.retrieveCompanyDetails(regId) map { optCtReg =>
+      (optCtReg map { ctReg =>
+        auditUserSubmission(regId, ctReg.ppob, authProvId, partialSubmission)
+        ctReg
+      }).isDefined
+    }
   }
 
   private[services] def storePartialSubmission(regId: String, ackRef: String, partialSubmission: JsObject, authProvId : String)
@@ -247,7 +249,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
         _ => HeldSubmissionData(regId, ackRef, partialSubmission.toString)
       } recoverWith {
         case e =>
-          hc.headers.collect { case ("X-Session-ID", x) => x }.headOption match {
+          hc.headers.collectFirst{ case ("X-Session-ID", xSessionId) => xSessionId } match {
             case Some(xSesID) =>
               Logger.warn(s"[storePartialSubmission] Saved session identifers for regId: $regId")
               cTRegistrationRepository.storeSessionIdentifiers(regId, xSesID, authProvId) map (throw e)

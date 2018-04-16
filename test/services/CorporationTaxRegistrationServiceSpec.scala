@@ -993,6 +993,30 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
       result shouldBe true
     }
 
+    "submit partial if the document is locked, even if the audit fails" in new Setup {
+      System.setProperty("feature.etmpHoldingPen", "true")
+
+      when(mockCTDataRepository.retrieveRegistrationByTransactionID(any()))
+        .thenReturn(Future.successful(Some(lockedSubmission)))
+      when(mockCTDataRepository.retrieveSessionIdentifiers(any()))
+        .thenReturn(Future.successful(Some(sessIds)))
+      when(mockBRConnector.adminRetrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any()))
+        .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
+      when(mockCTDataRepository.retrieveCorporationTaxRegistration(ArgumentMatchers.anyString()))
+        .thenReturn(Future.successful(Some(lockedSubmission)))
+      when(mockDesConnector.ctSubmission(any(), any(), any(), any())(any()))
+        .thenReturn(Future.successful(HttpResponse(200)))
+      when(mockCTDataRepository.retrieveCompanyDetails(any()))
+        .thenReturn(Future.successful(Some(companyDetails)))
+      when(mockAuditConnector.sendExtendedEvent(ArgumentMatchers.any[UserRegistrationSubmissionEvent]())(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any[ExecutionContext]()))
+        .thenReturn(Future.failed(new RuntimeException))
+      when(mockCTDataRepository.updateRegistrationToHeld(eqTo(registrationId), eqTo(confRefs)))
+        .thenReturn(Future.successful(Some(lockedSubmission.copy(status = RegistrationStatus.HELD))))
+
+      val result = await(service.setupPartialForTopupOnLocked(tID))
+      result shouldBe true
+    }
+
     "fail to submit a partial for a topup if the session identifiers are not present" in new Setup {
       System.setProperty("feature.etmpHoldingPen", "true")
 
