@@ -234,11 +234,11 @@ trait CorporationTaxRegistrationService extends DateHelper {
 
   private[services] def auditUserPartialSubmission(regId: String, authProvId: String, partialSubmission: JsObject)
                                                   (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[Boolean] = {
+
     cTRegistrationRepository.retrieveCompanyDetails(regId) map { optCtReg =>
-      (optCtReg map { ctReg =>
-        auditUserSubmission(regId, ctReg.ppob, authProvId, partialSubmission)
-        ctReg
-      }).isDefined
+      val ctReg = optCtReg.getOrElse(throw new RuntimeException(s"Could not retrieve Company Registration after DES Submission for $regId"))
+      auditUserSubmission(regId, ctReg.ppob, authProvId, partialSubmission)
+      true
     }
   }
 

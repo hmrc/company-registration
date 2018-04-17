@@ -1017,6 +1017,25 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
       result shouldBe true
     }
 
+    "abort processing if the document cannot be found at the audit step" in new Setup {
+      System.setProperty("feature.etmpHoldingPen", "true")
+
+      when(mockCTDataRepository.retrieveRegistrationByTransactionID(any()))
+        .thenReturn(Future.successful(Some(lockedSubmission)))
+      when(mockCTDataRepository.retrieveSessionIdentifiers(any()))
+        .thenReturn(Future.successful(Some(sessIds)))
+      when(mockBRConnector.adminRetrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any()))
+        .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
+      when(mockCTDataRepository.retrieveCorporationTaxRegistration(ArgumentMatchers.anyString()))
+        .thenReturn(Future.successful(Some(lockedSubmission)))
+      when(mockDesConnector.ctSubmission(any(), any(), any(), any())(any()))
+        .thenReturn(Future.successful(HttpResponse(200)))
+      when(mockCTDataRepository.retrieveCompanyDetails(any()))
+        .thenReturn(Future.successful(None))
+
+      intercept[RuntimeException](await(service.setupPartialForTopupOnLocked(tID)))
+    }
+
     "fail to submit a partial for a topup if the session identifiers are not present" in new Setup {
       System.setProperty("feature.etmpHoldingPen", "true")
 
