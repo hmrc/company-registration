@@ -621,10 +621,16 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       await(serviceTrue.processIncorporationUpdate(incorpSuccess)) shouldBe true
     }
 
+    "return a future true when processing an accepted incorporation and the email fails to send" in new SetupBoolean {
+      when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
+        .thenReturn(Future.successful(Some(validCR)))
+      when(mockSendEmailService.sendVATEmail(ArgumentMatchers.eq("testemail.com"))(ArgumentMatchers.any[HeaderCarrier]())).thenReturn(Future.successful(false))
+      await(serviceTrue.processIncorporationUpdate(incorpSuccess)) shouldBe true
+    }
+
     "return a future false when processing an accepted incorporation returns a false" in new SetupBoolean {
       when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
         .thenReturn(Future.successful(Some(validCR)))
-      
       await(serviceFalse.processIncorporationUpdate(incorpSuccess)) shouldBe false
     }
 

@@ -130,11 +130,12 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
     item.status match {
       case "accepted" =>
         for {
-          ctReg            <- fetchRegistrationByTxId(item.transactionId)
-          _                <- ctReg.verifiedEmail.fold(Future.successful(false)) { email => sendEmailService.sendVATEmail(email.address) }
-          result           <- updateSubmissionWithIncorporation(item, ctReg, isAdmin)
+          ctReg          <- fetchRegistrationByTxId(item.transactionId)
+          resultOfUpdate <- updateSubmissionWithIncorporation(item, ctReg, isAdmin)
+          _         <- if (resultOfUpdate) ctReg.verifiedEmail.fold(Future.successful(true)){ email => sendEmailService.sendVATEmail(email.address) } else Future.successful(false)
+
         } yield {
-          result
+         resultOfUpdate
         }
       case "rejected" =>
         val reason = item.statusDescription.fold("No reason given")(f => " Reason given:" + f)
