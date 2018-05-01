@@ -34,19 +34,20 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.config.ServicesConfig
 import utils.DateCalculators
 
+import scala.concurrent
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.control.NoStackTrace
 
 class RegistrationHoldingPenServiceImpl @Inject()(
-        val desConnector: DesConnector,
-        val incorporationCheckAPIConnector: IncorporationCheckAPIConnector,
-        val accountingService: AccountingDetailsService,
-        val brConnector: BusinessRegistrationConnector,
-        val sendEmailService: SendEmailService,
-        val microserviceAuthConnector: AuthConnector,
-        val repositories: Repositories
-     ) extends RegistrationHoldingPenService with ServicesConfig {
+                                                   val desConnector: DesConnector,
+                                                   val incorporationCheckAPIConnector: IncorporationCheckAPIConnector,
+                                                   val accountingService: AccountingDetailsService,
+                                                   val brConnector: BusinessRegistrationConnector,
+                                                   val sendEmailService: SendEmailService,
+                                                   val microserviceAuthConnector: AuthConnector,
+                                                   val repositories: Repositories
+                                                 ) extends RegistrationHoldingPenService with ServicesConfig {
 
   val stateDataRepository = repositories.stateDataRepository
   val ctRepository = repositories.cTRepository
@@ -59,12 +60,17 @@ class RegistrationHoldingPenServiceImpl @Inject()(
 }
 
 private[services] class InvalidSubmission(val message: String) extends NoStackTrace
+
 private[services] case class DesError(message: String) extends NoStackTrace
+
 private[services] class MissingAckRef(val message: String) extends NoStackTrace
+
 private[services] class UnexpectedStatus(val status: String) extends NoStackTrace
 
 private[services] object FailedToUpdateSubmissionWithAcceptedIncorp extends NoStackTrace
+
 private[services] object FailedToUpdateSubmissionWithRejectedIncorp extends NoStackTrace
+
 private[services] object FailedToDeleteSubmissionData extends NoStackTrace
 
 trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
@@ -130,18 +136,24 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
     item.status match {
       case "accepted" =>
         for {
-          ctReg          <- fetchRegistrationByTxId(item.transactionId)
+          ctReg <- fetchRegistrationByTxId(item.transactionId)
           resultOfUpdate <- updateSubmissionWithIncorporation(item, ctReg, isAdmin)
-          _         <- if (resultOfUpdate) ctReg.verifiedEmail.fold(Future.successful(true)){ email => sendEmailService.sendVATEmail(email.address) } else Future.successful(false)
+          _ <-
+            (if (resultOfUpdate && ctReg.verifiedEmail.isDefined) {
+              sendEmailService.sendVATEmail(ctReg.verifiedEmail.get.address) map { res =>
+                Logger.info("VAT email sent for journey id " + ctReg.registrationID)
+                res
+              }
+            } else {
+              Future.successful(true)
+            }).recover { case e: EmailErrorResponse => true }
+        } yield resultOfUpdate
 
-        } yield {
-         resultOfUpdate
-        }
       case "rejected" =>
         val reason = item.statusDescription.fold("No reason given")(f => " Reason given:" + f)
         Logger.info("[processIncorporationUpdate] Incorporation rejected for Transaction: " + item.transactionId + reason)
         for {
-          ctReg            <- fetchRegistrationByTxId(item.transactionId)
+          ctReg <- fetchRegistrationByTxId(item.transactionId)
           submissionResult <- updateSubmissionWithRejectedIncorp(item, ctReg, isAdmin)
         } yield {
           submissionResult
@@ -152,12 +164,12 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
   private[services] def updateSubmissionWithIncorporation(item: IncorpUpdate, ctReg: CorporationTaxRegistration, isAdmin: Boolean = false)(implicit hc: HeaderCarrier): Future[Boolean] = {
     import RegistrationStatus.{HELD, LOCKED, SUBMITTED}
     ctReg.status match {
-      case LOCKED     =>
+      case LOCKED =>
         Logger.warn(s"[updateSubmissionWithIncorporation] Top-up delayed on LOCKED document. Sending partial first. TxId:${item.transactionId} regId: ${ctReg.registrationID}.")
         Future.successful(false)
-      case HELD       => updateHeldSubmission(item, ctReg, ctReg.registrationID, isAdmin)
-      case SUBMITTED  => updateSubmittedSubmission(ctReg)
-      case unknown    => updateOtherSubmission(ctReg.registrationID, item.transactionId, unknown)
+      case HELD => updateHeldSubmission(item, ctReg, ctReg.registrationID, isAdmin)
+      case SUBMITTED => updateSubmittedSubmission(ctReg)
+      case unknown => updateOtherSubmission(ctReg.registrationID, item.transactionId, unknown)
     }
   }
 
@@ -170,9 +182,9 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
         Future.successful(false)
       case _ =>
         for {
-          _           <- auditFailedIncorporation(item, ctReg)
-          _           <- processIncorporationRejectionSubmission(item, ctReg, ctReg.registrationID, isAdmin)
-          crRejected  <- ctRepository.updateSubmissionStatus(ctReg.registrationID, "rejected")
+          _ <- auditFailedIncorporation(item, ctReg)
+          _ <- processIncorporationRejectionSubmission(item, ctReg, ctReg.registrationID, isAdmin)
+          crRejected <- ctRepository.updateSubmissionStatus(ctReg.registrationID, "rejected")
         } yield {
           if (crRejected == "rejected") true else throw FailedToUpdateSubmissionWithRejectedIncorp
         }
@@ -183,10 +195,10 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
     getAckRef(ctReg) match {
       case Some(ackRef) =>
         val fResponse = for {
-          heldData   <- fetchHeldData(ackRef)
+          heldData <- fetchHeldData(ackRef)
           submission <- constructSubmission(item, ctReg, ackRef, heldData)
-          _          <- processAcceptedSubmission(item, ackRef, ctReg, submission, heldData, isAdmin)
-          submitted  <- ctRepository.updateHeldToSubmitted(ctReg.registrationID, item.crn.get, formatTimestamp(now))
+          _ <- processAcceptedSubmission(item, ackRef, ctReg, submission, heldData, isAdmin)
+          submitted <- ctRepository.updateHeldToSubmitted(ctReg.registrationID, item.crn.get, formatTimestamp(now))
         } yield submitted
 
         fResponse recover {
@@ -203,7 +215,7 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
     heldData match {
       case Some(_) => for {
         _ <- postSubmissionToDes(ackRef, submission, ctReg.registrationID, isAdmin, heldData, item, ctReg)
-        _  = auditDesSubmission(ctReg.registrationID, submission, isAdmin)
+        _ = auditDesSubmission(ctReg.registrationID, submission, isAdmin)
         _ <- heldRepo.removeHeldDocument(ctReg.registrationID)
       } yield true
       case None => for {
@@ -257,23 +269,23 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
   private[services] def auditSuccessfulTopUp(submission: JsObject, item: IncorpUpdate, ctReg: CorporationTaxRegistration)(implicit hc: HeaderCarrier) = {
     item.incorpDate match {
       case Some(date) => val submissionDates = calculateDates(item, ctReg.accountingDetails, ctReg.accountsPreparation)
-                         submissionDates flatMap { dates =>
+        submissionDates flatMap { dates =>
           val event = new DesTopUpSubmissionEvent(
-          DesTopUpSubmissionEventDetail(
-            ctReg.registrationID,
-            ctReg.confirmationReferences.get.acknowledgementReference,
-            "Accepted",
-            Some(dates.intendedAccountsPreparationDate),
-            Some(dates.startDateOfFirstAccountingPeriod),
-            Some(dates.companyActiveDate),
-            item.crn
-          ),
-          "ctRegistrationAdditionalData",
-          "ctRegistrationAdditionalData"
-        )
+            DesTopUpSubmissionEventDetail(
+              ctReg.registrationID,
+              ctReg.confirmationReferences.get.acknowledgementReference,
+              "Accepted",
+              Some(dates.intendedAccountsPreparationDate),
+              Some(dates.startDateOfFirstAccountingPeriod),
+              Some(dates.companyActiveDate),
+              item.crn
+            ),
+            "ctRegistrationAdditionalData",
+            "ctRegistrationAdditionalData"
+          )
           auditConnector.sendExtendedEvent(event)
         }
-      case None =>  val event = new DesTopUpSubmissionEvent(
+      case None => val event = new DesTopUpSubmissionEvent(
         DesTopUpSubmissionEventDetail(
           ctReg.registrationID,
           ctReg.confirmationReferences.get.acknowledgementReference,
@@ -288,12 +300,10 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
       )
         auditConnector.sendExtendedEvent(event)
     }
-    }
+  }
 
 
-
-
-   private[services] def auditFailedIncorporation(item: IncorpUpdate, ctReg: CorporationTaxRegistration)(implicit hc: HeaderCarrier) = {
+  private[services] def auditFailedIncorporation(item: IncorpUpdate, ctReg: CorporationTaxRegistration)(implicit hc: HeaderCarrier) = {
     val event = new FailedIncorporationAuditEvent(
       FailedIncorporationAuditEventDetail(
         ctReg.registrationID,
@@ -416,7 +426,7 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
                                        accountingDetails: Option[AccountingDetails],
                                        accountsPreparation: Option[AccountPrepDetails]): Future[SubmissionDates] = {
 
-    item.incorpDate.fold(Logger.error(s"[IncorpUpdate] - Incorp update for transaction-id : ${item.transactionId} does not contain an incorp date - IncorpUpdate : $item")) (_ => ())
+    item.incorpDate.fold(Logger.error(s"[IncorpUpdate] - Incorp update for transaction-id : ${item.transactionId} does not contain an incorp date - IncorpUpdate : $item"))(_ => ())
 
     accountingDetails map { details =>
       val prepDate = accountsPreparation flatMap (_.endDate)

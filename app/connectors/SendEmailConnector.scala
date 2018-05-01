@@ -29,7 +29,7 @@ import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import scala.concurrent.Future
 import scala.util.control.NoStackTrace
 
-private[connectors] class EmailErrorResponse(s: String) extends NoStackTrace
+class EmailErrorResponse(s: String) extends NoStackTrace
 
 class SendEmailConnectorImpl @Inject()() extends SendEmailConnector with ServicesConfig with HttpErrorFunctions  {
   val http: CoreGet with CorePost with CorePut = WSHttp
