@@ -30,6 +30,7 @@ import org.scalatest.concurrent.Eventually
 import org.scalatest.mock.MockitoSugar
 import play.api.libs.json.{JsObject, JsString, Json}
 import repositories.{CorporationTaxRegistrationRepository, HeldSubmission, HeldSubmissionRepository, StateDataRepository}
+import uk.gov.hmrc.http.Upstream5xxResponse
 import uk.gov.hmrc.play.test.UnitSpec
 //import services.RegistrationHoldingPenService.MissingAccountingDates
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, InternalServerException, Upstream4xxResponse}
@@ -109,6 +110,9 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
   val transId = UUID.randomUUID().toString
   val validCR = validHeldCTRegWithData(ackRef=Some(testAckRef)).copy(
     accountsPreparation = Some(AccountPrepDetails(AccountPrepDetails.COMPANY_DEFINED,Some(date("2017-01-01")))), verifiedEmail = Some(Email("testemail.com","",true,true,true))
+  )
+  val validCRg = validHeldCTRegWithData(ackRef=Some(testAckRef)).copy(
+    accountsPreparation = Some(AccountPrepDetails(AccountPrepDetails.COMPANY_DEFINED,Some(date("2017-01-01"))))
   )
   import models.RegistrationStatus._
   val submittedCR = validCR.copy(status = SUBMITTED)
@@ -604,28 +608,32 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
   "processIncorporationUpdate" should {
 
-    trait SetupBoolean {
-      val serviceTrue = new mockService {
-        override def updateSubmissionWithIncorporation(item: IncorpUpdate, ctReg: CorporationTaxRegistration, isAdmin: Boolean = false)(implicit hc : HeaderCarrier) = Future.successful(true)
-      }
-
-      val serviceFalse = new mockService {
-        override def updateSubmissionWithIncorporation(item: IncorpUpdate, ctReg: CorporationTaxRegistration, isAdmin: Boolean = false)(implicit hc : HeaderCarrier) = Future.successful(false)
+    class SetupBoolean(boole: Boolean) {
+      val service = new mockService {
+        override def updateSubmissionWithIncorporation(item: IncorpUpdate, ctReg: CorporationTaxRegistration, isAdmin: Boolean = false)(implicit hc : HeaderCarrier) = Future.successful(boole)
       }
     }
 
-    "return a future true when processing an accepted incorporation" in new SetupBoolean {
+    "return a future true when processing an accepted incorporation" in new SetupBoolean(true) {
       when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
         .thenReturn(Future.successful(Some(validCR)))
       when(mockSendEmailService.sendVATEmail(ArgumentMatchers.eq("testemail.com"))(ArgumentMatchers.any[HeaderCarrier]())).thenReturn(Future.successful(true))
-      await(serviceTrue.processIncorporationUpdate(incorpSuccess)) shouldBe true
+      await(service.processIncorporationUpdate(incorpSuccess)) shouldBe true
     }
 
-    "return a future false when processing an accepted incorporation returns a false" in new SetupBoolean {
+    "return a future true when processing an accepted incorporation and the email fails to send" in new SetupBoolean(true) {
       when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
         .thenReturn(Future.successful(Some(validCR)))
-      
-      await(serviceFalse.processIncorporationUpdate(incorpSuccess)) shouldBe false
+      when(mockSendEmailService.sendVATEmail(ArgumentMatchers.eq("testemail.com"))(ArgumentMatchers.any[HeaderCarrier]()))
+        .thenReturn(Future.failed(new EmailErrorResponse("503")))
+
+      await(service.processIncorporationUpdate(incorpSuccess)) shouldBe true
+    }
+
+    "return a future false when processing an accepted incorporation returns a false" in new SetupBoolean(false) {
+      when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
+        .thenReturn(Future.successful(Some(validCR)))
+      await(service.processIncorporationUpdate(incorpSuccess)) shouldBe false
     }
 
     "return a future true when processing a rejected incorporation with held data" in new Setup{
