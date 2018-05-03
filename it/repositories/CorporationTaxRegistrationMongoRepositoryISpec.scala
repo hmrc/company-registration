@@ -797,13 +797,13 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
     "return 0 documents" when {
       "trying to fetch 1 but the database contains no documents" in new Setup {
-        await(repository.retrieveStaleDocuments(1)) shouldBe Nil
+        await(repository.retrieveStaleDocuments(1, 90)) shouldBe Nil
       }
 
       "the database contains 0 documents matching the query when trying to fetch 1" in new Setup {
         insert(registration90DaysOldSubmitted)
 
-        await(repository.retrieveStaleDocuments(1)) shouldBe Nil
+        await(repository.retrieveStaleDocuments(1, 90)) shouldBe Nil
       }
     }
 
@@ -811,14 +811,14 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       "the database contains 1 document matching the query" in new Setup {
         insert(registration90DaysOldDraft)
 
-        await(repository.retrieveStaleDocuments(1)).head.lastSignedIn.getChronology shouldBe List(registration90DaysOldDraft).head.lastSignedIn.getChronology
+        await(repository.retrieveStaleDocuments(1, 90)).head.lastSignedIn.getChronology shouldBe List(registration90DaysOldDraft).head.lastSignedIn.getChronology
       }
 
       "the database contains multiple documents matching the query but the batch size was set to 1" in new Setup {
         insert(registration90DaysOldDraft)
         insert(registration91DaysOldDraft)
 
-        await(repository.retrieveStaleDocuments(1)) shouldBe List(registration91DaysOldDraft)
+        await(repository.retrieveStaleDocuments(1, 90)) shouldBe List(registration91DaysOldDraft)
       }
     }
 
@@ -827,14 +827,14 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         insert(registration90DaysOldDraft)
         insert(registration91DaysOldDraft)
 
-        await(repository.retrieveStaleDocuments(2)) shouldBe List(registration91DaysOldDraft, registration90DaysOldDraft)
+        await(repository.retrieveStaleDocuments(2, 90)) shouldBe List(registration91DaysOldDraft, registration90DaysOldDraft)
       }
 
       "the database contains multiple documents with the same time matching the query" in new Setup {
         insert(registration91DaysOldDraft)
         insert(registration91DaysOldLocked)
 
-        await(repository.retrieveStaleDocuments(2)) should contain theSameElementsAs List(registration91DaysOldDraft, registration91DaysOldLocked)
+        await(repository.retrieveStaleDocuments(2, 90)) should contain theSameElementsAs List(registration91DaysOldDraft, registration91DaysOldLocked)
       }
 
       "2 of the documents match the query and 2 do not" in new Setup {
@@ -843,7 +843,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         insert(registration30DaysOldDraft)
         insert(registration90DaysOldSubmitted)
 
-        await(repository.retrieveStaleDocuments(5)) shouldBe List(registration91DaysOldLocked, registration90DaysOldDraft)
+        await(repository.retrieveStaleDocuments(5, 90)) shouldBe List(registration91DaysOldLocked, registration90DaysOldDraft)
       }
     }
 
@@ -857,7 +857,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         insertRaw(incorrectRegistration)
         insert(registration90DaysOldDraft)
 
-        await(repository.retrieveStaleDocuments(2)) shouldBe List(registration90DaysOldDraft)
+        await(repository.retrieveStaleDocuments(2, 90)) shouldBe List(registration90DaysOldDraft)
       }
     }
 
@@ -866,7 +866,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       val registrationNoLastSignedIn = ctRegistrationJson(registrationId) - "lastSignedIn"
       insertRaw(registrationNoLastSignedIn)
       count shouldBe 1
-      await(repository.retrieveStaleDocuments(1)).size shouldBe 1
+      await(repository.retrieveStaleDocuments(1, 90)).size shouldBe 1
     }
   }
 }
