@@ -52,7 +52,7 @@ object CorporationTaxRegistrationMongo extends ReactiveMongoFormats {
 trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegistration, BSONObjectID]{
   def createCorporationTaxRegistration(metadata: CorporationTaxRegistration): Future[CorporationTaxRegistration]
   def retrieveCorporationTaxRegistration(regID: String): Future[Option[CorporationTaxRegistration]]
-  def retrieveStaleDocuments(count: Int): Future[List[CorporationTaxRegistration]]
+  def retrieveStaleDocuments(count: Int, storageThreshold: Int): Future[List[CorporationTaxRegistration]]
   def retrieveMultipleCorporationTaxRegistration(regID: String): Future[List[CorporationTaxRegistration]]
   def retrieveRegistrationByTransactionID(regID: String): Future[Option[CorporationTaxRegistration]]
   def retrieveCompanyDetails(registrationID: String): Future[Option[CompanyDetails]]
@@ -495,12 +495,12 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
 
   def fetchIndexes(): Future[List[Index]] = collection.indexesManager.list()
 
-  override def retrieveStaleDocuments(count: Int): Future[List[CorporationTaxRegistration]] = {
+  override def retrieveStaleDocuments(count: Int, storageThreshold: Int): Future[List[CorporationTaxRegistration]] = {
     val query = Json.obj(
       "status" -> Json.obj("$in" -> Json.arr("draft", "held", "locked")),
        "$or" -> Json.arr(
          Json.obj("lastSignedIn" -> Json.obj("$exists" -> false)),
-         Json.obj("lastSignedIn" -> Json.obj("$lte" -> DateTime.now(DateTimeZone.UTC).minusDays(90).getMillis))
+         Json.obj("lastSignedIn" -> Json.obj("$lte" -> DateTime.now(DateTimeZone.UTC).minusDays(storageThreshold).getMillis))
        )
     )
     val ascending = Json.obj("lastSignedIn" -> 1)
