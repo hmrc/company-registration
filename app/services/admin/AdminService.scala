@@ -48,6 +48,7 @@ class AdminServiceImpl @Inject()(
   val corpTaxRegRepo: CorporationTaxRegistrationMongoRepository = corpTaxRepo.repo
   val heldSubRepo: HeldSubmissionMongoRepository = heldSubMongo.store
   lazy val staleAmount: Int = getInt("staleDocumentAmount")
+  lazy val clearAfterXDays: Int = getInt("clearAfterXDays")
   lazy val auditConnector = MicroserviceAuditConnector
 }
 
@@ -61,6 +62,7 @@ trait AdminService extends DateFormatter {
   val brConnector: BusinessRegistrationConnector
 
   val staleAmount: Int
+  val clearAfterXDays: Int
 
   def fetchHO6RegistrationInformation(regId: String): Future[Option[HO6RegistrationInformation]] = corpTaxRegRepo.fetchHO6Information(regId)
 
@@ -154,7 +156,7 @@ trait AdminService extends DateFormatter {
 
   def deleteStaleDocuments(): Future[Int] = {
     for {
-      documents <- corpTaxRegRepo.retrieveStaleDocuments(staleAmount)
+      documents <- corpTaxRegRepo.retrieveStaleDocuments(staleAmount, clearAfterXDays)
       _         = Logger.info(s"[deleteStaleDocuments] Mongo query found ${documents.size} stale documents. Now processing.")
       processed <- Future.sequence(documents map processStaleDocument)
     } yield processed count (_ == true)

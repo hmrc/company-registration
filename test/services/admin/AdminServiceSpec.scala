@@ -57,6 +57,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
       val desConnector: DesConnector = mockDesConnector
 
       override val staleAmount: Int = 10
+      override val clearAfterXDays: Int = 90
     }
     val docInfo = service.DocumentInfo(regId, "draft", DateTime.now)
   }
@@ -390,7 +391,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
     val exampleDoc = CorporationTaxRegistration("id", "regid", "draft", "timestamp", "lang")
     "return a count of documents retrieved and deleted" when {
       "only one is older than 90 days" in new Setup {
-        when(mockCorpTaxRegistrationRepo.retrieveStaleDocuments(any()))
+        when(mockCorpTaxRegistrationRepo.retrieveStaleDocuments(any(), any()))
           .thenReturn(Future.successful(List(exampleDoc)))
         when(mockBusRegConnector.adminRemoveMetadata(any()))
           .thenReturn(Future.successful(true))
@@ -399,7 +400,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
         await(service.deleteStaleDocuments()) shouldBe 1
       }
       "three are older than 90 days" in new Setup {
-        when(mockCorpTaxRegistrationRepo.retrieveStaleDocuments(any()))
+        when(mockCorpTaxRegistrationRepo.retrieveStaleDocuments(any(), any()))
           .thenReturn(Future.successful(List.fill(3)(exampleDoc)))
         when(mockBusRegConnector.adminRemoveMetadata(any()))
           .thenReturn(Future.successful(true))
@@ -408,7 +409,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
         await(service.deleteStaleDocuments()) shouldBe 3
       }
       "three are older than 90 days, and one fails to delete BR data" in new Setup {
-        when(mockCorpTaxRegistrationRepo.retrieveStaleDocuments(any()))
+        when(mockCorpTaxRegistrationRepo.retrieveStaleDocuments(any(), any()))
           .thenReturn(Future.successful(List.fill(3)(exampleDoc)))
         when(mockBusRegConnector.adminRemoveMetadata(any()))
           .thenReturn(Future.successful(true), Future.successful(false), Future.successful(true))
@@ -417,7 +418,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
         await(service.deleteStaleDocuments()) shouldBe 2
       }
       "three are older than 90 days, and one has a status of submitted" in new Setup {
-        when(mockCorpTaxRegistrationRepo.retrieveStaleDocuments(any()))
+        when(mockCorpTaxRegistrationRepo.retrieveStaleDocuments(any(), any()))
           .thenReturn(Future.successful(List.fill(2)(exampleDoc).::(exampleDoc.copy(status="submitted"))))
         when(mockBusRegConnector.adminRemoveMetadata(any()))
           .thenReturn(Future.successful(true))
