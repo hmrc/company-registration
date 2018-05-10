@@ -1017,6 +1017,16 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
       result shouldBe true
     }
 
+    "succeed when trying to submit a partial for a topup if the registration is already submitted" in new Setup {
+      when(mockCTDataRepository.retrieveRegistrationByTransactionID(any()))
+        .thenReturn(Future.successful(Some(lockedSubmission.copy(
+          status = RegistrationStatus.SUBMITTED
+        ))))
+
+      val result = await(service.setupPartialForTopupOnLocked(tID))
+      result shouldBe true
+    }
+
     "abort processing if the document cannot be found at the audit step" in new Setup {
       System.setProperty("feature.etmpHoldingPen", "true")
 
@@ -1072,8 +1082,8 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
     "fail to submit a partial for a topup if the registration is not locked" in new Setup {
       when(mockCTDataRepository.retrieveRegistrationByTransactionID(any()))
         .thenReturn(Future.successful(Some(lockedSubmission.copy(
-          status = RegistrationStatus.DRAFT
-        ))))
+            status = RegistrationStatus.DRAFT
+      ))))
 
       intercept[RuntimeException](await(service.setupPartialForTopupOnLocked(tID)))
     }
