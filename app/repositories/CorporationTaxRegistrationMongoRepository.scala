@@ -41,6 +41,7 @@ import scala.concurrent.Future
 import scala.util.control.NoStackTrace
 
 class CorpTaxRegistrationRepo @Inject()(mongo: ReactiveMongoComponent) {
+  Logger.info("Creating CorporationTaxRegistrationMongoRepository")
   val repo = new CorporationTaxRegistrationMongoRepository(mongo.mongoConnector.db)
 }
 

@@ -16,11 +16,12 @@
 
 package repositories
 
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 
 import uk.gov.hmrc.lock.LockRepository
 import play.modules.reactivemongo.MongoDbConnection
 
+@Singleton
 class Repositories @Inject()() {
   private implicit lazy val mongo = new MongoDbConnection {}.db
 
