@@ -544,6 +544,67 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
       }
     }
 
+    "clear down unnecessary CT Registration Information data when incorporation is rejected" when {
+      "submission is HELD locally" in new Setup {
+        setupSimpleAuthMocks()
+        setupCTRegistration(heldRegistration)
+
+        stubDesTopUpPost(200, """{"test":"json"}""")
+        stubEmailPost(202)
+
+        heldRepository.awaitCount shouldBe 0
+
+        val response: WSResponse = client(path).post(jsonIncorpStatusRejected)
+
+        response.status shouldBe 200
+
+        val reg :: _ = await(ctRepository.findAll())
+
+        reg.status shouldBe "rejected"
+        reg.confirmationReferences shouldBe None
+        reg.accountingDetails shouldBe None
+        reg.accountsPreparation shouldBe None
+        reg.verifiedEmail shouldBe None
+        reg.companyDetails shouldBe None
+        reg.tradingDetails shouldBe None
+        reg.contactDetails shouldBe None
+        reg.registrationID.isEmpty shouldBe false
+      }
+
+      "submission is LOCKED locally" in new Setup {
+        val confRefsWithoutPayment = ConfirmationReferences(
+          acknowledgementReference = ackRef,
+          transactionId = transId,
+          paymentReference = None,
+          paymentAmount = None
+        )
+
+        setupSimpleAuthMocks()
+        setupCTRegistration(heldRegistration.copy(status = "LOCKED", confirmationReferences = Some(confRefsWithoutPayment)))
+
+        stubDesTopUpPost(200, """{"test":"json"}""")
+        stubEmailPost(202)
+
+        heldRepository.awaitCount shouldBe 0
+
+        val response: WSResponse = client(path).post(jsonIncorpStatusRejected)
+
+        response.status shouldBe 200
+
+        val reg :: _ = await(ctRepository.findAll())
+
+        reg.status shouldBe "rejected"
+        reg.confirmationReferences shouldBe None
+        reg.accountingDetails shouldBe None
+        reg.accountsPreparation shouldBe None
+        reg.verifiedEmail shouldBe None
+        reg.companyDetails shouldBe None
+        reg.tradingDetails shouldBe None
+        reg.contactDetails shouldBe None
+        reg.registrationID.isEmpty shouldBe false
+      }
+    }
+
     "send a top-up submission to DES if a matching held registration exists and a held submission does not exist" in new Setup {
 
       val jsonBodyFromII: String = jsonIncorpStatus(testIncorpDate)

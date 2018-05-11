@@ -16,7 +16,7 @@
 
 package repositories
 
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 
 import auth.AuthorisationResource
 import cats.data.OptionT
@@ -40,7 +40,9 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.control.NoStackTrace
 
+@Singleton
 class CorpTaxRegistrationRepo @Inject()(mongo: ReactiveMongoComponent) {
+  Logger.info("Creating CorporationTaxRegistrationMongoRepository")
   val repo = new CorporationTaxRegistrationMongoRepository(mongo.mongoConnector.db)
 }
 
@@ -69,6 +71,7 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def updateCompanyEndDate(registrationID: String, model: AccountPrepDetails): Future[Option[AccountPrepDetails]]
   def updateSubmissionStatus(registrationID: String, status: String): Future[String]
   def removeTaxRegistrationInformation(registrationId: String): Future[Boolean]
+  def removeUnnecessaryRegistrationInformation(registrationId: String): Future[Boolean]
   def updateCTRecordWithAcknowledgments(ackRef : String, ctRecord : CorporationTaxRegistration) : Future[WriteResult]
   def retrieveByAckRef(ackRef : String) : Future[Option[CorporationTaxRegistration]]
   def updateHeldToSubmitted(registrationId: String, crn: String, submissionTS: String): Future[Boolean]
@@ -309,6 +312,12 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
         case _ => false
       }
     }
+  }
+
+  override def removeUnnecessaryRegistrationInformation(registrationId: String): Future[Boolean] = {
+    val modifier = BSONDocument("$unset" -> BSONDocument("confirmationReferences" -> 1, "accountingDetails" -> 1,
+      "accountsPreparation" -> 1, "verifiedEmail" -> 1, "companyDetails" -> 1, "tradingDetails" -> 1, "contactDetails" -> 1))
+    collection.findAndUpdate(registrationIDSelector(registrationId), modifier, fetchNewObject = false, upsert=false) map (r=>if(r.lastError.isDefined)true else false)
   }
 
   override def updateHeldToSubmitted(registrationId: String, crn: String, submissionTS: String): Future[Boolean] = {

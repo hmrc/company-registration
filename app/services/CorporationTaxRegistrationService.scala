@@ -195,7 +195,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
       case _ => throw new RuntimeException(s"[setupPartialForTopup] Could not find registration by txID: $transID")
     }
 
-    Logger.info(s"[setupPartialForTopup] Updated locked document of txId: $transID to held for topup")
+    Logger.info(s"[setupPartialForTopup] Trying to update locked document of txId: $transID to held for topup with incorp update")
     result
   }
 

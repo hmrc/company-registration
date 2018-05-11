@@ -20,7 +20,7 @@ import javax.inject.Inject
 
 import config.{MicroserviceAppConfig, WSHttp}
 import play.api.Logger
-import play.api.http.Status.{ACCEPTED, OK, NOT_FOUND, NO_CONTENT}
+import play.api.http.Status.{ACCEPTED, OK, NOT_FOUND}
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.Request
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
@@ -100,14 +100,10 @@ trait IncorporationInformationConnector extends AlertLogging {
 
   def checkNotIncorporated(transactionID: String)(implicit hc: HeaderCarrier): Future[Boolean] = {
     http.GET[HttpResponse](s"$url/incorporation-information/$transactionID/incorporation-update") map { res =>
-      res.status match {
-        case OK =>
-          val crn = (res.json \ "crn").asOpt[String]
-          if (crn.isEmpty) { true } else {
-            pagerduty(PagerDutyKeys.NINETY_DAY_DELETE_WARNING_CRN_FOUND)
-            throw new RuntimeException
-          }
-        case NO_CONTENT => true
+      val crn = (res.json \ "crn").asOpt[String]
+      if (crn.isEmpty) { true } else {
+        pagerduty(PagerDutyKeys.NINETY_DAY_DELETE_WARNING_CRN_FOUND)
+        throw new RuntimeException
       }
     }
   }
