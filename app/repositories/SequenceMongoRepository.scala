@@ -16,7 +16,9 @@
 
 package repositories
 
+import javax.inject.Singleton
 import models.Sequence
+import play.api.Logger
 import play.api.libs.json.JsValue
 import reactivemongo.api.DB
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
@@ -31,9 +33,11 @@ trait SequenceRepository extends Repository[Sequence, BSONObjectID]{
   def getNext(sequenceID: String): Future[Int]
 }
 
+@Singleton
 class SequenceMongoRepository(mongo: () => DB)
   extends ReactiveRepository[Sequence, BSONObjectID]("sequence", mongo, Sequence.formats, ReactiveMongoFormats.objectIdFormats)
   with SequenceRepository{
+  Logger.info("Creating SequenceMongoRepository")
 
   def getNext(sequenceID: String): Future[Int] = {
     val selector = BSONDocument("_id" -> sequenceID)
