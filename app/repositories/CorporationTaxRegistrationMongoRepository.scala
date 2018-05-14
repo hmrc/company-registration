@@ -16,7 +16,7 @@
 
 package repositories
 
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 
 import auth.AuthorisationResource
 import cats.data.OptionT
@@ -40,6 +40,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.control.NoStackTrace
 
+@Singleton
 class CorpTaxRegistrationRepo @Inject()(mongo: ReactiveMongoComponent) {
   Logger.info("Creating CorporationTaxRegistrationMongoRepository")
   val repo = new CorporationTaxRegistrationMongoRepository(mongo.mongoConnector.db)

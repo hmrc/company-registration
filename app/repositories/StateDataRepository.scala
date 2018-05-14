@@ -16,13 +16,14 @@
 
 package repositories
 
+import javax.inject.Singleton
 import play.api.Logger
 import play.api.libs.json.{JsValue, Json}
 import reactivemongo.api.DB
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
+import reactivemongo.play.json.ImplicitBSONHandlers.BSONDocumentWrites
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
-import reactivemongo.play.json.ImplicitBSONHandlers.BSONDocumentWrites
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -41,9 +42,11 @@ trait StateDataRepository extends Repository[TimePoint, BSONObjectID] {
   def retrieveTimePoint : Future[Option[String]]
 }
 
+@Singleton
 class StateDataMongoRepository(implicit mongo: () => DB)
   extends ReactiveRepository[TimePoint, BSONObjectID]("state-data", mongo, TimePoint.formats, ReactiveMongoFormats.objectIdFormats)
     with StateDataRepository {
+  Logger.info("Creating StateDataMongo")
 
   private val selector = BSONDocument("_id" -> "CH-INCORPSTATUS-TIMEPOINT")
 
