@@ -658,6 +658,9 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockBRConnector.removeMetadata(ArgumentMatchers.eq(validCR.registrationID))(ArgumentMatchers.any()))
         .thenReturn(Future.successful(true))
 
+      when(mockCTRepository.removeUnnecessaryRegistrationInformation(ArgumentMatchers.eq(validCR.registrationID)))
+        .thenReturn(Future.successful(true))
+
       await(service.processIncorporationUpdate(incorpRejected)) shouldBe true
     }
 
@@ -681,6 +684,9 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
         .thenReturn(Future.successful(true))
 
       when(mockBRConnector.removeMetadata(ArgumentMatchers.eq(validCR.registrationID))(ArgumentMatchers.any()))
+        .thenReturn(Future.successful(true))
+
+      when(mockCTRepository.removeUnnecessaryRegistrationInformation(ArgumentMatchers.eq(validCR.registrationID)))
         .thenReturn(Future.successful(true))
 
       await(service.processIncorporationUpdate(incorpRejected)) shouldBe true

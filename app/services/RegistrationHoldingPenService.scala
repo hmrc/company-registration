@@ -185,8 +185,9 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
           _ <- auditFailedIncorporation(item, ctReg)
           _ <- processIncorporationRejectionSubmission(item, ctReg, ctReg.registrationID, isAdmin)
           crRejected <- ctRepository.updateSubmissionStatus(ctReg.registrationID, "rejected")
+          crCleaned <- ctRepository.removeUnnecessaryRegistrationInformation(ctReg.registrationID)
         } yield {
-          if (crRejected == "rejected") true else throw FailedToUpdateSubmissionWithRejectedIncorp
+          if (crRejected == "rejected" && crCleaned) true else throw FailedToUpdateSubmissionWithRejectedIncorp
         }
     }
   }

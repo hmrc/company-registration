@@ -115,6 +115,75 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     }
   }
 
+
+  "removeUnnecessaryRegistrationInformation" should {
+    "clear all un-needed data" when {
+      "mongo statement executes with no errors" in new Setup {
+        val registrationId = "testRegId"
+
+        val corporationTaxRegistrationModel = CorporationTaxRegistration(
+          internalId = "testID",
+          registrationID = registrationId,
+          formCreationTimestamp = "testDateTime",
+          language = "en"
+        )
+
+
+        await(setupCollection(repository, corporationTaxRegistrationModel))
+        await(repository.removeUnnecessaryRegistrationInformation(registrationId)) shouldBe true
+
+        val corporationTaxRegistration: CorporationTaxRegistration = await(repository.retrieveCorporationTaxRegistration(registrationId)).get
+        corporationTaxRegistration.verifiedEmail.isEmpty shouldBe true
+        corporationTaxRegistration.companyDetails.isEmpty shouldBe true
+        corporationTaxRegistration.accountingDetails.isEmpty shouldBe true
+        corporationTaxRegistration.registrationID shouldBe corporationTaxRegistrationModel.registrationID
+        corporationTaxRegistration.status shouldBe corporationTaxRegistrationModel.status
+        corporationTaxRegistration.lastSignedIn shouldBe corporationTaxRegistrationModel.lastSignedIn
+      }
+
+      "mongo statement execeutes with the document having missing fields" in new Setup {
+        val registrationId = "testRegId"
+
+        val corporationTaxRegistrationModel = CorporationTaxRegistration(
+          internalId = "testID",
+          registrationID = registrationId,
+          formCreationTimestamp = "testDateTime",
+          language = "en",
+          companyDetails = None
+        )
+
+        await(setupCollection(repository, corporationTaxRegistrationModel))
+        await(repository.removeUnnecessaryRegistrationInformation(registrationId)) shouldBe true
+
+        val corporationTaxRegistration: CorporationTaxRegistration = await(repository.retrieveCorporationTaxRegistration(registrationId)).get
+        corporationTaxRegistration.verifiedEmail.isEmpty shouldBe true
+        corporationTaxRegistration.companyDetails.isEmpty shouldBe true
+        corporationTaxRegistration.accountingDetails.isEmpty shouldBe true
+        corporationTaxRegistration.registrationID shouldBe corporationTaxRegistrationModel.registrationID
+        corporationTaxRegistration.status shouldBe corporationTaxRegistrationModel.status
+        corporationTaxRegistration.lastSignedIn shouldBe corporationTaxRegistrationModel.lastSignedIn
+      }
+    }
+      "should not update document" when {
+        "when the document does not exist" in new Setup {
+          val registrationId = "testRegId"
+          val incorrectRegistrationId = "notTheTestRegId"
+
+          val corporationTaxRegistrationModel = CorporationTaxRegistration(
+            internalId = "testID",
+            registrationID = registrationId,
+            formCreationTimestamp = "testDateTime",
+            language = "en",
+            companyDetails = None
+          )
+
+          await(setupCollection(repository, corporationTaxRegistrationModel))
+          await(repository.removeUnnecessaryRegistrationInformation(incorrectRegistrationId)) shouldBe true
+        }
+      }
+  }
+
+
   "updateSubmissionStatus" should {
 
     val registrationId = "testRegId"
