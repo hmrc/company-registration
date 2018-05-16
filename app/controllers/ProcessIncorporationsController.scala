@@ -44,7 +44,7 @@ trait ProcessIncorporationsController extends BaseController {
     Logger.info(s"FAILED_DES_TOPUP - Topup failed for transaction ID: $txId")
   }
 
-  def processIncorp = Action.async[JsValue](parse.json) {
+  def processIncorp: Action[JsValue] = Action.async[JsValue](parse.json) {
     implicit request =>
 
       implicit val reads = IncorpStatus.reads
@@ -53,6 +53,7 @@ trait ProcessIncorporationsController extends BaseController {
         regHoldingPenService.updateIncorp(incorp) flatMap {
           if(_) Future.successful(Ok) else {
             corpTaxRegService.setupPartialForTopupOnLocked(incorp.transactionId)(hc, requestAsAnyContentAsJson, isAdmin = false) map { _ =>
+              Logger.info(s"[processIncorp] Sent partial submission in response to locked document on incorp update: ${incorp.transactionId}")
               Accepted
             } recover {
               case NoSessionIdentifiersInDocument => Ok
@@ -67,7 +68,7 @@ trait ProcessIncorporationsController extends BaseController {
     }
   }
 
-  def processAdminIncorp = Action.async[JsValue](parse.json) {
+  def processAdminIncorp: Action[JsValue] = Action.async[JsValue](parse.json) {
     implicit request =>
       implicit val reads = IncorpStatus.reads
       withJsonBody[IncorpStatus]{ incorp =>
