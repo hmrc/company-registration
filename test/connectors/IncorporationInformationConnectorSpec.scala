@@ -145,6 +145,14 @@ class IncorporationInformationConnectorSpec extends UnitSpec with MockitoSugar w
 
         await(connector.checkNotIncorporated(txId)) shouldBe true
       }
+
+      "on a no content response" in new Setup {
+        val expectedURL = s"${connector.url}/incorporation-information/$txId/incorporation-update"
+        when(mockWSHttp.GET[HttpResponse](ArgumentMatchers.eq(expectedURL))(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
+          .thenReturn(HttpResponse(204))
+
+        await(connector.checkNotIncorporated(txId)) shouldBe true
+      }
     }
 
     "return an exception" when {
