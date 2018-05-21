@@ -141,7 +141,7 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase {
         val job = lookupJob("remove-stale-documents-job")
         val res = await(job.execute)
 
-        res shouldBe job.Result("[remove-stale-documents-job] Successfully deleted 2 stale documents")
+        res.message.contains("[remove-stale-documents-job] Successfully deleted 2 stale documents") shouldBe true
 
         count shouldBe 1
       }
@@ -161,7 +161,7 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase {
         val job = lookupJob("remove-stale-documents-job")
         val res = await(job.execute)
 
-        res shouldBe job.Result("[remove-stale-documents-job] Successfully deleted 1 stale documents")
+        res.message.contains("[remove-stale-documents-job] Successfully deleted 1 stale documents") shouldBe true
 
         count shouldBe 0
       }
@@ -184,7 +184,7 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase {
         val job = lookupJob("remove-stale-documents-job")
         val res = await(job.execute)
 
-        res shouldBe job.Result("[remove-stale-documents-job] Successfully deleted 1 stale documents")
+        res.message.contains("[remove-stale-documents-job] Successfully deleted 1 stale documents") shouldBe true
 
         count shouldBe 2
       }
@@ -203,7 +203,7 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase {
         val job = lookupJob("remove-stale-documents-job")
         val res = await(job.execute)
 
-        res shouldBe job.Result("[remove-stale-documents-job] Successfully deleted 0 stale documents")
+        res.message.contains("[remove-stale-documents-job] Successfully deleted 0 stale documents") shouldBe true
 
         count shouldBe 1
       }
@@ -220,7 +220,7 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase {
         val job = lookupJob("remove-stale-documents-job")
         val res = await(job.execute)
 
-        res shouldBe job.Result("[remove-stale-documents-job] Successfully deleted 0 stale documents")
+        res.message.contains("[remove-stale-documents-job] Successfully deleted 0 stale documents") shouldBe true
 
         count shouldBe 1
       }
@@ -237,7 +237,7 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase {
         val job = lookupJob("remove-stale-documents-job")
         val res = await(job.execute)
 
-        res shouldBe job.Result("[remove-stale-documents-job] Successfully deleted 0 stale documents")
+        res.message.contains("[remove-stale-documents-job] Successfully deleted 0 stale documents") shouldBe true
 
         count shouldBe 1
       }
@@ -254,7 +254,7 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase {
         val job = lookupJob("remove-stale-documents-job")
         val res = await(job.execute)
 
-        res shouldBe job.Result("[remove-stale-documents-job] Successfully deleted 0 stale documents")
+        res.message.contains("[remove-stale-documents-job] Successfully deleted 0 stale documents") shouldBe true
 
         count shouldBe 1
       }

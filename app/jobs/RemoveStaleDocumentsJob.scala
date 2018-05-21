@@ -50,9 +50,11 @@ trait RemoveStaleDocumentsJob extends ExclusiveScheduledJob with JobConfig {
   override def executeInMutex(implicit ec: ExecutionContext): Future[Result] = {
     if (SCRSFeatureSwitches.removeStaleDocuments.enabled) {
       lock.tryLock {
+        val startTS = System.currentTimeMillis
         Logger.info(s"Triggered $name")
         adminService.deleteStaleDocuments() map {deletions =>
-          Result(s"[remove-stale-documents-job] Successfully deleted $deletions stale documents")
+          val duration = System.currentTimeMillis - startTS
+          Result(s"[remove-stale-documents-job] Successfully deleted $deletions stale documents in $duration ms")
         }
       } map {
         case Some(x) =>

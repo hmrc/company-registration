@@ -519,6 +519,7 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
 
     collection.find(query)
       .sort(ascending)
+      .batchSize(count)
       .cursor[CorporationTaxRegistration]()
       .collect[List](count, logOnError)
   }
