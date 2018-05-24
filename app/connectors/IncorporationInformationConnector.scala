@@ -55,7 +55,7 @@ trait IncorporationInformationConnector extends AlertLogging {
   }
 
   private[connectors] def buildCancelUri(transactionId: String): String = {
-    s"/incorporation-information/subscribe/$transactionId/regime/ct/subscriber/$subscriber?force=true"
+    s"/incorporation-information/subscribe/$transactionId/regime/ctax/subscriber/$subscriber?force=true"
   }
 
   def registerInterest(regId: String, transactionId: String, admin: Boolean = false)(implicit hc: HeaderCarrier, req: Request[_]): Future[Boolean] = {
