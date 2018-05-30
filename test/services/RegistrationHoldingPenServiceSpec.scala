@@ -116,6 +116,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
   )
   import models.RegistrationStatus._
   val submittedCR = validCR.copy(status = SUBMITTED)
+  val acknowledgedCR = validCR.copy(status = ACKNOWLEDGED)
   val failCaseCR = validCR.copy(status = DRAFT)
   val incorpSuccess = IncorpUpdate(transId, "accepted", Some("012345"), Some(new DateTime(2016, 8, 10, 0, 0)), timepoint)
   val incorpRejected = IncorpUpdate(transId, "rejected", None, None, timepoint, Some("testReason"))
@@ -535,9 +536,15 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
       await(service.updateSubmissionWithIncorporation(incorpSuccess, lockedReg)) shouldBe false
     }
-    "return true for a submission that is already 'Submitted" in new SetupNoProcess {
+    "return true for a submission that is already Submitted" in new SetupNoProcess {
       when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
         .thenReturn(Future.successful(Some(submittedCR)))
+
+      await(service.updateSubmissionWithIncorporation(incorpSuccess, submittedCR)) shouldBe true
+    }
+    "return true for a submission that is already Acknowledged" in new SetupNoProcess {
+      when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
+        .thenReturn(Future.successful(Some(acknowledgedCR)))
 
       await(service.updateSubmissionWithIncorporation(incorpSuccess, submittedCR)) shouldBe true
     }
