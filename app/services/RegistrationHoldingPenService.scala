@@ -162,14 +162,14 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
   }
 
   private[services] def updateSubmissionWithIncorporation(item: IncorpUpdate, ctReg: CorporationTaxRegistration, isAdmin: Boolean = false)(implicit hc: HeaderCarrier): Future[Boolean] = {
-    import RegistrationStatus.{HELD, LOCKED, SUBMITTED}
+    import RegistrationStatus.{HELD, LOCKED, SUBMITTED, ACKNOWLEDGED}
     ctReg.status match {
       case LOCKED =>
         Logger.warn(s"[updateSubmissionWithIncorporation] Top-up delayed on LOCKED document. Sending partial first. TxId:${item.transactionId} regId: ${ctReg.registrationID}.")
         Future.successful(false)
       case HELD => updateHeldSubmission(item, ctReg, ctReg.registrationID, isAdmin)
-      case SUBMITTED => updateSubmittedSubmission(ctReg)
-      case unknown => updateOtherSubmission(ctReg.registrationID, item.transactionId, unknown)
+      case SUBMITTED | ACKNOWLEDGED => updateSubmittedSubmission(ctReg)
+      case unknown => reportUnmatchedSubmission(ctReg.registrationID, item.transactionId, unknown)
     }
   }
 
@@ -327,7 +327,7 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
     heldRepo.removeHeldDocument(ctReg.registrationID)
   }
 
-  private def updateOtherSubmission(regId: String, txId: String, status: String) = {
+  private def reportUnmatchedSubmission(regId: String, txId: String, status: String) = {
     Logger.error(s"""Tried to process a submission (${regId}/${txId}) with an unexpected status of "${status}" """)
     Future.failed(new UnexpectedStatus(status))
   }
