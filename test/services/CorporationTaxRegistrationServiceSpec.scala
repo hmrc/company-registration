@@ -819,7 +819,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
 
   "checkDocumentStatus" should {
 
-    val registrationIds = Seq.fill(5)(UUID.randomUUID.toString)
+    val registrationIds = Seq.fill(6)(UUID.randomUUID.toString)
 
     val heldSubmission = HeldSubmission(
       "registrationId",
@@ -834,7 +834,8 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
             corporationTaxRegistration(registrationIds(1), HELD),
             corporationTaxRegistration(registrationIds(2), SUBMITTED),
             corporationTaxRegistration(registrationIds(3), HELD),
-            corporationTaxRegistration(registrationIds(4), DRAFT))
+            corporationTaxRegistration(registrationIds(4), DRAFT),
+            corporationTaxRegistration(registrationIds(5), ACKNOWLEDGED))
       }
 
       def success(i: Int) = Future.successful(Some(res(i)))
@@ -842,7 +843,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
       withCaptureOfLoggingFrom(Logger) { logEvents =>
 
         when(mockCTDataRepository.retrieveCorporationTaxRegistration(ArgumentMatchers.anyString()))
-          .thenReturn(success(0), success(1), success(2), success(3), success(4))
+          .thenReturn(success(0), success(1), success(2), success(3), success(4), success(5))
 
         when(mockHeldSubmissionRepository.retrieveSubmissionByRegId(ArgumentMatchers.anyString()))
           .thenReturn(Future.successful(None), Future.successful(Some(heldSubmission)))
@@ -850,7 +851,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
         await(service.checkDocumentStatus(registrationIds))
 
         eventually {
-          logEvents.length shouldBe 5
+          logEvents.length shouldBe 6
           logEvents.head.getMessage should include("Current status of regId:")
         }
       }
@@ -1020,11 +1021,19 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
     "succeed when trying to submit a partial for a topup if the registration is already submitted" in new Setup {
       when(mockCTDataRepository.retrieveRegistrationByTransactionID(any()))
         .thenReturn(Future.successful(Some(lockedSubmission.copy(
-          status = RegistrationStatus.SUBMITTED
+          status = SUBMITTED
         ))))
 
-      val result = await(service.setupPartialForTopupOnLocked(tID))
-      result shouldBe true
+      await(service.setupPartialForTopupOnLocked(tID)) shouldBe true
+    }
+
+    "succeed when trying to submit a partial for a topup if the registration is already acknowledged" in new Setup {
+      when(mockCTDataRepository.retrieveRegistrationByTransactionID(any()))
+        .thenReturn(Future.successful(Some(lockedSubmission.copy(
+          status = ACKNOWLEDGED
+        ))))
+
+      await(service.setupPartialForTopupOnLocked(tID)) shouldBe true
     }
 
     "abort processing if the document cannot be found at the audit step" in new Setup {
