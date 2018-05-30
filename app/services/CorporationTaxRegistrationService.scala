@@ -33,7 +33,7 @@ import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.{AnyContent, Request}
 import repositories._
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import utils.SCRSFeatureSwitches
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -182,8 +182,8 @@ trait CorporationTaxRegistrationService extends DateHelper {
   def setupPartialForTopupOnLocked(transID : String)(implicit hc : HeaderCarrier, req: Request[AnyContent], isAdmin: Boolean): Future[Boolean] = {
     val result: Future[Boolean] = cTRegistrationRepository.retrieveRegistrationByTransactionID(transID) flatMap {
       case Some(reg) => (reg.sessionIdentifiers, reg.confirmationReferences) match {
-        case _ if reg.status == RegistrationStatus.SUBMITTED =>
-          Logger.info(s"[setupPartialForTopup] Accepting incorp for already submitted txID: $transID")
+        case _ if reg.status == SUBMITTED || reg.status == ACKNOWLEDGED=>
+          Logger.info(s"[setupPartialForTopup] Accepting incorporation update, registration already submitted for txID: $transID")
           Future.successful(true)
         case _ if reg.status != RegistrationStatus.LOCKED =>
           throw new RuntimeException(s"[setupPartialForTopup] Document status of txID: $transID was not locked, was ${reg.status}")
