@@ -324,7 +324,7 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
   }
 
   private[services] def updateSubmittedSubmission(ctReg: CorporationTaxRegistration): Future[Boolean] = {
-    heldRepo.removeHeldDocument(ctReg.registrationID)
+    heldRepo.removeHeldDocument(ctReg.registrationID) map (_ => true)
   }
 
   private def reportUnmatchedSubmission(regId: String, txId: String, status: String) = {
