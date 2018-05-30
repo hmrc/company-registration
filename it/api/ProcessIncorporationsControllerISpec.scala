@@ -693,5 +693,22 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
       val reg2 :: _ = await(ctRepository.findAll())
       reg2.status shouldBe "submitted"
     }
+
+    "return a 200 when receiving a top up for an Accepted document when there is no document to delete in the RegistrationHoldingPen" in new Setup {
+
+      val jsonBodyFromII: String = jsonIncorpStatus(testIncorpDate)
+
+      setupSimpleAuthMocks()
+      setupCTRegistration(heldRegistration.copy(status = RegistrationStatus.ACKNOWLEDGED))
+
+      heldRepository.awaitCount shouldBe 0
+
+      val response1: WSResponse = client(path).post(jsonBodyFromII)
+
+      response1.status shouldBe 200
+
+      val reg1 :: _ = await(ctRepository.findAll())
+      reg1.status shouldBe "acknowledged"
+    }
   }
 }
