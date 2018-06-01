@@ -58,6 +58,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
 
       override val staleAmount: Int = 10
       override val clearAfterXDays: Int = 90
+      override val ignoredDocs: Set[String] = Set("1", "2", "3", "4", "5")
     }
     val docInfo = service.DocumentInfo(regId, "draft", DateTime.now)
   }
@@ -420,6 +421,15 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
       "three are older than 90 days, and one has a status of submitted" in new Setup {
         when(mockCorpTaxRegistrationRepo.retrieveStaleDocuments(any(), any()))
           .thenReturn(Future.successful(List.fill(2)(exampleDoc).::(exampleDoc.copy(status="submitted"))))
+        when(mockBusRegConnector.adminRemoveMetadata(any()))
+          .thenReturn(Future.successful(true))
+        when(mockCorpTaxRegistrationRepo.removeTaxRegistrationById(any()))
+          .thenReturn(Future.successful(true))
+        await(service.deleteStaleDocuments()) shouldBe 2
+      }
+      "three are older than 90 days, and one is on the whitelist" in new Setup {
+        when(mockCorpTaxRegistrationRepo.retrieveStaleDocuments(any(), any()))
+          .thenReturn(Future.successful(List.fill(2)(exampleDoc).::(exampleDoc.copy(registrationID="2"))))
         when(mockBusRegConnector.adminRemoveMetadata(any()))
           .thenReturn(Future.successful(true))
         when(mockCorpTaxRegistrationRepo.removeTaxRegistrationById(any()))
