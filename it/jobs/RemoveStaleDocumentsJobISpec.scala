@@ -50,7 +50,8 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase {
     "microservice.services.business-registration.port" -> s"$mockPort",
     "microservice.services.des-service.host" -> s"$mockHost",
     "microservice.services.des-service.port" -> s"$mockPort",
-    "staleDocumentAmount" -> 2
+    "staleDocumentAmount" -> 4,
+    "microservice.services.skipStaleDocs" -> "MSwyLDM="
   )
 
   class Setup extends MongoDbConnection {
@@ -166,6 +167,27 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase {
         count shouldBe 0
       }
 
+      "there is one stale document and 3 on the whitelist" in new Setup {
+        stubGet(s"/incorporation-information/$txID/incorporation-update", 200, s"""{}""")
+        stubGet(s"/business-registration/admin/business-tax-registration/remove/$regId", 200, """{}""")
+        stubDelete(s"/incorporation-information/subscribe/$txID/regime/ctax/subscriber/SCRS?force=true", 200, s"""""")
+
+        insert(corporationTaxRegistration(lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(93), regId = regId))
+        insert(corporationTaxRegistration(lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(100), regId = "2"))
+        insert(corporationTaxRegistration(lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(100), regId = "3"))
+        insert(corporationTaxRegistration(lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(100), regId = "1"))
+
+        count shouldBe 4
+
+        System.setProperty("feature.removeStaleDocuments", "true")
+        val job = lookupJob("remove-stale-documents-job")
+        val res = await(job.execute)
+
+        res.message.contains("[remove-stale-documents-job] Successfully deleted 1 stale documents") shouldBe true
+
+        count shouldBe 3
+      }
+
       "there is one stale document and 2 non-stale" in new Setup {
         stubGet(s"/incorporation-information/$txID/incorporation-update", 200, s"""{}""")
         stubGet(s"/incorporation-information/$txID2/incorporation-update", 200, s"""{}""")
@@ -257,6 +279,22 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase {
         res.message.contains("[remove-stale-documents-job] Successfully deleted 0 stale documents") shouldBe true
 
         count shouldBe 1
+      }
+
+      "the documents are on the whitelist" in new Setup {
+        insert(corporationTaxRegistration(lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(100), regId = "2"))
+        insert(corporationTaxRegistration(lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(100), regId = "3"))
+        insert(corporationTaxRegistration(lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(100), regId = "1"))
+
+        count shouldBe 3
+
+        System.setProperty("feature.removeStaleDocuments", "true")
+        val job = lookupJob("remove-stale-documents-job")
+        val res = await(job.execute)
+
+        res.message.contains("[remove-stale-documents-job] Successfully deleted 0 stale documents") shouldBe true
+
+        count shouldBe 3
       }
     }
   }

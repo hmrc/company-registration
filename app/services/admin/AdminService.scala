@@ -16,6 +16,7 @@
 
 package services.admin
 
+import java.util.Base64
 import javax.inject.Inject
 
 import audit.{AdminCTReferenceEvent, AdminReleaseAuditEvent}
@@ -49,6 +50,7 @@ class AdminServiceImpl @Inject()(
   val heldSubRepo: HeldSubmissionMongoRepository = heldSubMongo.store
   lazy val staleAmount: Int = getInt("staleDocumentAmount")
   lazy val clearAfterXDays: Int = getInt("clearAfterXDays")
+  lazy val ignoredDocs: Set[String] = new String(Base64.getDecoder.decode(getConfString("skipStaleDocs", "")), "UTF-8").split(",").toSet
   lazy val auditConnector = MicroserviceAuditConnector
 }
 
@@ -63,6 +65,7 @@ trait AdminService extends DateFormatter {
 
   val staleAmount: Int
   val clearAfterXDays: Int
+  val ignoredDocs: Set[String]
 
   def fetchHO6RegistrationInformation(regId: String): Future[Option[HO6RegistrationInformation]] = corpTaxRegRepo.fetchHO6Information(regId)
 
@@ -158,7 +161,7 @@ trait AdminService extends DateFormatter {
     for {
       documents <- corpTaxRegRepo.retrieveStaleDocuments(staleAmount, clearAfterXDays)
       _         = Logger.info(s"[deleteStaleDocuments] Mongo query found ${documents.size} stale documents. Now processing.")
-      processed <- Future.sequence(documents map processStaleDocument)
+      processed <- Future.sequence(documents filterNot(doc => ignoredDocs(doc.registrationID)) map processStaleDocument)
     } yield processed count (_ == true)
   }
 
