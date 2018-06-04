@@ -27,8 +27,10 @@ import play.api.Logger
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{AnyContent, Request}
 import play.api.test.FakeRequest
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, NotFoundException, Upstream5xxResponse}
 import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
+
+import scala.concurrent.Future
 
 class IncorporationInformationConnectorSpec extends UnitSpec with MockitoSugar with SCRSMocks with BusinessRegistrationFixture with LogCapturing {
 
@@ -111,14 +113,15 @@ class IncorporationInformationConnectorSpec extends UnitSpec with MockitoSugar w
 
   "cancelSubscription" should {
     "make a http DELETE request to Incorporation Information micro-service to register an interest and return 202" in new Setup {
-      when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.anyString())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
-        .thenReturn(HttpResponse(200))
+      val expectedURL = s"${connector.url}/incorporation-information/subscribe/$txId/regime/$tRegime/subscriber/$tSubscriber?force=true"
+      when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.eq(expectedURL))(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
+        .thenReturn(Future.successful(HttpResponse(200)))
 
       await(connector.cancelSubscription(regId, txId)) shouldBe true
     }
     "make a http DELETE request to Incorporation Information micro-service to register an interest and return a 404" in new Setup {
       when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.anyString())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
-        .thenReturn(HttpResponse(404))
+        .thenReturn(Future.failed(new NotFoundException("404")))
 
       await(connector.cancelSubscription(regId, txId)) shouldBe true
     }
@@ -130,9 +133,18 @@ class IncorporationInformationConnectorSpec extends UnitSpec with MockitoSugar w
     }
     "not make a http DELETE request to Incorporation Information micro-service to register an interest and return any 5xx" in new Setup {
       when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.anyString())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
-        .thenReturn(HttpResponse(500))
+        .thenReturn(Future.failed(Upstream5xxResponse("500", 502, 500)))
 
       intercept[RuntimeException](await(connector.cancelSubscription(regId, txId)))
+    }
+
+    "use the old regime" in new Setup {
+      val oldRegime = "ct"
+      val expectedURL = s"${connector.url}/incorporation-information/subscribe/$txId/regime/$oldRegime/subscriber/$tSubscriber?force=true"
+      when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.eq(expectedURL))(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
+        .thenReturn(Future.successful(HttpResponse(200)))
+
+      await(connector.cancelSubscription(regId, txId, useOldRegime = true)) shouldBe true
     }
   }
 
@@ -170,5 +182,4 @@ class IncorporationInformationConnectorSpec extends UnitSpec with MockitoSugar w
       }
     }
   }
-
 }

@@ -131,7 +131,9 @@ trait AdminService extends DateFormatter {
 
   def adminDeleteSubmission(info: DocumentInfo, txId : Option[String])(implicit hc : HeaderCarrier): Future[Boolean] = {
     val cancelSub = txId match {
-      case Some(tId) => incorpInfoConnector.cancelSubscription(info.regId, tId)
+      case Some(tId) => incorpInfoConnector.cancelSubscription(info.regId, tId) recover { case _ =>
+                          incorpInfoConnector.cancelSubscription(info.regId, tId, useOldRegime = true)
+                        }
       case _         => Future.successful(true)
     }
 

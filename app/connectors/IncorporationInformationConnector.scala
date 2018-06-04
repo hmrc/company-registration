@@ -17,13 +17,12 @@
 package connectors
 
 import javax.inject.Inject
-
 import config.{MicroserviceAppConfig, WSHttp}
 import play.api.Logger
-import play.api.http.Status.{ACCEPTED, OK, NOT_FOUND, NO_CONTENT}
+import play.api.http.Status.{ACCEPTED, NOT_FOUND, NO_CONTENT, OK}
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.Request
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, NotFoundException}
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import uk.gov.hmrc.play.http.ws.{WSDelete, WSGet, WSPost}
 import utils.{AlertLogging, PagerDutyKeys}
@@ -55,7 +54,7 @@ trait IncorporationInformationConnector extends AlertLogging {
   }
 
   private[connectors] def buildCancelUri(transactionId: String): String = {
-    s"/incorporation-information/subscribe/$transactionId/regime/ctax/subscriber/$subscriber?force=true"
+    s"/incorporation-information/subscribe/$transactionId/regime/ct/subscriber/$subscriber?force=true"
   }
 
   def registerInterest(regId: String, transactionId: String, admin: Boolean = false)(implicit hc: HeaderCarrier, req: Request[_]): Future[Boolean] = {
@@ -81,17 +80,19 @@ trait IncorporationInformationConnector extends AlertLogging {
     }
   }
 
-  def cancelSubscription(regId: String, transactionId: String)(implicit hc: HeaderCarrier): Future[Boolean] = {
-    http.DELETE[HttpResponse](s"$url${buildCancelUri(transactionId)}") map { res =>
+  def cancelSubscription(regId: String, transactionId: String, useOldRegime: Boolean = false)(implicit hc: HeaderCarrier): Future[Boolean] = {
+    val cancelUri = if(useOldRegime) buildCancelUri(transactionId) else buildUri(transactionId)
+
+    http.DELETE[HttpResponse](s"$url$cancelUri") map { res =>
       res.status match {
         case OK    =>
           Logger.info(s"[IncorporationInformationConnector] [cancelSubscription] Cancelled subscription for regId: $regId txId: $transactionId ")
           true
-        case NOT_FOUND =>
-          Logger.info(s"[IncorporationInformationConnector] [cancelSubscription] No subscription to cancel for regId: $regId txId: $transactionId ")
-          true
       }
     } recover {
+      case _: NotFoundException =>
+        Logger.info(s"[IncorporationInformationConnector] [cancelSubscription] No subscription to cancel for regId: $regId txId: $transactionId ")
+        true
       case e =>
         Logger.error(s"[IncorporationInformationConnector] [cancelSubscription] Error cancelling subscription for regId: $regId txId: $transactionId", e)
         throw new RuntimeException(s"Failure to cancel subscription", e)
