@@ -32,7 +32,7 @@ import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.Request
 import repositories.{CorpTaxRegistrationRepo, CorporationTaxRegistrationMongoRepository, HeldSubmissionMongoRepository, HeldSubmissionRepo}
 import services.FailedToDeleteSubmissionData
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.{HeaderCarrier, NotFoundException}
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.config.ServicesConfig
 
@@ -131,9 +131,16 @@ trait AdminService extends DateFormatter {
 
   def adminDeleteSubmission(info: DocumentInfo, txId : Option[String])(implicit hc : HeaderCarrier): Future[Boolean] = {
     val cancelSub = txId match {
-      case Some(tId) => incorpInfoConnector.cancelSubscription(info.regId, tId) recover { case _ =>
-                          incorpInfoConnector.cancelSubscription(info.regId, tId, useOldRegime = true)
-                        }
+      case Some(tId) =>
+        incorpInfoConnector.cancelSubscription(info.regId, tId) recover {
+          case e : NotFoundException =>
+            Logger.info(s"[processStaleDocument] Registration ${info.regId} - $tId does not have CTAX subscription. Now trying to delete CT sub.")
+            incorpInfoConnector.cancelSubscription(info.regId, tId, useOldRegime = true) recover {
+              case e : NotFoundException =>
+                Logger.warn(s"[processStaleDocument] Registration ${info.regId} - $tId has no subscriptions.")
+                Future.successful(true)
+            }
+        }
       case _         => Future.successful(true)
     }
 

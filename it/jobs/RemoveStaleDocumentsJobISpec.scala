@@ -22,7 +22,7 @@ import com.google.inject.name.Names
 import itutil.{IntegrationSpecBase, WiremockHelper}
 import models._
 import org.joda.time.{DateTime, DateTimeZone}
-import play.api.Application
+import play.api.{Application, Logger}
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.inject.{BindingKey, QualifierInstance}
 import play.api.libs.json.{JsObject, Json, OWrites}
@@ -30,10 +30,11 @@ import play.modules.reactivemongo.MongoDbConnection
 import reactivemongo.api.commands.WriteResult
 import repositories.CorporationTaxRegistrationMongoRepository
 import uk.gov.hmrc.play.scheduling.ScheduledJob
+import uk.gov.hmrc.play.test.LogCapturing
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase {
+class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with LogCapturing {
 
   val mockHost = WiremockHelper.wiremockHost
   val mockPort = WiremockHelper.wiremockPort
@@ -165,6 +166,7 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase {
 
         count shouldBe 0
       }
+
       "there is one stale document using an old regime" in new Setup {
         stubGet(s"/incorporation-information/$txID/incorporation-update", 204, s"""{}""")
         stubGet(s"/business-registration/admin/business-tax-registration/remove/$regId", 200, """{}""")
@@ -177,11 +179,42 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase {
 
         System.setProperty("feature.removeStaleDocuments", "true")
         val job = lookupJob("remove-stale-documents-job")
-        val res = await(job.execute)
+        val message = s"[processStaleDocument] Registration $regId - $txID does not have CTAX subscription. Now trying to delete CT sub."
 
-        res.message.contains("[remove-stale-documents-job] Successfully deleted 1 stale documents") shouldBe true
+        withCaptureOfLoggingFrom(Logger) { logs =>
+          val res = await(job.execute)
+          res.message.contains("[remove-stale-documents-job] Successfully deleted 1 stale documents") shouldBe true
 
-        count shouldBe 0
+          count shouldBe 0
+
+          logs.find(event => event.getMessage == message).get.getMessage shouldBe message
+        }
+      }
+
+      "there is one stale document with no subscriptions" in new Setup {
+        stubGet(s"/incorporation-information/$txID/incorporation-update", 204, s"""{}""")
+        stubGet(s"/business-registration/admin/business-tax-registration/remove/$regId", 200, """{}""")
+        stubDelete(s"/incorporation-information/subscribe/$txID/regime/ctax/subscriber/SCRS?force=true", 404, s"""""")
+        stubDelete(s"/incorporation-information/subscribe/$txID/regime/ct/subscriber/SCRS?force=true", 404, s"""""")
+
+        insert(corporationTaxRegistration(lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(93), regId = regId))
+
+        count shouldBe 1
+
+        System.setProperty("feature.removeStaleDocuments", "true")
+        val job = lookupJob("remove-stale-documents-job")
+        val message = s"[processStaleDocument] Registration $regId - $txID does not have CTAX subscription. Now trying to delete CT sub."
+        val finalMessage = s"[processStaleDocument] Registration $regId - $txID has no subscriptions."
+
+        withCaptureOfLoggingFrom(Logger) { logs =>
+          val res = await(job.execute)
+          res.message.contains("[remove-stale-documents-job] Successfully deleted 1 stale documents") shouldBe true
+
+          count shouldBe 0
+
+          logs.find(event => event.getMessage.contains(message)).get.getMessage shouldBe message
+          logs.find(event => event.getMessage.contains(finalMessage)).get.getMessage shouldBe finalMessage
+        }
       }
 
       "there is one stale document and 3 on the whitelist" in new Setup {
