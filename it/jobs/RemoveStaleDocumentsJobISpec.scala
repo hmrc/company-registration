@@ -152,7 +152,24 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase {
       "there is one stale document" in new Setup {
         stubGet(s"/incorporation-information/$txID/incorporation-update", 200, s"""{}""")
         stubGet(s"/business-registration/admin/business-tax-registration/remove/$regId", 200, """{}""")
-        stubDelete(s"/incorporation-information/subscribe/$txID/regime/ctax/subscriber/SCRS?force=true", 200, s"""""")
+
+        insert(corporationTaxRegistration(lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(93), regId = regId))
+
+        count shouldBe 1
+
+        System.setProperty("feature.removeStaleDocuments", "true")
+        val job = lookupJob("remove-stale-documents-job")
+        val res = await(job.execute)
+
+        res.message.contains("[remove-stale-documents-job] Successfully deleted 1 stale documents") shouldBe true
+
+        count shouldBe 0
+      }
+      "there is one stale document using an old regime" in new Setup {
+        stubGet(s"/incorporation-information/$txID/incorporation-update", 204, s"""{}""")
+        stubGet(s"/business-registration/admin/business-tax-registration/remove/$regId", 200, """{}""")
+        stubDelete(s"/incorporation-information/subscribe/$txID/regime/ctax/subscriber/SCRS?force=true", 404, s"""""")
+        stubDelete(s"/incorporation-information/subscribe/$txID/regime/ct/subscriber/SCRS?force=true", 200, s"""""")
 
         insert(corporationTaxRegistration(lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(93), regId = regId))
 
