@@ -31,7 +31,7 @@ import play.api.mvc.{AnyContent, Request}
 import play.api.test.FakeRequest
 import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmissionData, HeldSubmissionMongoRepository}
 import services.FailedToDeleteSubmissionData
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, Upstream4xxResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, NotFoundException, Upstream4xxResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
 import uk.gov.hmrc.play.test.UnitSpec
@@ -478,8 +478,29 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
           .thenReturn(Future.successful(true))
         when(mockIncorpInfoConnector.cancelSubscription(any(), any(), any())(any()))
           .thenReturn(
-            Future.failed(new RuntimeException("failed to cancel sub")),
+            Future.failed(new NotFoundException("failed to cancel sub")),
             Future.successful(true)
+          )
+        when(mockCorpTaxRegistrationRepo.removeTaxRegistrationById(any()))
+          .thenReturn(Future.successful(true))
+
+        await(service.processStaleDocument(confRefExampleDoc)) shouldBe true
+
+        verify(mockIncorpInfoConnector, times(1)).cancelSubscription(any(), any(), ArgumentMatchers.eq(false))(any())
+        verify(mockIncorpInfoConnector, times(1)).cancelSubscription(any(), any(), ArgumentMatchers.eq(true))(any())
+      }
+
+      "the document is draft, has confirmation references and successfully deletes BR and CR document, but no subs" in new Setup {
+        val confRefExampleDoc = exampleDoc.copy(confirmationReferences = Some(ConfirmationReferences("", "", None, None)))
+
+        when(mockIncorpInfoConnector.checkNotIncorporated(any())(any()))
+          .thenReturn(Future.successful(true))
+        when(mockBusRegConnector.adminRemoveMetadata(any()))
+          .thenReturn(Future.successful(true))
+        when(mockIncorpInfoConnector.cancelSubscription(any(), any(), any())(any()))
+          .thenReturn(
+            Future.failed(new NotFoundException("failed to cancel sub")),
+            Future.failed(new NotFoundException("failed to cancel another sub"))
           )
         when(mockCorpTaxRegistrationRepo.removeTaxRegistrationById(any()))
           .thenReturn(Future.successful(true))

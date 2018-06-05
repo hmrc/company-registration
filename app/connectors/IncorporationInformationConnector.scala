@@ -90,9 +90,9 @@ trait IncorporationInformationConnector extends AlertLogging {
           true
       }
     } recover {
-      case _: NotFoundException =>
+      case e: NotFoundException =>
         Logger.info(s"[IncorporationInformationConnector] [cancelSubscription] No subscription to cancel for regId: $regId txId: $transactionId ")
-        true
+        throw e
       case e =>
         Logger.error(s"[IncorporationInformationConnector] [cancelSubscription] Error cancelling subscription for regId: $regId txId: $transactionId", e)
         throw new RuntimeException(s"Failure to cancel subscription", e)

@@ -123,7 +123,7 @@ class IncorporationInformationConnectorSpec extends UnitSpec with MockitoSugar w
       when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.anyString())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.failed(new NotFoundException("404")))
 
-      await(connector.cancelSubscription(regId, txId)) shouldBe true
+      intercept[NotFoundException](await(connector.cancelSubscription(regId, txId)))
     }
     "not make a http DELETE request to Incorporation Information micro-service to register an interest and return any other 2xx" in new Setup {
       when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.anyString())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
