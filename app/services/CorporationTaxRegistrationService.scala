@@ -16,6 +16,7 @@
 
 package services
 
+import java.text.Normalizer
 import javax.inject.Inject
 
 import audit.{SubmissionEventDetail, UserRegistrationSubmissionEvent}
@@ -26,6 +27,7 @@ import connectors._
 import helpers.DateHelper
 import models.RegistrationStatus._
 import models.des._
+import models.validation.APIValidation
 import models.{BusinessRegistration, ConfirmationReferences, CorporationTaxRegistration, _}
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
@@ -38,7 +40,9 @@ import utils.SCRSFeatureSwitches
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.util.{Failure, Success, Try}
 import scala.util.control.NoStackTrace
+import scala.util.matching.Regex
 
 class CorporationTaxRegistrationServiceImpl @Inject()(
         val submissionCheckAPIConnector: IncorporationCheckAPIConnector,
@@ -277,7 +281,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
     import PPOB.RO
 
     val (txID, uprn) = (ppob.addressType, ppob.address) match {
-      case (RO, _) => (None, None)
+      case (RO, optAddress) => (None, None)
       case (_, Some(address)) => (Some(address.txid), address.uprn)
     }
 
@@ -321,6 +325,59 @@ trait CorporationTaxRegistrationService extends DateHelper {
     }
   }
 
+  val specialCharacterConverts = Map('æ' -> "ae", 'Æ' -> "AE", 'œ' -> "oe", 'Œ' -> "OE", 'ß' -> "ss", 'ø' -> "o", 'Ø' -> "O")
+  def convertROToPPOBAddress(rOAddress: CHROAddress) : Option[PPOBAddress] = {
+    import java.text.Normalizer._
+    import APIValidation._
+
+    def normaliseString(string : String, charFilter : Regex) : String = {
+      normalize(string, Form.NFKD)
+        .replaceAll("\\p{M}", "")
+        .trim
+        .map(char => specialCharacterConverts.getOrElse(char, char))
+        .mkString
+        .filter(c => c.toString matches charFilter.regex)
+    }
+
+    Try {
+      val line1Result = Some(rOAddress.premises + " " + rOAddress.address_line_1)
+      val line2Result = Some(rOAddress.address_line_2.getOrElse(rOAddress.locality))
+      val line3Result = if (rOAddress.address_line_2.isDefined) Some(rOAddress.locality) else rOAddress.region
+      val line4Result = rOAddress.address_line_2 flatMap (_ => rOAddress.region)
+
+      val linesResults: Seq[Option[String]] = List(line1Result, line2Result, line3Result, line4Result)
+        .zipWithIndex
+        .map { linePair =>
+          val (optLine, index) = linePair
+          optLine map { line =>
+            val normalisedString = normaliseString(line, lineInvert).take(if (index == 3) 18 else 27)
+            val regex = (if (index == 3) line4Pattern else linePattern).regex
+            if (!normalisedString.matches(regex)) throw new Exception(s"Line $index did not match validation")
+            normalisedString
+          }
+        }
+
+      val postCodeOpt = rOAddress.postal_code map (pc => normaliseString(pc, postCodeInvert).take(20))
+      val countryOpt = Some(normaliseString(rOAddress.country, countryInvert).take(20))
+
+      postCodeOpt foreach { postCode =>
+        if (!postCode.matches(postCodePattern.regex)) throw new Exception("Post code did not match validation")
+      }
+      countryOpt foreach { country =>
+        if (!country.matches(countryPattern.regex)) throw new Exception("Country did not match validation")
+      }
+
+      PPOBAddress(linesResults.head.get, linesResults(1).get, linesResults(2), linesResults(3), postCodeOpt, countryOpt, None, "")
+    } match {
+      case Success(ppob) =>
+        Logger.info(s"[convertROToPPOBAddress] Converted RO address")
+        Some(ppob)
+      case Failure(e)    =>
+        Logger.warn(s"[convertROToPPOBAddress] Could not convert RO address - ${e.getMessage}")
+        None
+    }
+  }
+
   private[services] def buildInterimSubmission(ackRef: String, sessionId: String, credId: String,
                                                brMetadata: BusinessRegistration, ctData: CorporationTaxRegistration, currentDateTime: DateTime): InterimDesRegistration = {
 
@@ -331,8 +388,12 @@ trait CorporationTaxRegistrationService extends DateHelper {
     val ppob = companyDetails.ppob
     val completionCapacity = CompletionCapacity(brMetadata.completionCapacity.get)
 
-    // SCRS-3708 - should be an Option[BusinessAddress] and mapped from the optional ppob
-    val businessAddress: Option[BusinessAddress] = ppob.address match {
+    val optPPOBAddress: Option[PPOBAddress] = ppob match {
+      case PPOB(PPOB.RO, _) => convertROToPPOBAddress(companyDetails.registeredOffice)
+      case PPOB(_, address) => address
+    }
+
+    val businessAddress: Option[BusinessAddress] = optPPOBAddress match {
       case Some(address) => Some(
         BusinessAddress(
           line1 = address.line1,
@@ -360,7 +421,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
       interimCorporationTax = InterimCorporationTax(
         companyName = companyDetails.companyName,
         returnsOnCT61 = tradingDetails.regularPayments.toBoolean,
-        businessAddress = businessAddress, //todo - SCRS-3708: make business address optional
+        businessAddress = businessAddress,
         businessContactName = businessContactName,
         businessContactDetails = businessContactDetails
       )

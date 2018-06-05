@@ -16,19 +16,16 @@
 
 package controllers
 
-import java.time.LocalTime
-
 import javax.inject.Inject
+
 import auth._
-import models.{AcknowledgementReferences, ConfirmationReferences, CorporationTaxRegistrationRequest}
-import org.joda.time.{DateTime, DateTimeZone}
+import models.{AcknowledgementReferences, CHROAddress, ConfirmationReferences, CorporationTaxRegistrationRequest}
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.{Action, AnyContent, AnyContentAsJson, Request}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
-import services.{CorporationTaxRegistrationService, MetricsService}
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
-import services.{CompanyRegistrationDoesNotExist, RegistrationProgressUpdated}
+import services.{CompanyRegistrationDoesNotExist, CorporationTaxRegistrationService, MetricsService, RegistrationProgressUpdated}
 import uk.gov.hmrc.auth.core.retrieve.Retrievals.credentials
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import utils.{AlertLogging, Logging, PagerDutyKeys}
 
@@ -168,6 +165,16 @@ trait CorporationTaxRegistrationController extends BaseController with Authorise
           case (RegistrationProgressUpdated) => Ok
           case (CompanyRegistrationDoesNotExist) => NotFound
         }
+      }
+  }
+
+  def roAddressValid(): Action[JsValue] = Action.async[JsValue](parse.json) {
+    implicit request =>
+      withJsonBody[CHROAddress] { body =>
+        Future.successful(ctService.convertROToPPOBAddress(body) match {
+          case Some(ppob) => Ok(Json.toJson(ppob))
+          case _          => BadRequest
+        })
       }
   }
 }
