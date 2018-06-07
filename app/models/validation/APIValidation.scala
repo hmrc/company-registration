@@ -25,6 +25,8 @@ import play.api.libs.json.Reads.{maxLength, pattern}
 import play.api.libs.json.{Format, JsString, OFormat, Reads, Writes}
 import play.api.libs.functional.syntax._
 
+import scala.util.matching.Regex
+
 object APIValidation extends APIValidation
 
 trait APIValidation extends BaseJsonFormatting
@@ -102,8 +104,22 @@ trait AddressValidator {
       ppob => ppob.postcode.isDefined || ppob.country.isDefined
     }
   }
-  val lineValidator = readToFmt(length(27) keepAnd pattern("^[a-zA-Z0-9,.\\(\\)/&amp;'&quot;\\-]{1}[a-zA-Z0-9, .\\(\\)/&amp;'&quot;\\-]{0,26}$".r))
-  val line4Validator = readToFmt(length(18) keepAnd pattern("^[a-zA-Z0-9,.\\(\\)/&amp;'&quot;\\-]{1}[a-zA-Z0-9, .\\(\\)/&amp;'&quot;\\-]{0,17}$".r))
-  val postcodeValidator = readToFmt(length(20) keepAnd pattern("^[A-Z]{1,2}[0-9][0-9A-Z]? [0-9][A-Z]{2}$".r))
-  val countryValidator = readToFmt(length(20) keepAnd pattern("^[A-Za-z0-9]{1}[A-Za-z 0-9]{0,19}$".r))
+
+  private def regexWrap(regex : String): Regex = {
+    ("^" + regex + "$").r
+  }
+
+  val linePattern = regexWrap("[a-zA-Z0-9,.\\(\\)/&amp;'&quot;\\-]{1}[a-zA-Z0-9, .\\(\\)/&amp;'&quot;\\-]{0,26}")
+  val line4Pattern = regexWrap("[a-zA-Z0-9,.\\(\\)/&amp;'&quot;\\-]{1}[a-zA-Z0-9, .\\(\\)/&amp;'&quot;\\-]{0,17}")
+  val postCodePattern = regexWrap("[A-Z]{1,2}[0-9][0-9A-Z]? [0-9][A-Z]{2}")
+  val countryPattern = regexWrap("[A-Za-z0-9]{1}[A-Za-z 0-9]{0,19}")
+
+  val lineInvert = regexWrap("[a-zA-Z0-9,.\\(\\)/&amp;'&quot;\\- ]")
+  val postCodeInvert = regexWrap("[A-Z0-9 ]")
+  val countryInvert = regexWrap("[A-Za-z0-9 ]")
+
+  val lineValidator = readToFmt(length(27) keepAnd pattern(linePattern))
+  val line4Validator = readToFmt(length(18) keepAnd pattern(line4Pattern))
+  val postcodeValidator = readToFmt(length(20) keepAnd pattern(postCodePattern))
+  val countryValidator = readToFmt(length(20) keepAnd pattern(countryPattern))
 }

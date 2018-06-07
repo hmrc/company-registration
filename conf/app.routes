@@ -6,6 +6,8 @@ POST       /corporation-tax-registration/process-incorp                         
 
 POST       /corporation-tax-registration/acknowledgement-confirmation                       @controllers.CorporationTaxRegistrationController.acknowledgementConfirmation(ackref : String)
 
+POST       /corporation-tax-registration/check-ro-address                                   @controllers.CorporationTaxRegistrationController.roAddressValid
+
 # PUT URLS WITHOUT A REG ID ABOVE THIS LINE !
 
 GET        /corporation-tax-registration/:registrationId                                    @controllers.CorporationTaxRegistrationController.retrieveCorporationTaxRegistration(registrationId)

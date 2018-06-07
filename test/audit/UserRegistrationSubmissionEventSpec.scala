@@ -112,14 +112,15 @@ class UserRegistrationSubmissionEventSpec extends UnitSpec {
       Json.toJson(testModel)(SubmissionEventDetail.writes) shouldBe expected
     }
 
-    "construct full json as per definition when the ETMP feature flag is disabled" in {
-      System.setProperty("feature.etmpHoldingPen", "false")
+    "construct full json as per definition when the transaction ID is missing" in {
+      System.setProperty("feature.etmpHoldingPen", "true")
 
       val expected = Json.parse(
         s"""
           |{
           |   "journeyId": "$regId",
           |   "acknowledgementReference": "$ackRef",
+          |   "desSubmissionState": "partial",
           |   "registrationMetadata": {
           |      "businessType": "Limited company",
           |      "authProviderId": "$authProviderId",
@@ -136,17 +137,6 @@ class UserRegistrationSubmissionEventSpec extends UnitSpec {
           |      "companiesHouseCompanyName": "Company Co",
           |      "returnsOnCT61": false,
           |      "companyACharity": false,
-          |      "businessAddress": {
-          |         "transactionId": "$transactionId",
-          |         "addressEntryMethod": "LOOKUP",
-          |         "addressLine1": "14 Matheson House",
-          |         "addressLine2": "Grange Central",
-          |         "addressLine3": "Town Centre",
-          |         "addressLine4": "Telford",
-          |         "postCode": "TF3 4ER",
-          |         "country": "United Kingdom",
-          |         "uprn": "$uprn"
-          |      },
           |      "businessContactName": {
           |         "firstName": "Billy",
           |         "middleNames": "bob",
@@ -164,7 +154,7 @@ class UserRegistrationSubmissionEventSpec extends UnitSpec {
       val testModel = SubmissionEventDetail(
         regId,
         authProviderId,
-        Some(transactionId),
+        None,
         Some(uprn),
         "LOOKUP",
         Json.toJson(InterimDesRegistration(

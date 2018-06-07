@@ -351,6 +351,41 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
         reg.status shouldBe HELD
       }
 
+      "registration is in Draft status, at 5-1, sending the RO address as the PPOB" in new Setup {
+        stubAuthorise(200, authorisedRetrievals)
+
+        val confRefsWithoutPayment = ConfirmationReferences(
+          acknowledgementReference = ackRef,
+          transactionId = transId,
+          paymentReference = None,
+          paymentAmount = None
+        )
+
+        System.setProperty("feature.registerInterest", "false")
+        System.setProperty("feature.etmpHoldingPen", "true")
+
+        await(ctRepository.insert(draftRegistration.copy(companyDetails =
+          Some(CompanyDetails(
+            companyName = "testCompanyName",
+            CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("ZZ1 1ZZ"), Some("Region")),
+            PPOB("RO", None),
+            jurisdiction = "testJurisdiction"
+          ))
+        )))
+
+        stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
+        stubPost(s"/business-registration/corporation-tax", 200, """{"a": "b"}""")
+
+        val response = await(client(s"/$regId/confirmation-references").put(jsonConfirmationRefs()))
+        response.status shouldBe 200
+        response.json shouldBe Json.toJson(confRefsWithoutPayment)
+
+        val reg = await(ctRepository.findAll()).head
+        reg.confirmationReferences shouldBe Some(confRefsWithoutPayment)
+        reg.sessionIdentifiers shouldBe None
+        reg.status shouldBe HELD
+      }
+
       "registration is in Draft status and update Confirmation References with Ack Ref but DES submission FAILED (new HO5-1)" in new Setup {
         stubAuthorise(200, authorisedRetrievals)
 

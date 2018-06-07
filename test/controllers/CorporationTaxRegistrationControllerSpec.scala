@@ -21,7 +21,7 @@ import java.time.LocalTime
 import fixtures.CorporationTaxRegistrationFixture
 import helpers.BaseSpec
 import mocks.{AuthorisationMocks, MockMetricsService}
-import models.{AcknowledgementReferences, ConfirmationReferences}
+import models.{AcknowledgementReferences, CHROAddress, ConfirmationReferences, PPOBAddress}
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
 import org.mockito.{ArgumentCaptor, ArgumentMatchers}
@@ -322,6 +322,31 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
 
       val result = await(controller.updateRegistrationProgress(regId)(request))
       status(result) shouldBe NOT_FOUND
+    }
+  }
+
+  "roAddressValid" should {
+
+    val cHROAddress = Json.toJson(CHROAddress("p","14 St Test Walk",Some("Test"),"c","l",Some("pb"),Some("TE1 1ST"),Some("r")))
+
+    "return an OK if the RO address can be converted to a PPOB address" in new Setup {
+      when(mockCTDataService.convertROToPPOBAddress(ArgumentMatchers.any()))
+        .thenReturn(Future.successful(Some(PPOBAddress("test", "test", None, None, None, None, None, "test"))))
+
+      val request = FakeRequest().withBody(cHROAddress)
+      val response = await(controller.roAddressValid()(request))
+
+      status(response) shouldBe OK
+    }
+
+    "return a Bad Request if the RO address cannot be converted to a PPOB address" in new Setup {
+      when(mockCTDataService.convertROToPPOBAddress(ArgumentMatchers.any()))
+        .thenReturn(Future.successful(None))
+
+      val request = FakeRequest().withBody(cHROAddress)
+      val response = await(controller.roAddressValid()(request))
+
+      status(response) shouldBe BAD_REQUEST
     }
   }
 }
