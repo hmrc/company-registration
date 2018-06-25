@@ -22,7 +22,7 @@ import models._
 import play.api.Logger
 import play.api.libs.json.JsValue
 import play.api.mvc.{Action, AnyContentAsJson, Request}
-import services.{CorporationTaxRegistrationService, MetricsService, NoSessionIdentifiersInDocument, RegistrationHoldingPenService}
+import services._
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
@@ -61,6 +61,7 @@ trait ProcessIncorporationsController extends BaseController {
             }
           }
         } recover {
+          case e: regHoldingPenService.FailedToRetrieveByTxIdOnRejection => Ok
           case e =>
             logFailedTopup(incorp.transactionId)
             throw e

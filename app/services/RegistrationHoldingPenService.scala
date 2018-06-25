@@ -34,7 +34,6 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.config.ServicesConfig
 import utils.DateCalculators
 
-import scala.concurrent
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.control.NoStackTrace
@@ -92,6 +91,7 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
   val blockageLoggingTime: String
 
   class FailedToRetrieveByTxId(val transId: String) extends NoStackTrace
+  class FailedToRetrieveByTxIdOnRejection(val transId: String) extends NoStackTrace
 
   private[services] class FailedToRetrieveByAckRef extends NoStackTrace
 
@@ -153,7 +153,9 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
         val reason = item.statusDescription.fold("No reason given")(f => " Reason given:" + f)
         Logger.info("[processIncorporationUpdate] Incorporation rejected for Transaction: " + item.transactionId + reason)
         for {
-          ctReg <- fetchRegistrationByTxId(item.transactionId)
+          ctReg <- fetchRegistrationByTxId(item.transactionId).recover { case e: FailedToRetrieveByTxId => {
+                  Logger.warn(s"[processIncorporationUpdate] Rejection with no CT document for trans id ${item.transactionId}")
+                  throw new FailedToRetrieveByTxIdOnRejection(e.transId) }}
           submissionResult <- updateSubmissionWithRejectedIncorp(item, ctReg, isAdmin)
         } yield {
           submissionResult
@@ -162,7 +164,7 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
   }
 
   private[services] def updateSubmissionWithIncorporation(item: IncorpUpdate, ctReg: CorporationTaxRegistration, isAdmin: Boolean = false)(implicit hc: HeaderCarrier): Future[Boolean] = {
-    import RegistrationStatus.{HELD, LOCKED, SUBMITTED, ACKNOWLEDGED}
+    import RegistrationStatus.{ACKNOWLEDGED, HELD, LOCKED, SUBMITTED}
     ctReg.status match {
       case LOCKED =>
         Logger.warn(s"[updateSubmissionWithIncorporation] Top-up delayed on LOCKED document. Sending partial first. TxId:${item.transactionId} regId: ${ctReg.registrationID}.")
