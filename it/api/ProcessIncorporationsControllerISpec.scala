@@ -571,6 +571,15 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
         reg.registrationID.isEmpty shouldBe false
       }
 
+      "submission has already been deleted" in new Setup {
+        setupSimpleAuthMocks()
+
+        val response: WSResponse = client(path).post(jsonIncorpStatusRejected)
+
+        response.status shouldBe 200
+        ctRepository.awaitCount shouldBe 0
+      }
+
       "submission is LOCKED locally" in new Setup {
         val confRefsWithoutPayment = ConfirmationReferences(
           acknowledgementReference = ackRef,
@@ -710,5 +719,18 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
       val reg1 :: _ = await(ctRepository.findAll())
       reg1.status shouldBe "acknowledged"
     }
+    "return a 500 when receiving a top up for an Accepted document when there is no CT document for this case" in new Setup {
+
+      setupSimpleAuthMocks()
+      val jsonBodyFromII: String = jsonIncorpStatus(testIncorpDate)
+
+      setupSimpleAuthMocks()
+
+      heldRepository.awaitCount shouldBe 0
+
+      val response1: WSResponse = client(path).post(jsonBodyFromII)
+
+      response1.status shouldBe 500
+   }
   }
 }
