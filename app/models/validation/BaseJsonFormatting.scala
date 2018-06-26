@@ -33,7 +33,7 @@ trait BaseJsonFormatting {
 
   val dateTimePattern = "yyyy-MM-dd"
 
-  def length(maxLen: Int, minLen: Int = 1): Reads[String] = maxLength[String](maxLen) keepAnd minLength[String](minLen)
+  def length(maxLen: Int, minLen: Int = 1)(implicit reads: Reads[String]): Reads[String] = maxLength[String](maxLen) keepAnd minLength[String](minLen)
 
   def readToFmt(rds: Reads[String])(implicit wts: Writes[String]): Format[String] = Format(rds, wts)
 

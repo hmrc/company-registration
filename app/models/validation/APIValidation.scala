@@ -22,8 +22,9 @@ import org.joda.time.format.DateTimeFormat
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.data.validation.ValidationError
 import play.api.libs.json.Reads.{maxLength, pattern}
-import play.api.libs.json.{Format, JsString, OFormat, Reads, Writes}
+import play.api.libs.json._
 import play.api.libs.functional.syntax._
+import utils.StringNormaliser
 
 import scala.util.matching.Regex
 
@@ -90,7 +91,6 @@ trait DateValidator {
   )
 }
 
-
 trait AddressValidator {
   self: BaseJsonFormatting =>
 
@@ -118,8 +118,25 @@ trait AddressValidator {
   val postCodeInvert = regexWrap("[A-Z0-9 ]")
   val countryInvert = regexWrap("[A-Za-z0-9 ]")
 
-  val lineValidator = readToFmt(length(27) keepAnd pattern(linePattern))
-  val line4Validator = readToFmt(length(18) keepAnd pattern(line4Pattern))
-  val postcodeValidator = readToFmt(length(20) keepAnd pattern(postCodePattern))
-  val countryValidator = readToFmt(length(20) keepAnd pattern(countryPattern))
+  def normaliseStringReads(regex:Regex)(implicit implReads: Reads[String]): Reads[String] = new Reads[String] {
+    override def reads(json: JsValue): JsResult[String] = {
+      implReads.reads(json).flatMap { theString =>
+        val string = StringNormaliser.normaliseString(theString, regex)
+        if (theString.nonEmpty && string.isEmpty) {
+          JsError("error.not.normalisable")
+        } else {
+          JsSuccess(string)
+        }
+      }
+    }
+  }
+
+  def chainedNormaliseReads(regex: Regex, maxLength: Int) = {
+    length(maxLength)(normaliseStringReads(regex))
+  }
+
+  val lineValidator = readToFmt(pattern(linePattern)(chainedNormaliseReads(lineInvert, 27)))
+  val line4Validator = readToFmt(pattern(line4Pattern)(chainedNormaliseReads(lineInvert,18)))
+  val postcodeValidator = readToFmt(pattern(postCodePattern)(chainedNormaliseReads(postCodeInvert, 20)))
+  val countryValidator = readToFmt(pattern(countryPattern)(chainedNormaliseReads(countryInvert, 20)))
 }

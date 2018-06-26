@@ -17,8 +17,8 @@
 package services
 
 import java.text.Normalizer
-import javax.inject.Inject
 
+import javax.inject.Inject
 import audit.{SubmissionEventDetail, UserRegistrationSubmissionEvent}
 import cats.data.OptionT
 import cats.implicits._
@@ -36,7 +36,7 @@ import play.api.mvc.{AnyContent, Request}
 import repositories._
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import utils.SCRSFeatureSwitches
+import utils.{SCRSFeatureSwitches, StringNormaliser}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -325,19 +325,10 @@ trait CorporationTaxRegistrationService extends DateHelper {
     }
   }
 
-  val specialCharacterConverts = Map('æ' -> "ae", 'Æ' -> "AE", 'œ' -> "oe", 'Œ' -> "OE", 'ß' -> "ss", 'ø' -> "o", 'Ø' -> "O")
+
   def convertROToPPOBAddress(rOAddress: CHROAddress) : Option[PPOBAddress] = {
     import java.text.Normalizer._
     import APIValidation._
-
-    def normaliseString(string : String, charFilter : Regex) : String = {
-      normalize(string, Form.NFKD)
-        .replaceAll("\\p{M}", "")
-        .trim
-        .map(char => specialCharacterConverts.getOrElse(char, char))
-        .mkString
-        .filter(c => c.toString matches charFilter.regex)
-    }
 
     Try {
       val line1Result = Some(rOAddress.premises + " " + rOAddress.address_line_1)
@@ -350,15 +341,15 @@ trait CorporationTaxRegistrationService extends DateHelper {
         .map { linePair =>
           val (optLine, index) = linePair
           optLine map { line =>
-            val normalisedString = normaliseString(line, lineInvert).take(if (index == 3) 18 else 27)
+            val normalisedString = StringNormaliser.normaliseString(line, lineInvert).take(if (index == 3) 18 else 27)
             val regex = (if (index == 3) line4Pattern else linePattern).regex
             if (!normalisedString.matches(regex)) throw new Exception(s"Line $index did not match validation")
             normalisedString
           }
         }
 
-      val postCodeOpt = rOAddress.postal_code map (pc => normaliseString(pc, postCodeInvert).take(20))
-      val countryOpt = Some(normaliseString(rOAddress.country, countryInvert).take(20))
+      val postCodeOpt = rOAddress.postal_code map (pc => StringNormaliser.normaliseString(pc, postCodeInvert).take(20))
+      val countryOpt = Some(StringNormaliser.normaliseString(rOAddress.country, countryInvert).take(20))
 
       postCodeOpt foreach { postCode =>
         if (!postCode.matches(postCodePattern.regex)) throw new Exception("Post code did not match validation")

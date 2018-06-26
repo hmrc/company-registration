@@ -65,7 +65,7 @@ trait CompanyDetailsController extends BaseController with AuthorisedActions {
     implicit request =>
       val timer = metricsService.updateCompanyDetailsCRTimer.time()
       withJsonBody[CompanyDetails]{
-        companyDetails => companyDetailsService.updateCompanyDetails(registrationID, companyDetails).map{
+        companyDetails => companyDetailsService.updateCompanyDetails(registrationID, companyDetails).map {
           case Some(details) => timer.stop()
             Ok(mapToResponse(registrationID, details))
           case None => timer.stop()

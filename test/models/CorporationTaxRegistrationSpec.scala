@@ -97,14 +97,11 @@ class CorporationTaxRegistrationSpec extends UnitSpec with JsonFormatValidation 
         """.stripMargin)
 
           "fail on company name" when {
-
-
             "it is too long" in {
                 val longName = List.fill(161)('a').mkString
                 val json = tstJson(longName)
 
                   val result = Json.fromJson[CompanyDetails](json)
-
                   shouldHaveErrors(result, JsPath() \ "companyName", Seq(ValidationError("Invalid company name")))
               }
             "it is too short" in {
