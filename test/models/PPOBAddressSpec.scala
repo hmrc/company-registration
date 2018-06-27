@@ -16,6 +16,7 @@
 
 package models
 
+import models.validation.APIValidation
 import play.api.data.validation.ValidationError
 import play.api.libs.json._
 import uk.gov.hmrc.play.test.UnitSpec
@@ -58,27 +59,25 @@ class PPOBAddressSpec extends UnitSpec with JsonFormatValidation {
       val json = j(line1=line1, pc=Some("ZZ1 1ZZ"))
       val expected = PPOBAddress(line1, "2", None, Some("4"), Some("ZZ1 1ZZ"), None, None, "txid")
 
-      val result = Json.parse(json).validate[PPOBAddress]
+      val result = Json.parse(json).validate[PPOBAddress](PPOBAddress.normalisingReads(APIValidation))
 
       shouldBeSuccess(expected, result)
     }
 
     "fail to be read from JSON if is empty string" in {
       val json = j(line1="")
+      val result = Json.parse(json).validate[PPOBAddress](PPOBAddress.normalisingReads(APIValidation))
 
-      val result = Json.parse(json).validate[PPOBAddress]
-
-      shouldHaveErrors(result, JsPath() \ "addressLine1", Seq(ValidationError("error.minLength", 1),ValidationError("error.pattern")))
+      shouldHaveErrors(result, JsPath() \ "addressLine1", Seq(ValidationError("error.minLength", 1)))
     }
 
     "fail to be read from JSON if line1 is longer than 27 characters" in {
       val json = j(line1="1234567890123456789012345678")
 
-      val result = Json.parse(json).validate[PPOBAddress]
+      val result = Json.parse(json).validate[PPOBAddress](PPOBAddress.normalisingReads(APIValidation))
 
-      shouldHaveErrors(result, JsPath() \ "addressLine1", Seq(ValidationError("error.maxLength", 27),ValidationError("error.pattern")))
+      shouldHaveErrors(result, JsPath() \ "addressLine1", Seq(ValidationError("error.maxLength", 27)))
     }
-
   }
 
   "PPOBAddress Model - line 2" should {
@@ -87,7 +86,7 @@ class PPOBAddressSpec extends UnitSpec with JsonFormatValidation {
       val json = j(line3=line3, country=Some("c"), uprn=Some("xxx"))
       val expected = PPOBAddress("1", "2", line3, Some("4"), None, Some("c"), Some("xxx"), "txid")
 
-      val result = Json.parse(json).validate[PPOBAddress]
+      val result = Json.parse(json).validate[PPOBAddress](PPOBAddress.normalisingReads(APIValidation))
 
       shouldBeSuccess(expected, result)
     }
@@ -96,7 +95,7 @@ class PPOBAddressSpec extends UnitSpec with JsonFormatValidation {
       val json = j(line3=None, country=Some("c"))
       val expected = PPOBAddress("1", "2", None, Some("4"), None, Some("c"), None, "txid")
 
-      val result = Json.parse(json).validate[PPOBAddress]
+      val result = Json.parse(json).validate[PPOBAddress](PPOBAddress.normalisingReads(APIValidation))
 
       shouldBeSuccess(expected, result)
     }
@@ -106,7 +105,7 @@ class PPOBAddressSpec extends UnitSpec with JsonFormatValidation {
       val addressLine4 = Some("18charsinaddLine4x")
       val json = j(line3=line3, line4=addressLine4, country=Some("c"), uprn=Some("xxx"))
       val expected = PPOBAddress("1", "2", line3, Some("18charsinaddLine4x"), None, Some("c"), Some("xxx"), "txid")
-      val result = Json.parse(json).validate[PPOBAddress]
+      val result = Json.parse(json).validate[PPOBAddress](PPOBAddress.normalisingReads(APIValidation))
       shouldBeSuccess(expected, result)
     }
 
@@ -114,24 +113,29 @@ class PPOBAddressSpec extends UnitSpec with JsonFormatValidation {
       val line3 = Some("Line3")
       val line4 = Some("19charsinaddLine4xx")
       val json = j(line3=line3, line4=line4, country=Some("c"), uprn=Some("xxx"))
-      val result = Json.parse(json).validate[PPOBAddress]
-      shouldHaveErrors(result, JsPath() \ "addressLine4", Seq(ValidationError("error.maxLength", 18),ValidationError("error.pattern")))
+      val result = Json.parse(json).validate[PPOBAddress](PPOBAddress.normalisingReads(APIValidation))
+      shouldHaveErrors(result, JsPath() \ "addressLine4", Seq(ValidationError("error.maxLength", 18)))
     }
 
     "fail to be read from JSON if line2 is empty string" in {
       val json = j(line3=Some(""), country=Some("c"))
 
-      val result = Json.parse(json).validate[PPOBAddress]
+      val result = Json.parse(json).validate[PPOBAddress](PPOBAddress.normalisingReads(APIValidation))
 
-      shouldHaveErrors(result, JsPath() \ "addressLine3", Seq(ValidationError("error.minLength", 1),ValidationError("error.pattern")))
+      shouldHaveErrors(result, JsPath() \ "addressLine3", Seq(ValidationError("error.minLength", 1)))
     }
 
     "fail to be read from JSON if line2 is longer than 27 characters" in {
       val json = j(line3=Some("1234567890123456789012345678"), country=Some("c"))
 
-      val result = Json.parse(json).validate[PPOBAddress]
+      val result = Json.parse(json).validate[PPOBAddress](PPOBAddress.normalisingReads(APIValidation))
 
-      shouldHaveErrors(result, JsPath() \ "addressLine3", Seq(ValidationError("error.maxLength", 27),ValidationError("error.pattern")))
+      shouldHaveErrors(result, JsPath() \ "addressLine3", Seq(ValidationError("error.maxLength", 27)))
+    }
+    "fail with max length error not error.pattern when characters are normalised to be greater than max length of field" in {
+      val json = j(line3=Some("abcdcgasfgfags fgafsggafgææ"), country=Some("c"))
+      val result = Json.parse(json).validate[PPOBAddress](PPOBAddress.normalisingReads(APIValidation))
+      shouldHaveErrors(result, JsPath() \ "addressLine3", Seq(ValidationError("error.maxLength", 27)))
     }
   }
 
@@ -141,16 +145,15 @@ class PPOBAddressSpec extends UnitSpec with JsonFormatValidation {
       val ppobAddress = PPOBAddress("1", "2", None, Some("4"), Some("ZZ1 1ZZ"), None, Some("xxx"), "txid")
       val json = Json.parse("""{"houseNameNumber":"hnn","addressLine1":"1","addressLine2":"2","addressLine4":"4","postCode":"ZZ1 1ZZ", "uprn": "xxx", "txid": "txid"}""")
 
-      val result = Json.fromJson[PPOBAddress](json)
+      val result = Json.fromJson[PPOBAddress](json)(PPOBAddress.normalisingReads(APIValidation))
       result shouldBe JsSuccess(ppobAddress)
     }
 
     "throw a json validation error when a postcode and country do not exist" in {
       val json = Json.parse("""{"houseNameNumber":"hnn","addressLine1":"1","addressLine2":"2","addressLine4":"4", "txid": "txid"}""")
 
-      val result = Json.fromJson[PPOBAddress](json)
+      val result = Json.fromJson[PPOBAddress](json)(PPOBAddress.normalisingReads(APIValidation))
       shouldHaveErrors(result, JsPath(), Seq(ValidationError("Must have at least one of postcode and country")))
     }
   }
-
 }

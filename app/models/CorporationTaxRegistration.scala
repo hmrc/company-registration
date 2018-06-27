@@ -18,6 +18,7 @@ package models
 
 import models.validation.{APIValidation, BaseJsonFormatting, MongoValidation}
 import org.joda.time.{DateTime, DateTimeZone}
+import play.api.data.validation.ValidationError
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import reactivemongo.play.json.BSONFormats.BSONDocumentFormat
@@ -205,31 +206,41 @@ case class PPOBAddress(line1: String,
                        txid: String)
 
 object PPOBAddress {
-  def format(formatter: BaseJsonFormatting): Format[PPOBAddress] = {
-    val formatDef = (
-      (__ \ "addressLine1").format[String](formatter.lineValidator) and
-      (__ \ "addressLine2").format[String](formatter.lineValidator) and
-      (__ \ "addressLine3").formatNullable[String](formatter.lineValidator) and
-      (__ \ "addressLine4").formatNullable[String](formatter.line4Validator) and
-      (__ \ "postCode").formatNullable[String](formatter.postcodeValidator) and
-      (__ \ "country").formatNullable[String](formatter.countryValidator) and
-      (__ \ "uprn").formatNullable[String] and
-      (__ \ "txid").format[String]
-    )(PPOBAddress.apply, unlift(PPOBAddress.unapply))
+  val normalisingReads: (BaseJsonFormatting) => Reads[PPOBAddress] = (formatter) => (
+      (__ \ "addressLine1").read[String](formatter.lineValidator) and
+        (__ \ "addressLine2").read[String](formatter.lineValidator) and
+        (__ \ "addressLine3").readNullable[String](formatter.lineValidator) and
+        (__ \ "addressLine4").readNullable[String](formatter.line4Validator) and
+        (__ \ "postCode").readNullable[String](formatter.postcodeValidator) and
+        (__ \ "country").readNullable[String](formatter.countryValidator) and
+        (__ \ "uprn").readNullable[String] and
+        (__ \ "txid").read[String]
+    )(PPOBAddress.apply _)
+    .filter(ValidationError("Must have at least one of postcode and country"))(ppob => ppob.postcode.isDefined || ppob.country.isDefined)
 
-    formatter.ppobAddressFormatWithFilter(formatDef)
-  }
-
-  implicit val apiFormat = format(APIValidation)
+  implicit val writes: Writes[PPOBAddress] = (
+    (__ \ "addressLine1").write[String] and
+      (__ \ "addressLine2").write[String] and
+      (__ \ "addressLine3").writeNullable[String] and
+      (__ \ "addressLine4").writeNullable[String] and
+      (__ \ "postCode").writeNullable[String] and
+      (__ \ "country").writeNullable[String] and
+      (__ \ "uprn").writeNullable[String] and
+      (__ \ "txid").write[String]
+    )(unlift(PPOBAddress.unapply _))
 }
 
 case class PPOB(addressType: String,
                 address: Option[PPOBAddress])
 
 object PPOB {
+  def readsFormatter(formatter: BaseJsonFormatting): Reads[PPOB] = (
+      (__ \ "addressType").read[String] and
+        (__ \ "address").readNullable[PPOBAddress](PPOBAddress.normalisingReads(formatter))
+    )(PPOB.apply _)
+
   def format(formatter: BaseJsonFormatting): Format[PPOB] = {
-    implicit val formatPPOBAddress: Format[PPOBAddress] = PPOBAddress.format(formatter)
-    Json.format[PPOB]
+    Format[PPOB](readsFormatter(formatter), Json.writes[PPOB])
   }
 
   implicit val apiFormat = format(APIValidation)

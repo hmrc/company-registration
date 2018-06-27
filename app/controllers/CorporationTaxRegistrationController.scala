@@ -17,9 +17,8 @@
 package controllers
 
 import javax.inject.Inject
-
 import auth._
-import models.{AcknowledgementReferences, CHROAddress, ConfirmationReferences, CorporationTaxRegistrationRequest}
+import models._
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.{Action, AnyContent, AnyContentAsJson, Request}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
@@ -172,7 +171,7 @@ trait CorporationTaxRegistrationController extends BaseController with Authorise
     implicit request =>
       withJsonBody[CHROAddress] { body =>
         Future.successful(ctService.convertROToPPOBAddress(body) match {
-          case Some(ppob) => Ok(Json.toJson(ppob))
+          case Some(ppob) => Ok(Json.toJson(ppob)(PPOBAddress.writes))
           case _          => BadRequest
         })
       }

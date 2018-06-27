@@ -67,6 +67,33 @@ trait CompanyDetailsFixture {
     "testJurisdiction"
   )
 
+  lazy val validCompanyDetailsNormalisableAddress = CompanyDetails(
+    "testCompanyName",
+    CHROAddress(
+      "Premises",
+      "Line 1",
+      Some("Line 2"),
+      "Country",
+      "Locality",
+      Some("PO box"),
+      Some("Post code"),
+      Some("Region")
+    ),
+    PPOB(
+      "MANUAL",
+      Some(PPOBAddress(
+        "10 test æet",
+        "test tØwn",
+        Some("tæst area"),
+        Some("tæst coûnty"),
+        Some("XX1 1ØZ"),
+        Some("test country"),
+        None,
+        "txid"
+      ))),
+    "testJurisdiction"
+  )
+
   import CompanyDetailsResponse.buildLinks
   lazy val validCompanyDetailsResponse = CompanyDetailsResponse(
     companyName = validCompanyDetails.companyName,
