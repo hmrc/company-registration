@@ -71,12 +71,13 @@ class PPOBAddressSpec extends UnitSpec with JsonFormatValidation {
       shouldHaveErrors(result, JsPath() \ "addressLine1", Seq(ValidationError("error.minLength", 1)))
     }
 
-    "fail to be read from JSON if line1 is longer than 27 characters" in {
-      val json = j(line1="1234567890123456789012345678")
-
+    "be able parse to be read from JSON if line1 is longer than 27 characters returning 27 characters" in {
+      val line1 = "1234567890123456789012345678"
+      val json = j(line1="1234567890123456789012345678",pc=Some("ZZ1 1ZZ"))
+      val expected = PPOBAddress(line1.take(27), "2", None, Some("4"), Some("ZZ1 1ZZ"), None, None, "txid")
       val result = Json.parse(json).validate[PPOBAddress](PPOBAddress.normalisingReads(APIValidation))
 
-      shouldHaveErrors(result, JsPath() \ "addressLine1", Seq(ValidationError("error.maxLength", 27)))
+      shouldBeSuccess(expected, result)
     }
   }
 
@@ -109,12 +110,14 @@ class PPOBAddressSpec extends UnitSpec with JsonFormatValidation {
       shouldBeSuccess(expected, result)
     }
 
-    "Fail if 19chars in Address Line 4" in {
+    "be able to parse if 19chars in Address Line 4, returning 18 characters" in {
       val line3 = Some("Line3")
       val line4 = Some("19charsinaddLine4xx")
       val json = j(line3=line3, line4=line4, country=Some("c"), uprn=Some("xxx"))
+      val expected = PPOBAddress("1", "2", line3, Some("19charsinaddLine4x"), None, Some("c"), Some("xxx"), "txid")
       val result = Json.parse(json).validate[PPOBAddress](PPOBAddress.normalisingReads(APIValidation))
-      shouldHaveErrors(result, JsPath() \ "addressLine4", Seq(ValidationError("error.maxLength", 18)))
+
+      shouldBeSuccess(expected, result)
     }
 
     "fail to be read from JSON if line2 is empty string" in {
@@ -125,17 +128,13 @@ class PPOBAddressSpec extends UnitSpec with JsonFormatValidation {
       shouldHaveErrors(result, JsPath() \ "addressLine3", Seq(ValidationError("error.minLength", 1)))
     }
 
-    "fail to be read from JSON if line2 is longer than 27 characters" in {
-      val json = j(line3=Some("1234567890123456789012345678"), country=Some("c"))
-
+    "be able to parse from JSON if line2 is longer than 27 characters returning 27 characters" in {
+      val line3 = Some("1234567890123456789012345678")
+      val json = j(line3=line3, country=Some("c"))
+      val expected = PPOBAddress("1", "2", line3.map(_.take(27)), Some("4"), None, Some("c"), None, "txid")
       val result = Json.parse(json).validate[PPOBAddress](PPOBAddress.normalisingReads(APIValidation))
 
-      shouldHaveErrors(result, JsPath() \ "addressLine3", Seq(ValidationError("error.maxLength", 27)))
-    }
-    "fail with max length error not error.pattern when characters are normalised to be greater than max length of field" in {
-      val json = j(line3=Some("abcdcgasfgfags fgafsggafgææ"), country=Some("c"))
-      val result = Json.parse(json).validate[PPOBAddress](PPOBAddress.normalisingReads(APIValidation))
-      shouldHaveErrors(result, JsPath() \ "addressLine3", Seq(ValidationError("error.maxLength", 27)))
+      shouldBeSuccess(expected, result)
     }
   }
 

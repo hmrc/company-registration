@@ -118,21 +118,21 @@ trait AddressValidator {
   val postCodeInvert = regexWrap("[A-Z0-9 ]")
   val countryInvert = regexWrap("[A-Za-z0-9 ]")
 
-  def normaliseStringReads(regex:Regex)(implicit implReads: Reads[String]): Reads[String] = new Reads[String] {
+  def normaliseStringReads(regex:Regex, amountToTake: Int)(implicit implReads: Reads[String]): Reads[String] = new Reads[String] {
     override def reads(json: JsValue): JsResult[String] = {
       implReads.reads(json).flatMap { theString =>
         val string = StringNormaliser.normaliseString(theString, regex)
         if (theString.nonEmpty && string.isEmpty) {
           JsError("error.not.normalisable")
         } else {
-          JsSuccess(string)
+          JsSuccess(string.take(amountToTake))
         }
       }
     }
   }
 
   def chainedNormaliseReads(regex: Regex, maxLength: Int) = {
-    length(maxLength)(normaliseStringReads(regex))
+    length(maxLength)(normaliseStringReads(regex, maxLength))
   }
 
   val lineValidator = readToFmt(pattern(linePattern)(chainedNormaliseReads(lineInvert, 27)))
