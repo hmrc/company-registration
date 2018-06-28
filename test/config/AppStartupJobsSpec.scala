@@ -17,13 +17,16 @@
 package config
 
 import fixtures.CorporationTaxRegistrationFixture
+import models.{ContactDetails, PPOBAddress, TradingDetails, _}
+import models.RegistrationStatus._
+import org.joda.time.DateTime
 import org.scalatest.mock.MockitoSugar
-import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmission, HeldSubmissionMongoRepository, Repositories}
+import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmissionMongoRepository, Repositories}
 import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
 import org.mockito.Mockito._
-import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.scalatest.concurrent.Eventually
-import play.api.Logger
+import play.api.{Application, Configuration, Logger}
 import play.api.libs.json.Json
 import services.admin.AdminServiceImpl
 
@@ -32,6 +35,8 @@ import scala.concurrent.Future
 class AppStartupJobsSpec extends UnitSpec with MockitoSugar with LogCapturing
   with CorporationTaxRegistrationFixture with Eventually {
 
+  val mockApp: Application = mock[Application]
+  val mockConfig: Configuration = mock[Configuration]
   val mockHeldRepo: HeldSubmissionMongoRepository = mock[HeldSubmissionMongoRepository]
   val mockCTRepository: CorporationTaxRegistrationMongoRepository = mock[CorporationTaxRegistrationMongoRepository]
   val mockAdminService: AdminServiceImpl = mock[AdminServiceImpl]
@@ -53,7 +58,7 @@ class AppStartupJobsSpec extends UnitSpec with MockitoSugar with LogCapturing
     when(mockCTRepository.getRegistrationStats())
       .thenReturn(Future.successful(expectedRegStats))
 
-    val appStartupJobs: AppStartupJobs = new AppStartupJobs(mockAdminService, mockRepositories)
+    val appStartupJobs: AppStartupJobs = new AppStartupJobs(mockConfig, mockAdminService, mockRepositories)
   }
 
   "get Company Name" should {
@@ -79,6 +84,56 @@ class AppStartupJobsSpec extends UnitSpec with MockitoSugar with LogCapturing
           )
 
           expectedLogs.diff(logEvents.map(_.getMessage)) shouldBe List.empty
+        }
+      }
+    }
+
+  }
+  "fetch Reg Ids" should {
+
+    val dateTime: DateTime = DateTime.parse("2016-10-27T16:28:59.000")
+    def corporationTaxRegistration(regId: String,
+                                   status: String = SUBMITTED,
+                                   transId: String = "transid-1"
+                                   ): CorporationTaxRegistration = {
+      CorporationTaxRegistration(
+        internalId = "testID",
+        registrationID = regId,
+        formCreationTimestamp = dateTime.toString,
+        language = "en",
+        companyDetails = Some(CompanyDetails(
+          "testCompanyName",
+          CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
+          PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), None, None, "txid"))),
+          "testJurisdiction"
+        )),
+        contactDetails = Some(ContactDetails(
+          "testFirstName",
+          Some("testMiddleName"),
+          "testSurname",
+          Some("0123456789"),
+          Some("0123456789"),
+          Some("test@email.co.uk")
+        )),
+        tradingDetails = Some(TradingDetails("false")),
+        status = status,
+        confirmationReferences = Some(ConfirmationReferences(s"ACKFOR-$regId",transId,Some("PAYREF"),Some("12")))
+      )
+    }
+
+    val txIds = Seq("transid-1","transid-2","transid-3")
+
+    "log specific company name relating to reg id passed in" in new Setup {
+      when(mockCTRepository.retrieveRegistrationByTransactionID("transid-1"))
+        .thenReturn(Future.successful(Some(corporationTaxRegistration("1","TestStatus","transid-1"))))
+      when(mockCTRepository.retrieveRegistrationByTransactionID("transid-2"))
+        .thenReturn(Future.successful(Some(corporationTaxRegistration("2","TestStatus2","transid-2"))))
+      when(mockCTRepository.retrieveRegistrationByTransactionID("transid-3"))
+        .thenReturn(Future.successful(None))
+
+      withCaptureOfLoggingFrom(Logger){ logEvents =>
+        eventually {
+          await(appStartupJobs.fetchRegIds(txIds))
         }
       }
     }
