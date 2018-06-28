@@ -72,7 +72,8 @@ class CompanyDetailsApiISpec extends IntegrationSpecBase with LoginStub  {
   val transId = "trans-id-2345"
   val defaultCHROAddress = CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region"))
   val defaulPPOBAddress = PPOB("MANUAL", Some(PPOBAddress("10 tæst beet","test tØwn",Some("tæst area"),Some("tæst coûnty"),Some("XX1 1ØZ"),Some("test coûntry"),None,"txid")))
-  val nonNormalisablePPOBAddress = PPOB("MANUAL", Some(PPOBAddress("ææ ææææ æææææ","abcdcgasfgfags fgafsggafgææ",Some("æææææææ æææææ"),Some("tæst coûnty"),Some("XX1 1ØZ"),Some("test coûntry"),None,"txid")))
+  val nonNormalisedAddressMaxLengthCheck = PPOB("MANUAL", Some(PPOBAddress("ææ ææææ æææææ","abcdcgasfgfags fgafsggafgææ",Some("æææææææ æææææ"),Some("tæst coûnty"),Some("XX1 1ØZ"),Some("test coûntry"),None,"txid")))
+  val normalisedAddressMaxLengthCheck = PPOB("MANUAL", Some(PPOBAddress("aeae aeaeaeae aeaeaeaeae","abcdcgasfgfags fgafsggafgae",Some("aeaeaeaeaeaeae aeaeaeaeae"),Some("taest county"),Some("XX1 1OZ"),Some("test country"),None,"txid")))
   val normalisedDefaultPPOBAddress = PPOB("MANUAL", Some(PPOBAddress("10 taest beet","test tOwn",Some("taest area"),Some("taest county"),Some("XX1 1OZ"),Some("test country"),None,"txid")))
   val validPPOBAddress = PPOB("MANUAL", Some(PPOBAddress("10 test beet","test tOwn",Some("test area"),Some("test county"),Some("XX1 1OZ"),Some("test country"),None,"txid")))
   val ctDoc = CorporationTaxRegistration(internalId, regId, RegistrationStatus.DRAFT, formCreationTimestamp = "foo", language = "bar")
@@ -131,11 +132,12 @@ class CompanyDetailsApiISpec extends IntegrationSpecBase with LoginStub  {
       response.status shouldBe 200
       response.json shouldBe validCompanyDetailsResponse(ctDocWithCompDetails.companyDetails.get.copy(ppob = validPPOBAddress))
     }
-    "return 400 with unnormalisable ppob" in new Setup {
+    "return 200 with unnormalisable ppob because characters are trimmed to max length" in new Setup {
       stubAuthorise(internalId)
       setupCTRegistration(ctDocWithCompDetails)
-      val response = await(client(s"/$regId/company-details").put(validPostData(nonNormalisablePPOBAddress).toString()))
-      response.status shouldBe 400
+      val response = await(client(s"/$regId/company-details").put(validPostData(nonNormalisedAddressMaxLengthCheck).toString()))
+      response.status shouldBe 200
+      response.json shouldBe validCompanyDetailsResponse(ctDocWithCompDetails.companyDetails.get.copy(ppob = normalisedAddressMaxLengthCheck))
     }
   }
 }
