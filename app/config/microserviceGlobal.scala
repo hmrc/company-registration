@@ -16,6 +16,7 @@
 
 package config
 
+import java.util.Base64
 import javax.inject.{Inject, Named, Singleton}
 
 import com.typesafe.config.Config
@@ -69,6 +70,10 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
     val regid = app.configuration.getString("companyNameRegID").getOrElse("")
     app.injector.instanceOf[AppStartupJobs].getCTCompanyName(regid)
 
+    val base64TransactionIds = app.configuration.getString("list-of-txids").getOrElse("")
+    val listOftxIDs = new String(Base64.getDecoder.decode(base64TransactionIds), "UTF-8").split(",").toList
+    app.injector.instanceOf[AppStartupJobs].fetchRegIds(listOftxIDs)
+
     (1 to 5) foreach {
       _ => app.injector.instanceOf[AppStartupJobs].getHeldDocsInfoSecondary()
     }
@@ -95,8 +100,9 @@ class Jobs @Inject()(
     )
 }
 
-class AppStartupJobs @Inject()(val service: AdminServiceImpl,
-                               val repositories: Repositories) {
+class AppStartupJobs @Inject()(config: Configuration,
+                                val service: AdminServiceImpl,
+                                val repositories: Repositories) {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -171,6 +177,21 @@ class AppStartupJobs @Inject()(val service: AdminServiceImpl,
           s"version : ${index.version}\n " +
           s"partialFilter : ${index.partialFilter.map(_.values)}\n " +
           s"options : ${index.options.values}")
+      }
+    }
+  }
+
+  def fetchRegIds(txIDs: Seq[String]): Unit = {
+
+    for (txId <- txIDs) {
+      ctRepo.retrieveRegistrationByTransactionID(txId).map {
+        case Some(doc) =>
+          Logger.info(
+            s"""
+              |[StartUp] [fetchByTransactionID] TxId: $txId, RegId: ${doc.registrationID}, Status: ${doc.status}, LastSignedIn: ${doc.lastSignedIn}, ConfRefs: ${doc.confirmationReferences}, AckRefs: ${doc.acknowledgementReferences}
+            """.stripMargin
+          )
+        case _ => Logger.info(s"[StartUp] [fetchByTransactionID] No registration document found for $txId")
       }
     }
   }
