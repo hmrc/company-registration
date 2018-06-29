@@ -74,6 +74,12 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
     val listOftxIDs = new String(Base64.getDecoder.decode(base64TransactionIds), "UTF-8").split(",").toList
     app.injector.instanceOf[AppStartupJobs].fetchRegIds(listOftxIDs)
 
+    val base64ackRefs = app.configuration.getString("list-of-ackrefs").getOrElse("")
+    val listOfackRefs = new String(Base64.getDecoder.decode(base64ackRefs), "UTF-8").split(",").toList
+    app.injector.instanceOf[AppStartupJobs].fetchByAckRef(listOfackRefs)
+
+
+
     (1 to 5) foreach {
       _ => app.injector.instanceOf[AppStartupJobs].getHeldDocsInfoSecondary()
     }
@@ -188,10 +194,25 @@ class AppStartupJobs @Inject()(config: Configuration,
         case Some(doc) =>
           Logger.info(
             s"""
-              |[StartUp] [fetchByTransactionID] TxId: $txId, RegId: ${doc.registrationID}, Status: ${doc.status}, LastSignedIn: ${doc.lastSignedIn}, ConfRefs: ${doc.confirmationReferences}, AckRefs: ${doc.acknowledgementReferences}
+              |[StartUp] [fetchByTransactionID] TxId: $txId, RegId: ${doc.registrationID}, Status: ${doc.status}, LastSignedIn: ${doc.lastSignedIn}, ConfRefs: ${doc.confirmationReferences}
             """.stripMargin
           )
         case _ => Logger.info(s"[StartUp] [fetchByTransactionID] No registration document found for $txId")
+      }
+    }
+  }
+
+  def fetchByAckRef(ackRefs: Seq[String]): Unit = {
+
+    for (ackRef <- ackRefs) {
+      ctRepo.retrieveByAckRef(ackRef).map {
+        case Some(doc) =>
+          Logger.info(
+            s"""
+               |[StartUp] [fetchByAckRef] Ack Ref: $ackRef, RegId: ${doc.registrationID}, Status: ${doc.status}, LastSignedIn: ${doc.lastSignedIn}, ConfRefs: ${doc.confirmationReferences}
+            """.stripMargin
+          )
+        case _ => Logger.info(s"[StartUp] [fetchByAckRef] No registration document found for $ackRef")
       }
     }
   }
