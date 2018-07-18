@@ -78,7 +78,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
     val listOfackRefs = new String(Base64.getDecoder.decode(base64ackRefs), "UTF-8").split(",").toList
     app.injector.instanceOf[AppStartupJobs].fetchByAckRef(listOfackRefs)
 
-
+    app.injector.instanceOf[AppStartupJobs].retrieveCountOfInvalidRejections()
 
     (1 to 5) foreach {
       _ => app.injector.instanceOf[AppStartupJobs].getHeldDocsInfoSecondary()

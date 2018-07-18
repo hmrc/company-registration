@@ -52,7 +52,6 @@ trait MicroService {
       scalaVersion := "2.11.11"
     )
     .configs(IntegrationTest)
-    .settings(inConfig(IntegrationTest)(Defaults.itSettings): _*)
     .settings(integrationTestSettings())
 }
 
