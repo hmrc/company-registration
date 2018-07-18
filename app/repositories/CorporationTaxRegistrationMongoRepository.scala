@@ -508,10 +508,12 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
   override def retrieveStaleDocuments(count: Int, storageThreshold: Int): Future[List[CorporationTaxRegistration]] = {
     val query = Json.obj(
       "status" -> Json.obj("$in" -> Json.arr("draft", "held", "locked")),
-       "$or" -> Json.arr(
-         Json.obj("lastSignedIn" -> Json.obj("$exists" -> false)),
-         Json.obj("lastSignedIn" -> Json.obj("$lte" -> DateTime.now(DateTimeZone.UTC).minusDays(storageThreshold).getMillis))
-       )
+      "confirmationReferences.payment-reference" -> Json.obj("$exists" -> false),
+      "lastSignedIn" -> Json.obj("$lt" -> DateTime.now(DateTimeZone.UTC).withHourOfDay(0).minusDays(storageThreshold).getMillis),
+      "$or" -> Json.arr(
+        Json.obj("heldTimestamp" -> Json.obj("$exists" -> false)),
+        Json.obj("heldTimestamp" -> Json.obj("$lt" -> DateTime.now(DateTimeZone.UTC).withHourOfDay(0).minusDays(storageThreshold).getMillis))
+      )
     )
     val ascending = Json.obj("lastSignedIn" -> 1)
     val logOnError = Cursor.ContOnError[List[CorporationTaxRegistration]]((_, ex) =>

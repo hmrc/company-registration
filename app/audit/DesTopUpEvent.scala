@@ -16,11 +16,8 @@
 
 package audit
 
-import models.SubmissionDates
-import models.des.{BusinessAddress, BusinessContactDetails}
 import org.joda.time.DateTime
 import play.api.libs.functional.syntax._
-import play.api.mvc.{AnyContent, Request}
 import play.api.libs.json._
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -30,7 +27,8 @@ case class DesTopUpSubmissionEventDetail(journeyId: String,
                                          intendedAccountsPreparationDate: Option[DateTime],
                                          startDateOfFirstAccountingPeriod: Option[DateTime],
                                          companyActiveDate: Option[DateTime],
-                                         crn: Option[String])
+                                         crn: Option[String],
+                                         rejectedAsNotPaid: Option[Boolean] = None)
 
 object DesTopUpSubmissionEventDetail {
 
@@ -47,7 +45,8 @@ object DesTopUpSubmissionEventDetail {
                 (__ \ "intendedAccountsPreparationDate").writeNullable[DateTime](dateWrites) and
                 (__ \ "startDateOfFirstAccountingPeriod").writeNullable[DateTime](dateWrites) and
                 (__ \ "companyActiveDate").writeNullable[DateTime](dateWrites) and
-                (__ \ "crn").writeNullable[String]
+                (__ \ "crn").writeNullable[String] and
+                (__ \ "rejectedAsNotPaid").writeNullable[Boolean]
               )(unlift(DesTopUpSubmissionEventDetail.unapply))
 
             Json.toJson(detail)(successWrites).as[JsObject]

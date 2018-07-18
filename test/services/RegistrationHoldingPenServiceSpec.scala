@@ -313,20 +313,10 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
 
       await(result) shouldBe dates
     }
-//    "return MissingAccountingDates if no accounting dates are passed" in new Setup {
-//      when(mockAccountService.calculateSubmissionDates(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
-//        .thenReturn(dates)
-//
-//      val result = service.calculateDates(incorpSuccess, None, validCR.accountsPreparation)
-//
-//      intercept[MissingAccountingDates](await(result))
-//    }
   }
 
 
   "fetchRegistrationByTxIds" should {
-   // import RegistrationHoldingPenService.FailedToRetrieveByTxId
-
     "return a CorporationTaxRegistration document when one is found by Transaction ID" in new Setup{
       when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
         .thenReturn(Future.successful(Some(validCR)))
@@ -334,12 +324,6 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       await(service.fetchRegistrationByTxId(transId)) shouldBe validCR
 
     }
-//    "return a FailedToRetrieveByTxId when one is not found" in new Setup {
-//      when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
-//        .thenReturn(Future.successful(None))
-//
-//      intercept[FailedToRetrieveByTxId](await(service.fetchRegistrationByTxId(transId)))
-//    }
   }
 
   "updateHeldSubmission" should {
