@@ -91,6 +91,7 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def storeSessionIdentifiers(regId: String, sessionId: String, credId: String) : Future[Boolean]
   def retrieveSessionIdentifiers(regId: String) : Future[Option[SessionIds]]
   def updateTransactionId(updateFrom: String, updateTo: String): Future[String]
+  def retrieveCountOfInvalidRejections(): Future[Int]
 }
 
 private[repositories] class MissingCTDocument(regId: String) extends NoStackTrace
@@ -522,5 +523,22 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
       .batchSize(count)
       .cursor[CorporationTaxRegistration]()
       .collect[List](count, logOnError)
+  }
+
+  def retrieveCountOfInvalidRejections(): Future[Int] = {
+    def existsTrue(field: String) = Json.obj(field -> Json.obj("$exists" -> true))
+    val query = Json.obj(
+      "status" -> "rejected",
+      "$or" -> Json.arr(
+        existsTrue("confirmationReferences"),
+        existsTrue("accountingDetails"),
+        existsTrue("accountsPreparation"),
+        existsTrue("verifiedEmail"),
+        existsTrue("companyDetails"),
+        existsTrue("tradingDetails"),
+        existsTrue("contactDetails")
+      )
+    )
+    collection.count(Some(query))
   }
 }

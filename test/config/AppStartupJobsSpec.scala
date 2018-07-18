@@ -139,4 +139,18 @@ class AppStartupJobsSpec extends UnitSpec with MockitoSugar with LogCapturing
     }
 
   }
+  "retrieveCount of invalid rejections" in new Setup {
+    when(mockCTRepository.retrieveCountOfInvalidRejections).thenReturn(Future.successful(1))
+
+    withCaptureOfLoggingFrom(Logger){ logEvents =>
+      eventually {
+        await(appStartupJobs.retrieveCountOfInvalidRejections)
+        val expectedLogs = List(
+          "[InvalidRejections] found 1 document(s)"
+        )
+
+        expectedLogs.diff(logEvents.map(_.getMessage)) shouldBe List.empty
+      }
+    }
+  }
 }

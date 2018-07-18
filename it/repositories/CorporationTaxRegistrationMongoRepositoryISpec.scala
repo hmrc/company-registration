@@ -938,4 +938,71 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       await(repository.retrieveStaleDocuments(1, 90)).size shouldBe 1
     }
   }
+
+  "retrieveCountOfInvalidRejections" should {
+    def validRejection(regid: String) = CorporationTaxRegistration("", regid, "rejected", "", "")
+    def invalidRejection(regid: String) = CorporationTaxRegistration("", regid, "rejected", "", "",
+      confirmationReferences = Some(ConfirmationReferences("", "", None, None))
+    )
+
+    "return a count of 1 with 2 documents in the repository, one valid one invalid" in new Setup {
+      count shouldBe 0
+      insert(validRejection("123"))
+      insert(invalidRejection("456"))
+      count shouldBe 2
+
+      await(repository.retrieveCountOfInvalidRejections()) shouldBe 1
+    }
+    "return a count of 2 with 3 documents in repository, one document contains all fields matching criteria" in new Setup {
+      val invalidRejectionAllFields = invalidRejection("567").copy(
+        accountingDetails = Some(AccountingDetails("foo",None)),
+        accountsPreparation = Some(AccountPrepDetails("bar",None)),
+        verifiedEmail = Some(Email("foo","bar",false,false,false)),
+        companyDetails = Some(CompanyDetails("foo",
+          CHROAddress("foo","bar",None,"wizz","buzz",None,None,None),
+          PPOB("bar",None),"")),
+        tradingDetails = Some(TradingDetails("bar")),
+        contactDetails = Some(ContactDetails("foo",Some("bar"),"wizz",None,None,None))
+      )
+      count shouldBe 0
+      insert(validRejection("123"))
+      insert(invalidRejection("456"))
+      insert(invalidRejectionAllFields)
+      count shouldBe 3
+
+      await(repository.retrieveCountOfInvalidRejections()) shouldBe 2
+    }
+    "return a count of 0 if there are no invalid rejection cases in the repository but 1 valid exists" in new Setup {
+      count shouldBe 0
+      insert(validRejection("1"))
+      await(repository.retrieveCountOfInvalidRejections()) shouldBe 0
+    }
+    "return a count of 0 if there are no documents in the repository with a status of rejected" in new Setup {
+      count shouldBe 0
+      insert(validRejection("1").copy(status = "foo"))
+      await(repository.retrieveCountOfInvalidRejections()) shouldBe 0
+    }
+
+    Map(
+      invalidRejection("1") -> "Confirmation References",
+      validRejection("1").copy(accountingDetails = Some(AccountingDetails("foo",None))) -> "Account Details",
+      validRejection("1").copy(accountsPreparation = Some(AccountPrepDetails("bar",None))) -> "Account Prep Details",
+      validRejection("1").copy(verifiedEmail = Some(Email("foo","bar",false,false,false))) -> "verified Email",
+      validRejection("1").copy(companyDetails = Some(CompanyDetails("foo",
+        CHROAddress("foo","bar",None,"wizz","buzz",None,None,None),
+        PPOB("bar",None),""))) -> "company details",
+      validRejection("1").copy(tradingDetails = Some(TradingDetails("bar"))) -> "trading details",
+      validRejection("1").copy(contactDetails = Some(ContactDetails("foo",Some("bar"),"wizz",None,None,None))) -> "contact details"
+    ) foreach { case (invalidCase, thingInsideCtDoc) =>
+
+      s"find 1 rejected document when it contains just $thingInsideCtDoc" in new Setup {
+        count shouldBe 0
+        insert(validRejection("123"))
+        insert(invalidCase)
+        count shouldBe 2
+
+        await(repository.retrieveCountOfInvalidRejections()) shouldBe 1
+      }
+    }
+  }
 }
