@@ -17,9 +17,9 @@
 package services.admin
 
 import java.util.Base64
-import javax.inject.Inject
 
-import audit.{AdminCTReferenceEvent, AdminReleaseAuditEvent}
+import javax.inject.Inject
+import audit.{AdminCTReferenceEvent, AdminReleaseAuditEvent, DesTopUpSubmissionEvent, DesTopUpSubmissionEventDetail}
 import config.MicroserviceAuditConnector
 import connectors.{BusinessRegistrationConnector, DesConnector, IncorporationInformationConnector}
 import helpers.DateFormatter
@@ -218,7 +218,24 @@ trait AdminService extends DateFormatter {
 
     if (info.status != DRAFT) {
       val ackRef = confRefs.acknowledgementReference
-      desConnector.topUpCTSubmission(ackRef, submission(ackRef), info.regId) map { _ => true }
+      val event = new DesTopUpSubmissionEvent(
+        DesTopUpSubmissionEventDetail(
+          info.regId,
+          ackRef,
+          "Rejected",
+          None,
+          None,
+          None,
+          None,
+          Some(true)
+        ),
+        "ctRegistrationAdditionalData",
+        "ctRegistrationAdditionalData"
+      )
+      for {
+        _ <- desConnector.topUpCTSubmission(ackRef, submission(ackRef), info.regId)
+        _ <- auditConnector.sendExtendedEvent(event)
+      } yield true
     } else {
       Future.successful(true)
     }

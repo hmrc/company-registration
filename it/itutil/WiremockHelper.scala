@@ -19,8 +19,10 @@ import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
+import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
-import play.api.libs.json.{JsObject, Json}
+import com.github.tomakehurst.wiremock.verification.LoggedRequest
+import play.api.libs.json.{JsObject, JsValue, Json}
 
 object WiremockHelper {
   val wiremockPort = 11111
@@ -52,6 +54,12 @@ trait WiremockHelper {
           withBody(body)
       )
     )
+
+  def verifyPOSTRequestBody(url: String, json: String): Boolean = {
+    import collection.JavaConverters._
+
+    findAll(postRequestedFor(urlMatching(url))).asScala.toList.map(_.getBodyAsString).exists(_.contains(json))
+  }
 
   def stubDelete(url: String, status: Integer, body: String) =
     stubFor(delete(urlEqualTo(url))

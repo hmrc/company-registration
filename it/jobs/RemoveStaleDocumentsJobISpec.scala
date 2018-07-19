@@ -258,7 +258,32 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with LogCapturing
 
         res.message.contains("[remove-stale-documents-job] Successfully deleted 1 stale documents") shouldBe true
 
+
+
         count shouldBe 2
+      }
+
+      "there is one stale document in held status" in new Setup {
+        stubGet(s"/incorporation-information/$txID/incorporation-update", 200, s"""{}""")
+        stubDelete(s"/incorporation-information/subscribe/txId/regime/ct/subscriber/SCRS?force=true", 200, "{}")
+        stubGet(s"/business-registration/admin/business-tax-registration/remove/$regId", 200, """{}""")
+        stubPost("/business-incorporation/corporation-tax", 200, "{}")
+        stubPost(s"/write/audit", 200, "{}")
+
+        insert(corporationTaxRegistration(status = "held", lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(93), regId = regId))
+
+        count shouldBe 1
+
+        System.setProperty("feature.removeStaleDocuments", "true")
+        val job = lookupJob("remove-stale-documents-job")
+        val res = await(job.execute)
+
+        res.message.contains("[remove-stale-documents-job] Successfully deleted 1 stale documents") shouldBe true
+
+        count shouldBe 0
+
+        val auditJson = Json.obj("journeyId" -> regId, "acknowledgementReference" -> "ackRef", "incorporationStatus" -> "Rejected", "rejectedAsNotPaid" -> true)
+        verifyPOSTRequestBody("/write/audit", auditJson.toString) shouldBe true
       }
     }
 

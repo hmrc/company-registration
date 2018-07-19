@@ -849,6 +849,16 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(91)
     )
 
+    val registration90DaysOldLocked: CorporationTaxRegistration = corporationTaxRegistration(
+      registrationStatus = "locked",
+      lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(90)
+    )
+
+    val registration90DaysOldHeld: CorporationTaxRegistration = corporationTaxRegistration(
+      registrationStatus = "held",
+      lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(90)
+    )
+
     val registration30DaysOldDraft: CorporationTaxRegistration = corporationTaxRegistration(
       registrationStatus = "draft",
       lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(30)
@@ -864,6 +874,16 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(90)
     )
 
+    val registration90DaysOldHeldWithPaymentRef: CorporationTaxRegistration = corporationTaxRegistration(
+      status = "held",
+      lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(90)
+    ).copy(confirmationReferences = Some(ConfirmationReferences(transactionId = "txId", paymentReference = Some("TEST_PAY_REF"), paymentAmount = None)))
+
+    val registration90DaysOldLockedWithPaymentRef: CorporationTaxRegistration = corporationTaxRegistration(
+      status = "locked",
+      lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(90)
+    ).copy(confirmationReferences = Some(ConfirmationReferences(transactionId = "txId", paymentReference = Some("TEST_PAY_REF"), paymentAmount = None)))
+
     "return 0 documents" when {
       "trying to fetch 1 but the database contains no documents" in new Setup {
         await(repository.retrieveStaleDocuments(1, 90)) shouldBe Nil
@@ -872,13 +892,25 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       "the database contains 0 documents matching the query when trying to fetch 1" in new Setup {
         insert(registration90DaysOldSubmitted)
 
-        await(repository.retrieveStaleDocuments(1, 90)) shouldBe Nil
+        await(repository.retrieveStaleDocuments(1, 91)) shouldBe Nil
+      }
+      "the database contains documents not matching the query - held/locked with payment reference" in new Setup {
+        insert(registration90DaysOldHeldWithPaymentRef)
+        insert(registration90DaysOldLockedWithPaymentRef)
+
+        await(repository.retrieveStaleDocuments(1, 91)) shouldBe Nil
+      }
+      "the database contains documents not matching the query - held/locked without payment reference and held timestamp is 90 days old" in new Setup {
+        insert(registration90DaysOldHeld.copy(heldTimestamp = Some(DateTime.now(DateTimeZone.UTC).minusDays(90))))
+        insert(registration90DaysOldLocked.copy(heldTimestamp = Some(DateTime.now(DateTimeZone.UTC).minusDays(90))))
+
+        await(repository.retrieveStaleDocuments(1, 91)) shouldBe Nil
       }
     }
 
     "return the oldest document" when {
       "the database contains 1 document matching the query" in new Setup {
-        insert(registration90DaysOldDraft)
+        insert(registration91DaysOldDraft)
 
         await(repository.retrieveStaleDocuments(1, 90)).head.lastSignedIn.getChronology shouldBe List(registration90DaysOldDraft).head.lastSignedIn.getChronology
       }
@@ -893,10 +925,10 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
     "return multiple documents in order of document age" when {
       "the database contains multiple documents matching the query" in new Setup {
-        insert(registration90DaysOldDraft)
         insert(registration91DaysOldDraft)
+        insert(registration91DaysOldLocked)
 
-        await(repository.retrieveStaleDocuments(2, 90)) shouldBe List(registration91DaysOldDraft, registration90DaysOldDraft)
+        await(repository.retrieveStaleDocuments(2, 90)).toSet shouldBe Set(registration91DaysOldLocked, registration91DaysOldDraft)
       }
 
       "the database contains multiple documents with the same time matching the query" in new Setup {
@@ -906,13 +938,17 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         await(repository.retrieveStaleDocuments(2, 90)) should contain theSameElementsAs List(registration91DaysOldDraft, registration91DaysOldLocked)
       }
 
-      "2 of the documents match the query and 2 do not" in new Setup {
+      "1 of the documents match the query and 3 do not" in new Setup {
+        count shouldBe 0
         insert(registration90DaysOldDraft)
         insert(registration91DaysOldLocked)
         insert(registration30DaysOldDraft)
         insert(registration90DaysOldSubmitted)
 
-        await(repository.retrieveStaleDocuments(5, 90)) shouldBe List(registration91DaysOldLocked, registration90DaysOldDraft)
+        val res = await(repository.retrieveStaleDocuments(5, 90))
+        res.map(_.status) shouldBe List("draft")
+        res.size shouldBe 1
+        res shouldBe List(registration91DaysOldLocked)
       }
     }
 
@@ -924,18 +960,10 @@ class CorporationTaxRegistrationMongoRepositoryISpec
           malform = Some(Json.obj("registrationID" -> true))
         )
         insertRaw(incorrectRegistration)
-        insert(registration90DaysOldDraft)
+        insert(registration91DaysOldDraft)
 
-        await(repository.retrieveStaleDocuments(2, 90)) shouldBe List(registration90DaysOldDraft)
+        await(repository.retrieveStaleDocuments(2, 90)) shouldBe List(registration91DaysOldDraft)
       }
-    }
-
-    "return a document if last signed in is not present" in new Setup {
-      val registrationId = "regId"
-      val registrationNoLastSignedIn = ctRegistrationJson(registrationId) - "lastSignedIn"
-      insertRaw(registrationNoLastSignedIn)
-      count shouldBe 1
-      await(repository.retrieveStaleDocuments(1, 90)).size shouldBe 1
     }
   }
 
