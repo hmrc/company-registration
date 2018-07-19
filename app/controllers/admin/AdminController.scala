@@ -66,6 +66,9 @@ trait AdminController extends BaseController with FutureInstances with Applicati
       withJsonBody[HO6Identifiers] { ids =>
         val confirmationReferences = buildConfirmationRefs(ids)
         val updatedHc = updateHeaderCarrierWithSessionId(ids.sessionId)
+
+        Logger.info(s"[AdminController] [updateConfirmationReferences] Updating confirmation references for ${ids.registrationId}")
+
         fetchStatus(ids.registrationId) { statusBefore =>
           ctService.handleSubmission(ids.registrationId, ids.credId, confirmationReferences)(
             updatedHc, request.map(AnyContentAsJson), isAdmin = true).flatMap{
@@ -128,7 +131,10 @@ trait AdminController extends BaseController with FutureInstances with Applicati
   }
 
   private def fetchStatus(regId: String)(f: (String) => Future[Result]): Future[Result] = {
-    ctService.fetchStatus(regId).semiflatMap(f).getOrElse(NotFound)
+    ctService.fetchStatus(regId).semiflatMap(f).getOrElse {
+      Logger.info(s"[AdminController] [fetchStatus] Could not find status for $regId")
+      NotFound
+    }
   }
 
   private def updateHeaderCarrierWithSessionId(sessionId: String)(implicit hc: HeaderCarrier) = {
