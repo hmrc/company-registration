@@ -967,10 +967,17 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     }
   }
 
-  "retrieveCountOfInvalidRejections" should {
-    def validRejection(regid: String) = CorporationTaxRegistration("", regid, "rejected", "", "")
+  "updateInvalidRejectionCasesAndReturnCountOfModified" should {
+    def validRejection(regid: String) = CorporationTaxRegistration("", regid, "rejected", "", "").copy(
+      createdTime = DateTime.parse("2017-01-01"),
+      lastSignedIn = DateTime.parse("2017-01-01")
+    )
+
     def invalidRejection(regid: String) = CorporationTaxRegistration("", regid, "rejected", "", "",
       confirmationReferences = Some(ConfirmationReferences("", "", None, None))
+    ).copy(
+      createdTime = DateTime.parse("2017-01-01"),
+      lastSignedIn = DateTime.parse("2017-01-01")
     )
 
     "return a count of 1 with 2 documents in the repository, one valid one invalid" in new Setup {
@@ -979,7 +986,11 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       insert(invalidRejection("456"))
       count shouldBe 2
 
-      await(repository.retrieveCountOfInvalidRejections()) shouldBe 1
+      await(repository.updateInvalidRejectionCasesAndReturnCountOfModified) shouldBe 1
+      count shouldBe 2
+      await(repository.retrieveCorporationTaxRegistration("123")).get.toString shouldBe validRejection("123").toString
+      await(repository.retrieveCorporationTaxRegistration("456")).get.toString shouldBe validRejection("456").toString
+
     }
     "return a count of 2 with 3 documents in repository, one document contains all fields matching criteria" in new Setup {
       val invalidRejectionAllFields = invalidRejection("567").copy(
@@ -998,17 +1009,28 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       insert(invalidRejectionAllFields)
       count shouldBe 3
 
-      await(repository.retrieveCountOfInvalidRejections()) shouldBe 2
+      await(repository.updateInvalidRejectionCasesAndReturnCountOfModified)shouldBe 2
+      count shouldBe 3
+      await(repository.retrieveCorporationTaxRegistration("123")).get.toString shouldBe validRejection("123").toString
+      await(repository.retrieveCorporationTaxRegistration("456")).get.toString shouldBe validRejection("456").toString
+      await(repository.retrieveCorporationTaxRegistration("567")).get.toString shouldBe validRejection("567").toString
+
     }
-    "return a count of 0 if there are no invalid rejection cases in the repository but 1 valid exists" in new Setup {
+    "return a count of 0 if there are no invalid rejection cases in the repository but 1 valid exists (with a field that shouldnt be updated)" in new Setup {
+      val validPlusExtraFieldThatWontBeUpdated = validRejection("1").copy(internalId = "fooBar")
       count shouldBe 0
-      insert(validRejection("1"))
-      await(repository.retrieveCountOfInvalidRejections()) shouldBe 0
+      insert(validPlusExtraFieldThatWontBeUpdated)
+      await(repository.updateInvalidRejectionCasesAndReturnCountOfModified)shouldBe 0
+      count shouldBe 1
+      await(repository.retrieveCorporationTaxRegistration("1")).get.toString shouldBe validPlusExtraFieldThatWontBeUpdated.toString
     }
     "return a count of 0 if there are no documents in the repository with a status of rejected" in new Setup {
+      val validDoc = validRejection("1").copy(status = "foo")
       count shouldBe 0
-      insert(validRejection("1").copy(status = "foo"))
-      await(repository.retrieveCountOfInvalidRejections()) shouldBe 0
+      insert(validDoc)
+      await(repository.updateInvalidRejectionCasesAndReturnCountOfModified)shouldBe 0
+      count shouldBe 1
+      await(repository.retrieveCorporationTaxRegistration("1")).get.toString shouldBe validDoc.toString
     }
 
     Map(
@@ -1029,7 +1051,10 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         insert(invalidCase)
         count shouldBe 2
 
-        await(repository.retrieveCountOfInvalidRejections()) shouldBe 1
+        await(repository.updateInvalidRejectionCasesAndReturnCountOfModified)shouldBe 1
+        count shouldBe 2
+        await(repository.retrieveCorporationTaxRegistration("1")).get.toString shouldBe validRejection("1").toString
+        await(repository.retrieveCorporationTaxRegistration("123")).get.toString shouldBe validRejection("123").toString
       }
     }
   }

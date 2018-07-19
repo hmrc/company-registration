@@ -218,8 +218,8 @@ class AppStartupJobs @Inject()(config: Configuration,
   }
 
   def retrieveCountOfInvalidRejections() = {
-    ctRepo.retrieveCountOfInvalidRejections() map { count =>
-      Logger.info(s"[InvalidRejections] found $count document(s)")
+    ctRepo.updateInvalidRejectionCasesAndReturnCountOfModified map { count =>
+      Logger.info(s"[InvalidRejections] modified $count document(s)")
     }
   }
 }

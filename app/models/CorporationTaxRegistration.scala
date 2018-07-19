@@ -23,9 +23,6 @@ import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import reactivemongo.play.json.BSONFormats.BSONDocumentFormat
 
-import scala.language.implicitConversions
-
-
 object RegistrationStatus {
   val DRAFT         = "draft"
   val LOCKED        = "locked"
