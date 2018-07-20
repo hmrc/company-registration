@@ -99,16 +99,16 @@ trait IncorporationInformationConnector extends AlertLogging {
     }
   }
 
-  def checkNotIncorporated(transactionID: String)(implicit hc: HeaderCarrier): Future[Boolean] = {
+  def checkCompanyIncorporated(transactionID: String)(implicit hc: HeaderCarrier): Future[Option[String]] = {
     http.GET[HttpResponse](s"$url/incorporation-information/$transactionID/incorporation-update") map { res =>
       res.status match {
         case OK =>
           val crn = (res.json \ "crn").asOpt[String]
-          if (crn.isEmpty) { true } else {
-            pagerduty(PagerDutyKeys.NINETY_DAY_DELETE_WARNING_CRN_FOUND)
-            throw new RuntimeException
+          if (crn.nonEmpty) {
+            pagerduty(PagerDutyKeys.STALE_DOCUMENTS_DELETE_WARNING_CRN_FOUND)
           }
-        case NO_CONTENT => true
+          crn
+        case NO_CONTENT => None
       }
     }
   }
