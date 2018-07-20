@@ -455,8 +455,8 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
       "the document is draft, has confirmation references and successfully deletes BR and CR document" in new Setup {
         val confRefExampleDoc = exampleDoc.copy(confirmationReferences = Some(ConfirmationReferences("", "", None, None)))
 
-        when(mockIncorpInfoConnector.checkNotIncorporated(any())(any()))
-          .thenReturn(Future.successful(true))
+        when(mockIncorpInfoConnector.checkCompanyIncorporated(any())(any()))
+          .thenReturn(Future.successful(None))
         when(mockBusRegConnector.adminRemoveMetadata(any()))
           .thenReturn(Future.successful(true))
         when(mockIncorpInfoConnector.cancelSubscription(any(), any(), any())(any()))
@@ -472,8 +472,8 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
       "the document is draft, has confirmation references and successfully deletes BR and CR document but the subscription has an old regime" in new Setup {
         val confRefExampleDoc = exampleDoc.copy(confirmationReferences = Some(ConfirmationReferences("", "", None, None)))
 
-        when(mockIncorpInfoConnector.checkNotIncorporated(any())(any()))
-          .thenReturn(Future.successful(true))
+        when(mockIncorpInfoConnector.checkCompanyIncorporated(any())(any()))
+          .thenReturn(Future.successful(None))
         when(mockBusRegConnector.adminRemoveMetadata(any()))
           .thenReturn(Future.successful(true))
         when(mockIncorpInfoConnector.cancelSubscription(any(), any(), any())(any()))
@@ -493,8 +493,8 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
       "the document is draft, has confirmation references and successfully deletes BR and CR document, but no subs" in new Setup {
         val confRefExampleDoc = exampleDoc.copy(confirmationReferences = Some(ConfirmationReferences("", "", None, None)))
 
-        when(mockIncorpInfoConnector.checkNotIncorporated(any())(any()))
-          .thenReturn(Future.successful(true))
+        when(mockIncorpInfoConnector.checkCompanyIncorporated(any())(any()))
+          .thenReturn(Future.successful(None))
         when(mockBusRegConnector.adminRemoveMetadata(any()))
           .thenReturn(Future.successful(true))
         when(mockIncorpInfoConnector.cancelSubscription(any(), any(), any())(any()))
@@ -514,8 +514,8 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
       "the document is held or locked, has confirmation references and successfully deletes BR and CR document" in new Setup {
         val confRefExampleDoc = exampleDoc.copy(status= "held", confirmationReferences = Some(ConfirmationReferences("", "", None, None)))
 
-        when(mockIncorpInfoConnector.checkNotIncorporated(any())(any()))
-          .thenReturn(Future.successful(true))
+        when(mockIncorpInfoConnector.checkCompanyIncorporated(any())(any()))
+          .thenReturn(Future.successful(None))
         when(mockDesConnector.topUpCTSubmission(any(), any(), any(), any())(any()))
           .thenReturn(Future.successful(HttpResponse(200)))
         when(mockBusRegConnector.adminRemoveMetadata(any()))
@@ -537,8 +537,8 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
       "the document is held or locked with a CRN" in new Setup {
         val confRefWithCRNExampleDoc = exampleDoc.copy(status= "held", confirmationReferences = Some(ConfirmationReferences("", "transID", None, None)))
 
-        when(mockIncorpInfoConnector.checkNotIncorporated(any())(any()))
-          .thenReturn(Future.failed(new RuntimeException("CRN found")))
+        when(mockIncorpInfoConnector.checkCompanyIncorporated(any())(any()))
+          .thenReturn(Future.successful(Some("CRN found")))
 
         await(service.processStaleDocument(confRefWithCRNExampleDoc)) shouldBe false
       }
@@ -546,8 +546,8 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
       "the document is held or locked with failure to send a rejection topup" in new Setup {
         val confRefWithCRNExampleDoc = exampleDoc.copy(status= "locked", confirmationReferences = Some(ConfirmationReferences("", "transID", None, None)))
 
-        when(mockIncorpInfoConnector.checkNotIncorporated(any())(any()))
-          .thenReturn(Future.successful(true))
+        when(mockIncorpInfoConnector.checkCompanyIncorporated(any())(any()))
+          .thenReturn(Future.successful(None))
         when(mockDesConnector.topUpCTSubmission(any(),any(),any(),any())(any()))
           .thenReturn(Future.failed(new Upstream4xxResponse("test", 400, 400, Map())))
 
@@ -556,8 +556,8 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
       "the document is held or locked with failure to delete the BR document" in new Setup {
         val confRefWithCRNExampleDoc = exampleDoc.copy(status= "held", confirmationReferences = Some(ConfirmationReferences("", "transID", None, None)))
 
-        when(mockIncorpInfoConnector.checkNotIncorporated(any())(any()))
-          .thenReturn(Future.successful(true))
+        when(mockIncorpInfoConnector.checkCompanyIncorporated(any())(any()))
+          .thenReturn(Future.successful(None))
         when(mockDesConnector.topUpCTSubmission(any(),any(),any(),any())(any()))
           .thenReturn(Future.successful(HttpResponse(200)))
         when(mockBusRegConnector.adminRemoveMetadata(any()))
@@ -568,8 +568,8 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
       "the document is held or locked with failure to delete the CR document" in new Setup {
         val confRefWithCRNExampleDoc = exampleDoc.copy(status= "held", confirmationReferences = Some(ConfirmationReferences("", "transID", None, None)))
 
-        when(mockIncorpInfoConnector.checkNotIncorporated(any())(any()))
-          .thenReturn(Future.successful(true))
+        when(mockIncorpInfoConnector.checkCompanyIncorporated(any())(any()))
+          .thenReturn(Future.successful(None))
         when(mockDesConnector.topUpCTSubmission(any(),any(),any(),any())(any()))
           .thenReturn(Future.successful(HttpResponse(200)))
         when(mockBusRegConnector.adminRemoveMetadata(any()))

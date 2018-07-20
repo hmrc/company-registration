@@ -26,7 +26,7 @@ import uk.gov.hmrc.play.config.ServicesConfig
 object PagerDutyKeys extends Enumeration {
   val CT_REJECTED = Value
   val CT_ACCEPTED_MISSING_UTR = Value
-  val NINETY_DAY_DELETE_WARNING_CRN_FOUND = Value
+  val STALE_DOCUMENTS_DELETE_WARNING_CRN_FOUND = Value
 }
 
 object AlertLogging extends AlertLogging with ServicesConfig {

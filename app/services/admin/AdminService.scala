@@ -177,7 +177,7 @@ trait AdminService extends DateFormatter {
   case class DocumentInfo(regId: String, status: String, lastSignedIn: DateTime)
 
   private def removeStaleDocument(documentInfo: DocumentInfo, optRefs : Option[ConfirmationReferences])(implicit hc: HeaderCarrier) = optRefs match {
-    case Some(confRefs) => checkIncorporation(documentInfo, confRefs) flatMap { _ =>
+    case Some(confRefs) => checkNotIncorporated(documentInfo, confRefs) flatMap { _ =>
       rejectNoneDraft(documentInfo, confRefs) flatMap { _ =>
         adminDeleteSubmission(documentInfo, Some(confRefs.transactionId))
       }
@@ -201,12 +201,16 @@ trait AdminService extends DateFormatter {
     }
   }
 
-  private def checkIncorporation(documentInfo: DocumentInfo, confRefs: ConfirmationReferences)(implicit hc: HeaderCarrier) = {
-    incorpInfoConnector.checkNotIncorporated(confRefs.transactionId) recover { case e : RuntimeException =>
-      Logger.warn(s"[processStaleDocument] Could not delete document with CRN: " +
-        s"regId: ${documentInfo.regId} transID: ${confRefs.transactionId} lastSignIn: ${documentInfo.lastSignedIn} status: ${documentInfo.status}"
-      )
-      throw e
+  private def checkNotIncorporated(documentInfo: DocumentInfo, confRefs: ConfirmationReferences)(implicit hc: HeaderCarrier): Future[Boolean] = {
+    incorpInfoConnector.checkCompanyIncorporated(confRefs.transactionId) map { res =>
+      res.fold {
+        true
+      } { crn =>
+        Logger.warn(s"[processStaleDocument] Could not delete document with CRN: $crn " +
+          s"regId: ${documentInfo.regId} transID: ${confRefs.transactionId} lastSignIn: ${documentInfo.lastSignedIn} status: ${documentInfo.status}"
+        )
+        throw new RuntimeException
+      }
     }
   }
 

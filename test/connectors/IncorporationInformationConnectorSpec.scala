@@ -149,13 +149,13 @@ class IncorporationInformationConnectorSpec extends UnitSpec with MockitoSugar w
   }
 
   "checkNotIncorporated" should {
-    "return true" when {
+    "return None" when {
       "the CRN is not there" in new Setup {
         val expectedURL = s"${connector.url}/incorporation-information/$txId/incorporation-update"
         when(mockWSHttp.GET[HttpResponse](ArgumentMatchers.eq(expectedURL))(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
           .thenReturn(HttpResponse(200))
 
-        await(connector.checkNotIncorporated(txId)) shouldBe true
+        await(connector.checkCompanyIncorporated(txId)) shouldBe None
       }
 
       "on a no content response" in new Setup {
@@ -163,21 +163,21 @@ class IncorporationInformationConnectorSpec extends UnitSpec with MockitoSugar w
         when(mockWSHttp.GET[HttpResponse](ArgumentMatchers.eq(expectedURL))(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
           .thenReturn(HttpResponse(204))
 
-        await(connector.checkNotIncorporated(txId)) shouldBe true
+        await(connector.checkCompanyIncorporated(txId)) shouldBe None
       }
     }
 
-    "return an exception" when {
+    "return Some crn" when {
       "the CRN is there" in new Setup {
         val expectedURL = s"${connector.url}/incorporation-information/$txId/incorporation-update"
         when(mockWSHttp.GET[HttpResponse](ArgumentMatchers.eq(expectedURL))(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
           .thenReturn(HttpResponse(200, Some(Json.obj("crn" -> "crn"))))
 
         withCaptureOfLoggingFrom(Logger) { logs =>
-          intercept[RuntimeException](await(connector.checkNotIncorporated(txId)))
+          await(connector.checkCompanyIncorporated(txId)) shouldBe Some("crn")
 
           logs.size shouldBe 1
-          logs.head.getMessage shouldBe "NINETY_DAY_DELETE_WARNING_CRN_FOUND"
+          logs.head.getMessage shouldBe "STALE_DOCUMENTS_DELETE_WARNING_CRN_FOUND"
         }
       }
     }
