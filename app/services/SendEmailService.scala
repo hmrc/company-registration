@@ -17,11 +17,13 @@
 package services
 
 import javax.inject.Inject
-
 import connectors.{AuthConnector, SendEmailConnector}
 import models.SendEmailRequest
+import play.api.Logger
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.config.ServicesConfig
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.concurrent.Future
 
@@ -45,7 +47,10 @@ trait SendEmailService {
       )
     }
 
-    def sendVATEmail(emailAddress :String)(implicit hc: HeaderCarrier): Future[Boolean] = {
-      emailConnector.requestEmail(generateVATEmailRequest(Seq(emailAddress)))
+    def sendVATEmail(emailAddress :String, regId: String)(implicit hc: HeaderCarrier): Future[Boolean] = {
+      emailConnector.requestEmail(generateVATEmailRequest(Seq(emailAddress))).map {
+        res => Logger.info("VAT email sent for journey id " + regId)
+          res
+      }
     }
   }

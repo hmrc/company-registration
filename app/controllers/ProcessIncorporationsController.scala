@@ -50,18 +50,16 @@ trait ProcessIncorporationsController extends BaseController {
       implicit val reads = IncorpStatus.reads
       withJsonBody[IncorpStatus]{ incorp =>
         val requestAsAnyContentAsJson: Request[AnyContentAsJson] = request.map(AnyContentAsJson)
-        regHoldingPenService.updateIncorp(incorp) flatMap {
+        regHoldingPenService.processIncorporationUpdate(incorp.toIncorpUpdate) flatMap {
           if(_) Future.successful(Ok) else {
             corpTaxRegService.setupPartialForTopupOnLocked(incorp.transactionId)(hc, requestAsAnyContentAsJson, isAdmin = false) map { _ =>
               Logger.info(s"[processIncorp] Sent partial submission in response to locked document on incorp update: ${incorp.transactionId}")
               Accepted
-            } recover {
-              case NoSessionIdentifiersInDocument => Ok
-              case e : Exception => throw e
             }
           }
         } recover {
-          case e: regHoldingPenService.FailedToRetrieveByTxIdOnRejection => Ok
+          case NoSessionIdentifiersInDocument => Ok
+          case _: MissingRegDocument => Ok
           case e =>
             logFailedTopup(incorp.transactionId)
             throw e
@@ -73,7 +71,7 @@ trait ProcessIncorporationsController extends BaseController {
     implicit request =>
       implicit val reads = IncorpStatus.reads
       withJsonBody[IncorpStatus]{ incorp =>
-        regHoldingPenService.updateIncorp(incorp, isAdmin = true) map {
+        regHoldingPenService.processIncorporationUpdate(incorp.toIncorpUpdate, isAdmin = true) map {
           if(_) { Ok } else {
             logFailedTopup(incorp.transactionId)
             BadRequest

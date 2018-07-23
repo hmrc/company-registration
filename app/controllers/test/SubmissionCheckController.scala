@@ -17,13 +17,12 @@
 package controllers.test
 
 import javax.inject.Inject
-
 import jobs.CheckSubmissionJob
 import org.joda.time.Duration
 import play.api.Logger
 import play.api.mvc.Action
 import repositories.Repositories
-import services.RegistrationHoldingPenService
+import services.{FailedToRetrieveByTxId, RegistrationHoldingPenService}
 import uk.gov.hmrc.lock.LockKeeper
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
@@ -54,7 +53,7 @@ trait SubmissionCheckController extends BaseController {
       lock.tryLock[String] {
         Logger.info(s"[Test] [SubmissionCheckController] Triggered $name")
         service.updateNextSubmissionByTimepoint recover {
-          case ex: service.FailedToRetrieveByTxId =>
+          case ex: FailedToRetrieveByTxId =>
             ex.getClass.toString
           case ex =>
             ex.getClass.toString

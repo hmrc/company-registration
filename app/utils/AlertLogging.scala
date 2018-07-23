@@ -27,6 +27,7 @@ object PagerDutyKeys extends Enumeration {
   val CT_REJECTED = Value
   val CT_ACCEPTED_MISSING_UTR = Value
   val STALE_DOCUMENTS_DELETE_WARNING_CRN_FOUND = Value
+  val CT_ACCEPTED_NO_REG_DOC_II_SUBS_DELETED = Value
 }
 
 object AlertLogging extends AlertLogging with ServicesConfig {
