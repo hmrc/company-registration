@@ -49,6 +49,7 @@ trait MicroService {
       scalacOptions ++= List(
         "-Xlint:-missing-interpolator"
       ),
+      resolvers += Resolver.jcenterRepo,
       scalaVersion := "2.11.11"
     )
     .configs(IntegrationTest)

@@ -78,8 +78,6 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
     val listOfackRefs = new String(Base64.getDecoder.decode(base64ackRefs), "UTF-8").split(",").toList
     app.injector.instanceOf[AppStartupJobs].fetchByAckRef(listOfackRefs)
 
-    app.injector.instanceOf[AppStartupJobs].retrieveCountOfInvalidRejections()
-
     (1 to 5) foreach {
       _ => app.injector.instanceOf[AppStartupJobs].getHeldDocsInfoSecondary()
     }
@@ -214,12 +212,6 @@ class AppStartupJobs @Inject()(config: Configuration,
           )
         case _ => Logger.info(s"[StartUp] [fetchByAckRef] No registration document found for $ackRef")
       }
-    }
-  }
-
-  def retrieveCountOfInvalidRejections() = {
-    ctRepo.updateInvalidRejectionCasesAndReturnCountOfModified map { count =>
-      Logger.info(s"[InvalidRejections] modified $count document(s)")
     }
   }
 }
