@@ -16,11 +16,10 @@
 
 package repositories
 
-import javax.inject.{Inject, Singleton}
-
 import auth.AuthorisationResource
 import cats.data.OptionT
 import cats.implicits._
+import javax.inject.{Inject, Singleton}
 import models._
 import models.validation.MongoValidation
 import org.joda.time.{DateTime, DateTimeZone}
@@ -91,7 +90,7 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def storeSessionIdentifiers(regId: String, sessionId: String, credId: String) : Future[Boolean]
   def retrieveSessionIdentifiers(regId: String) : Future[Option[SessionIds]]
   def updateTransactionId(updateFrom: String, updateTo: String): Future[String]
-  def retrieveCountOfInvalidRejections(): Future[Int]
+  def updateInvalidRejectionCasesAndReturnCountOfModified(): Future[Int]
 }
 
 private[repositories] class MissingCTDocument(regId: String) extends NoStackTrace
@@ -318,7 +317,20 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
   override def removeUnnecessaryRegistrationInformation(registrationId: String): Future[Boolean] = {
     val modifier = BSONDocument("$unset" -> BSONDocument("confirmationReferences" -> 1, "accountingDetails" -> 1,
       "accountsPreparation" -> 1, "verifiedEmail" -> 1, "companyDetails" -> 1, "tradingDetails" -> 1, "contactDetails" -> 1))
-    collection.findAndUpdate(registrationIDSelector(registrationId), modifier, fetchNewObject = false, upsert=false) map (r=>if(r.lastError.isDefined)true else false)
+    collection.findAndUpdate(registrationIDSelector(registrationId), modifier, fetchNewObject = false, upsert= false) map{ res =>
+     res.lastError.flatMap { _.err.map { e =>
+       Logger.warn(s"[removeUnnecessaryInformation] - an error occurred for regId: $registrationId with error: ${e}")
+       false
+      }
+     }.getOrElse{
+      if(res.value.isDefined) { true
+      } else {
+        Logger.warn(s"[removeUnnecessaryInformation] - attempted to remove keys but no doc was found for regId: $registrationId")
+        true
+      }
+     }
+
+    }
   }
 
   override def updateHeldToSubmitted(registrationId: String, crn: String, submissionTS: String): Future[Boolean] = {
@@ -527,20 +539,10 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
       .collect[List](count, logOnError)
   }
 
-  def retrieveCountOfInvalidRejections(): Future[Int] = {
-    def existsTrue(field: String) = Json.obj(field -> Json.obj("$exists" -> true))
-    val query = Json.obj(
-      "status" -> "rejected",
-      "$or" -> Json.arr(
-        existsTrue("confirmationReferences"),
-        existsTrue("accountingDetails"),
-        existsTrue("accountsPreparation"),
-        existsTrue("verifiedEmail"),
-        existsTrue("companyDetails"),
-        existsTrue("tradingDetails"),
-        existsTrue("contactDetails")
-      )
-    )
-    collection.count(Some(query))
+  def updateInvalidRejectionCasesAndReturnCountOfModified: Future[Int] = {
+    val query = BSONDocument("status" -> "rejected")
+    val modifier = BSONDocument("$unset" -> BSONDocument("confirmationReferences" -> 1, "accountingDetails" -> 1,
+      "accountsPreparation" -> 1, "verifiedEmail" -> 1, "companyDetails" -> 1, "tradingDetails" -> 1, "contactDetails" -> 1))
+    collection.update(query,modifier, multi = true).map(_.nModified)
   }
 }
