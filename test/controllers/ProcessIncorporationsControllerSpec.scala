@@ -160,17 +160,6 @@ class ProcessIncorporationsControllerSpec extends UnitSpec with MockitoSugar wit
         }
       }
     }
-    Seq(
-      "return 200 for failed to retrieve my txid" -> new FailedToRetrieveByTxId("fakeTxId"),
-      "return 200 for failed to retrieve my txid on rejection" -> new FailedToRetrieveByTxIdOnRejection("fakeTxId")
-    ) foreach { case (msg, error) => msg in new Setup {
-        when(mockRegHoldingPenService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.failed(error))
-
-        val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
-
-        status(call(controller.processIncorp, request)) shouldBe 200
-      }
-    }
   }
 
   "Invalid Data" should {

@@ -59,7 +59,6 @@ trait ProcessIncorporationsController extends BaseController {
           }
         } recover {
           case NoSessionIdentifiersInDocument => Ok
-          case _: MissingRegDocument => Ok
           case e =>
             logFailedTopup(incorp.transactionId)
             throw e

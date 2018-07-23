@@ -22,7 +22,7 @@ import org.joda.time.Duration
 import play.api.Logger
 import play.api.mvc.Action
 import repositories.Repositories
-import services.{FailedToRetrieveByTxId, RegistrationHoldingPenService}
+import services.RegistrationHoldingPenService
 import uk.gov.hmrc.lock.LockKeeper
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
@@ -53,10 +53,7 @@ trait SubmissionCheckController extends BaseController {
       lock.tryLock[String] {
         Logger.info(s"[Test] [SubmissionCheckController] Triggered $name")
         service.updateNextSubmissionByTimepoint recover {
-          case ex: FailedToRetrieveByTxId =>
-            ex.getClass.toString
-          case ex =>
-            ex.getClass.toString
+          case ex => ex.getClass.toString
         }
       } map {
         case Some(x) =>

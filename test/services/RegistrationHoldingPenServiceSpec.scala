@@ -317,17 +317,6 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
     }
   }
 
-
-  "fetchRegistrationByTxIds" should {
-    "return a CorporationTaxRegistration document when one is found by Transaction ID" in new Setup{
-      when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
-        .thenReturn(Future.successful(Some(validCR)))
-
-      await(service.fetchRegistrationByTxId(transId)) shouldBe validCR
-
-    }
-  }
-
   "updateHeldSubmission" should {
 
     val testUserDetails = UserDetailsModel("bob", "a@b.c", "organisation", Some("description"), Some("lastName"), Some("1/1/1990"), Some("PO1 1ST"), "123", "456")
@@ -738,11 +727,10 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
         .thenReturn(Future.successful(true))
 
       withCaptureOfLoggingFrom(Logger) { logEvents =>
-        intercept[FailedToRetrieveByTxId] {
-          await(service.processIncorporationUpdate(incorpSuccess))
-        }
+        await(service.processIncorporationUpdate(incorpSuccess)) shouldBe true
+
         eventually {
-          logEvents.size shouldBe 5
+          logEvents.size shouldBe 2
           val res = logEvents.map(_.getMessage) contains "CT_ACCEPTED_NO_REG_DOC_II_SUBS_DELETED"
 
           res shouldBe true

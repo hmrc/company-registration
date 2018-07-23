@@ -72,10 +72,6 @@ private[services] object FailedToUpdateSubmissionWithRejectedIncorp extends NoSt
 
 private[services] object FailedToDeleteSubmissionData extends NoStackTrace
 
-class MissingRegDocument extends NoStackTrace
-class FailedToRetrieveByTxId(val transId: String) extends MissingRegDocument
-class FailedToRetrieveByTxIdOnRejection(val transId: String) extends MissingRegDocument
-
 trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions with Logging {
 
   val desConnector: DesConnector
@@ -129,36 +125,36 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions w
     }
   }
 
-  private def sendEmail(ctReg: CorporationTaxRegistration, resultOfUpdate: Boolean)(implicit hc: HeaderCarrier) = (if (resultOfUpdate && ctReg.verifiedEmail.isDefined) {
-    sendEmailService.sendVATEmail(ctReg.verifiedEmail.get.address, ctReg.registrationID)
-  } else {
-    Future.successful(true)
-  }).recover { case _: EmailErrorResponse => true }
+  private def sendEmail(ctReg: CorporationTaxRegistration)(implicit hc: HeaderCarrier) =
+    sendEmailService.sendVATEmail(ctReg.verifiedEmail.get.address, ctReg.registrationID) recover {
+      case _: EmailErrorResponse => true
+    }
 
   def processIncorporationUpdate(item: IncorpUpdate, isAdmin: Boolean = false)(implicit hc: HeaderCarrier): Future[Boolean] = {
-    item.status match {
-      case "accepted" =>
-        (for {
-          ctReg <- fetchRegistrationByTxId(item.transactionId)
-          resultOfUpdate <- updateSubmissionWithIncorporation(item, ctReg, isAdmin)
-          _ <- sendEmail(ctReg, resultOfUpdate)
-        } yield resultOfUpdate) recover {
-          case e: FailedToRetrieveByTxId =>
+    ctRepository.retrieveRegistrationByTransactionID(item.transactionId) flatMap { oCTReg =>
+      item.status match {
+        case "accepted" =>
+          oCTReg.fold {
             if (inWorkingHours) {
               Logger.error(PagerDutyKeys.CT_ACCEPTED_NO_REG_DOC_II_SUBS_DELETED.toString)
             }
             Logger.error(s"[processIncorporationUpdate] Incorporation accepted but no reg document found for txId: ${item.transactionId} - II subscription deleted")
-            throw e
-        }
-      case "rejected" =>
-        val reason = item.statusDescription.fold("No reason given")(f => " Reason given: " + f)
-        Logger.info("[processIncorporationUpdate] Incorporation rejected for Transaction: " + item.transactionId + reason)
-        for {
-          ctReg <- fetchRegistrationByTxId(item.transactionId).recover { case e: FailedToRetrieveByTxId => {
-                  Logger.warn(s"[processIncorporationUpdate] Rejection with no CT document for trans id ${item.transactionId}")
-                  throw new FailedToRetrieveByTxIdOnRejection(e.transId) }}
-          submissionResult <- updateSubmissionWithRejectedIncorp(item, ctReg, isAdmin)
-        } yield submissionResult
+            Future.successful(true)
+          } { ctReg =>
+            for {
+              resultOfUpdate <- updateSubmissionWithIncorporation(item, ctReg, isAdmin)
+              _ <- if (resultOfUpdate && ctReg.verifiedEmail.isDefined) sendEmail(ctReg) else Future.successful(true)
+            } yield resultOfUpdate
+          }
+        case "rejected" =>
+          val reason = item.statusDescription.fold(" No reason given")(f => " Reason given: " + f)
+          Logger.info("[processIncorporationUpdate] Incorporation rejected for Transaction: " + item.transactionId + reason)
+
+          oCTReg.fold {
+            Logger.warn(s"[processIncorporationUpdate] Rejection with no CT document for trans id ${item.transactionId}")
+            Future.successful(true)
+          } { ctReg => updateSubmissionWithRejectedIncorp(item, ctReg, isAdmin) }
+      }
     }
   }
 
@@ -368,19 +364,6 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions w
       submission <- incorporationCheckAPIConnector.checkSubmission(timepoint)(hc)
     } yield {
       submission.items
-    }
-  }
-
-  private[services] def fetchRegistrationByTxId(transId: String): Future[CorporationTaxRegistration] = {
-    Logger.debug(s"""Got tx_id "${transId}" """)
-    ctRepository.retrieveRegistrationByTransactionID(transId) flatMap {
-      case Some(s) => Future.successful(s)
-      case None =>
-        if (inWorkingHours) {
-          Logger.error("INCORP_BLOCKAGE")
-        }
-        Logger.error(s"BLOCKAGE :  We have an incorp blockage with txid ${transId}")
-        Future.failed(new FailedToRetrieveByTxId(transId))
     }
   }
 
