@@ -429,7 +429,10 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
   }
 
   override def fetchDocumentStatus(regId: String): OptionT[Future, String] = {
-    OptionT(retrieveCorporationTaxRegistration(regId)) map (_.status)
+    for {
+      status <- OptionT(retrieveCorporationTaxRegistration(regId)).map(_.status)
+      _ = Logger.info(s"[FetchDocumentStatus] status for reg id $regId is ${status} " )
+    } yield status
   }
 
   override def updateRegistrationToHeld(regId: String, confRefs: ConfirmationReferences): Future[Option[CorporationTaxRegistration]] = {
