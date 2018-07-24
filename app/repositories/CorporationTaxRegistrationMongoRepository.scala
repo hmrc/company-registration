@@ -90,7 +90,6 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def storeSessionIdentifiers(regId: String, sessionId: String, credId: String) : Future[Boolean]
   def retrieveSessionIdentifiers(regId: String) : Future[Option[SessionIds]]
   def updateTransactionId(updateFrom: String, updateTo: String): Future[String]
-  def updateInvalidRejectionCasesAndReturnCountOfModified(): Future[Int]
 }
 
 private[repositories] class MissingCTDocument(regId: String) extends NoStackTrace
@@ -537,12 +536,5 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
       .batchSize(count)
       .cursor[CorporationTaxRegistration]()
       .collect[List](count, logOnError)
-  }
-
-  def updateInvalidRejectionCasesAndReturnCountOfModified: Future[Int] = {
-    val query = BSONDocument("status" -> "rejected")
-    val modifier = BSONDocument("$unset" -> BSONDocument("confirmationReferences" -> 1, "accountingDetails" -> 1,
-      "accountsPreparation" -> 1, "verifiedEmail" -> 1, "companyDetails" -> 1, "tradingDetails" -> 1, "contactDetails" -> 1))
-    collection.update(query,modifier, multi = true).map(_.nModified)
   }
 }
