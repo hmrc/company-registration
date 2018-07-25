@@ -30,7 +30,7 @@ import play.api.libs.json.Reads._
 import play.api.libs.json.{JsObject, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.call
-import services.{CorporationTaxRegistrationService, RegistrationHoldingPenService}
+import services._
 import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
 
 import scala.concurrent.Future
@@ -118,7 +118,7 @@ class ProcessIncorporationsControllerSpec extends UnitSpec with MockitoSugar wit
 
     "return a 200 response " in new Setup {
 
-      when(mockRegHoldingPenService.updateIncorp(any(), any())(any())).thenReturn(Future.successful(true))
+      when(mockRegHoldingPenService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.successful(true))
 
       val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
 
@@ -136,38 +136,27 @@ class ProcessIncorporationsControllerSpec extends UnitSpec with MockitoSugar wit
     }
 
     "return a 200 response " in new Setup {
-
-      when(mockRegHoldingPenService.updateIncorp(any(), any())(any())).thenReturn(Future.successful(true))
+      when(mockRegHoldingPenService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.successful(true))
 
       val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
-
       val result = await(call(controller.processIncorp, request))
 
       status(result) shouldBe 200
-
     }
   }
 
   "Failing Topup" should {
-
     "log the correct error message" in new Setup {
-
-      when(mockRegHoldingPenService.updateIncorp(any(), any())(any())).thenReturn(Future.failed(new RuntimeException))
+      when(mockRegHoldingPenService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.failed(new RuntimeException))
 
       val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
-
       withCaptureOfLoggingFrom(Logger) { logEvents =>
-
         intercept[RuntimeException](await(call(controller.processIncorp, request)))
-
         eventually {
-
           logEvents.size shouldBe 2
-
           val res = logEvents.map(_.getMessage) contains "FAILED_DES_TOPUP"
 
           res shouldBe true
-
         }
       }
     }
@@ -176,7 +165,7 @@ class ProcessIncorporationsControllerSpec extends UnitSpec with MockitoSugar wit
   "Invalid Data" should {
 
     "return a 202 response for non admin flow" in new Setup {
-      when(mockRegHoldingPenService.updateIncorp(any(), any())(any())).thenReturn(Future.successful(false))
+      when(mockRegHoldingPenService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.successful(false))
       when(mockCorpRegTaxService.setupPartialForTopupOnLocked(any())(any(), any(), any())).thenReturn(Future.successful(false))
       val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
       val result = await(call(controller.processIncorp, request))
@@ -186,7 +175,7 @@ class ProcessIncorporationsControllerSpec extends UnitSpec with MockitoSugar wit
 
 
     "return a 500 response for admin flow" in new Setup {
-      when(mockRegHoldingPenService.updateIncorp(any(), any())(any())).thenReturn(Future.successful(false))
+      when(mockRegHoldingPenService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.successful(false))
       val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
       val result = await(call(controller.processAdminIncorp, request))
 

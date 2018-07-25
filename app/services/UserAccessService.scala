@@ -78,7 +78,7 @@ trait UserAccessService {
   }
 
   private[services] def hasConfRefs(doc: CorporationTaxRegistration): Boolean = {
-    doc.confirmationReferences.fold(false)(_=>true)
+    doc.confirmationReferences.isDefined
   }
 
   private[services] def hasPaymentRefs(doc: CorporationTaxRegistration): Boolean =

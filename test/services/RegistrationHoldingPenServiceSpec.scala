@@ -28,10 +28,12 @@ import org.mockito.{ArgumentCaptor, ArgumentMatchers}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.Eventually
 import org.scalatest.mock.MockitoSugar
+import play.api.Logger
 import play.api.libs.json.{JsObject, JsString, Json}
+import play.api.test.Helpers.call
 import repositories.{CorporationTaxRegistrationRepository, HeldSubmission, HeldSubmissionRepository, StateDataRepository}
 import uk.gov.hmrc.http.Upstream5xxResponse
-import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
 //import services.RegistrationHoldingPenService.MissingAccountingDates
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, InternalServerException, Upstream4xxResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -39,7 +41,7 @@ import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with CorporationTaxRegistrationFixture with BeforeAndAfterEach with Eventually {
+class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with CorporationTaxRegistrationFixture with BeforeAndAfterEach with Eventually with LogCapturing {
 
   val mockStateDataRepository = mock[StateDataRepository]
   val mockIncorporationCheckAPIConnector = mock[IncorporationCheckAPIConnector]
@@ -312,17 +314,6 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       val result = service.calculateDates(incorpSuccess, validCR.accountingDetails, validCR.accountsPreparation)
 
       await(result) shouldBe dates
-    }
-  }
-
-
-  "fetchRegistrationByTxIds" should {
-    "return a CorporationTaxRegistration document when one is found by Transaction ID" in new Setup{
-      when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
-        .thenReturn(Future.successful(Some(validCR)))
-
-      await(service.fetchRegistrationByTxId(transId)) shouldBe validCR
-
     }
   }
 
@@ -608,14 +599,14 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
     "return a future true when processing an accepted incorporation" in new SetupBoolean(true) {
       when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
         .thenReturn(Future.successful(Some(validCR)))
-      when(mockSendEmailService.sendVATEmail(ArgumentMatchers.eq("testemail.com"))(ArgumentMatchers.any[HeaderCarrier]())).thenReturn(Future.successful(true))
+      when(mockSendEmailService.sendVATEmail(ArgumentMatchers.eq("testemail.com"), ArgumentMatchers.any())(ArgumentMatchers.any[HeaderCarrier]())).thenReturn(Future.successful(true))
       await(service.processIncorporationUpdate(incorpSuccess)) shouldBe true
     }
 
     "return a future true when processing an accepted incorporation and the email fails to send" in new SetupBoolean(true) {
       when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
         .thenReturn(Future.successful(Some(validCR)))
-      when(mockSendEmailService.sendVATEmail(ArgumentMatchers.eq("testemail.com"))(ArgumentMatchers.any[HeaderCarrier]()))
+      when(mockSendEmailService.sendVATEmail(ArgumentMatchers.eq("testemail.com"), ArgumentMatchers.any())(ArgumentMatchers.any[HeaderCarrier]()))
         .thenReturn(Future.failed(new EmailErrorResponse("503")))
 
       await(service.processIncorporationUpdate(incorpSuccess)) shouldBe true
@@ -697,20 +688,37 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
     }
 
     "return an exception when processing a rejected incorporation without held data and Des returns a 500" in new Setup{
+      when(mockHeldRepo.retrieveSubmissionByAckRef(ArgumentMatchers.eq(testAckRef)))
+        .thenReturn(Future.successful(None))
+      when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
+        .thenReturn(Future.successful(Some(validCR)))
+      when(mockCTRepository.updateSubmissionStatus(ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(Future.successful("rejected"))
+      when(mockAuditConnector.sendExtendedEvent(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+        .thenReturn(Future.successful(Success))
+      when(mockDesConnector.topUpCTSubmission(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any()))
+        .thenReturn(Future.failed(new InternalServerException("DES returned a 500")))
+      when(mockCTRepository.removeTaxRegistrationById(ArgumentMatchers.eq(validCR.registrationID)))
+        .thenReturn(Future.successful(true))
+      when(mockBRConnector.removeMetadata(ArgumentMatchers.eq(validCR.registrationID))(ArgumentMatchers.any()))
+        .thenReturn(Future.successful(true))
+
+      intercept[InternalServerException] {
+        await(service.processIncorporationUpdate(incorpRejected))
+      }
+    }
+
+    "log a pagerduty if no reg document is found" in new Setup{
 
       when(mockHeldRepo.retrieveSubmissionByAckRef(ArgumentMatchers.eq(testAckRef)))
         .thenReturn(Future.successful(None))
 
       when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
-        .thenReturn(Future.successful(Some(validCR)))
+        .thenReturn(Future.successful(None))
 
       when(mockCTRepository.updateSubmissionStatus(ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(Future.successful("rejected"))
 
       when(mockAuditConnector.sendExtendedEvent(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(Success))
-
-      when(mockDesConnector.topUpCTSubmission(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any()))
-        .thenReturn(Future.failed(new InternalServerException("DES returned a 500")))
 
       when(mockCTRepository.removeTaxRegistrationById(ArgumentMatchers.eq(validCR.registrationID)))
         .thenReturn(Future.successful(true))
@@ -718,11 +726,17 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
       when(mockBRConnector.removeMetadata(ArgumentMatchers.eq(validCR.registrationID))(ArgumentMatchers.any()))
         .thenReturn(Future.successful(true))
 
-      intercept[InternalServerException] {
-        await(service.processIncorporationUpdate(incorpRejected))
-      }
+      withCaptureOfLoggingFrom(Logger) { logEvents =>
+        await(service.processIncorporationUpdate(incorpSuccess)) shouldBe true
 
-       }
+        eventually {
+          logEvents.size shouldBe 2
+          val res = logEvents.map(_.getMessage) contains "CT_ACCEPTED_NO_REG_DOC_II_SUBS_DELETED"
+
+          res shouldBe true
+        }
+      }
+    }
   }
 
   "addressLine4Fix" should {

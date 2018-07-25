@@ -18,8 +18,8 @@ package services
 
 import java.time.LocalTime
 import java.util.Base64
-import javax.inject.Inject
 
+import javax.inject.Inject
 import audit._
 import config.MicroserviceAuditConnector
 import connectors._
@@ -32,7 +32,7 @@ import repositories.{Repositories, _}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpErrorFunctions, HttpResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.config.ServicesConfig
-import utils.DateCalculators
+import utils.{DateCalculators, Logging, PagerDutyKeys}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -72,7 +72,7 @@ private[services] object FailedToUpdateSubmissionWithRejectedIncorp extends NoSt
 
 private[services] object FailedToDeleteSubmissionData extends NoStackTrace
 
-trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
+trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions with Logging {
 
   val desConnector: DesConnector
   val stateDataRepository: StateDataRepository
@@ -90,8 +90,7 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
   val blockageLoggingDay: String
   val blockageLoggingTime: String
 
-  class FailedToRetrieveByTxId(val transId: String) extends NoStackTrace
-  class FailedToRetrieveByTxIdOnRejection(val transId: String) extends NoStackTrace
+
 
   private[services] class FailedToRetrieveByAckRef extends NoStackTrace
 
@@ -111,12 +110,6 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
     }
   }
 
-  def updateIncorp(incorpStatus: IncorpStatus, isAdmin: Boolean = false)(implicit hc: HeaderCarrier): Future[Boolean] = {
-    val incorpUpdate = incorpStatus.toIncorpUpdate
-    processIncorporationUpdate(incorpUpdate, isAdmin)
-  }
-
-
   def deleteRejectedSubmissionData(regId: String)(implicit hc: HeaderCarrier): Future[Boolean] = {
     for {
       ctDeleted <- ctRepository.removeTaxRegistrationById(regId)
@@ -132,34 +125,36 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
     }
   }
 
-  private[services] def processIncorporationUpdate(item: IncorpUpdate, isAdmin: Boolean = false)(implicit hc: HeaderCarrier): Future[Boolean] = {
-    item.status match {
-      case "accepted" =>
-        for {
-          ctReg <- fetchRegistrationByTxId(item.transactionId)
-          resultOfUpdate <- updateSubmissionWithIncorporation(item, ctReg, isAdmin)
-          _ <-
-            (if (resultOfUpdate && ctReg.verifiedEmail.isDefined) {
-              sendEmailService.sendVATEmail(ctReg.verifiedEmail.get.address) map { res =>
-                Logger.info("VAT email sent for journey id " + ctReg.registrationID)
-                res
-              }
-            } else {
-              Future.successful(true)
-            }).recover { case e: EmailErrorResponse => true }
-        } yield resultOfUpdate
+  private def sendEmail(ctReg: CorporationTaxRegistration)(implicit hc: HeaderCarrier) =
+    sendEmailService.sendVATEmail(ctReg.verifiedEmail.get.address, ctReg.registrationID) recover {
+      case _: EmailErrorResponse => true
+    }
 
-      case "rejected" =>
-        val reason = item.statusDescription.fold("No reason given")(f => " Reason given:" + f)
-        Logger.info("[processIncorporationUpdate] Incorporation rejected for Transaction: " + item.transactionId + reason)
-        for {
-          ctReg <- fetchRegistrationByTxId(item.transactionId).recover { case e: FailedToRetrieveByTxId => {
-                  Logger.warn(s"[processIncorporationUpdate] Rejection with no CT document for trans id ${item.transactionId}")
-                  throw new FailedToRetrieveByTxIdOnRejection(e.transId) }}
-          submissionResult <- updateSubmissionWithRejectedIncorp(item, ctReg, isAdmin)
-        } yield {
-          submissionResult
-        }
+  def processIncorporationUpdate(item: IncorpUpdate, isAdmin: Boolean = false)(implicit hc: HeaderCarrier): Future[Boolean] = {
+    ctRepository.retrieveRegistrationByTransactionID(item.transactionId) flatMap { oCTReg =>
+      item.status match {
+        case "accepted" =>
+          oCTReg.fold {
+            if (inWorkingHours) {
+              Logger.error(PagerDutyKeys.CT_ACCEPTED_NO_REG_DOC_II_SUBS_DELETED.toString)
+            }
+            Logger.error(s"[processIncorporationUpdate] Incorporation accepted but no reg document found for txId: ${item.transactionId} - II subscription deleted")
+            Future.successful(true)
+          } { ctReg =>
+            for {
+              resultOfUpdate <- updateSubmissionWithIncorporation(item, ctReg, isAdmin)
+              _ <- if (resultOfUpdate && ctReg.verifiedEmail.isDefined) sendEmail(ctReg) else Future.successful(true)
+            } yield resultOfUpdate
+          }
+        case "rejected" =>
+          val reason = item.statusDescription.fold(" No reason given")(f => " Reason given: " + f)
+          Logger.info("[processIncorporationUpdate] Incorporation rejected for Transaction: " + item.transactionId + reason)
+
+          oCTReg.fold {
+            Logger.warn(s"[processIncorporationUpdate] Rejection with no CT document for trans id ${item.transactionId}")
+            Future.successful(true)
+          } { ctReg => updateSubmissionWithRejectedIncorp(item, ctReg, isAdmin) }
+      }
     }
   }
 
@@ -369,19 +364,6 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions {
       submission <- incorporationCheckAPIConnector.checkSubmission(timepoint)(hc)
     } yield {
       submission.items
-    }
-  }
-
-  private[services] def fetchRegistrationByTxId(transId: String): Future[CorporationTaxRegistration] = {
-    Logger.debug(s"""Got tx_id "${transId}" """)
-    ctRepository.retrieveRegistrationByTransactionID(transId) flatMap {
-      case Some(s) => Future.successful(s)
-      case None =>
-        if (inWorkingHours) {
-          Logger.error("INCORP_BLOCKAGE")
-        }
-        Logger.error(s"BLOCKAGE :  We have an incorp blockage with txid ${transId}")
-        Future.failed(throw new FailedToRetrieveByTxId(transId))
     }
   }
 

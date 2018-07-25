@@ -719,7 +719,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
       val reg1 :: _ = await(ctRepository.findAll())
       reg1.status shouldBe "acknowledged"
     }
-    "return a 500 when receiving a top up for an Accepted document when there is no CT document for this case" in new Setup {
+    "return a 200 when receiving a top up for an Accepted document when there is no CT document for this case" in new Setup {
 
       setupSimpleAuthMocks()
       val jsonBodyFromII: String = jsonIncorpStatus(testIncorpDate)
@@ -730,7 +730,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
 
       val response1: WSResponse = client(path).post(jsonBodyFromII)
 
-      response1.status shouldBe 500
+      response1.status shouldBe 200
    }
   }
 }

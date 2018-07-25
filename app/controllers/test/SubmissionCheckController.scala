@@ -17,7 +17,6 @@
 package controllers.test
 
 import javax.inject.Inject
-
 import jobs.CheckSubmissionJob
 import org.joda.time.Duration
 import play.api.Logger
@@ -54,10 +53,7 @@ trait SubmissionCheckController extends BaseController {
       lock.tryLock[String] {
         Logger.info(s"[Test] [SubmissionCheckController] Triggered $name")
         service.updateNextSubmissionByTimepoint recover {
-          case ex: service.FailedToRetrieveByTxId =>
-            ex.getClass.toString
-          case ex =>
-            ex.getClass.toString
+          case ex => ex.getClass.toString
         }
       } map {
         case Some(x) =>
