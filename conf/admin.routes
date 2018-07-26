@@ -1,5 +1,9 @@
 
 GET        /fetch-ho6-registration-information/:registrationId        @controllers.admin.AdminController.fetchHO6RegistrationInformation(registrationId)
+
+GET        /session-id/:registrationId                                @controllers.admin.AdminController.fetchSessionIDData(registrationId)
+POST       /session-id/:registrationId                                @controllers.admin.AdminController.updateSessionId(registrationId)
+
 GET        /migrate-held-submissions                                  @controllers.admin.AdminController.migrateHeldSubmissions
 POST       /update-confirmation-references                            @controllers.admin.AdminController.updateConfirmationReferences
 

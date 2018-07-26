@@ -129,7 +129,59 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with Login
     )),
     registrationProgress = Some("ho5"),
     acknowledgementReferences = None,
-    accountsPreparation = None
+    accountsPreparation = None,
+    sessionIdentifiers = Some(SessionIds(
+      sessionId = "oldSessionId",
+      credId = "credId"
+    ))
+  )
+
+  val lockedRegistration = CorporationTaxRegistration(
+    internalId = internalId,
+    registrationID = regId,
+    status = LOCKED,
+    formCreationTimestamp = "2001-12-31T12:00:00Z",
+    language = "en",
+    confirmationReferences = Some(ConfirmationReferences(
+      acknowledgementReference = ackRef,
+      transactionId = transId,
+      paymentReference = Some(payRef),
+      paymentAmount = Some("12")
+    )),
+    companyDetails =  Some(CompanyDetails(
+      companyName = "testCompanyName",
+      CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
+      PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"), None, "txid"))),
+      jurisdiction = "testJurisdiction"
+    )),
+    accountingDetails = Some(AccountingDetails(
+      status = AccountingDetails.FUTURE_DATE,
+      activeDate = Some("2019-12-31"))),
+    tradingDetails = Some(TradingDetails(
+      regularPayments = "true"
+    )),
+    contactDetails = Some(ContactDetails(
+      firstName = "testContactFirstName",
+      middleName = Some("testContactMiddleName"),
+      surname = "testContactLastName",
+      phone = Some("02072899066"),
+      mobile = Some("07567293726"),
+      email = Some("test@email.co.uk")
+    )),
+    verifiedEmail = Some(Email(
+      address = "testEmail@address.com",
+      emailType = "testType",
+      linkSent = true,
+      verified = true,
+      returnLinkEmailSent = true
+    )),
+    registrationProgress = Some("ho5"),
+    acknowledgementReferences = None,
+    accountsPreparation = None,
+    sessionIdentifiers = Some(SessionIds(
+      sessionId = "oldSessionId",
+      credId = "credId"
+    ))
   )
 
   def heldRegistration(regId: String = regId) = CorporationTaxRegistration(
@@ -204,6 +256,45 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with Login
       val result: WSResponse = await(client(s"$url/$regId").get())
 
       result.status shouldBe 404
+    }
+  }
+
+  "GET /admin/session-id" should {
+
+    val url = s"/session-id"
+
+    "return a 200 and session id info" in new Setup {
+
+      val expected: JsValue = Json.parse(
+        s"""
+          |{
+          |  "sessionId":"oldSessionId",
+          |  "companyName":"testCompanyName",
+          |  "ackRef":"$ackRef"
+          |}
+        """.stripMargin)
+
+      setupSimpleAuthMocks()
+
+      insertCorpTax(lockedRegistration)
+
+      ctRegCount shouldBe 1
+
+      val result: WSResponse  = await(client(s"$url/$regId").get())
+
+      result.status shouldBe 200
+      result.json shouldBe expected
+    }
+
+    "return a 204 when a company registration document does not exist for the supplied regId" in new Setup {
+
+      setupSimpleAuthMocks()
+
+      ctRegCount shouldBe 0
+
+      val result: WSResponse = await(client(s"$url/$regId").get())
+
+      result.status shouldBe 204
     }
   }
 
@@ -603,6 +694,64 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with Login
 
         result.status shouldBe 204
       }
+    }
+  }
+
+  "POST /admin/session-id" should {
+
+    val adminJsonBody: JsValue = Json.parse(
+      s"""
+         |{
+         |  "sessionId":"cleanNewShinySessionId",
+         |  "username" :"username"
+         |}
+        """.stripMargin)
+
+    val url = s"/session-id"
+
+    "return a 200 and session id info" in new Setup {
+
+      val expected: JsValue = Json.parse(
+        s"""
+           |{
+           |  "sessionId":"cleanNewShinySessionId",
+           |  "companyName":"testCompanyName",
+           |  "ackRef":"$ackRef"
+           |}
+        """.stripMargin)
+
+      setupSimpleAuthMocks()
+
+      insertCorpTax(lockedRegistration)
+
+      ctRegCount shouldBe 1
+
+      val result: WSResponse  = await(client(s"$url/$regId").post(adminJsonBody))
+
+      result.status shouldBe 200
+      result.json shouldBe expected
+
+      await(corpTaxRepo.findAll()).head.sessionIdentifiers.get.sessionId shouldBe "cleanNewShinySessionId"
+    }
+
+    "return a 500 when a company registration document does not exist for the supplied regId" in new Setup {
+
+      val expected: JsValue = Json.parse(
+        s"""
+           |{
+           |  "sessionId":"oldSessionId",
+           |  "companyName":"testCompanyName",
+           |  "ackRef":"$ackRef"
+           |}
+        """.stripMargin)
+
+      setupSimpleAuthMocks()
+
+      ctRegCount shouldBe 0
+
+      val result: WSResponse = await(client(s"$url/$regId").post(adminJsonBody))
+
+      result.status shouldBe 500
     }
   }
 }

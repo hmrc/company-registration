@@ -17,15 +17,15 @@
 package services.admin
 
 import java.util.Base64
-
 import javax.inject.Inject
-import audit.{AdminCTReferenceEvent, AdminReleaseAuditEvent, DesTopUpSubmissionEvent, DesTopUpSubmissionEventDetail}
+
+import audit._
 import config.MicroserviceAuditConnector
 import connectors.{BusinessRegistrationConnector, DesConnector, IncorporationInformationConnector}
 import helpers.DateFormatter
 import models.RegistrationStatus._
 import models.admin.{AdminCTReferenceDetails, HO6Identifiers, HO6Response}
-import models.{ConfirmationReferences, CorporationTaxRegistration, HO6RegistrationInformation}
+import models.{ConfirmationReferences, CorporationTaxRegistration, HO6RegistrationInformation, SessionIdData}
 import org.joda.time.DateTime
 import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
@@ -68,6 +68,16 @@ trait AdminService extends DateFormatter {
   val ignoredDocs: Set[String]
 
   def fetchHO6RegistrationInformation(regId: String): Future[Option[HO6RegistrationInformation]] = corpTaxRegRepo.fetchHO6Information(regId)
+
+  def fetchSessionIdData(regId: String): Future[Option[SessionIdData]] = {
+    corpTaxRegRepo.retrieveCorporationTaxRegistration(regId) map (_.map{ reg =>
+      SessionIdData(
+        reg.sessionIdentifiers.map(_.sessionId),
+        reg.companyDetails.map(_.companyName),
+        reg.confirmationReferences.map(_.acknowledgementReference)
+      )
+    })
+  }
 
   def migrateHeldSubmissions(implicit hc: HeaderCarrier, req: Request[_]): Future[List[Boolean]] = {
     fetchAllRegIdsFromHeldSubmissions flatMap { regIdList =>
@@ -242,6 +252,22 @@ trait AdminService extends DateFormatter {
       } yield true
     } else {
       Future.successful(true)
+    }
+  }
+
+  def updateDocSessionID(regId: String, sessionId: String, username : String)(implicit hc : HeaderCarrier) : Future[SessionIdData] = {
+    Logger.info(s"[updateDocSessionID] Updating document session id regId $regId")
+
+    corpTaxRegRepo.retrieveSessionIdentifiers(regId) flatMap {
+      case Some(sessionIds) =>
+        for {
+          _             <- corpTaxRegRepo.storeSessionIdentifiers(regId, sessionId, sessionIds.credId)
+          sessionIdData <- fetchSessionIdData(regId).map(
+            _.getOrElse(throw new RuntimeException(s"Registration Document does not exist or Document does not have sessionIdInfo for regId $regId")))
+          timestamp     = Json.obj("timestamp" -> Json.toJson(nowAsZonedDateTime)(zonedDateTimeWrites))
+          _             = auditConnector.sendExtendedEvent(new AdminSessionIDEvent(timestamp, username, Json.toJson(sessionIdData).as[JsObject], sessionIds.sessionId))
+        } yield sessionIdData
+      case _ => throw new RuntimeException(s"Registration Document does not exist or Document does not have sessionIdentifiers for regId $regId")
     }
   }
 }
