@@ -16,7 +16,7 @@
 
 package services.admin
 
-import audit.AdminCTReferenceEvent
+import audit.{AdminCTReferenceEvent, AdminSessionIDEvent}
 import connectors.{BusinessRegistrationConnector, DesConnector, IncorporationInformationConnector}
 import models._
 import org.joda.time.DateTime
@@ -77,6 +77,51 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
 
   implicit val hc = HeaderCarrier()
   implicit val req: Request[AnyContent] = FakeRequest()
+
+  val sessionIdData = SessionIdData(Some("session-id"), Some("fakeCompanyName"), Some(ackRef))
+
+  def makeSessionReg(sessionIds : Option[SessionIdData]) = CorporationTaxRegistration(
+    internalId = "testID",
+    registrationID = "registrationId",
+    formCreationTimestamp = "dd-mm-yyyy",
+    language = "en",
+    status = RegistrationStatus.HELD,
+    companyDetails = Some(CompanyDetails(
+      sessionIds.flatMap(ids => sessionIds.flatMap(_.companyName)).getOrElse("companyName"),
+      CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
+      PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"), None, "txid"))),
+      "testJurisdiction"
+    )),
+    contactDetails = Some(ContactDetails(
+      "testFirstName",
+      Some("testMiddleName"),
+      "testSurname",
+      Some("0123456789"),
+      Some("0123456789"),
+      Some("test@email.co.uk")
+    )),
+    tradingDetails = Some(TradingDetails("false")),
+    heldTimestamp = None,
+    confirmationReferences = Some(ConfirmationReferences(
+      acknowledgementReference = sessionIds.flatMap(ids => sessionIds.flatMap(_.ackRef)).getOrElse("ackRef"),
+      transactionId = "tID",
+      paymentReference = Some("payref"),
+      paymentAmount = Some("12")
+    )),
+    sessionIdentifiers = sessionIds.map(ids => SessionIds(ids.sessionId.getOrElse(""), "credId"))
+  )
+
+  "fetchSessionIdData" should {
+    "fetch session id data if it exists" in new Setup {
+      val data = Some(sessionIdData)
+      val reg = makeSessionReg(data)
+
+      when(mockCorpTaxRegistrationRepo.retrieveCorporationTaxRegistration(any()))
+        .thenReturn(Future.successful(Some(reg)))
+
+      await(service.fetchSessionIdData(regId)) shouldBe data
+    }
+  }
 
   "migrateHeldSubmissions" should {
 
@@ -579,6 +624,80 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
 
         await(service.processStaleDocument(confRefWithCRNExampleDoc)) shouldBe false
       }
+    }
+  }
+
+  "updateDocSessionID" should {
+    val newSessionId = "newSessionId"
+    val userName = "admin"
+
+    "update a document's session id" when {
+      "provided a session id" in new Setup {
+        val data = Some(sessionIdData.copy(sessionId = Some(newSessionId)))
+        val reg = makeSessionReg(data)
+
+        when(mockCorpTaxRegistrationRepo.retrieveCorporationTaxRegistration(any()))
+          .thenReturn(Future.successful(Some(reg)))
+        when(mockCorpTaxRegistrationRepo.retrieveSessionIdentifiers(any()))
+          .thenReturn(Future.successful(Some(SessionIds(sessionIdData.sessionId.get, "credId"))))
+        when(mockCorpTaxRegistrationRepo.storeSessionIdentifiers(any(), any(), any()))
+          .thenReturn(Future.successful(true))
+        when(mockAuditConnector.sendExtendedEvent(any())(any(), any()))
+          .thenReturn(Future.successful(Success))
+
+        await(service.updateDocSessionID(regId, newSessionId, userName)) shouldBe sessionIdData.copy(sessionId = Some(newSessionId))
+
+        val captor = ArgumentCaptor.forClass(classOf[AdminSessionIDEvent])
+        eventually {
+          verify(mockAuditConnector, times(1)).sendExtendedEvent(captor.capture())(any[HeaderCarrier](), any[ExecutionContext]())
+        }
+        val audit = captor.getAllValues
+
+        audit.get(0).auditType shouldBe "adminSessionID"
+        (audit.get(0).detail \ "oldSessionId").as[String] shouldBe sessionIdData.sessionId.get
+        (audit.get(0).detail \ "sessionId").as[String] shouldBe newSessionId
+      }
+      "audit event fails" in new Setup {
+        val data = Some(sessionIdData.copy(sessionId = Some(newSessionId)))
+        val reg = makeSessionReg(data)
+
+        when(mockCorpTaxRegistrationRepo.retrieveCorporationTaxRegistration(any()))
+          .thenReturn(Future.successful(Some(reg)))
+        when(mockCorpTaxRegistrationRepo.retrieveSessionIdentifiers(any()))
+          .thenReturn(Future.successful(Some(SessionIds(sessionIdData.sessionId.get, "credId"))))
+        when(mockCorpTaxRegistrationRepo.storeSessionIdentifiers(any(), any(), any()))
+          .thenReturn(Future.successful(true))
+
+        await(service.updateDocSessionID(regId, newSessionId, userName)) shouldBe sessionIdData.copy(sessionId = Some(newSessionId))
+      }
+    }
+
+    "fail to update when" when {
+      "the document does not exist" in new Setup {
+        when(mockCorpTaxRegistrationRepo.retrieveSessionIdentifiers(any()))
+          .thenReturn(Future.successful(None))
+
+        intercept[RuntimeException](await(service.updateDocSessionID(regId, newSessionId, userName)))
+      }
+      "storeSessionIdentifiers fails" in new Setup {
+        when(mockCorpTaxRegistrationRepo.retrieveSessionIdentifiers(any()))
+          .thenReturn(Future.successful(Some(SessionIds(sessionIdData.sessionId.get, "credId"))))
+        when(mockCorpTaxRegistrationRepo.storeSessionIdentifiers(any(), any(), any()))
+          .thenReturn(Future.failed(new RuntimeException("Failed to store")))
+
+        intercept[RuntimeException](await(service.updateDocSessionID(regId, newSessionId, userName)))
+      }
+      "retrieveCorporationTaxRegistration fails" in new Setup {
+        when(mockCorpTaxRegistrationRepo.retrieveCorporationTaxRegistration(any()))
+          .thenReturn(Future.failed(new RuntimeException("Failed to retrieve")))
+        when(mockCorpTaxRegistrationRepo.retrieveSessionIdentifiers(any()))
+          .thenReturn(Future.successful(Some(SessionIds(sessionIdData.sessionId.get, "credId"))))
+        when(mockCorpTaxRegistrationRepo.storeSessionIdentifiers(any(), any(), any()))
+          .thenReturn(Future.successful(true))
+
+        intercept[RuntimeException](await(service.updateDocSessionID(regId, newSessionId, userName)))
+      }
+
     }
   }
 }

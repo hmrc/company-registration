@@ -42,7 +42,7 @@ trait AlertLogging {
 
   def pagerduty(key: PagerDutyKeys.Value, message: Option[String] = None) {
     val log = s"${key.toString}${message.fold("")(msg => s" - $msg")}"
-    if(inWorkingHours) Logger.error(log) else Logger.info(log)
+    if (inWorkingHours) Logger.error(log) else Logger.info(log)
   }
 
   def inWorkingHours: Boolean = isLoggingDay && isBetweenLoggingTimes
@@ -51,7 +51,7 @@ trait AlertLogging {
 
   private[utils] def now: LocalTime = getCurrentTime
 
-  private[utils] def ifInWorkingHours(alert: => Unit): Unit = if(inWorkingHours) alert else ()
+  private[utils] def ifInWorkingHours(alert: => Unit): Unit = if (inWorkingHours) alert else ()
 
   private[utils] def isLoggingDay = loggingDays.split(",").contains(today)
 

@@ -21,9 +21,9 @@ import javax.inject.Inject
 import cats.instances.FutureInstances
 import cats.syntax.{ApplicativeSyntax, FlatMapSyntax}
 import models.admin.{HO6Identifiers, HO6Response}
-import models.{ConfirmationReferences, HO6RegistrationInformation}
+import models.{ConfirmationReferences, HO6RegistrationInformation, SessionIdData}
 import play.api.Logger
-import play.api.libs.json.{Format, JsObject, JsValue, Json}
+import play.api.libs.json._
 import play.api.mvc.{Action, _}
 import services.CorporationTaxRegistrationService
 import services.admin.AdminService
@@ -50,6 +50,14 @@ trait AdminController extends BaseController with FutureInstances with Applicati
       adminService.fetchHO6RegistrationInformation(regId) map {
         case Some(ho6RegInfo) => Ok(Json.toJson(ho6RegInfo)(HO6RegistrationInformation.writes))
         case None => NotFound
+      }
+  }
+
+  def fetchSessionIDData(regId: String): Action[AnyContent] = Action.async {
+    implicit request =>
+      adminService.fetchSessionIdData(regId) map {
+        case Some(sesIdData) => Ok(Json.toJson(sesIdData))
+        case None => NoContent
       }
   }
 
@@ -101,6 +109,15 @@ trait AdminController extends BaseController with FutureInstances with Applicati
         adminService.updateRegistrationWithCTReference(id, ctutr, strideUser) map {
           case Some(js) => Ok(js)
           case _ => NoContent
+        }
+      }
+  }
+
+  def updateSessionId(id: String): Action[JsValue] = Action.async(BodyParsers.parse.json) {
+    implicit request =>
+      withJsonBody[JsObject] { json =>
+        adminService.updateDocSessionID(id, (json \ "sessionId").as[String], (json \ "username").as[String]) map {
+          sessionIdData => Ok(Json.toJson(sessionIdData))
         }
       }
   }

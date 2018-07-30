@@ -45,12 +45,12 @@ import scala.util.control.NoStackTrace
 import scala.util.matching.Regex
 
 class CorporationTaxRegistrationServiceImpl @Inject()(
-        val submissionCheckAPIConnector: IncorporationCheckAPIConnector,
-        val brConnector: BusinessRegistrationConnector,
-        val desConnector: DesConnector,
-        val incorpInfoConnector: IncorporationInformationConnector,
-        val repositories: Repositories
-      ) extends CorporationTaxRegistrationService {
+                                                       val submissionCheckAPIConnector: IncorporationCheckAPIConnector,
+                                                       val brConnector: BusinessRegistrationConnector,
+                                                       val desConnector: DesConnector,
+                                                       val incorpInfoConnector: IncorporationInformationConnector,
+                                                       val repositories: Repositories
+                                                     ) extends CorporationTaxRegistrationService {
 
   val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
   val sequenceRepository: SequenceMongoRepository = repositories.sequenceRepository
@@ -96,9 +96,9 @@ trait CorporationTaxRegistrationService extends DateHelper {
   def updateCTRecordWithAckRefs(ackRef: String, etmpNotification: AcknowledgementReferences): Future[Option[CorporationTaxRegistration]] = {
     cTRegistrationRepository.retrieveByAckRef(ackRef) flatMap {
       case Some(record) =>
-          cTRegistrationRepository.updateCTRecordWithAcknowledgments(ackRef, record.copy(acknowledgementReferences = Some(etmpNotification), status = RegistrationStatus.ACKNOWLEDGED)) map {
-            _ => Some(record)
-          }
+        cTRegistrationRepository.updateCTRecordWithAcknowledgments(ackRef, record.copy(acknowledgementReferences = Some(etmpNotification), status = RegistrationStatus.ACKNOWLEDGED)) map {
+          _ => Some(record)
+        }
       case None =>
         Logger.info(s"[CorporationTaxRegistrationService] - [updateCTRecordWithAckRefs] : No record could not be found using this ackref")
         Future.successful(None)
@@ -160,10 +160,10 @@ trait CorporationTaxRegistrationService extends DateHelper {
       case Some(cr) =>
         Future.successful(cr)
     } flatMap { cr =>
-        sendPartialSubmission(rID, authProvId, cr).ifM(
-          ifTrue = Future.successful(cr),
-          ifFalse = throw new RuntimeException("Document did not update successfully")
-        )
+      sendPartialSubmission(rID, authProvId, cr).ifM(
+        ifTrue = Future.successful(cr),
+        ifFalse = throw new RuntimeException("Document did not update successfully")
+      )
     }
   }
 
