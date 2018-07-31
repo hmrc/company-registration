@@ -24,7 +24,6 @@ private object AppDependencies {
   import play.sbt.PlayImport._
 
   private val microserviceBootstrapVersion = "6.18.0"
-  private val playUrlBindersVersion = "2.1.0"
   private val domainVersion = "5.2.0"
   private val hmrcTestVersion = "3.0.0"
   private val reactiveMongoVersion = "6.2.0"
@@ -37,7 +36,6 @@ private object AppDependencies {
   val compile = Seq(
     ws,
     "uk.gov.hmrc" %% "microservice-bootstrap" % microserviceBootstrapVersion,
-    "uk.gov.hmrc" %% "play-url-binders" % playUrlBindersVersion,
     "uk.gov.hmrc" %% "domain" % domainVersion,
     "uk.gov.hmrc" %% "play-scheduling" % playSchedulingVersion,
     "uk.gov.hmrc" %% "mongo-lock" % mongoLockVersion,
