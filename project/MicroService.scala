@@ -1,9 +1,4 @@
 import play.routes.compiler.StaticRoutesGenerator
-import sbt.Keys._
-import sbt.Tests.{Group, SubProcess}
-import sbt._
-import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin._
-
 
 trait MicroService {
 
@@ -12,7 +7,11 @@ trait MicroService {
   import uk.gov.hmrc.SbtAutoBuildPlugin
   import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
   import uk.gov.hmrc.versioning.SbtGitVersioning
-  import play.sbt.routes.RoutesKeys.routesGenerator
+  import sbt.Keys._
+  import sbt._
+  import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin._
+  import uk.gov.hmrc.versioning.SbtGitVersioning.autoImport.majorVersion
+
 
   val appName: String
 
@@ -30,9 +29,8 @@ trait MicroService {
             ScoverageKeys.coverageHighlighting := true
         )
     }
-
   lazy val microservice = Project(appName, file("."))
-    .enablePlugins(Seq(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin) ++ plugins : _*)
+    .enablePlugins(Seq(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin, SbtArtifactory) ++ plugins : _*)
     .settings(playSettings ++ scoverageSettings : _*)
     .settings(scalaSettings: _*)
     .settings(scoverageSettings : _*)
@@ -45,7 +43,7 @@ trait MicroService {
       fork in Test := true,
       retrieveManaged := true,
       evictionWarningOptions in update := EvictionWarningOptions.default.withWarnScalaVersionEviction(false),
-      routesGenerator := StaticRoutesGenerator,
+      play.sbt.routes.RoutesKeys.routesGenerator := StaticRoutesGenerator,
       scalacOptions ++= List(
         "-Xlint:-missing-interpolator"
       ),
@@ -54,6 +52,7 @@ trait MicroService {
     )
     .configs(IntegrationTest)
     .settings(integrationTestSettings())
+    .settings(majorVersion := 1)
 }
 
 
