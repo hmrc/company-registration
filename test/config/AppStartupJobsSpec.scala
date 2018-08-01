@@ -17,18 +17,17 @@
 package config
 
 import fixtures.CorporationTaxRegistrationFixture
-import models.{ContactDetails, PPOBAddress, TradingDetails, _}
 import models.RegistrationStatus._
+import models.{ContactDetails, PPOBAddress, TradingDetails, _}
 import org.joda.time.DateTime
-import org.scalatest.mock.MockitoSugar
-import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmissionMongoRepository, Repositories}
-import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
-import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.scalatest.concurrent.Eventually
+import org.scalatest.mock.MockitoSugar
 import play.api.{Application, Configuration, Logger}
-import play.api.libs.json.Json
+import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.admin.AdminServiceImpl
+import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
 
 import scala.concurrent.Future
 
@@ -37,7 +36,6 @@ class AppStartupJobsSpec extends UnitSpec with MockitoSugar with LogCapturing
 
   val mockApp: Application = mock[Application]
   val mockConfig: Configuration = mock[Configuration]
-  val mockHeldRepo: HeldSubmissionMongoRepository = mock[HeldSubmissionMongoRepository]
   val mockCTRepository: CorporationTaxRegistrationMongoRepository = mock[CorporationTaxRegistrationMongoRepository]
   val mockAdminService: AdminServiceImpl = mock[AdminServiceImpl]
   val mockRepositories: Repositories = mock[Repositories]
@@ -48,9 +46,6 @@ class AppStartupJobsSpec extends UnitSpec with MockitoSugar with LogCapturing
   trait Setup {
     when(mockRepositories.cTRepository)
       .thenReturn(mockCTRepository)
-
-    when(mockRepositories.heldSubmissionRepository)
-      .thenReturn(mockHeldRepo)
 
     when(mockCTRepository.retrieveLockedRegIDs())
       .thenReturn(Future.successful(expectedLockedReg))

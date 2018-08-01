@@ -16,33 +16,30 @@
 
 package services
 
-import java.text.Normalizer
-
-import javax.inject.Inject
 import audit.{SubmissionEventDetail, UserRegistrationSubmissionEvent}
 import cats.data.OptionT
 import cats.implicits._
 import config.MicroserviceAuditConnector
 import connectors._
 import helpers.DateHelper
+import javax.inject.Inject
 import models.RegistrationStatus._
 import models.des._
 import models.validation.APIValidation
-import models.{BusinessRegistration, ConfirmationReferences, CorporationTaxRegistration, _}
+import models.{HttpResponse => _, _}
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.{AnyContent, Request}
 import repositories._
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.{HeaderCarrier, _}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import utils.{SCRSFeatureSwitches, StringNormaliser}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.util.{Failure, Success, Try}
 import scala.util.control.NoStackTrace
-import scala.util.matching.Regex
+import scala.util.{Failure, Success, Try}
 
 class CorporationTaxRegistrationServiceImpl @Inject()(
                                                        val submissionCheckAPIConnector: IncorporationCheckAPIConnector,
@@ -55,7 +52,6 @@ class CorporationTaxRegistrationServiceImpl @Inject()(
   val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
   val sequenceRepository: SequenceMongoRepository = repositories.sequenceRepository
   val stateDataRepository: StateDataMongoRepository = repositories.stateDataRepository
-  val heldSubmissionRepository: HeldSubmissionMongoRepository = repositories.heldSubmissionRepository
 
   lazy val auditConnector = MicroserviceAuditConnector
 
@@ -75,7 +71,6 @@ trait CorporationTaxRegistrationService extends DateHelper {
   val sequenceRepository: SequenceRepository
   val stateDataRepository: StateDataRepository
   val brConnector: BusinessRegistrationConnector
-  val heldSubmissionRepository: HeldSubmissionRepository
   val auditConnector: AuditConnector
   val incorpInfoConnector :IncorporationInformationConnector
   val desConnector: DesConnector
@@ -207,10 +202,10 @@ trait CorporationTaxRegistrationService extends DateHelper {
                                              (implicit hc: HeaderCarrier, req: Request[AnyContent], isAdmin: Boolean): Future[Boolean] = {
     for{
       partialSubmission         <- buildPartialDesSubmission(regId, confRefs.acknowledgementReference, authProvId)
-      _                         <- registerInterest(regId, confRefs.transactionId)
-      _                         <- storePartial(regId, confRefs.acknowledgementReference, partialSubmission, authProvId)
+      _                         <- incorpInfoConnector.registerInterest(regId, confRefs.transactionId)
       partialSubmissionAsJson   = Json.toJson(partialSubmission).as[JsObject]
-      _                         <- auditUserPartialSubmission(regId, authProvId, partialSubmissionAsJson)
+      _                         <- submitPartialToDES(regId, confRefs.acknowledgementReference, partialSubmissionAsJson, authProvId)
+      _                         = auditUserPartialSubmission(regId, authProvId, partialSubmissionAsJson)
       success                   <- cTRegistrationRepository.updateRegistrationToHeld(regId, confRefs) map (_.isDefined)
     } yield success
   }
@@ -228,15 +223,19 @@ trait CorporationTaxRegistrationService extends DateHelper {
     }
   }
 
-  private[services] def registerInterest(regId: String, transactionId: String)
-                                        (implicit hc: HeaderCarrier, req: Request[_]): Future[Boolean] = {
-    if(registerInterestRequired()) incorpInfoConnector.registerInterest(regId, transactionId) else Future.successful(false)
-  }
-
-  private[services] def storePartial(rID: String, ackRef: String, heldSubmission: InterimDesRegistration, authProvId : String)
-                                    (implicit hc: HeaderCarrier, req: Request[AnyContent]) = {
-    val submissionAsJson = Json.toJson(heldSubmission).as[JsObject]
-    storePartialSubmission(rID, ackRef, submissionAsJson, authProvId)
+  private[services] def submitPartialToDES(regId: String, ackRef: String, partialSubmission: JsObject, authProvId : String)
+                                     (implicit hc: HeaderCarrier): Future[HttpResponse] = {
+    desConnector.ctSubmission(ackRef, partialSubmission, regId) recoverWith {
+      case e =>
+        hc.headers.collectFirst{ case ("X-Session-ID", xSessionId) => xSessionId } match {
+          case Some(xSesID) =>
+            Logger.warn(s"[storePartialSubmission] Saved session identifers for regId: $regId")
+            cTRegistrationRepository.storeSessionIdentifiers(regId, xSesID, authProvId) map (throw e)
+          case _            =>
+            Logger.warn(s"[storePartialSubmission] No session identifiers to save for regID: $regId")
+            throw e
+        }
+    }
   }
 
   private[services] def auditUserPartialSubmission(regId: String, authProvId: String, partialSubmission: JsObject)
@@ -246,34 +245,6 @@ trait CorporationTaxRegistrationService extends DateHelper {
       val ctReg = optCtReg.getOrElse(throw new RuntimeException(s"Could not retrieve Company Registration after DES Submission for $regId"))
       auditUserSubmission(regId, ctReg.ppob, authProvId, partialSubmission)
       true
-    }
-  }
-
-  private[services] def storePartialSubmission(regId: String, ackRef: String, partialSubmission: JsObject, authProvId : String)
-                                              (implicit hc: HeaderCarrier): Future[HeldSubmissionData] = {
-    if(toETMPHoldingPen){
-      desConnector.ctSubmission(ackRef, partialSubmission, regId) map {
-        _ => HeldSubmissionData(regId, ackRef, partialSubmission.toString)
-      } recoverWith {
-        case e =>
-          hc.headers.collectFirst{ case ("X-Session-ID", xSessionId) => xSessionId } match {
-            case Some(xSesID) =>
-              Logger.warn(s"[storePartialSubmission] Saved session identifers for regId: $regId")
-              cTRegistrationRepository.storeSessionIdentifiers(regId, xSesID, authProvId) map (throw e)
-            case _            =>
-              Logger.warn(s"[storePartialSubmission] No session identifiers to save for regID: $regId")
-              throw e
-          }
-      }
-    } else {
-      heldSubmissionRepository.retrieveSubmissionByAckRef(ackRef) flatMap {
-        case Some(hs) => HeldSubmissionData(hs.regId, hs.ackRef, hs.submission.toString).pure[Future]
-        case None =>
-          heldSubmissionRepository.storePartialSubmission(regId, ackRef, partialSubmission) map {
-            case Some(heldSubmission) => heldSubmission
-            case None => throw new RuntimeException(s"[HO6] [storePartialSubmission] Held submission failed to store for regId: $regId")
-          }
-      }
     }
   }
 
@@ -292,7 +263,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
   private[services] def buildPartialDesSubmission(regId: String, ackRef: String, authProvId: String)
                                                  (implicit hc: HeaderCarrier, isAdmin: Boolean): Future[InterimDesRegistration] = {
 
-    val sessionIdentifiersResult: Future[(String, String, Boolean)] = hc.headers.collect { case ("X-Session-ID", x) => x }.headOption match {
+    val sessionIdentifiersResult: Future[(String, String, Boolean)] = hc.headers.collectFirst { case ("X-Session-ID", x) => x } match {
       case Some(sesID) => Future.successful((sesID, authProvId, isAdmin))
       case None => cTRegistrationRepository.retrieveSessionIdentifiers(regId) map {
         case Some(sessionIdentifiers) => (sessionIdentifiers.sessionId, sessionIdentifiers.credId, true)
@@ -327,7 +298,6 @@ trait CorporationTaxRegistrationService extends DateHelper {
 
 
   def convertROToPPOBAddress(rOAddress: CHROAddress) : Option[PPOBAddress] = {
-    import java.text.Normalizer._
     import APIValidation._
 
     Try {
@@ -419,33 +389,6 @@ trait CorporationTaxRegistrationService extends DateHelper {
     )
   }
 
-
-  def checkDocumentStatus(regIds: Seq[String]): Future[Seq[Boolean]] = {
-    def check(regId: String) = {
-      cTRegistrationRepository.retrieveCorporationTaxRegistration(regId) map {
-        document =>
-          val doc = document.get
-          val status = doc.status
-          val ho5 = doc.registrationProgress.fold("HO5 NOT reached")(_ => "HO5 reached")
-          val txId = doc.confirmationReferences.fold("")(cr => s" TxId is = ${cr.transactionId}.")
-
-          for {
-            held <- heldSubmissionRepository.retrieveSubmissionByRegId(regId).recover {
-              case _ =>
-                Logger.error("Error fetching Held document")
-                None
-            }
-          } yield Logger.warn(s"Current status of regId: $regId is $status.$txId $ho5 and ${held.fold("no held document")(_ => "document is in held")}.")
-          true
-      } recover {
-        case e =>
-          Logger.error(s"Data check was unsuccessful for regId: $regId")
-          false
-      }
-    }
-    Future.sequence(regIds.map(check))
-  }
-
   def locateOldHeldSubmissions(implicit hc : HeaderCarrier): Future[String] = {
     cTRegistrationRepository.retrieveAllWeekOldHeldSubmissions().map {submissions =>
       if (submissions.nonEmpty) {
@@ -466,7 +409,4 @@ trait CorporationTaxRegistrationService extends DateHelper {
 
   private[services] class FailedToGetCredId extends NoStackTrace
   private[services] class FailedToGetBRMetadata extends NoStackTrace
-
-  private[services] def registerInterestRequired(): Boolean = SCRSFeatureSwitches.registerInterest.enabled
-  private[services] def toETMPHoldingPen: Boolean = SCRSFeatureSwitches.etmpHoldingPen.enabled
 }

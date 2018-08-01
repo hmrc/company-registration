@@ -30,6 +30,7 @@ import reactivemongo.api.commands.WriteResult
 import reactivemongo.play.json._
 import repositories.{CorporationTaxRegistrationMongoRepository, SequenceMongoRepository}
 import uk.gov.hmrc.http.{HeaderNames => GovHeaderNames}
+import com.github.tomakehurst.wiremock.client.WireMock._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -52,6 +53,8 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
     "microservice.services.check-submission-job.schedule.blockage-logging-time" -> s"00:00:00_01:00:00",
     "microservice.services.des-service.host" -> s"$mockHost",
     "microservice.services.des-service.port" -> s"$mockPort",
+    "microservice.services.incorporation-information.host" -> s"$mockHost",
+    "microservice.services.incorporation-information.port" -> s"$mockPort",
     "microservice.services.des-service.url" -> s"$mockUrl/business-registration/corporation-tax",
     "microservice.services.des-service.environment" -> "local",
     "microservice.services.des-service.authorization-token" -> "testAuthToken",
@@ -256,13 +259,17 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
       "registration is in Draft status and update Confirmation References with Ack Ref and Payment infos (old HO6)" in new Setup {
         stubAuthorise(200, authorisedRetrievals)
 
-        System.setProperty("feature.registerInterest", "false")
-        System.setProperty("feature.etmpHoldingPen", "true")
-
         await(ctRepository.insert(draftRegistration))
 
         stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
         stubPost(s"/business-registration/corporation-tax", 200, """{"a": "b"}""")
+        stubFor(post(urlEqualTo("/incorporation-information/subscribe/trans-id-2345/regime/ctax/subscriber/SCRS?force=true"))
+          .willReturn(
+            aResponse().
+              withStatus(202).
+              withBody("""{"a": "b"}""")
+          )
+        )
 
         val response = await(client(s"/$regId/confirmation-references").put(jsonConfirmationRefs("", Some(payRef), Some(payAmount))))
         response.status shouldBe 200
@@ -277,13 +284,17 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
       "registration is in Draft status and update Confirmation References but DES submission failed (old HO6)" in new Setup {
         stubAuthorise(200, authorisedRetrievals)
 
-        System.setProperty("feature.registerInterest", "false")
-        System.setProperty("feature.etmpHoldingPen", "true")
-
         await(ctRepository.insert(draftRegistration))
 
         stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
         stubPost(s"/business-registration/corporation-tax", 403, "")
+        stubFor(post(urlEqualTo("/incorporation-information/subscribe/trans-id-2345/regime/ctax/subscriber/SCRS?force=true"))
+          .willReturn(
+            aResponse().
+              withStatus(202).
+              withBody("""{"a": "b"}""")
+          )
+        )
 
         val response = await(client(s"/$regId/confirmation-references").put(jsonConfirmationRefs("", Some(payRef), Some(payAmount))))
         response.status shouldBe 400
@@ -305,8 +316,13 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
         )
         val lockedRegistration = draftRegistration.copy(status = LOCKED, confirmationReferences = Some(confRefsWithPayment))
 
-        System.setProperty("feature.registerInterest", "false")
-        System.setProperty("feature.etmpHoldingPen", "true")
+        stubFor(post(urlEqualTo("/incorporation-information/subscribe/trans-id-2345/regime/ctax/subscriber/SCRS?force=true"))
+          .willReturn(
+            aResponse().
+              withStatus(202).
+              withBody("""{"a": "b"}""")
+          )
+        )
 
         await(ctRepository.insert(lockedRegistration))
 
@@ -333,13 +349,17 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
           paymentAmount = None
         )
 
-        System.setProperty("feature.registerInterest", "false")
-        System.setProperty("feature.etmpHoldingPen", "true")
-
         await(ctRepository.insert(draftRegistration))
 
         stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
         stubPost(s"/business-registration/corporation-tax", 200, """{"a": "b"}""")
+        stubFor(post(urlEqualTo("/incorporation-information/subscribe/trans-id-2345/regime/ctax/subscriber/SCRS?force=true"))
+          .willReturn(
+            aResponse().
+              withStatus(202).
+              withBody("""{"a": "b"}""")
+          )
+        )
 
         val response = await(client(s"/$regId/confirmation-references").put(jsonConfirmationRefs()))
         response.status shouldBe 200
@@ -361,9 +381,6 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
           paymentAmount = None
         )
 
-        System.setProperty("feature.registerInterest", "false")
-        System.setProperty("feature.etmpHoldingPen", "true")
-
         await(ctRepository.insert(draftRegistration.copy(companyDetails =
           Some(CompanyDetails(
             companyName = "testCompanyName",
@@ -375,6 +392,13 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
 
         stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
         stubPost(s"/business-registration/corporation-tax", 200, """{"a": "b"}""")
+        stubFor(post(urlEqualTo("/incorporation-information/subscribe/trans-id-2345/regime/ctax/subscriber/SCRS?force=true"))
+          .willReturn(
+            aResponse().
+              withStatus(202).
+              withBody("""{"a": "b"}""")
+          )
+        )
 
         val response = await(client(s"/$regId/confirmation-references").put(jsonConfirmationRefs()))
         response.status shouldBe 200
@@ -396,13 +420,17 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
           paymentAmount = None
         )
 
-        System.setProperty("feature.registerInterest", "false")
-        System.setProperty("feature.etmpHoldingPen", "true")
-
         await(ctRepository.insert(draftRegistration))
 
         stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
         stubPost(s"/business-registration/corporation-tax", 403, "")
+        stubFor(post(urlEqualTo("/incorporation-information/subscribe/trans-id-2345/regime/ctax/subscriber/SCRS?force=true"))
+          .willReturn(
+            aResponse().
+              withStatus(202).
+              withBody("""{"a": "b"}""")
+          )
+        )
 
         val response = await(client(s"/$regId/confirmation-references").put(jsonConfirmationRefs()))
         response.status shouldBe 400
@@ -424,13 +452,17 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
         )
         val lockedRegistration = draftRegistration.copy(status = LOCKED, confirmationReferences = Some(confRefsWithoutPayment))
 
-        System.setProperty("feature.registerInterest", "false")
-        System.setProperty("feature.etmpHoldingPen", "true")
-
         await(ctRepository.insert(lockedRegistration))
 
         stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
         stubPost(s"/business-registration/corporation-tax", 200, """{"a": "b"}""")
+        stubFor(post(urlEqualTo("/incorporation-information/subscribe/trans-id-2345/regime/ctax/subscriber/SCRS?force=true"))
+          .willReturn(
+            aResponse().
+              withStatus(202).
+              withBody("""{"a": "b"}""")
+          )
+        )
 
         val response = await(client(s"/$regId/confirmation-references").put(jsonConfirmationRefs(ackRef, Some(payRef), Some(payAmount))))
         response.status shouldBe 200

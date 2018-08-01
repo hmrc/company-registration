@@ -22,14 +22,14 @@ import helpers.BaseSpec
 import models.ConfirmationReferences
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
-import play.api.libs.json.Json
-import play.api.test.FakeRequest
-import repositories._
-import services.CorporationTaxRegistrationService
 import org.mockito.Mockito._
 import play.api.Logger
-import play.api.mvc.{Action, AnyContent, Result}
+import play.api.libs.json.Json
+import play.api.mvc.Result
+import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import repositories._
+import services.CorporationTaxRegistrationService
 import uk.gov.hmrc.play.test.LogCapturing
 
 import scala.concurrent.Future
@@ -41,7 +41,6 @@ class TestEndpointControllerSpec extends BaseSpec with LogCapturing {
 
   val mockThrottleRepository = mock[ThrottleMongoRepository]
   val mockCTRepository = mock[CorporationTaxRegistrationMongoRepository]
-  val mockHeldRepository = mock[HeldSubmissionRepository]
   val mockCTService = mock[CorporationTaxRegistrationService]
   val mockStateRepository = mock[StateDataMongoRepository]
 
@@ -50,7 +49,6 @@ class TestEndpointControllerSpec extends BaseSpec with LogCapturing {
       val throttleMongoRepository = mockThrottleRepository
       val cTMongoRepository = mockCTRepository
       val bRConnector = mockBusRegConnector
-      val heldRepository = mockHeldRepository
       val cTService = mockCTService
       val stateRepo = mockStateRepository
     }
@@ -88,59 +86,6 @@ class TestEndpointControllerSpec extends BaseSpec with LogCapturing {
       val result = await(controller.dropJourneyCollections(FakeRequest()))
       status(result) shouldBe OK
       jsonBodyOf(result).toString() shouldBe """{"message":"A problem occurred and the CT Collection could not be dropped test message failed"}"""
-    }
-  }
-
-  "getHeldData" should {
-
-    val registrationId = "testRegId"
-    val ackRef = "testAckRef"
-
-    val heldSubmission = HeldSubmission(registrationId, ackRef, Json.obj("test" -> "ing"))
-
-    "return a 200 and a valid held submission when one is found" in new Setup {
-      when(mockHeldRepository.retrieveSubmissionByRegId(ArgumentMatchers.eq(registrationId)))
-        .thenReturn(Future.successful(Some(heldSubmission)))
-
-      val result = await(controller.fetchHeldData(registrationId)(FakeRequest()))
-      status(result) shouldBe OK
-      jsonBodyOf(result) shouldBe Json.toJson(heldSubmission)
-    }
-
-    "return a 404 when a held submission is not found" in new Setup {
-      when(mockHeldRepository.retrieveSubmissionByRegId(ArgumentMatchers.eq(registrationId)))
-        .thenReturn(Future.successful(None))
-
-      val result = await(controller.fetchHeldData(registrationId)(FakeRequest()))
-      status(result) shouldBe NOT_FOUND
-    }
-  }
-
-  "storeHeldData" should {
-
-    val registrationId = "testRegId"
-    val ackRef = "testAckRef"
-
-    val request = Json.obj("test" -> "ing")
-
-    val heldSubmission = HeldSubmissionData(registrationId, ackRef, Json.obj("test" -> "ing").toString())
-
-    "return a 200 when it is stored successfully" in new Setup {
-      when(mockHeldRepository.storePartialSubmission(ArgumentMatchers.eq(registrationId), ArgumentMatchers.eq(ackRef), ArgumentMatchers.any()))
-        .thenReturn(Future.successful(Some(heldSubmission)))
-
-      val result = await(call(controller.storeHeldData(registrationId, ackRef), FakeRequest().withJsonBody(request)))
-      status(result) shouldBe OK
-
-    }
-
-    "return a 400 when a problem occurred when storing the request" in new Setup {
-      when(mockHeldRepository.storePartialSubmission(ArgumentMatchers.eq(registrationId), ArgumentMatchers.eq(ackRef), ArgumentMatchers.any()))
-        .thenReturn(Future.successful(None))
-
-      val result = await(call(controller.storeHeldData(registrationId, ackRef), FakeRequest().withJsonBody(request)))
-      status(result) shouldBe BAD_REQUEST
-
     }
   }
 

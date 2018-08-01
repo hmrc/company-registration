@@ -17,12 +17,12 @@
 package config
 
 import java.util.Base64
-import javax.inject.{Inject, Named, Singleton}
 
 import com.typesafe.config.Config
+import javax.inject.{Inject, Named, Singleton}
 import net.ceedubs.ficus.Ficus._
 import play.api.{Application, Configuration, Logger, Play}
-import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmissionMongoRepository, Repositories}
+import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.admin.AdminServiceImpl
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
 import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
@@ -78,10 +78,6 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
     val listOfackRefs = new String(Base64.getDecoder.decode(base64ackRefs), "UTF-8").split(",").toList
     app.injector.instanceOf[AppStartupJobs].fetchByAckRef(listOfackRefs)
 
-    (1 to 5) foreach {
-      _ => app.injector.instanceOf[AppStartupJobs].getHeldDocsInfoSecondary()
-    }
-
     startupJobs.fetchIndexes()
 
     super.onStart(app)
@@ -110,7 +106,6 @@ class AppStartupJobs @Inject()(config: Configuration,
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  lazy val heldRepo: HeldSubmissionMongoRepository = repositories.heldSubmissionRepository
   lazy val ctRepo: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 
   ctRepo.getRegistrationStats() map {
@@ -142,26 +137,6 @@ class AppStartupJobs @Inject()(config: Configuration,
       }
     } else {
       Logger.info("[AppStartupJobs] [updateTransId] Config missing or empty to update a transaction id")
-    }
-  }
-
-  def getHeldDocsInfoPrimary() : Future[Unit] = {
-    heldRepo.getAllHeldDocsP map {
-      _ foreach { held =>
-        Logger.info(s"[HeldDocs Pri] " +
-          s"regid : ${held.regId} - " +
-          s"ack ref : ${held.ackRef} - ")
-      }
-    }
-  }
-
-  def getHeldDocsInfoSecondary() : Future[Unit] = {
-    heldRepo.getAllHeldDocsS map {
-      _ foreach { held =>
-        Logger.info(s"[HeldDocs Sec] " +
-          s"regid : ${held.regId} - " +
-          s"ack ref : ${held.ackRef} - ")
-      }
     }
   }
 

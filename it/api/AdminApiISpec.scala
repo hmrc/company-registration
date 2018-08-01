@@ -17,10 +17,10 @@
 package api
 
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
-import itutil.{IntegrationSpecBase, LoginStub}
 import itutil.WiremockHelper._
-import models._
+import itutil.{IntegrationSpecBase, LoginStub}
 import models.RegistrationStatus._
+import models._
 import org.joda.time.DateTime
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -28,7 +28,7 @@ import play.api.libs.json._
 import play.api.libs.ws.{WSClient, WSRequest, WSResponse}
 import play.modules.reactivemongo.MongoDbConnection
 import reactivemongo.api.commands.WriteResult
-import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmissionData, HeldSubmissionMongoRepository, SequenceMongoRepository}
+import repositories.{CorporationTaxRegistrationMongoRepository, SequenceMongoRepository}
 import uk.gov.hmrc.mongo.MongoSpecSupport
 
 import scala.concurrent.ExecutionContext
@@ -63,24 +63,16 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with Login
 
   class Setup extends MongoDbConnection {
     val corpTaxRepo = new CorporationTaxRegistrationMongoRepository(db)
-    val heldRepo = new HeldSubmissionMongoRepository(db)
     val seqRepo = new SequenceMongoRepository(db)
 
     await(corpTaxRepo.drop)
-    await(heldRepo.drop)
     await(seqRepo.drop)
 
     await(corpTaxRepo.ensureIndexes)
-    await(heldRepo.ensureIndexes)
     await(seqRepo.ensureIndexes)
 
     def ctRegCount: Int = await(corpTaxRepo.count)
-    def heldCount: Int = await(heldRepo.count)
-
     def insertCorpTax(doc: CorporationTaxRegistration): WriteResult = await(corpTaxRepo.insert(doc))
-    def insertHeldSub(doc: HeldSubmissionData): WriteResult = await(heldRepo.insert(doc))
-
-    def heldSub(regIds: String*): Seq[HeldSubmissionData] = (0 until regIds.size).map(i => HeldSubmissionData(regIds(i), s"trans-$i", "testPartial"))
 
     ctRegCount shouldBe 0
 
@@ -348,19 +340,16 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with Login
         """.stripMargin)
 
     "update the confirmation refs for the record matching the supplied reg Id and create a held submission and return a 200" in new Setup {
-
-      System.setProperty("feature.registerInterest", "true")
-
       setupSimpleAuthMocks()
 
       stubGet(s"/business-registration/admin/business-tax-registration/$regId", 200, businessRegistrationResponse.toString())
+      stubPost("/business-registration/corporation-tax", 202, """{"x":"y"}""")
 
       stubIISubscribe(202, incorpInfoResponse)
 
       insertCorpTax(draftRegistration)
 
       ctRegCount shouldBe 1
-      heldCount shouldBe 0
 
       val result: WSResponse = await(client(s"$url").post(adminJsonBody))
 
@@ -375,8 +364,6 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with Login
 
       result.status shouldBe 200
       result.json shouldBe expected
-
-      heldCount shouldBe 1
     }
 
     "do not update the record matching the supplied reg Id when the record status is already held and do not create a held record and return a 200" in new Setup {
@@ -388,7 +375,6 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with Login
       insertCorpTax(heldRegistration())
 
       ctRegCount shouldBe 1
-      heldCount shouldBe 0
 
       val result: WSResponse = await(client(s"$url").post(adminJsonBody))
 
@@ -403,8 +389,6 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with Login
 
       result.status shouldBe 200
       result.json shouldBe expected
-
-      heldCount shouldBe 0
     }
 
     "return a 404 when a CT registration does not exist" in new Setup {
@@ -414,7 +398,6 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with Login
       stubGet(s"/business-registration/admin/business-tax-registration/$regId", 200, businessRegistrationResponse.toString())
 
       ctRegCount shouldBe 0
-      heldCount shouldBe 0
 
       val result: WSResponse = await(client(s"$url").post(adminJsonBody))
 
@@ -437,8 +420,6 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with Login
 
       val result: WSResponse = await(client(s"$url").post(adminJsonBody))
 
-      heldCount shouldBe 0
-
       result.status shouldBe 200
     }
 
@@ -459,7 +440,6 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with Login
       val firstCall: WSResponse = await(client(s"$url").post(adminJsonBody))
       firstCall.status shouldBe 404
 
-      heldCount shouldBe 0
       await(corpTaxRepo.findAll()).head.confirmationReferences shouldBe Some(expectedConfRefs)
 
       stubIISubscribe(202, incorpInfoResponse)
@@ -479,8 +459,6 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with Login
 
       val secondCall: WSResponse = await(client(s"$url").post(otherJsonBody))
       secondCall.status shouldBe 200
-
-      heldCount shouldBe 1
 
       await(corpTaxRepo.findAll()).head.confirmationReferences shouldBe Some(expectedConfRefs)
     }
@@ -504,72 +482,6 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with Login
 
       val secondCall: WSResponse = await(client(s"$url").post(adminJsonBody))
       secondCall.status shouldBe 200
-    }
-  }
-
-  "GET /admin/migrate-held-submissions" should {
-
-    val path = "/migrate-held-submissions"
-
-    val incorpInfoUrl = s"/incorporation-information/subscribe/$transId/regime/testRegime/subscriber/testSubcriber\\?force=true"
-
-    val reg1 = "reg-1"
-    val reg2 = "reg-2"
-    val reg3 = "reg-3"
-
-    "successfully migrate all held submissions and return a 200" in new Setup {
-
-      heldSub(reg1, reg2, reg3) map insertHeldSub
-
-      heldCount shouldBe 3
-
-      insertCorpTax(heldRegistration(reg1))
-      insertCorpTax(heldRegistration(reg2))
-      insertCorpTax(heldRegistration(reg3))
-
-      ctRegCount shouldBe 3
-
-      stubPost(incorpInfoUrl, 202, "")
-
-      val result: WSResponse = await(client(path).get())
-
-      val expectedJson: JsValue = Json.parse(
-        """
-          |{
-          |  "total-attempted-migrations":3,
-          |  "total-success":3
-          |}
-        """.stripMargin)
-
-      result.status shouldBe 200
-      result.json shouldBe expectedJson
-    }
-
-    "unsuccessfully migrate all held submissions if 1 doesn't have an associating corp tax document and return a 200" in new Setup {
-
-      heldSub(reg1, reg2, reg3) map insertHeldSub
-
-      heldCount shouldBe 3
-
-      insertCorpTax(heldRegistration(reg1))
-      insertCorpTax(heldRegistration(reg3))
-
-      ctRegCount shouldBe 2
-
-      stubPost(incorpInfoUrl, 202, "")
-
-      val result: WSResponse = await(client(path).get())
-
-      val expectedJson: JsValue = Json.parse(
-        """
-          |{
-          |  "total-attempted-migrations":3,
-          |  "total-success":2
-          |}
-        """.stripMargin)
-
-      result.status shouldBe 200
-      result.json shouldBe expectedJson
     }
   }
 

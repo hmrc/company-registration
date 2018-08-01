@@ -16,12 +16,11 @@
 
 package controllers.admin
 
-import javax.inject.Inject
-
 import cats.instances.FutureInstances
 import cats.syntax.{ApplicativeSyntax, FlatMapSyntax}
+import javax.inject.Inject
 import models.admin.{HO6Identifiers, HO6Response}
-import models.{ConfirmationReferences, HO6RegistrationInformation, SessionIdData}
+import models.{ConfirmationReferences, HO6RegistrationInformation}
 import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc.{Action, _}
@@ -58,13 +57,6 @@ trait AdminController extends BaseController with FutureInstances with Applicati
       adminService.fetchSessionIdData(regId) map {
         case Some(sesIdData) => Ok(Json.toJson(sesIdData))
         case None => NoContent
-      }
-  }
-
-  def migrateHeldSubmissions: Action[AnyContent] = Action.async {
-    implicit request =>
-      adminService.migrateHeldSubmissions map { migrationList =>
-        Ok(migrationJsonResponse(migrationList))
       }
   }
 

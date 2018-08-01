@@ -16,9 +16,7 @@
 
 package services
 
-import java.util.UUID
-
-import audit.{RegistrationAuditEvent, UserRegistrationSubmissionEvent}
+import audit.UserRegistrationSubmissionEvent
 import cats.data.OptionT
 import connectors._
 import fixtures.{AuthFixture, CorporationTaxRegistrationFixture}
@@ -53,7 +51,6 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
   implicit val req = FakeRequest("GET", "/test-path")
 
   val mockBRConnector: BusinessRegistrationConnector = mock[BusinessRegistrationConnector]
-  val mockHeldSubmissionRepository: HeldSubmissionMongoRepository = mock[HeldSubmissionMongoRepository]
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
   val mockIIConnector: IncorporationInformationConnector = mock[IncorporationInformationConnector]
   val mockDesConnector: DesConnector = mock[DesConnector]
@@ -74,7 +71,6 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
       val stateDataRepository: StateDataRepository = mockStateDataRepository
       val microserviceAuthConnector: AuthConnector = mockAuthConnector
       val brConnector: BusinessRegistrationConnector = mockBRConnector
-      val heldSubmissionRepository: HeldSubmissionRepository = mockHeldSubmissionRepository
       val submissionCheckAPIConnector: IncorporationCheckAPIConnector = mockIncorporationCheckAPIConnector
       val auditConnector: AuditConnector = mockAuditConnector
       val incorpInfoConnector: IncorporationInformationConnector = mockIIConnector
@@ -87,7 +83,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
 
     reset(
       mockCTDataRepository, mockSequenceRepository, mockStateDataRepository, mockAuthConnector, mockBRConnector,
-      mockHeldSubmissionRepository, mockIncorporationCheckAPIConnector, mockAuditConnector, mockIIConnector, mockDesConnector
+      mockIncorporationCheckAPIConnector, mockAuditConnector, mockIIConnector, mockDesConnector
     )
 
     protected def mockGenerateAckRef(ackRef: Int): OngoingStubbing[_] = SequenceRepositoryMocks.getNext("AcknowledgementID", ackRef)
@@ -97,7 +93,6 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
       val sequenceRepository: SequenceRepository = mockSequenceRepository
       val stateDataRepository: StateDataRepository = mockStateDataRepository
       val brConnector: BusinessRegistrationConnector = mockBRConnector
-      val heldSubmissionRepository: HeldSubmissionRepository = mockHeldSubmissionRepository
       val submissionCheckAPIConnector: IncorporationCheckAPIConnector = mockIncorporationCheckAPIConnector
       val auditConnector: AuditConnector = mockAuditConnector
       val incorpInfoConnector: IncorporationInformationConnector = mockIIConnector
@@ -294,13 +289,6 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
          |}
       """.stripMargin).as[JsObject]
 
-    val heldSubmission = HeldSubmissionData(
-      regId,
-      ackRef,
-      partialDesSubmission.toString()
-    )
-
-
     "handle the partial submission when there is no held document" in new Setup {
 
       val confRefs = ho6RequestBody
@@ -443,30 +431,6 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
     }
   }
 
-  "registerInterest" should {
-
-    "return true when the register interest feature flag is enabled and the IIConnector returned true" in new Setup {
-      System.setProperty("feature.registerInterest", "true")
-
-      when(mockIIConnector.registerInterest(eqTo(regId), eqTo(transId), any())(any(), any()))
-        .thenReturn(Future.successful(true))
-
-      val result: Boolean = await(service.registerInterest(regId, transId))
-      result shouldBe true
-
-      verify(mockIIConnector, times(1)).registerInterest(eqTo(regId), eqTo(transId), any())(any(), any())
-    }
-
-    "return false when the register interest feature flag is disabled" in new Setup {
-      System.setProperty("feature.registerInterest", "false")
-
-      val result: Boolean = await(service.registerInterest(regId, transId))
-      result shouldBe false
-
-      verify(mockIIConnector, times(0)).registerInterest(eqTo(regId), eqTo(transId), any())(any(), any())
-    }
-  }
-
   "storePartialSubmission" should {
 
     val ackRef = "ack-ref-12345"
@@ -475,72 +439,37 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
 
     val dateTime = DateTime.now()
 
-    val heldSubmissionData = HeldSubmissionData(regId, ackRef, partialSubmission.toString, dateTime)
-
     "send a partial submission to DES when the ETMP feature flag is enabled and return a HeldSubmissionData object when the connector returns a 200 HttpResponse" in new Setup {
-      System.setProperty("feature.etmpHoldingPen", "true")
-
       when(mockDesConnector.ctSubmission(eqTo(ackRef), eqTo(partialSubmission), eqTo(regId), any())(any()))
         .thenReturn(Future.successful(HttpResponse(200)))
 
-      val result: HeldSubmissionData = await(service.storePartialSubmission(regId, ackRef, partialSubmission, authProviderId))
-      val heldSubmissionWithSameSubmissionTime: HeldSubmissionData = heldSubmissionData.copy(heldTime = result.heldTime)
+      val result = await(service.submitPartialToDES(regId, ackRef, partialSubmission, authProviderId))
 
-      result shouldBe heldSubmissionWithSameSubmissionTime
+      result.status shouldBe 200
 
       verify(mockDesConnector, times(1)).ctSubmission(eqTo(ackRef), eqTo(partialSubmission), eqTo(regId), any())(any())
     }
 
-    "send a partial submission to the Held repository when the ETMP feature flag is disabled and return a HeldSubmissionData object when the repository returns a held submission" in new Setup {
-      System.setProperty("feature.etmpHoldingPen", "false")
-
-      when(mockHeldSubmissionRepository.retrieveSubmissionByAckRef(eqTo(ackRef)))
-        .thenReturn(Future.successful(None))
-      when(mockHeldSubmissionRepository.storePartialSubmission(eqTo(regId), eqTo(ackRef), eqTo(partialSubmission)))
-        .thenReturn(Future.successful(Some(heldSubmissionData)))
-
-      await(service.storePartialSubmission(regId, ackRef, partialSubmission, authProviderId)) shouldBe heldSubmissionData
-
-      verify(mockDesConnector, times(0)).ctSubmission(eqTo(ackRef), eqTo(partialSubmission), eqTo(regId), any())(any())
-    }
-
     "throw a Runtime exception, save sessionID/credID when the ETMP feature flag is enabled and submission DES to fails on a 400" in new Setup {
-      System.setProperty("feature.etmpHoldingPen", "true")
-
       when(mockDesConnector.ctSubmission(eqTo(ackRef), eqTo(partialSubmission), eqTo(regId), any())(any()))
         .thenReturn(Future.failed(Upstream4xxResponse("fail", 400, 400)))
       when(mockCTDataRepository.storeSessionIdentifiers(eqTo(regId), any(), any()))
         .thenReturn(Future.successful(true))
 
-      intercept[Upstream4xxResponse](await(service.storePartialSubmission(regId, ackRef, partialSubmission, authProviderId)))
+      intercept[Upstream4xxResponse](await(service.submitPartialToDES(regId, ackRef, partialSubmission, authProviderId)))
 
       verify(mockDesConnector, times(1)).ctSubmission(eqTo(ackRef), eqTo(partialSubmission), eqTo(regId), any())(any())
     }
 
     "throw a Runtime exception, save sessionID/credID when the ETMP feature flag is enabled and submission DES to fails on a 500" in new Setup {
-      System.setProperty("feature.etmpHoldingPen", "true")
-
       when(mockDesConnector.ctSubmission(eqTo(ackRef), eqTo(partialSubmission), eqTo(regId), any())(any()))
         .thenReturn(Future.failed(Upstream5xxResponse("fail", 500, 500)))
       when(mockCTDataRepository.storeSessionIdentifiers(eqTo(regId), any(), any()))
         .thenReturn(Future.successful(true))
 
-      intercept[Upstream5xxResponse](await(service.storePartialSubmission(regId, ackRef, partialSubmission, authProviderId)))
+      intercept[Upstream5xxResponse](await(service.submitPartialToDES(regId, ackRef, partialSubmission, authProviderId)))
 
       verify(mockDesConnector, times(1)).ctSubmission(eqTo(ackRef), eqTo(partialSubmission), eqTo(regId), any())(any())
-    }
-
-    "throw a Runtime exception when the ETMP feature flag is disabled and the repository returns a None" in new Setup {
-      System.setProperty("feature.etmpHoldingPen", "false")
-
-      when(mockHeldSubmissionRepository.retrieveSubmissionByAckRef(eqTo(ackRef)))
-        .thenReturn(Future.successful(None))
-      when(mockHeldSubmissionRepository.storePartialSubmission(eqTo(regId), eqTo(ackRef), eqTo(partialSubmission)))
-        .thenReturn(Future.successful(None))
-
-      intercept[RuntimeException](await(service.storePartialSubmission(regId, ackRef, partialSubmission, authProviderId)))
-
-      verify(mockDesConnector, times(0)).ctSubmission(eqTo(ackRef), eqTo(partialSubmission), eqTo(regId), any())(any())
     }
   }
 
@@ -841,47 +770,6 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
     }
   }
 
-  "checkDocumentStatus" should {
-
-    val registrationIds = Seq.fill(6)(UUID.randomUUID.toString)
-
-    val heldSubmission = HeldSubmission(
-      "registrationId",
-      "ackRef",
-      Json.obj("foo" -> "bar")
-    )
-
-    "log the status of a list of RegIds" in new Setup {
-
-      val res = {
-        Seq(corporationTaxRegistration(registrationIds(0), DRAFT),
-            corporationTaxRegistration(registrationIds(1), HELD),
-            corporationTaxRegistration(registrationIds(2), SUBMITTED),
-            corporationTaxRegistration(registrationIds(3), HELD),
-            corporationTaxRegistration(registrationIds(4), DRAFT),
-            corporationTaxRegistration(registrationIds(5), ACKNOWLEDGED))
-      }
-
-      def success(i: Int) = Future.successful(Some(res(i)))
-
-      withCaptureOfLoggingFrom(Logger) { logEvents =>
-
-        when(mockCTDataRepository.retrieveCorporationTaxRegistration(ArgumentMatchers.anyString()))
-          .thenReturn(success(0), success(1), success(2), success(3), success(4), success(5))
-
-        when(mockHeldSubmissionRepository.retrieveSubmissionByRegId(ArgumentMatchers.anyString()))
-          .thenReturn(Future.successful(None), Future.successful(Some(heldSubmission)))
-
-        await(service.checkDocumentStatus(registrationIds))
-
-        eventually {
-          logEvents.length shouldBe 6
-          logEvents.head.getMessage should include("Current status of regId:")
-        }
-      }
-    }
-  }
-
   "locateOldHeldSubmissions" should {
     val registrationId = "testRegId"
     val tID = "transID"
@@ -995,10 +883,10 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
     implicit val hc = HeaderCarrier()
 
     "submit partial if the document is locked" in new Setup {
-      System.setProperty("feature.etmpHoldingPen", "true")
-
       when(mockCTDataRepository.retrieveRegistrationByTransactionID(any()))
         .thenReturn(Future.successful(Some(lockedSubmission)))
+      when(mockIIConnector.registerInterest(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyBoolean())(any(), any()))
+        .thenReturn(Future.successful(true))
       when(mockCTDataRepository.retrieveSessionIdentifiers(any()))
         .thenReturn(Future.successful(Some(sessIds)))
       when(mockBRConnector.adminRetrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any()))
@@ -1019,10 +907,10 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
     }
 
     "submit partial if the document is locked, even if the audit fails" in new Setup {
-      System.setProperty("feature.etmpHoldingPen", "true")
-
       when(mockCTDataRepository.retrieveRegistrationByTransactionID(any()))
         .thenReturn(Future.successful(Some(lockedSubmission)))
+      when(mockIIConnector.registerInterest(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyBoolean())(any(), any()))
+          .thenReturn(Future.successful(true))
       when(mockCTDataRepository.retrieveSessionIdentifiers(any()))
         .thenReturn(Future.successful(Some(sessIds)))
       when(mockBRConnector.adminRetrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any()))

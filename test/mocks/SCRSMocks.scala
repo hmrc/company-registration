@@ -23,7 +23,7 @@ import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
 import org.mockito.stubbing.OngoingStubbing
 import org.scalatest.mock.MockitoSugar
-import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmissionMongoRepository, SequenceRepository, StateDataRepository}
+import repositories.{CorporationTaxRegistrationMongoRepository, SequenceRepository, StateDataRepository}
 import services._
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -44,7 +44,6 @@ trait SCRSMocks
   lazy val mockStateDataRepository = mock[StateDataRepository]
   lazy val mockIncorporationCheckAPIConnector = mock[IncorporationCheckAPIConnector]
   lazy val mockMetrics = mock[MetricsService]
-  lazy val mockHeldSubRepo = mock[HeldSubmissionMongoRepository]
   lazy val mockRegHoldingPen = mock[RegistrationHoldingPenService]
   val mockBusRegConnector = mock[BusinessRegistrationConnector]
 
