@@ -40,7 +40,6 @@ class Module extends AbstractModule {
   }
 
   private def bindJobs() = {
-    bind(classOf[CheckSubmissionJob]).to(classOf[CheckSubmissionJobImpl])
     bind(classOf[MissingIncorporationJob]).to(classOf[MissingIncorporationJobImpl])
     bind(classOf[ScheduledJob]).annotatedWith(Names.named("remove-stale-documents-job")).to(classOf[RemoveStaleDocumentsJobImpl])
     bind(classOf[ScheduledJob]).annotatedWith(Names.named("metrics-job")).to(classOf[MetricsJobImpl])
@@ -63,7 +62,6 @@ class Module extends AbstractModule {
     bind(classOf[AdminController]) to classOf[AdminControllerImpl]
     bind(classOf[HeldController]) to classOf[HeldControllerImpl]
     bind(classOf[AccountingDetailsController]) to classOf[AccountingDetailsControllerImpl]
-    bind(classOf[SubmissionCheckController]) to classOf[SubmissionCheckControllerImpl]
     bind(classOf[TestEndpointController]) to classOf[TestEndpointControllerImpl]
   }
 
@@ -77,7 +75,6 @@ class Module extends AbstractModule {
     bind(classOf[CorporationTaxRegistrationService]) to classOf[CorporationTaxRegistrationServiceImpl]
     bind(classOf[CorporationTaxRegistrationService]) to classOf[CorporationTaxRegistrationServiceImpl]
     bind(classOf[EmailService]) to classOf[EmailServiceImpl]
-    bind(classOf[HeldSubmissionController]) to classOf[HeldSubmissionControllerImpl]
     bind(classOf[SendEmailService]) to classOf[SendEmailServiceImpl]
     bind(classOf[MetricsService]) to classOf[MetricsServiceImpl]
     bind(classOf[PrepareAccountService]) to classOf[PrepareAccountServiceImpl]

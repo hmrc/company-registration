@@ -17,14 +17,13 @@
 package controllers.test
 
 
-import javax.inject.Inject
-
 import connectors.BusinessRegistrationConnector
 import helpers.DateHelper
+import javax.inject.Inject
 import models.ConfirmationReferences
 import play.api.Logger
-import play.api.libs.json.{JsObject, Json}
-import play.api.mvc.{Action, AnyContent, Result}
+import play.api.libs.json.Json
+import play.api.mvc.{Action, AnyContent}
 import repositories._
 import services.CorporationTaxRegistrationService
 import uk.gov.hmrc.play.microservice.controller.BaseController
@@ -40,7 +39,6 @@ class TestEndpointControllerImpl @Inject()(
       ) extends TestEndpointController {
   val throttleMongoRepository = repositories.throttleRepository
   val cTMongoRepository = repositories.cTRepository
-  val heldRepository = repositories.heldSubmissionRepository
   val stateRepo = repositories.stateDataRepository
 }
 
@@ -49,7 +47,6 @@ trait TestEndpointController extends BaseController {
   val throttleMongoRepository: ThrottleMongoRepository
   val cTMongoRepository: CorporationTaxRegistrationMongoRepository
   val bRConnector: BusinessRegistrationConnector
-  val heldRepository: HeldSubmissionRepository
   val cTService: CorporationTaxRegistrationService
   val stateRepo: StateDataRepository
 
@@ -75,22 +72,6 @@ trait TestEndpointController extends BaseController {
         Ok(Json.parse(s"""{"message":"$cTDrop $bRDrop"}"""))
       }
     }
-
-  def fetchHeldData(registrationId: String) = Action.async {
-    implicit request =>
-      heldRepository.retrieveSubmissionByRegId(registrationId).map(_.fold[Result](NotFound){
-        heldSub => Ok(Json.toJson(heldSub))
-      })
-  }
-
-  def storeHeldData(registrationId: String, ackRef: String) = Action.async(parse.json) {
-    implicit request =>
-      withJsonBody[JsObject] {
-        partialSub =>
-          heldRepository.storePartialSubmission(registrationId, ackRef, partialSub)
-            .map(_.fold[Result](BadRequest)(_ => Ok))
-      }
-  }
 
   def updateSubmissionStatusToHeld(registrationId: String) = Action.async {
     implicit request =>

@@ -22,7 +22,6 @@ import models.{CorporationTaxRegistration, RegistrationStatus}
 import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
-import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import repositories.CorporationTaxRegistrationMongoRepository
@@ -40,7 +39,6 @@ class HeldControllerSpec extends BaseSpec with AuthorisationMocks {
   trait Setup {
     val controller = new HeldController {
       override val service = mockRegHoldingPen
-      override val heldRepo = mockHeldSubRepo
       override val authConnector = mockAuthClientConnector
       override val resource = mockResource
     }
@@ -74,58 +72,6 @@ class HeldControllerSpec extends BaseSpec with AuthorisationMocks {
       heldTimestamp = timestamp
     )
 
-  }
-
-  "fetchHeldSubmissionTime" should {
-
-    "return a 200 response along with a submission time from the Held Document when CR has no timestamp" in new Setup {
-      mockAuthorise()
-
-      when(mockResource.retrieveCorporationTaxRegistration(ArgumentMatchers.any()))
-        .thenReturn(Future.successful(Some(doc(None))))
-      when(mockHeldSubRepo.retrieveHeldSubmissionTime(ArgumentMatchers.any()))
-        .thenReturn(Future.successful(Some(dateTime)))
-
-      val result = await(controller.fetchHeldSubmissionTime(regId)(FakeRequest()))
-      status(result) shouldBe OK
-      contentAsJson(result) shouldBe Json.toJson(dateTime)
-    }
-
-    "return a 200 response along with a submission time from the Held Document when there is no CR document" in new Setup {
-      mockAuthorise()
-
-      when(mockResource.retrieveCorporationTaxRegistration(ArgumentMatchers.any()))
-        .thenReturn(Future.successful(None))
-      when(mockHeldSubRepo.retrieveHeldSubmissionTime(ArgumentMatchers.any()))
-        .thenReturn(Future.successful(Some(dateTime)))
-
-      val result = await(controller.fetchHeldSubmissionTime(regId)(FakeRequest()))
-      status(result) shouldBe OK
-      contentAsJson(result) shouldBe Json.toJson(dateTime)
-    }
-
-    "return a 200 response along with a submission time from the CR Document" in new Setup {
-      mockAuthorise()
-
-      when(mockResource.retrieveCorporationTaxRegistration(ArgumentMatchers.any()))
-        .thenReturn(Future.successful(Some(doc(Some(dateTime)))))
-
-      val result = await(controller.fetchHeldSubmissionTime(regId)(FakeRequest()))
-      status(result) shouldBe OK
-      contentAsJson(result) shouldBe Json.toJson(dateTime)
-    }
-
-    "return a 404 (Not found) response" in new Setup {
-      mockAuthorise()
-
-      when(mockResource.retrieveCorporationTaxRegistration(ArgumentMatchers.any()))
-        .thenReturn(Future.successful(Some(doc(None))))
-      when(mockHeldSubRepo.retrieveHeldSubmissionTime(ArgumentMatchers.any()))
-        .thenReturn(Future.successful(None))
-
-      val result = await(controller.fetchHeldSubmissionTime(regId)(FakeRequest()))
-      status(result) shouldBe NOT_FOUND
-    }
   }
 
   "deleteSubmissionData" should {

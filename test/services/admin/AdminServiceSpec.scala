@@ -29,18 +29,17 @@ import org.scalatest.mockito.MockitoSugar
 import play.api.libs.json.Json
 import play.api.mvc.{AnyContent, Request}
 import play.api.test.FakeRequest
-import repositories.{CorporationTaxRegistrationMongoRepository, HeldSubmissionData, HeldSubmissionMongoRepository}
+import repositories.CorporationTaxRegistrationMongoRepository
 import services.FailedToDeleteSubmissionData
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, NotFoundException, Upstream4xxResponse}
-import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
+import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEach with Eventually {
 
-  val mockHeldSubmissionRepo: HeldSubmissionMongoRepository = mock[HeldSubmissionMongoRepository]
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
   val mockIncorpInfoConnector: IncorporationInformationConnector = mock[IncorporationInformationConnector]
   val mockCorpTaxRegistrationRepo: CorporationTaxRegistrationMongoRepository = mock[CorporationTaxRegistrationMongoRepository]
@@ -49,7 +48,6 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
 
   class Setup {
     val service = new AdminService {
-      val heldSubRepo: HeldSubmissionMongoRepository = mockHeldSubmissionRepo
       val auditConnector: AuditConnector = mockAuditConnector
       val incorpInfoConnector: IncorporationInformationConnector = mockIncorpInfoConnector
       val corpTaxRegRepo: CorporationTaxRegistrationMongoRepository = mockCorpTaxRegistrationRepo
@@ -120,65 +118,6 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
         .thenReturn(Future.successful(Some(reg)))
 
       await(service.fetchSessionIdData(regId)) shouldBe data
-    }
-  }
-
-  "migrateHeldSubmissions" should {
-
-    val incorpStatus = IncorpStatus(transId, "", None, None, None)
-
-    "return a list of true's when all held submissions migrated successfully" in new Setup {
-
-      val heldSub = HeldSubmissionData(regId, ackRef, "testPartial", DateTime.now())
-
-      when(mockHeldSubmissionRepo.findAll(any())(any()))
-        .thenReturn(Future.successful(List.fill(3)(heldSub)))
-
-      when(mockCorpTaxRegistrationRepo.retrieveConfirmationReferences(any()))
-        .thenReturn(Future.successful(Some(ConfirmationReferences("", transId, Some("payRef"), Some("12")))))
-
-      when(mockIncorpInfoConnector.registerInterest(any(), any(), any())(any(), any()))
-        .thenReturn(Future.successful(true))
-
-      val result: List[Boolean] = await(service.migrateHeldSubmissions)
-
-      result shouldBe List(true, true, true)
-    }
-
-    "return a list of false when a held submissions migrated unsuccessfully because the registration doesn't have confirmation refs" in new Setup {
-
-      val heldSub = HeldSubmissionData(regId, ackRef, "testPartial", DateTime.now())
-
-      when(mockHeldSubmissionRepo.findAll(any())(any()))
-        .thenReturn(Future.successful(List.fill(3)(heldSub)))
-
-      when(mockCorpTaxRegistrationRepo.retrieveConfirmationReferences(any()))
-        .thenReturn(Future.successful(None))
-
-      when(mockIncorpInfoConnector.registerInterest(any(), any(), any())(any(), any()))
-        .thenReturn(Future.successful(true))
-
-      val result: List[Boolean] = await(service.migrateHeldSubmissions)
-
-      result shouldBe List(false, false, false)
-    }
-
-    "return a list of false when a held submissions migrated unsuccessfully because the forceSubscription call failed" in new Setup {
-
-      val heldSub = HeldSubmissionData(regId, ackRef, "testPartial", DateTime.now())
-
-      when(mockHeldSubmissionRepo.findAll(any())(any()))
-        .thenReturn(Future.successful(List.fill(3)(heldSub)))
-
-      when(mockCorpTaxRegistrationRepo.retrieveConfirmationReferences(any()))
-        .thenReturn(Future.successful(Some(ConfirmationReferences("", transId, Some("payRef"), Some("12")))))
-
-      when(mockIncorpInfoConnector.registerInterest(any(), any(), any())(any(), any()))
-        .thenReturn(Future.successful(false))
-
-      val result: List[Boolean] = await(service.migrateHeldSubmissions)
-
-      result shouldBe List(false, false, false)
     }
   }
 
@@ -326,8 +265,6 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
           .thenReturn(Future.successful(true))
         when(mockCorpTaxRegistrationRepo.removeTaxRegistrationById(any()))
           .thenReturn(Future.successful(true))
-        when(mockHeldSubmissionRepo.removeHeldDocument(any()))
-          .thenReturn(Future.successful(true))
 
         await(service.adminDeleteSubmission(docInfo, Some(transId))) shouldBe true
       }
@@ -349,8 +286,6 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
             .thenReturn(
               Future.successful(true)
             )
-          when(mockHeldSubmissionRepo.removeHeldDocument(any()))
-            .thenReturn(Future.successful(true))
 
           intercept[FailedToDeleteSubmissionData.type](await(service.adminDeleteSubmission(docInfo, Some(transId))))
         }

@@ -19,11 +19,11 @@ package services
 import java.time.LocalTime
 import java.util.Base64
 
-import javax.inject.Inject
 import audit._
 import config.MicroserviceAuditConnector
 import connectors._
 import helpers.DateHelper
+import javax.inject.Inject
 import models._
 import org.joda.time.DateTime
 import play.api.Logger
@@ -50,7 +50,6 @@ class RegistrationHoldingPenServiceImpl @Inject()(
 
   val stateDataRepository = repositories.stateDataRepository
   val ctRepository = repositories.cTRepository
-  val heldRepo = repositories.heldSubmissionRepository
   lazy val auditConnector = MicroserviceAuditConnector
   val addressLine4FixRegID = getConfString("address-line-4-fix.regId", throw new Exception("could not find config key address-line-4-fix.regId"))
   val amendedAddressLine4 = getConfString("address-line-4-fix.address-line-4", throw new Exception("could not find config key address-line-4-fix.address-line-4"))
@@ -78,7 +77,6 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions w
   val stateDataRepository: StateDataRepository
   val incorporationCheckAPIConnector: IncorporationCheckAPIConnector
   val ctRepository: CorporationTaxRegistrationRepository
-  val heldRepo: HeldSubmissionRepository
   val accountingService: AccountingDetailsService
   val brConnector: BusinessRegistrationConnector
   val auditConnector: AuditConnector
@@ -165,7 +163,7 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions w
         Logger.warn(s"[updateSubmissionWithIncorporation] Top-up delayed on LOCKED document. Sending partial first. TxId:${item.transactionId} regId: ${ctReg.registrationID}.")
         Future.successful(false)
       case HELD => updateHeldSubmission(item, ctReg, ctReg.registrationID, isAdmin)
-      case SUBMITTED | ACKNOWLEDGED => updateSubmittedSubmission(ctReg)
+      case SUBMITTED | ACKNOWLEDGED => Future.successful(true)
       case unknown => reportUnmatchedSubmission(ctReg.registrationID, item.transactionId, unknown)
     }
   }
@@ -192,57 +190,36 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions w
   private[services] def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration, journeyId: String, isAdmin: Boolean = false)(implicit hc: HeaderCarrier): Future[Boolean] = {
     getAckRef(ctReg) match {
       case Some(ackRef) =>
-        val fResponse = for {
-          heldData <- fetchHeldData(ackRef)
-          submission <- constructSubmission(item, ctReg, ackRef, heldData)
-          _ <- processAcceptedSubmission(item, ackRef, ctReg, submission, heldData, isAdmin)
-          submitted <- ctRepository.updateHeldToSubmitted(ctReg.registrationID, item.crn.get, formatTimestamp(now))
-        } yield submitted
-
-        fResponse recover {
+        (
+          for {
+            submission <- constructTopUpSubmission(item, ctReg, ackRef)
+            _          <- processAcceptedSubmission(item, ackRef, ctReg, submission, isAdmin)
+            submitted  <- ctRepository.updateHeldToSubmitted(ctReg.registrationID, item.crn.get, formatTimestamp(now))
+          } yield submitted
+        ) recover {
           case e =>
-            Logger.error(s"""[updateHeldSubmission] Submission to DES failed for ack ref ${ackRef}. Corresponding RegID: $journeyId and Transaction ID: ${item.transactionId}""")
+            Logger.error(s"""[updateHeldSubmission] Submission to DES failed for ack ref $ackRef. Corresponding RegID: $journeyId and Transaction ID: ${item.transactionId}""")
             throw e
         }
       case None => processMissingAckRefForTxID(item.transactionId)
     }
   }
 
-  private[services] def processAcceptedSubmission(item: IncorpUpdate, ackRef: String, ctReg: CorporationTaxRegistration, submission: JsObject,
-                                                  heldData: Option[HeldSubmission], isAdmin: Boolean = false)(implicit hc: HeaderCarrier): Future[Boolean] = {
-    heldData match {
-      case Some(_) => for {
-        _ <- postSubmissionToDes(ackRef, submission, ctReg.registrationID, isAdmin, heldData, item, ctReg)
-        _ = auditDesSubmission(ctReg.registrationID, submission, isAdmin)
-        _ <- heldRepo.removeHeldDocument(ctReg.registrationID)
-      } yield true
-      case None => for {
-        _ <- postSubmissionToDes(ackRef, submission, ctReg.registrationID, isAdmin, heldData, item, ctReg)
-      } yield true
-    }
-  }
-
-  private[services] def processRejectedSubmission(item: IncorpUpdate, ackRef: String, ctReg: CorporationTaxRegistration, submission: Option[JsObject],
-                                                  heldData: Option[HeldSubmission], isAdmin: Boolean = false)(implicit hc: HeaderCarrier): Future[Boolean] = {
-    submission match {
-      case Some(rej_sub) =>
-        postSubmissionToDes(ackRef, rej_sub, ctReg.registrationID, isAdmin, heldData, item, ctReg) map (_ => true)
-      case None => heldRepo.removeHeldDocument(ctReg.registrationID)
-    }
+  private[services] def processAcceptedSubmission(item: IncorpUpdate, ackRef: String, ctReg: CorporationTaxRegistration,
+                                                  submission: JsObject, isAdmin: Boolean = false)(implicit hc: HeaderCarrier): Future[Boolean] = {
+    for {
+      submitted <- postSubmissionToDes(ackRef, submission, ctReg.registrationID, isAdmin, item, ctReg) map ( _ => true )
+      _ = auditSuccessfulTopUp(submission, item, ctReg)
+    } yield submitted
   }
 
   private[services] def processIncorporationRejectionSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration,
                                                                 journeyId: String, isAdmin: Boolean = false)(implicit hc: HeaderCarrier): Future[Boolean] = {
     getAckRef(ctReg) match {
       case Some(ackRef) =>
-        for {
-          heldData <- fetchHeldData(ackRef)
-          topUpRejectedSubmission = heldData.fold(Option(buildTopUpRejectionSubmission(ackRef)))(_ => None)
-          processed <- processRejectedSubmission(item, ackRef, ctReg, topUpRejectedSubmission, heldData, isAdmin)
-        } yield {
-          processed
-        }
-      case None => processMissingAckRefForTxID(item.transactionId)
+        postSubmissionToDes(ackRef, buildTopUpRejectionSubmission(ackRef), ctReg.registrationID, isAdmin, item, ctReg) map (_ => true)
+      case None =>
+        processMissingAckRefForTxID(item.transactionId)
     }
   }
 
@@ -320,30 +297,10 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions w
     Future.failed(new MissingAckRef(errMsg))
   }
 
-  private[services] def updateSubmittedSubmission(ctReg: CorporationTaxRegistration): Future[Boolean] = {
-    heldRepo.removeHeldDocument(ctReg.registrationID) map (_ => true)
-  }
-
   private def reportUnmatchedSubmission(regId: String, txId: String, status: String) = {
     Logger.error(s"""Tried to process a submission (${regId}/${txId}) with an unexpected status of "${status}" """)
     Future.failed(new UnexpectedStatus(status))
   }
-
-  def constructSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration, ackRef: String, heldData: Option[HeldSubmission]): Future[JsObject] = {
-    heldData match {
-      case Some(heldData) => constructFullSubmission(item, ctReg, ackRef, heldData)
-      case None => constructTopUpSubmission(item, ctReg, ackRef)
-    }
-  }
-
-  private def constructFullSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration, ackRef: String, heldData: HeldSubmission): Future[JsObject] = {
-    for {
-      dates <- calculateDates(item, ctReg.accountingDetails, ctReg.accountsPreparation)
-    } yield {
-      appendDataToSubmission(item.crn.get, dates, heldData.submission)
-    }
-  }
-
 
   private def constructTopUpSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration, ackRef: String): Future[JsObject] = {
     for {
@@ -383,13 +340,6 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions w
     }
   }
 
-  private[services] def fetchHeldData(ackRef: String): Future[Option[HeldSubmission]] = {
-    heldRepo.retrieveSubmissionByAckRef(ackRef) flatMap {
-      case Some(held) => Future.successful(Some(held.copy(submission = addressLine4Fix(held.regId, held.submission))))
-      case None => Future.successful(None)
-    }
-  }
-
   private[services] def addressLine4Fix(regId: String, held: JsObject): JsObject = {
     if (regId == addressLine4FixRegID) {
       val decodedAddressLine4 = new String(Base64.getDecoder.decode(amendedAddressLine4), "UTF-8")
@@ -401,10 +351,6 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions w
     } else {
       held
     }
-  }
-
-  def fetchHeldDataTime(regId: String): Future[Option[DateTime]] = {
-    heldRepo.retrieveHeldSubmissionTime(regId)
   }
 
   private[services] def calculateDates(item: IncorpUpdate,
@@ -463,26 +409,11 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions w
   }
 
   private[services] def postSubmissionToDes(ackRef: String, submission: JsObject, journeyId: String, isAdmin: Boolean = false,
-                                            hData: Option[HeldSubmission], item: IncorpUpdate, ctReg: CorporationTaxRegistration)
+                                            item: IncorpUpdate, ctReg: CorporationTaxRegistration)
                                            (implicit hc: HeaderCarrier): Future[HttpResponse] = {
-
-    hData match {
-      case Some(_) => {
-        for {
-          response <- desConnector.ctSubmission(ackRef, submission, journeyId, isAdmin)
-        } yield {
-          auditSuccessfulIncorporation(item, ctReg)
-          response
-        }
-      }
-      case None => {
-        for {
-          response <- desConnector.topUpCTSubmission(ackRef, submission, journeyId, isAdmin)
-          _ = auditSuccessfulTopUp(submission, item, ctReg)
-        } yield {
-          response
-        }
-      }
+    desConnector.topUpCTSubmission(ackRef, submission, journeyId, isAdmin) map { res =>
+      auditSuccessfulTopUp(submission, item, ctReg)
+      res
     }
   }
 }

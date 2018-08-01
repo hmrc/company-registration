@@ -4,7 +4,6 @@ GET        /fetch-ho6-registration-information/:registrationId        @controlle
 GET        /session-id/:registrationId                                @controllers.admin.AdminController.fetchSessionIDData(registrationId)
 POST       /session-id/:registrationId                                @controllers.admin.AdminController.updateSessionId(registrationId)
 
-GET        /migrate-held-submissions                                  @controllers.admin.AdminController.migrateHeldSubmissions
 POST       /update-confirmation-references                            @controllers.admin.AdminController.updateConfirmationReferences
 
 GET        /:identifier/ctutr                                         @controllers.admin.AdminController.ctutrCheck(identifier)

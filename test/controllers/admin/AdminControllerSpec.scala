@@ -123,66 +123,6 @@ class AdminControllerSpec extends UnitSpec with MockitoSugar {
     }
   }
 
-  "migrateHeldSubmissions" should {
-
-    "return a 200 and an accurate json response when all held submissions migrated successfully" in new Setup {
-
-      when(mockAdminService.migrateHeldSubmissions(any(), any()))
-        .thenReturn(Future.successful(List(true, true, true)))
-
-      val result: Result = await(controller.migrateHeldSubmissions(FakeRequest()))
-
-      val expected: JsObject = Json.parse(
-        """
-          |{
-          |  "total-attempted-migrations":3,
-          |  "total-success":3
-          |}
-        """.stripMargin).as[JsObject]
-
-      status(result) shouldBe 200
-      jsonBodyOf(result) shouldBe expected
-    }
-
-    "return a 200 and an accurate json response when all held submissions migrated unsuccessfully" in new Setup {
-
-      when(mockAdminService.migrateHeldSubmissions(any(), any()))
-        .thenReturn(Future.successful(List(false, false, false)))
-
-      val result: Result = await(controller.migrateHeldSubmissions(FakeRequest()))
-
-      val expected: JsObject = Json.parse(
-        """
-          |{
-          |  "total-attempted-migrations":3,
-          |  "total-success":0
-          |}
-        """.stripMargin).as[JsObject]
-
-      status(result) shouldBe 200
-      jsonBodyOf(result) shouldBe expected
-    }
-
-    "return a 200 and an accurate json response when some held submissions migrated successfully" in new Setup {
-
-      when(mockAdminService.migrateHeldSubmissions(any(), any()))
-        .thenReturn(Future.successful(List(true, false, true)))
-
-      val result: Result = await(controller.migrateHeldSubmissions(FakeRequest()))
-
-      val expected: JsObject = Json.parse(
-        """
-          |{
-          |  "total-attempted-migrations":3,
-          |  "total-success":2
-          |}
-        """.stripMargin).as[JsObject]
-
-      status(result) shouldBe 200
-      jsonBodyOf(result) shouldBe expected
-    }
-  }
-
   "ctutrCheck" should {
     "return valid JSON responses" in new Setup {
       val outputs = List(

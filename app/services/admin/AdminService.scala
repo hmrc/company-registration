@@ -17,12 +17,12 @@
 package services.admin
 
 import java.util.Base64
-import javax.inject.Inject
 
 import audit._
 import config.MicroserviceAuditConnector
 import connectors.{BusinessRegistrationConnector, DesConnector, IncorporationInformationConnector}
 import helpers.DateFormatter
+import javax.inject.Inject
 import models.RegistrationStatus._
 import models.admin.{AdminCTReferenceDetails, HO6Identifiers, HO6Response}
 import models.{ConfirmationReferences, CorporationTaxRegistration, HO6RegistrationInformation, SessionIdData}
@@ -30,7 +30,7 @@ import org.joda.time.DateTime
 import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.Request
-import repositories.{CorpTaxRegistrationRepo, CorporationTaxRegistrationMongoRepository, HeldSubmissionMongoRepository, HeldSubmissionRepo}
+import repositories.{CorpTaxRegistrationRepo, CorporationTaxRegistrationMongoRepository}
 import services.FailedToDeleteSubmissionData
 import uk.gov.hmrc.http.{HeaderCarrier, NotFoundException}
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
@@ -41,13 +41,11 @@ import scala.concurrent.Future
 
 class AdminServiceImpl @Inject()(
                                  corpTaxRepo: CorpTaxRegistrationRepo,
-                                 heldSubMongo: HeldSubmissionRepo,
                                  val brConnector: BusinessRegistrationConnector,
                                  val desConnector: DesConnector,
                                  val incorpInfoConnector: IncorporationInformationConnector) extends AdminService with ServicesConfig {
 
   val corpTaxRegRepo: CorporationTaxRegistrationMongoRepository = corpTaxRepo.repo
-  val heldSubRepo: HeldSubmissionMongoRepository = heldSubMongo.store
   lazy val staleAmount: Int = getInt("staleDocumentAmount")
   lazy val clearAfterXDays: Int = getInt("clearAfterXDays")
   lazy val ignoredDocs: Set[String] = new String(Base64.getDecoder.decode(getConfString("skipStaleDocs", "")), "UTF-8").split(",").toSet
@@ -57,7 +55,6 @@ class AdminServiceImpl @Inject()(
 trait AdminService extends DateFormatter {
 
   val corpTaxRegRepo: CorporationTaxRegistrationMongoRepository
-  val heldSubRepo: HeldSubmissionMongoRepository
   val desConnector: DesConnector
   val auditConnector: AuditConnector
   val incorpInfoConnector: IncorporationInformationConnector
@@ -79,22 +76,6 @@ trait AdminService extends DateFormatter {
     })
   }
 
-  def migrateHeldSubmissions(implicit hc: HeaderCarrier, req: Request[_]): Future[List[Boolean]] = {
-    fetchAllRegIdsFromHeldSubmissions flatMap { regIdList =>
-      Future.sequence(regIdList map { regId =>
-        fetchTransactionId(regId) flatMap { opt =>
-          opt.fold(Future.successful(false))(transId =>
-            forceSubscription(regId, transId) recover {
-              case ex: RuntimeException =>
-                Logger.error(s"[Admin] [migrateHeldSubmissions] - force subscription for regId : $regId failed", ex)
-                false
-            }
-          )
-        }
-      })
-    }
-  }
-
   private[services] def forceSubscription(regId: String, transactionId: String)(implicit hc: HeaderCarrier, req: Request[_]): Future[Boolean] = {
     incorpInfoConnector.registerInterest(regId, transactionId, true)
   }
@@ -106,8 +87,6 @@ trait AdminService extends DateFormatter {
     val auditEvent = new AdminReleaseAuditEvent(timestamp, strideUser, identifiersJson, responseJson)
     auditConnector.sendExtendedEvent(auditEvent)
   }
-
-  private[services] def fetchAllRegIdsFromHeldSubmissions: Future[List[String]] = heldSubRepo.findAll() map { list => list.map(_.registrationID) }
 
   private[services] def fetchTransactionId(regId: String): Future[Option[String]] = corpTaxRegRepo.retrieveConfirmationReferences(regId).map(_.fold[Option[String]] {
     Logger.error(s"[Admin] [fetchTransactionId] - Held submission found but transaction Id missing for regId $regId")

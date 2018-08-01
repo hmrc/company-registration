@@ -1,13 +1,7 @@
 GET        /modify-throttled-users/:usersIn                    @controllers.test.TestEndpointController.modifyThrottledUsers(usersIn: Int)
 GET        /drop-ct                                            @controllers.test.TestEndpointController.dropJourneyCollections
-GET        /fetch-held-submission/:registrationId              @controllers.test.TestEndpointController.fetchHeldData(registrationId: String)
-POST       /store-held-data/:registrationId                    @controllers.test.TestEndpointController.storeHeldData(registrationId: String, ackRef: String)
 GET        /update-timepoint/:timepoint                        @controllers.test.TestEndpointController.updateTimePoint(timepoint: String)
 GET        /pager-duty/:name                                   @controllers.test.TestEndpointController.pagerDuty(name: String)
 
-GET        /fetch-held-submission/:registrationId              @controllers.test.HeldSubmissionController.fetchHeldSubmission(registrationId: String)
-
 GET        /feature-flag/:featureName/:featureStatus           controllers.test.FeatureSwitchController.switch(featureName: String, featureStatus: String)
 GET        /feature-flag                                       controllers.test.FeatureSwitchController.show
-
-GET        /submission-check                                   @controllers.test.SubmissionCheckController.triggerSubmissionCheck
