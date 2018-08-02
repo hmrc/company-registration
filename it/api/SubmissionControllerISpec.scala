@@ -34,7 +34,7 @@ import com.github.tomakehurst.wiremock.client.WireMock._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with LoginStub {
+class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub {
   val mockHost = WiremockHelper.wiremockHost
   val mockPort = WiremockHelper.wiremockPort
   val mockUrl = s"http://$mockHost:$mockPort"
@@ -83,7 +83,6 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
     await(seqRepo.ensureIndexes)
 
     System.clearProperty("feature.registerInterest")
-    System.clearProperty("feature.etmpHoldingPen")
 
     def setupCTRegistration(reg: CorporationTaxRegistration): WriteResult = ctRepository.insert(reg)
 
@@ -217,7 +216,7 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
     json.toString
   }
 
-  "handleSubmission" should {
+  "handleUserSubmission" should {
 
     val authProviderId = "testAuthProviderId"
     val authorisedRetrievals = Json.obj(

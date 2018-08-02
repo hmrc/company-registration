@@ -24,7 +24,8 @@ import models.{ConfirmationReferences, HO6RegistrationInformation}
 import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc.{Action, _}
-import services.CorporationTaxRegistrationService
+import repositories.{CorporationTaxRegistrationMongoRepository, CorporationTaxRegistrationRepository, Repositories}
+import services.{CorporationTaxRegistrationService, SubmissionService}
 import services.admin.AdminService
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.logging.SessionId
@@ -35,14 +36,20 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class AdminControllerImpl @Inject()(
-        val adminService: AdminService,
-        val ctService: CorporationTaxRegistrationService
-      ) extends AdminController
+                                     val adminService: AdminService,
+                                     val submissionService: SubmissionService,
+                                     val repositories: Repositories
+      ) extends AdminController {
+  val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
+
+}
 
 trait AdminController extends BaseController with FutureInstances with ApplicativeSyntax with FlatMapSyntax {
 
   val adminService: AdminService
-  val ctService : CorporationTaxRegistrationService
+  val submissionService: SubmissionService
+  val cTRegistrationRepository: CorporationTaxRegistrationRepository
+
 
   def fetchHO6RegistrationInformation(regId: String): Action[AnyContent] = Action.async {
     implicit request =>
@@ -70,7 +77,7 @@ trait AdminController extends BaseController with FutureInstances with Applicati
         Logger.info(s"[AdminController] [updateConfirmationReferences] Updating confirmation references for ${ids.registrationId}")
 
         fetchStatus(ids.registrationId) { statusBefore =>
-          ctService.handleSubmission(ids.registrationId, ids.credId, confirmationReferences)(
+          submissionService.handleSubmission(ids.registrationId, ids.credId, confirmationReferences)(
             updatedHc, request.map(AnyContentAsJson), isAdmin = true).flatMap{
             references =>
               Logger.info(s"[Admin Confirmation Refs] Acknowledgement ref : ${references.acknowledgementReference} " +
@@ -139,8 +146,8 @@ trait AdminController extends BaseController with FutureInstances with Applicati
     adminService.auditAdminEvent(strideUser, identifiers, response)
   }
 
-  private def fetchStatus(regId: String)(f: (String) => Future[Result]): Future[Result] = {
-    ctService.fetchStatus(regId).semiflatMap(f).getOrElse {
+  private def fetchStatus(regId: String)(f: String => Future[Result]): Future[Result] = {
+    cTRegistrationRepository.fetchDocumentStatus(regId).semiflatMap(f).getOrElse {
       Logger.info(s"[AdminController] [fetchStatus] Could not find status for $regId")
       NotFound
     }

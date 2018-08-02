@@ -32,9 +32,7 @@ class UserRegistrationSubmissionEventSpec extends UnitSpec {
     val uprn = "123456789123"
     val transactionId = "trans01234"
 
-    //todo: SCRS-3971 - take out uprn in json to pass test
-    "construct full json as per definition when the ETMP feature flag is enabled" in {
-      System.setProperty("feature.etmpHoldingPen", "true")
+    "construct full json as per definition" in {
 
       val expected = Json.parse(
         s"""
@@ -113,7 +111,6 @@ class UserRegistrationSubmissionEventSpec extends UnitSpec {
     }
 
     "construct full json as per definition when the transaction ID is missing" in {
-      System.setProperty("feature.etmpHoldingPen", "true")
 
       val expected = Json.parse(
         s"""

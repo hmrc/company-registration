@@ -18,7 +18,6 @@ package services
 
 import java.util.UUID
 
-import audit.{RegistrationAuditEvent, SuccessfulIncorporationAuditEvent}
 import connectors._
 import fixtures.CorporationTaxRegistrationFixture
 import models._
@@ -39,7 +38,7 @@ import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with CorporationTaxRegistrationFixture with BeforeAndAfterEach with Eventually with LogCapturing {
+class ProcessIncorporationServiceSpec extends UnitSpec with MockitoSugar with CorporationTaxRegistrationFixture with BeforeAndAfterEach with Eventually with LogCapturing {
 
   val mockStateDataRepository = mock[StateDataRepository]
   val mockIncorporationCheckAPIConnector = mock[IncorporationCheckAPIConnector]
@@ -55,17 +54,20 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
     resetMocks()
   }
 
-  def resetMocks() = {
-    reset(mockAuthConnector)
-    reset(mockAuditConnector)
-    reset(mockStateDataRepository)
-    reset(mockIncorporationCheckAPIConnector)
-    reset(mockCTRepository)
-    reset(mockDesConnector)
-    reset(mockBRConnector)
-  }
+  def resetMocks() = reset(
+      mockAuthConnector,
+      mockAuditConnector,
+      mockStateDataRepository,
+      mockIncorporationCheckAPIConnector,
+      mockCTRepository,
+      mockDesConnector,
+      mockBRConnector,
+      mockSendEmailService,
+      mockAccountService
+    )
 
-  trait mockService extends RegistrationHoldingPenService {
+
+  trait mockService extends ProcessIncorporationService {
     val stateDataRepository = mockStateDataRepository
     val incorporationCheckAPIConnector = mockIncorporationCheckAPIConnector
     val ctRepository = mockCTRepository
@@ -77,17 +79,13 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
     val sendEmailService = mockSendEmailService
     override val addressLine4FixRegID: String = "false"
     override val amendedAddressLine4: String = ""
-    override val blockageLoggingDay : String = "MON,TUE"
+    override val blockageLoggingDay : String = "MON,TUE,WED,THU,FRI"
     override val blockageLoggingTime : String = "08:00:00_17:00:00"
 
     override def inWorkingHours: Boolean = true
   }
 
   trait Setup {
-    val service = new mockService {}
-  }
-
-  trait SetupMockedAudit {
     val service = new mockService {}
   }
 
@@ -98,7 +96,6 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
     }
   }
 
-  def date(year: Int, month: Int, day: Int) = new DateTime(year,month,day,0,0)
   def date(yyyyMMdd:String) = DateTime.parse(yyyyMMdd)
 
   implicit val hc = HeaderCarrier()
@@ -110,9 +107,7 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
   val validCR = validHeldCTRegWithData(ackRef=Some(testAckRef)).copy(
     accountsPreparation = Some(AccountPrepDetails(AccountPrepDetails.COMPANY_DEFINED,Some(date("2017-01-01")))), verifiedEmail = Some(Email("testemail.com","",true,true,true))
   )
-  val validCRg = validHeldCTRegWithData(ackRef=Some(testAckRef)).copy(
-    accountsPreparation = Some(AccountPrepDetails(AccountPrepDetails.COMPANY_DEFINED,Some(date("2017-01-01"))))
-  )
+
   import models.RegistrationStatus._
   val submittedCR = validCR.copy(status = SUBMITTED)
   val acknowledgedCR = validCR.copy(status = ACKNOWLEDGED)
@@ -123,20 +118,20 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
   val submissionCheckResponseDouble = SubmissionCheckResponse(Seq(incorpSuccess,incorpSuccess), "testNextLink")
   val submissionCheckResponseNone = SubmissionCheckResponse(Seq(), "testNextLink")
 
-  def sub(a:String, others:Option[(String, String, String, String)] = None) = {
+  def sub(a: String, others: Option[(String, String, String, String)] = None) = {
     val extra = others match {
       case None => ""
       case Some((crn, active, firstPrep, intended)) =>
         s"""
            |  ,
-           |  "crn" : "${crn}",
-           |  "companyActiveDate": "${active}",
-           |  "startDateOfFirstAccountingPeriod": "${firstPrep}",
-           |  "intendedAccountsPreparationDate": "${intended}"
+           |  "crn" : "$crn",
+           |  "companyActiveDate": "$active",
+           |  "startDateOfFirstAccountingPeriod": "$firstPrep",
+           |  "intendedAccountsPreparationDate": "$intended"
            |""".stripMargin
     }
 
-    s"""{  "acknowledgementReference" : "${a}",
+    s"""{  "acknowledgementReference" : "$a",
         |  "registration" : {
         |  "metadata" : {
         |  "businessType" : "Limited company",
@@ -159,35 +154,33 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
         |  "line4" : "Fooshire", "postcode" : "ZZ1 1ZZ", "country" : "United Kingdom"},
         |  "businessContactName" : {"firstName" : "Foo","middleNames" : "Wibble","lastName" : "Bar"},
         |  "businessContactDetails" : {"phoneNumber" : "0123457889","mobileNumber" : "07654321000","email" : "foo@bar.com"}
-        |  ${extra}
+        |  $extra
         |  }
         |  }
         |}""".stripMargin
   }
 
-  def topUpSub(s: String, a:String, crn:String, active:String, firstPrep:String, intended:String) = {
-
+  def topUpSub(s: String, a:String, crn:String, active:String, firstPrep:String, intended:String) =
         s"""{
-           |  "status" : "${s}",
-           |  "acknowledgementReference" : "${a}",
+           |  "status" : "$s",
+           |  "acknowledgementReference" : "$a",
            |  "corporationTax" : {
-           |  "crn" : "${crn}",
-           |  "companyActiveDate": "${active}",
-           |  "startDateOfFirstAccountingPeriod": "${firstPrep}",
-           |  "intendedAccountsPreparationDate": "${intended}"
+           |  "crn" : "$crn",
+           |  "companyActiveDate": "$active",
+           |  "startDateOfFirstAccountingPeriod": "$firstPrep",
+           |  "intendedAccountsPreparationDate": "$intended"
            |  }
            |  }
            |""".stripMargin
-    }
 
-  def topUpRejSub(s: String, a:String) = {
 
+  def topUpRejSub(s: String, a:String) =
     s"""{
-        |  "status" : "${s}",
-        |  "acknowledgementReference" : "${a}"
+        |  "status" : "$s",
+        |  "acknowledgementReference" : "$a"
         |  }
         |""".stripMargin
-  }
+
 
   val crn = "012345"
   val exampleDate = "2012-12-12"
@@ -208,45 +201,75 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
     }
   }
 
-  "appendDataToSubmission" should {
-    "be able to add final Json additions to the PartialSubmission" in new Setup {
-      val result = service.appendDataToSubmission(crn, dates, interimSubmission)
+  "deleteRejectedSubmissionData" should {
+    "return true if both br and ct data have been removed" in new Setup {
+      when(mockCTRepository.removeTaxRegistrationById(ArgumentMatchers.eq(testRegId)))
+        .thenReturn(Future.successful(true))
+      when(mockBRConnector.removeMetadata(ArgumentMatchers.eq(testRegId))(ArgumentMatchers.any()))
+        .thenReturn(Future.successful(true))
 
-      result shouldBe validDesSubmission
+      await(service.deleteRejectedSubmissionData(testRegId)) shouldBe true
     }
-  }
 
-  "buildTopUp Accepted Submission" should {
-    "be able to create Json according to the Schema of API4" in new Setup {
-      val result = service.buildTopUpSubmission(crn, acceptedStatus, dates, testAckRef)
+    "return an exception if ct data has not been fully removed" in new Setup {
+      when(mockCTRepository.removeTaxRegistrationById(ArgumentMatchers.eq(testRegId)))
+        .thenReturn(Future.successful(false))
+      when(mockBRConnector.removeMetadata(ArgumentMatchers.eq(testRegId))(ArgumentMatchers.any()))
+        .thenReturn(Future.successful(true))
 
-      result shouldBe validTopUpDesSubmission
+      intercept[FailedToDeleteSubmissionData.type](await(service.deleteRejectedSubmissionData(testRegId)))
     }
-  }
 
-  "buildTopUp Rejection Submission" should {
-    "be able to create rejected Json according to the Schema of API4" in new Setup {
-      val result = service.buildTopUpRejectionSubmission(testAckRef)
+    "return an exception if br data has not been fully removed" in new Setup {
+      when(mockCTRepository.removeTaxRegistrationById(ArgumentMatchers.eq(testRegId)))
+        .thenReturn(Future.successful(true))
+      when(mockBRConnector.removeMetadata(ArgumentMatchers.eq(testRegId))(ArgumentMatchers.any()))
+        .thenReturn(Future.successful(false))
 
-      result shouldBe validRejectedTopUpDesSubmission
+      intercept[FailedToDeleteSubmissionData.type](await(service.deleteRejectedSubmissionData(testRegId)))
+    }
+
+    "return an exception if an exception occurs while removing ct data" in new Setup {
+      when(mockCTRepository.removeTaxRegistrationById(ArgumentMatchers.eq(testRegId)))
+        .thenReturn(Future.failed(new Exception))
+      when(mockBRConnector.removeMetadata(ArgumentMatchers.eq(testRegId))(ArgumentMatchers.any()))
+        .thenReturn(Future.successful(false))
+
+      intercept[Exception](await(service.deleteRejectedSubmissionData(testRegId)))
+    }
+
+    "return an exception if an exception occurs while removing br data" in new Setup {
+      when(mockCTRepository.removeTaxRegistrationById(ArgumentMatchers.eq(testRegId)))
+        .thenReturn(Future.successful(true))
+      when(mockBRConnector.removeMetadata(ArgumentMatchers.eq(testRegId))(ArgumentMatchers.any()))
+        .thenReturn(Future.failed(new Exception))
+
+      intercept[Exception](await(service.deleteRejectedSubmissionData(testRegId)))
     }
   }
 
   "checkSubmission" should {
-    "return a submission if a timepoint was retrieved successfully" in new Setup {
-      when(mockStateDataRepository.retrieveTimePoint).thenReturn(Future.successful(Some(timepoint)))
-      when(mockIncorporationCheckAPIConnector.checkSubmission(ArgumentMatchers.eq(Some(timepoint)))(ArgumentMatchers.any()))
-        .thenReturn(Future.successful(submissionCheckResponseSingle))
+    Seq(
+      "an empty" -> submissionCheckResponseNone,
+      "a single" -> submissionCheckResponseSingle,
+      "a double" -> submissionCheckResponseDouble
+    ) foreach { case (title, response) =>
+      s"return $title submission if a timepoint was retrieved successfully" in new Setup {
+        when(mockStateDataRepository.retrieveTimePoint).thenReturn(Future.successful(Some(timepoint)))
+        when(mockIncorporationCheckAPIConnector.checkSubmission(ArgumentMatchers.eq(Some(timepoint)))(ArgumentMatchers.any()))
+          .thenReturn(Future.successful(response))
 
-      await(service.fetchIncorpUpdate) shouldBe submissionCheckResponseSingle.items
-    }
+        await(service.fetchIncorpUpdate()) shouldBe response.items
+      }
 
-    "return a submission if a timepoint was not retrieved" in new Setup {
-      when(mockStateDataRepository.retrieveTimePoint).thenReturn(Future.successful(None))
-      when(mockIncorporationCheckAPIConnector.checkSubmission(ArgumentMatchers.eq(None))(ArgumentMatchers.any()))
-        .thenReturn(Future.successful(submissionCheckResponseSingle))
 
-      await(service.fetchIncorpUpdate) shouldBe submissionCheckResponseSingle.items
+      s"return $title submission if a timepoint was not retrieved" in new Setup {
+        when(mockStateDataRepository.retrieveTimePoint).thenReturn(Future.successful(None))
+        when(mockIncorporationCheckAPIConnector.checkSubmission(ArgumentMatchers.eq(None))(ArgumentMatchers.any()))
+          .thenReturn(Future.successful(response))
+
+        await(service.fetchIncorpUpdate()) shouldBe response.items
+      }
     }
   }
 
@@ -321,62 +344,6 @@ class RegistrationHoldingPenServiceSpec extends UnitSpec with MockitoSugar with 
         .thenReturn(Future.successful(Some(failCaseCR)))
 
       intercept[UnexpectedStatus]{await(service.updateSubmissionWithIncorporation(incorpSuccess, failCaseCR))}
-    }
-
-  }
-
-  "updateNextSubmissionByTimepoint" should {
-    val expected = Json.obj("key" -> timepoint)
-    trait SetupNoProcess {
-      val service = new mockService {
-        override def processIncorporationUpdate(item: IncorpUpdate, isAdmin: Boolean = false)(implicit hc: HeaderCarrier) = Future.successful(true)
-      }
-    }
-
-    "return the first Timepoint for a single incorp update" in new SetupNoProcess {
-
-      when(mockStateDataRepository.retrieveTimePoint).thenReturn(Future.successful(Some(timepoint)))
-
-      when(mockIncorporationCheckAPIConnector.checkSubmission(ArgumentMatchers.eq(Some(timepoint)))(ArgumentMatchers.any()))
-        .thenReturn(Future.successful(submissionCheckResponseSingle))
-
-      when(mockStateDataRepository.updateTimepoint(ArgumentMatchers.eq(timepoint)))
-          .thenReturn(Future.successful(timepoint))
-
-      val result = await(service.updateNextSubmissionByTimepoint)
-
-      val tp = result.split(" ").reverse.head
-      tp.length shouldBe 9
-      tp shouldBe timepoint
-    }
-
-    "return the first Timepoint for a response with two incorp updates" in new SetupNoProcess {
-
-      when(mockStateDataRepository.retrieveTimePoint).thenReturn(Future.successful(Some(timepoint)))
-
-      when(mockIncorporationCheckAPIConnector.checkSubmission(ArgumentMatchers.eq(Some(timepoint)))(ArgumentMatchers.any()))
-        .thenReturn(Future.successful(submissionCheckResponseDouble))
-
-      when(mockStateDataRepository.updateTimepoint(ArgumentMatchers.eq(timepoint)))
-        .thenReturn(Future.successful(timepoint))
-
-      val result = await(service.updateNextSubmissionByTimepoint)
-
-      val tp = result.split(" ").reverse.head
-      tp.length shouldBe 9
-      tp shouldBe timepoint
-    }
-
-    "return a Json.object when there's no incorp updates" in new SetupNoProcess {
-
-      when(mockStateDataRepository.retrieveTimePoint).thenReturn(Future.successful(Some(timepoint)))
-
-      when(mockIncorporationCheckAPIConnector.checkSubmission(ArgumentMatchers.eq(Some(timepoint)))(ArgumentMatchers.any()))
-        .thenReturn(Future.successful(submissionCheckResponseNone))
-
-      val result = await(service.updateNextSubmissionByTimepoint)
-
-      result shouldBe "No Incorporation updates were fetched"
     }
 
   }

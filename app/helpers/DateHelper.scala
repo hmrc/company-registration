@@ -23,7 +23,7 @@ import java.util.Date
 
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.{DateTime, DateTimeZone}
-import play.api.libs.json.{JsString, Json, Writes}
+import play.api.libs.json.{JsString, Writes}
 
 trait DateFormatter extends DateHelper {
   val zonedDateTimeWrites: Writes[ZonedDateTime] = new Writes[ZonedDateTime] {

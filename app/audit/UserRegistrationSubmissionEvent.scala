@@ -40,11 +40,7 @@ object SubmissionEventDetail {
       def businessContactAuditWrites(contact: BusinessContactDetails) = BusinessContactDetails.auditWrites(contact)
 
       def desSubmissionState: JsObject = {
-        if(SCRSFeatureSwitches.etmpHoldingPen.enabled){
-          Json.obj("desSubmissionState" -> "partial")
-        } else {
-          Json.obj()
-        }
+        Json.obj("desSubmissionState" -> "partial")
       }
       
       val address = (detail.jsSubmission \ "registration" \ "corporationTax" \ "businessAddress").

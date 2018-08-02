@@ -29,7 +29,7 @@ import org.joda.time.DateTime
 import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import repositories.{Repositories, _}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpErrorFunctions, HttpResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpErrorFunctions}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.config.ServicesConfig
 import utils.{DateCalculators, Logging, PagerDutyKeys}
@@ -38,7 +38,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.control.NoStackTrace
 
-class RegistrationHoldingPenServiceImpl @Inject()(
+class ProcessIncorporationServiceImpl @Inject()(
                                                    val desConnector: DesConnector,
                                                    val incorporationCheckAPIConnector: IncorporationCheckAPIConnector,
                                                    val accountingService: AccountingDetailsService,
@@ -46,7 +46,7 @@ class RegistrationHoldingPenServiceImpl @Inject()(
                                                    val sendEmailService: SendEmailService,
                                                    val microserviceAuthConnector: AuthConnector,
                                                    val repositories: Repositories
-                                                 ) extends RegistrationHoldingPenService with ServicesConfig {
+                                                 ) extends ProcessIncorporationService with ServicesConfig {
 
   val stateDataRepository = repositories.stateDataRepository
   val ctRepository = repositories.cTRepository
@@ -57,21 +57,15 @@ class RegistrationHoldingPenServiceImpl @Inject()(
   val blockageLoggingTime = getConfString("check-submission-job.schedule.blockage-logging-time", throw new RuntimeException(s"Could not find config schedule.blockage-logging-time"))
 }
 
-private[services] class InvalidSubmission(val message: String) extends NoStackTrace
-
-private[services] case class DesError(message: String) extends NoStackTrace
-
 private[services] class MissingAckRef(val message: String) extends NoStackTrace
 
 private[services] class UnexpectedStatus(val status: String) extends NoStackTrace
-
-private[services] object FailedToUpdateSubmissionWithAcceptedIncorp extends NoStackTrace
 
 private[services] object FailedToUpdateSubmissionWithRejectedIncorp extends NoStackTrace
 
 private[services] object FailedToDeleteSubmissionData extends NoStackTrace
 
-trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions with Logging {
+trait ProcessIncorporationService extends DateHelper with HttpErrorFunctions with Logging {
 
   val desConnector: DesConnector
   val stateDataRepository: StateDataRepository
@@ -94,20 +88,6 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions w
 
   private[services] class MissingAccountingDates extends NoStackTrace
 
-  def updateNextSubmissionByTimepoint(implicit hc: HeaderCarrier): Future[String] = {
-    fetchIncorpUpdate flatMap { items =>
-      val results = items map { item =>
-        processIncorporationUpdate(item)
-      }
-      Future.sequence(results) flatMap { _ =>
-        items.headOption match {
-          case Some(head) => stateDataRepository.updateTimepoint(head.timepoint).map(tp => s"Incorporation ${head.status} - Timepoint updated to $tp")
-          case None => Future.successful("No Incorporation updates were fetched")
-        }
-      }
-    }
-  }
-
   def deleteRejectedSubmissionData(regId: String)(implicit hc: HeaderCarrier): Future[Boolean] = {
     for {
       ctDeleted <- ctRepository.removeTaxRegistrationById(regId)
@@ -123,7 +103,7 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions w
     }
   }
 
-  private def sendEmail(ctReg: CorporationTaxRegistration)(implicit hc: HeaderCarrier) =
+  private def sendEmail(ctReg: CorporationTaxRegistration)(implicit hc: HeaderCarrier): Future[Boolean] =
     sendEmailService.sendVATEmail(ctReg.verifiedEmail.get.address, ctReg.registrationID) recover {
       case _: EmailErrorResponse => true
     }
@@ -164,7 +144,9 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions w
         Future.successful(false)
       case HELD => updateHeldSubmission(item, ctReg, ctReg.registrationID, isAdmin)
       case SUBMITTED | ACKNOWLEDGED => Future.successful(true)
-      case unknown => reportUnmatchedSubmission(ctReg.registrationID, item.transactionId, unknown)
+      case unknown =>
+        Logger.error(s"""Tried to process a submission (${ctReg.registrationID}/${item.transactionId}) with an unexpected status of "$unknown" """)
+        Future.failed(new UnexpectedStatus(unknown))
     }
   }
 
@@ -188,7 +170,7 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions w
   }
 
   private[services] def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration, journeyId: String, isAdmin: Boolean = false)(implicit hc: HeaderCarrier): Future[Boolean] = {
-    getAckRef(ctReg) match {
+    ctReg.confirmationReferences map (_.acknowledgementReference) match {
       case Some(ackRef) =>
         (
           for {
@@ -201,25 +183,37 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions w
             Logger.error(s"""[updateHeldSubmission] Submission to DES failed for ack ref $ackRef. Corresponding RegID: $journeyId and Transaction ID: ${item.transactionId}""")
             throw e
         }
-      case None => processMissingAckRefForTxID(item.transactionId)
+      case None =>
+        val errMsg = s"""Held Registration doc is missing the ack ref for tx_id "${item.transactionId}"."""
+        Logger.error(errMsg)
+        Future.failed(new MissingAckRef(errMsg))
     }
   }
 
   private[services] def processAcceptedSubmission(item: IncorpUpdate, ackRef: String, ctReg: CorporationTaxRegistration,
                                                   submission: JsObject, isAdmin: Boolean = false)(implicit hc: HeaderCarrier): Future[Boolean] = {
     for {
-      submitted <- postSubmissionToDes(ackRef, submission, ctReg.registrationID, isAdmin, item, ctReg) map ( _ => true )
+      submitted <- desConnector.topUpCTSubmission(ackRef, submission, ctReg.registrationID, isAdmin) map ( _ => true )
       _ = auditSuccessfulTopUp(submission, item, ctReg)
     } yield submitted
   }
 
   private[services] def processIncorporationRejectionSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration,
                                                                 journeyId: String, isAdmin: Boolean = false)(implicit hc: HeaderCarrier): Future[Boolean] = {
-    getAckRef(ctReg) match {
+    ctReg.confirmationReferences map (_.acknowledgementReference) match {
       case Some(ackRef) =>
-        postSubmissionToDes(ackRef, buildTopUpRejectionSubmission(ackRef), ctReg.registrationID, isAdmin, item, ctReg) map (_ => true)
+        val rejectedTopUp = Json.obj(
+          "status" -> "Rejected",
+          "acknowledgementReference" -> ackRef
+        )
+        desConnector.topUpCTSubmission(ackRef, rejectedTopUp, ctReg.registrationID, isAdmin) map { _ =>
+          auditSuccessfulTopUp(rejectedTopUp, item, ctReg)
+          true
+        }
       case None =>
-        processMissingAckRefForTxID(item.transactionId)
+        val errMsg = s"""Held Registration doc is missing the ack ref for tx_id "${item.transactionId}"."""
+        Logger.error(errMsg)
+        Future.failed(new MissingAckRef(errMsg))
     }
   }
 
@@ -243,8 +237,8 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions w
 
   private[services] def auditSuccessfulTopUp(submission: JsObject, item: IncorpUpdate, ctReg: CorporationTaxRegistration)(implicit hc: HeaderCarrier) = {
     item.incorpDate match {
-      case Some(date) => val submissionDates = calculateDates(item, ctReg.accountingDetails, ctReg.accountsPreparation)
-        submissionDates flatMap { dates =>
+      case Some(_) =>
+        calculateDates(item, ctReg.accountingDetails, ctReg.accountsPreparation) flatMap { dates =>
           val event = new DesTopUpSubmissionEvent(
             DesTopUpSubmissionEventDetail(
               ctReg.registrationID,
@@ -291,31 +285,28 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions w
     auditConnector.sendExtendedEvent(event)
   }
 
-  private def processMissingAckRefForTxID(txID: String) = {
-    val errMsg = s"""Held Registration doc is missing the ack ref for tx_id "$txID"."""
-    Logger.error(errMsg)
-    Future.failed(new MissingAckRef(errMsg))
-  }
-
-  private def reportUnmatchedSubmission(regId: String, txId: String, status: String) = {
-    Logger.error(s"""Tried to process a submission (${regId}/${txId}) with an unexpected status of "${status}" """)
-    Future.failed(new UnexpectedStatus(status))
-  }
-
   private def constructTopUpSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration, ackRef: String): Future[JsObject] = {
     for {
       dates <- calculateDates(item, ctReg.accountingDetails, ctReg.accountsPreparation)
     } yield {
-      buildTopUpSubmission(item.crn.get, item.status, dates, ackRef)
+      Json.obj(
+        "status" -> "Accepted",
+        "acknowledgementReference" -> ackRef) ++
+        Json.obj("corporationTax" ->
+          Json.obj(
+            "crn" -> item.crn.get,
+            "companyActiveDate" ->
+              formatDate(
+                dates.companyActiveDate),
+            "startDateOfFirstAccountingPeriod" -> formatDate(dates.startDateOfFirstAccountingPeriod),
+            "intendedAccountsPreparationDate" -> formatDate(dates.intendedAccountsPreparationDate)
+          )
+        )
     }
   }
 
-  private def getAckRef(reg: CorporationTaxRegistration): Option[String] = {
-    reg.confirmationReferences map (_.acknowledgementReference)
-  }
-
   private[services] def fetchIncorpUpdate(): Future[Seq[IncorpUpdate]] = {
-    val hc = new HeaderCarrier()
+    val hc = HeaderCarrier()
     for {
       timepoint <- stateDataRepository.retrieveTimePoint
       submission <- incorporationCheckAPIConnector.checkSubmission(timepoint)(hc)
@@ -335,7 +326,7 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions w
     (date.status, date.activeDate) match {
       case (_, Some(givenDate)) if asDate(givenDate).isBefore(incorpDate) => ActiveOnIncorporation
       case (_, Some(givenDate)) => ActiveInFuture(asDate(givenDate))
-      case (status, _) if status == WHEN_REGISTERED => ActiveOnIncorporation
+      case (`WHEN_REGISTERED`, _) => ActiveOnIncorporation
       case _ => DoNotIntendToTrade
     }
   }
@@ -368,52 +359,4 @@ trait RegistrationHoldingPenService extends DateHelper with HttpErrorFunctions w
     }
   }
 
-  private[services] def appendDataToSubmission(crn: String, dates: SubmissionDates, partialSubmission: JsObject): JsObject = {
-    partialSubmission deepMerge
-      Json.obj("registration" ->
-        Json.obj("corporationTax" ->
-          Json.obj(
-            "crn" -> crn,
-            "companyActiveDate" ->
-              formatDate(
-                dates.companyActiveDate),
-            "startDateOfFirstAccountingPeriod" -> formatDate(dates.startDateOfFirstAccountingPeriod),
-            "intendedAccountsPreparationDate" -> formatDate(dates.intendedAccountsPreparationDate)
-          )
-        )
-      )
-  }
-
-  private[services] def buildTopUpSubmission(crn: String, status: String, dates: SubmissionDates, ackRef: String): JsObject = {
-
-    Json.obj(
-      "status" -> "Accepted",
-      "acknowledgementReference" -> ackRef) ++
-      Json.obj("corporationTax" ->
-        Json.obj(
-          "crn" -> crn,
-          "companyActiveDate" ->
-            formatDate(
-              dates.companyActiveDate),
-          "startDateOfFirstAccountingPeriod" -> formatDate(dates.startDateOfFirstAccountingPeriod),
-          "intendedAccountsPreparationDate" -> formatDate(dates.intendedAccountsPreparationDate)
-        )
-      )
-  }
-
-  private[services] def buildTopUpRejectionSubmission(ackRef: String): JsObject = {
-    Json.obj(
-      "status" -> "Rejected",
-      "acknowledgementReference" -> ackRef
-    )
-  }
-
-  private[services] def postSubmissionToDes(ackRef: String, submission: JsObject, journeyId: String, isAdmin: Boolean = false,
-                                            item: IncorpUpdate, ctReg: CorporationTaxRegistration)
-                                           (implicit hc: HeaderCarrier): Future[HttpResponse] = {
-    desConnector.topUpCTSubmission(ackRef, submission, journeyId, isAdmin) map { res =>
-      auditSuccessfulTopUp(submission, item, ctReg)
-      res
-    }
-  }
 }

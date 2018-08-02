@@ -23,7 +23,7 @@ import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
 import org.mockito.stubbing.OngoingStubbing
 import org.scalatest.mock.MockitoSugar
-import repositories.{CorporationTaxRegistrationMongoRepository, SequenceRepository, StateDataRepository}
+import repositories.{CorporationTaxRegistrationMongoRepository, MissingCTDocument, SequenceRepository, StateDataRepository}
 import services._
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -44,7 +44,7 @@ trait SCRSMocks
   lazy val mockStateDataRepository = mock[StateDataRepository]
   lazy val mockIncorporationCheckAPIConnector = mock[IncorporationCheckAPIConnector]
   lazy val mockMetrics = mock[MetricsService]
-  lazy val mockRegHoldingPen = mock[RegistrationHoldingPenService]
+  lazy val mockRegHoldingPen = mock[ProcessIncorporationService]
   val mockBusRegConnector = mock[BusinessRegistrationConnector]
 
   object CTServiceMocks {
@@ -56,50 +56,6 @@ trait SCRSMocks
     def retrieveCTDataRecord(regId: String, result: Option[CorporationTaxRegistration]): OngoingStubbing[Future[Option[CorporationTaxRegistration]]] = {
       when(mockCTDataService.retrieveCorporationTaxRegistrationRecord(ArgumentMatchers.eq(regId), ArgumentMatchers.any()))
         .thenReturn(Future.successful(result))
-    }
-
-    def updateConfirmationReferences(regID: String, returns: ConfirmationReferences)(implicit hc: HeaderCarrier) = {
-      when(mockCTDataService.handleSubmission(eqTo(regID), any(), eqTo(ConfirmationReferences("transactID", "payRef", Some("payAmount"), Some(""))))(any(), any(), any()))
-        .thenReturn(Future.successful(returns))
-    }
-  }
-
-  object AuthenticationMocks {
-    def getCurrentAuthority(authority: Option[Authority]): OngoingStubbing[Future[Option[Authority]]] = {
-      when(mockAuthConnector.getCurrentAuthority()(ArgumentMatchers.any[HeaderCarrier]()))
-        .thenReturn(Future.successful(authority))
-    }
-  }
-
-  object AuthorisationMocks {
-    def getInternalId(intId: String, thenReturn: Option[(String, String)]): OngoingStubbing[Future[Option[(String, String)]]] = {
-      when(mockCTDataRepository.getInternalId(ArgumentMatchers.anyString())).thenReturn(Future.successful(thenReturn))
-    }
-
-    def mockSuccessfulAuthorisation(registrationId: String, authority: Authority) = {
-      when(mockCTDataRepository.getInternalId(ArgumentMatchers.eq(registrationId))).
-        thenReturn(Future.successful(Some((registrationId, authority.ids.internalId))))
-      when(mockAuthConnector.getCurrentAuthority()(ArgumentMatchers.any()))
-        .thenReturn(Future.successful(Some(authority)))
-    }
-
-    def mockNotLoggedInOrAuthorised = {
-      when(mockAuthConnector.getCurrentAuthority()(ArgumentMatchers.any[HeaderCarrier]()))
-        .thenReturn(Future.successful(None))
-      when(mockCTDataRepository.getInternalId(ArgumentMatchers.any())).
-        thenReturn(Future.successful(None))
-    }
-
-    def mockNotAuthorised(registrationId: String, authority: Authority) = {
-      when(mockAuthConnector.getCurrentAuthority()(ArgumentMatchers.any()))
-        .thenReturn(Future.successful(Some(authority)))
-      when(mockCTDataRepository.getInternalId(ArgumentMatchers.contains(registrationId))).
-        thenReturn(Future.successful(Some((registrationId, authority.ids.internalId + "xxx"))))
-    }
-
-    def mockAuthResourceNotFound(authority: Authority) = {
-      AuthenticationMocks.getCurrentAuthority(Some(authority))
-      AuthorisationMocks.getInternalId(authority.ids.internalId, None)
     }
   }
 

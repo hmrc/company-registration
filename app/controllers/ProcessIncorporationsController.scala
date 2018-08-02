@@ -29,30 +29,32 @@ import uk.gov.hmrc.play.microservice.controller.BaseController
 import scala.concurrent.Future
 
 class ProcessIncorporationsControllerImpl @Inject()(
-        metricsService: MetricsService,
-        val regHoldingPenService: RegistrationHoldingPenService,
-        val corpTaxRegService: CorporationTaxRegistrationService
+                                                     metricsService: MetricsService,
+                                                     val processIncorporationService: ProcessIncorporationService,
+                                                     val corpTaxRegService: CorporationTaxRegistrationService,
+                                                     val submissionService: SubmissionService
       ) extends ProcessIncorporationsController
 
 trait ProcessIncorporationsController extends BaseController {
 
-  val regHoldingPenService: RegistrationHoldingPenService
+  val processIncorporationService: ProcessIncorporationService
   val corpTaxRegService: CorporationTaxRegistrationService
+  val submissionService: SubmissionService
 
   private def logFailedTopup(txId: String) = {
     Logger.error("FAILED_DES_TOPUP")
     Logger.info(s"FAILED_DES_TOPUP - Topup failed for transaction ID: $txId")
   }
 
-  def processIncorp: Action[JsValue] = Action.async[JsValue](parse.json) {
+  def processIncorporationNotification: Action[JsValue] = Action.async[JsValue](parse.json) {
     implicit request =>
 
       implicit val reads = IncorpStatus.reads
       withJsonBody[IncorpStatus]{ incorp =>
         val requestAsAnyContentAsJson: Request[AnyContentAsJson] = request.map(AnyContentAsJson)
-        regHoldingPenService.processIncorporationUpdate(incorp.toIncorpUpdate) flatMap {
+        processIncorporationService.processIncorporationUpdate(incorp.toIncorpUpdate) flatMap {
           if(_) Future.successful(Ok) else {
-            corpTaxRegService.setupPartialForTopupOnLocked(incorp.transactionId)(hc, requestAsAnyContentAsJson, isAdmin = false) map { _ =>
+            submissionService.setupPartialForTopupOnLocked(incorp.transactionId)(hc, requestAsAnyContentAsJson, isAdmin = false) map { _ =>
               Logger.info(s"[processIncorp] Sent partial submission in response to locked document on incorp update: ${incorp.transactionId}")
               Accepted
             }
@@ -66,11 +68,11 @@ trait ProcessIncorporationsController extends BaseController {
     }
   }
 
-  def processAdminIncorp: Action[JsValue] = Action.async[JsValue](parse.json) {
+  def processAdminIncorporation: Action[JsValue] = Action.async[JsValue](parse.json) {
     implicit request =>
       implicit val reads = IncorpStatus.reads
       withJsonBody[IncorpStatus]{ incorp =>
-        regHoldingPenService.processIncorporationUpdate(incorp.toIncorpUpdate, isAdmin = true) map {
+        processIncorporationService.processIncorporationUpdate(incorp.toIncorpUpdate, isAdmin = true) map {
           if(_) { Ok } else {
             logFailedTopup(incorp.transactionId)
             BadRequest

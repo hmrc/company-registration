@@ -27,8 +27,9 @@ import uk.gov.hmrc.play.test.UnitSpec
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
 import play.api.mvc.Result
-import services.CorporationTaxRegistrationService
+import services.{CorporationTaxRegistrationService, SubmissionService}
 import play.api.http.Status._
+import repositories.CorporationTaxRegistrationRepository
 import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.Future
@@ -40,12 +41,14 @@ class AdminControllerSpec extends UnitSpec with MockitoSugar {
   implicit val hc = HeaderCarrier()
 
   val mockAdminService: AdminService = mock[AdminService]
-  val mockCTService: CorporationTaxRegistrationService = mock[CorporationTaxRegistrationService]
+  val mockSubmissionService: SubmissionService = mock[SubmissionService]
+  val mockCorporationTaxMongo: CorporationTaxRegistrationRepository = mock[CorporationTaxRegistrationRepository]
 
   trait Setup {
     val controller = new AdminController {
       override val adminService: AdminService = mockAdminService
-      override val ctService: CorporationTaxRegistrationService = mockCTService
+      override val submissionService: SubmissionService = mockSubmissionService
+      override val cTRegistrationRepository: CorporationTaxRegistrationRepository = mockCorporationTaxMongo
     }
   }
 

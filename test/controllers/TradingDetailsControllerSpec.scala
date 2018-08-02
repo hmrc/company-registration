@@ -75,7 +75,7 @@ class TradingDetailsControllerSpec extends BaseSpec with MockitoSugar with SCRSM
     "retrieve a 200 - Ok and a Json package of TradingDetails" in new Setup {
 
       mockAuthorise(Future.successful(internalId))
-      mockGetInternalId(Future.successful(Some(internalId)))
+      mockGetInternalId(Future.successful(internalId))
 
       when(mockTradingDetailsService.retrieveTradingDetails(ArgumentMatchers.eq(regID)))
         .thenReturn(Future.successful(Some(TradingDetails("true"))))
@@ -90,7 +90,7 @@ class TradingDetailsControllerSpec extends BaseSpec with MockitoSugar with SCRSM
     "return a 404 - Not Found if the record does not exist" in new Setup {
 
       mockAuthorise(Future.successful(internalId))
-      mockGetInternalId(Future.successful(Some(internalId)))
+      mockGetInternalId(Future.successful(internalId))
 
       when(mockTradingDetailsService.retrieveTradingDetails(ArgumentMatchers.eq(regID)))
         .thenReturn(Future.successful(None))
@@ -109,7 +109,7 @@ class TradingDetailsControllerSpec extends BaseSpec with MockitoSugar with SCRSM
 
     "return a 403 - Forbidden if the user is not authorised to view this record" in new Setup {
       mockAuthorise(Future.successful(internalId))
-      mockGetInternalId(Future.successful(Some(otherInternalID)))
+      mockGetInternalId(Future.successful(otherInternalID))
 
       val result = controller.retrieveTradingDetails(regID)(FakeRequest())
       status(result) shouldBe FORBIDDEN
@@ -117,7 +117,7 @@ class TradingDetailsControllerSpec extends BaseSpec with MockitoSugar with SCRSM
 
     "return a 404 - Not found when an authority is found but nothing is returned from" in new Setup {
       mockAuthorise(Future.successful(internalId))
-      mockGetInternalId(Future.successful(Some(internalId)))
+      mockGetInternalId(Future.successful(internalId))
 
       val result = controller.retrieveTradingDetails(regID)(FakeRequest())
       status(result) shouldBe NOT_FOUND
@@ -127,7 +127,7 @@ class TradingDetailsControllerSpec extends BaseSpec with MockitoSugar with SCRSM
   "updateTradingDetails" should {
     "return a 200 - Ok and a company details response if a record is updated" in new Setup {
       mockAuthorise(Future.successful(internalId))
-      mockGetInternalId(Future.successful(Some(internalId)))
+      mockGetInternalId(Future.successful(internalId))
 
       when(mockTradingDetailsService.updateTradingDetails(ArgumentMatchers.eq("testRegID"), ArgumentMatchers.eq(TradingDetails("true"))))
         .thenReturn(Future.successful(Some(TradingDetails("true"))))
@@ -141,7 +141,7 @@ class TradingDetailsControllerSpec extends BaseSpec with MockitoSugar with SCRSM
 
     "return a 404 - Not Found if the record to update does not exist" in new Setup {
       mockAuthorise(Future.successful(internalId))
-      mockGetInternalId(Future.successful(Some(internalId)))
+      mockGetInternalId(Future.successful(internalId))
 
       when(mockTradingDetailsService.updateTradingDetails(ArgumentMatchers.eq("testRegID"), ArgumentMatchers.eq(TradingDetails("true"))))
         .thenReturn(Future.successful(None))
@@ -163,7 +163,7 @@ class TradingDetailsControllerSpec extends BaseSpec with MockitoSugar with SCRSM
 
     "return a 403 - Forbidden if the user is not authorised to view the record" in new Setup {
       mockAuthorise(Future.successful(internalId))
-      mockGetInternalId(Future.successful(Some(otherInternalID)))
+      mockGetInternalId(Future.successful(otherInternalID))
 
       val request = FakeRequest().withBody(Json.toJson(TradingDetails("true")))
       val result = controller.updateTradingDetails(regID)(request)
@@ -174,7 +174,7 @@ class TradingDetailsControllerSpec extends BaseSpec with MockitoSugar with SCRSM
     "return a 404 - Not found when an authority is found but nothing is updated" in new Setup {
 
       mockAuthorise(Future.successful(internalId))
-      mockGetInternalId(Future.successful(Some(internalId)))
+      mockGetInternalId(Future.successful(internalId))
 
       when(mockTradingDetailsService.updateTradingDetails(ArgumentMatchers.eq(regID), ArgumentMatchers.eq(TradingDetails("true"))))
         .thenReturn(Future.successful(None))

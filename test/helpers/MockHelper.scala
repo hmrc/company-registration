@@ -23,6 +23,6 @@ trait MockHelper {
   def collectMocks[T <: AnyRef](mocks: T*): Seq[T] = mocks
 
   def resetMocks[T <: AnyRef](mocks: Seq[T]): Unit = {
-    mocks.map(reset(_))
+    mocks.foreach(reset(_))
   }
 }

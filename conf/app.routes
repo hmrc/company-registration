@@ -1,10 +1,10 @@
 # microservice specific routes
 GET        /throttle/check-user-access                                                      @controllers.UserAccessController.checkUserAccess
 
-POST       /corporation-tax-registration/process-admin-incorp                               @controllers.ProcessIncorporationsController.processAdminIncorp
-POST       /corporation-tax-registration/process-incorp                                     @controllers.ProcessIncorporationsController.processIncorp
+POST       /corporation-tax-registration/process-admin-incorp                               @controllers.ProcessIncorporationsController.processAdminIncorporation
+POST       /corporation-tax-registration/process-incorp                                     @controllers.ProcessIncorporationsController.processIncorporationNotification
 
-POST       /corporation-tax-registration/acknowledgement-confirmation                       @controllers.CorporationTaxRegistrationController.acknowledgementConfirmation(ackref : String)
+POST       /corporation-tax-registration/acknowledgement-confirmation                       @controllers.SubmissionController.acknowledgementConfirmation(ackref : String)
 
 POST       /corporation-tax-registration/check-ro-address                                   @controllers.CorporationTaxRegistrationController.roAddressValid
 
@@ -31,7 +31,7 @@ GET        /corporation-tax-registration/:registrationID/contact-details        
 PUT        /corporation-tax-registration/:registrationID/contact-details                    @controllers.ContactDetailsController.updateContactDetails(registrationID)
 
 GET        /corporation-tax-registration/:registrationID/confirmation-references            @controllers.CorporationTaxRegistrationController.retrieveConfirmationReference(registrationID)
-PUT        /corporation-tax-registration/:registrationID/confirmation-references            @controllers.CorporationTaxRegistrationController.handleSubmission(registrationID)
+PUT        /corporation-tax-registration/:registrationID/confirmation-references            @controllers.SubmissionController.handleUserSubmission(registrationID)
 
 PUT        /corporation-tax-registration/:registrationID/progress                           @controllers.CorporationTaxRegistrationController.updateRegistrationProgress(registrationID)
 

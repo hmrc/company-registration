@@ -19,6 +19,7 @@ package auth
 import play.api.Logger
 import play.api.libs.json.Reads
 import play.api.mvc.{ActionBuilder, _}
+import repositories.MissingCTDocument
 import uk.gov.hmrc.auth.core.AuthProvider.GovernmentGateway
 import uk.gov.hmrc.auth.core.retrieve.{Retrieval, SimpleRetrieval}
 import uk.gov.hmrc.auth.core.retrieve.~
@@ -76,9 +77,8 @@ trait AuthorisedActions extends AuthenticatedActions with AuthResource {
       implicit val req: Request[A] = request
       authorised(ConfidenceLevel.L50).retrieve(internalId) { authIntId =>
         fetchInternalID(regId).flatMap {
-          case Some(documentIntId) if authIntId == documentIntId => block(request)
-          case Some(_) => throw new UnauthorisedAccess
-          case None    => throw new NoCTDocumentFound
+          case `authIntId` => block(request)
+          case _ => throw new UnauthorisedAccess
         }
       }.recover(authorisationErrorHandling[A](regId))
     }
@@ -92,9 +92,8 @@ trait AuthorisedActions extends AuthenticatedActions with AuthResource {
           implicit request =>
             authConnector.authorise(predicate, internalId and retrieval).flatMap{ case (authIntId ~ retrievals) =>
               fetchInternalID(regId).flatMap {
-                case Some(documentIntId) if authIntId == documentIntId => block(retrievals)(request)
-                case Some(_) => throw new UnauthorisedAccess
-                case None    => throw new NoCTDocumentFound
+                case `authIntId` => block(retrievals)(request)
+                case _ => throw new UnauthorisedAccess
               }
             }.recover(authorisationErrorHandling[A](regId))
         }
@@ -106,7 +105,7 @@ trait AuthorisedActions extends AuthenticatedActions with AuthResource {
     case _: NoActiveSession =>
       Logger.error(s"User with regId $regId has no active session when trying to access ${request.path}")
       Unauthorized
-    case _: NoCTDocumentFound =>
+    case _: MissingCTDocument =>
       Logger.error(s"No CT document found for regId $regId when trying to access ${request.path}")
       NotFound
     case _: UnauthorisedAccess =>
