@@ -29,7 +29,7 @@ import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import repositories._
-import services.CorporationTaxRegistrationService
+import services.{CorporationTaxRegistrationService, SubmissionService}
 import uk.gov.hmrc.play.test.LogCapturing
 
 import scala.concurrent.Future
@@ -41,7 +41,7 @@ class TestEndpointControllerSpec extends BaseSpec with LogCapturing {
 
   val mockThrottleRepository = mock[ThrottleMongoRepository]
   val mockCTRepository = mock[CorporationTaxRegistrationMongoRepository]
-  val mockCTService = mock[CorporationTaxRegistrationService]
+  val mockSubmissionService = mock[SubmissionService]
   val mockStateRepository = mock[StateDataMongoRepository]
 
   class Setup {
@@ -49,7 +49,7 @@ class TestEndpointControllerSpec extends BaseSpec with LogCapturing {
       val throttleMongoRepository = mockThrottleRepository
       val cTMongoRepository = mockCTRepository
       val bRConnector = mockBusRegConnector
-      val cTService = mockCTService
+      val submissionService = mockSubmissionService
       val stateRepo = mockStateRepository
     }
   }
@@ -96,7 +96,7 @@ class TestEndpointControllerSpec extends BaseSpec with LogCapturing {
     val confirmationRefs = ConfirmationReferences("", "testTransID", Some("testPaymentRef"), Some("12"))
 
     "return a 200 if the document was successfully updated with a set of confirmation refs" in new Setup {
-      when(mockCTService.handleSubmission(eqTo(registrationId), any(), any())(any(), any(), eqTo(false)))
+      when(mockSubmissionService.handleSubmission(eqTo(registrationId), any(), any())(any(), any(), eqTo(false)))
         .thenReturn(Future.successful(confirmationRefs))
 
       val result = await(controller.updateConfirmationRefs(registrationId)(FakeRequest()))

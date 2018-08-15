@@ -66,7 +66,7 @@ class UserAccessControllerSpec extends BaseSpec with AuthorisationMocks {
 
     "return a 200" in new Setup {
       mockAuthorise(Future.successful(internalId))
-      mockGetInternalId(Future.successful(Some(internalId)))
+      mockGetInternalId(Future.successful(internalId))
       when(mockUserAccessService.checkUserAccess(anyString())(any()))
         .thenReturn(Future.successful(Right(UserAccessSuccessResponse("123", false, false, false))))
 
@@ -77,7 +77,7 @@ class UserAccessControllerSpec extends BaseSpec with AuthorisationMocks {
 
     "return a 429" in new Setup {
       mockAuthorise(Future.successful(internalId))
-      mockGetInternalId(Future.successful(Some(internalId)))
+      mockGetInternalId(Future.successful(internalId))
       when(mockUserAccessService.checkUserAccess(anyString())(any()))
         .thenReturn(Future.successful(Left(Json.toJson(UserAccessLimitReachedResponse(limitReached = true)))))
 

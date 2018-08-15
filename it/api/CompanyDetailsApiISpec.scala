@@ -62,7 +62,6 @@ class CompanyDetailsApiISpec extends IntegrationSpecBase with LoginStub  {
     await(seqRepo.ensureIndexes)
 
     System.clearProperty("feature.registerInterest")
-    System.clearProperty("feature.etmpHoldingPen")
 
     def setupCTRegistration(reg: CorporationTaxRegistration): WriteResult = ctRepository.insert(reg)
 

@@ -45,13 +45,15 @@ class ProcessIncorporationsControllerSpec extends UnitSpec with MockitoSugar wit
   val transactionId = "trans-12345"
   val crn = "crn-12345"
 
-  val mockRegHoldingPenService = mock[RegistrationHoldingPenService]
+  val mockRegHoldingPenService = mock[ProcessIncorporationService]
   val mockCorpRegTaxService = mock[CorporationTaxRegistrationService]
+  val mockSubmissionService = mock[SubmissionService]
 
   class Setup {
     val controller = new ProcessIncorporationsController {
-      override val regHoldingPenService = mockRegHoldingPenService
+      override val processIncorporationService = mockRegHoldingPenService
       override val corpTaxRegService = mockCorpRegTaxService
+      override val submissionService = mockSubmissionService
     }
   }
 
@@ -122,7 +124,7 @@ class ProcessIncorporationsControllerSpec extends UnitSpec with MockitoSugar wit
 
       val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
 
-      val result = await(call(controller.processAdminIncorp, request))
+      val result = await(call(controller.processAdminIncorporation, request))
 
       status(result) shouldBe 200
 
@@ -139,7 +141,7 @@ class ProcessIncorporationsControllerSpec extends UnitSpec with MockitoSugar wit
       when(mockRegHoldingPenService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.successful(true))
 
       val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
-      val result = await(call(controller.processIncorp, request))
+      val result = await(call(controller.processIncorporationNotification, request))
 
       status(result) shouldBe 200
     }
@@ -151,7 +153,7 @@ class ProcessIncorporationsControllerSpec extends UnitSpec with MockitoSugar wit
 
       val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
       withCaptureOfLoggingFrom(Logger) { logEvents =>
-        intercept[RuntimeException](await(call(controller.processIncorp, request)))
+        intercept[RuntimeException](await(call(controller.processIncorporationNotification, request)))
         eventually {
           logEvents.size shouldBe 2
           val res = logEvents.map(_.getMessage) contains "FAILED_DES_TOPUP"
@@ -166,9 +168,9 @@ class ProcessIncorporationsControllerSpec extends UnitSpec with MockitoSugar wit
 
     "return a 202 response for non admin flow" in new Setup {
       when(mockRegHoldingPenService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.successful(false))
-      when(mockCorpRegTaxService.setupPartialForTopupOnLocked(any())(any(), any(), any())).thenReturn(Future.successful(false))
+      when(mockSubmissionService.setupPartialForTopupOnLocked(any())(any(), any(), any())).thenReturn(Future.successful(false))
       val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
-      val result = await(call(controller.processIncorp, request))
+      val result = await(call(controller.processIncorporationNotification, request))
 
       status(result) shouldBe 202
     }
@@ -177,7 +179,7 @@ class ProcessIncorporationsControllerSpec extends UnitSpec with MockitoSugar wit
     "return a 500 response for admin flow" in new Setup {
       when(mockRegHoldingPenService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.successful(false))
       val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
-      val result = await(call(controller.processAdminIncorp, request))
+      val result = await(call(controller.processAdminIncorporation, request))
 
       status(result) shouldBe 400
 

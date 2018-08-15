@@ -16,17 +16,16 @@
 
 package controllers
 
-import javax.inject.Inject
 import auth._
+import javax.inject.Inject
 import models._
 import play.api.libs.json.{JsObject, JsValue, Json}
-import play.api.mvc.{Action, AnyContent, AnyContentAsJson, Request}
+import play.api.mvc.{Action, AnyContent}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
-import services.{CompanyRegistrationDoesNotExist, CorporationTaxRegistrationService, MetricsService, RegistrationProgressUpdated}
-import uk.gov.hmrc.auth.core.retrieve.Retrievals.credentials
+import services.{CorporationTaxRegistrationService, MetricsService}
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import uk.gov.hmrc.play.microservice.controller.BaseController
-import utils.{AlertLogging, Logging, PagerDutyKeys}
+import utils.{AlertLogging, Logging}
 
 import scala.concurrent.Future
 
@@ -39,7 +38,7 @@ class CorporationTaxRegistrationControllerImpl @Inject()(
   val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 }
 
-trait CorporationTaxRegistrationController extends BaseController with AuthorisedActions with Logging with AlertLogging{
+trait CorporationTaxRegistrationController extends BaseController with AuthorisedActions with Logging with AlertLogging {
 
   val ctService : CorporationTaxRegistrationService
   val metricsService : MetricsService
@@ -92,23 +91,6 @@ trait CorporationTaxRegistrationController extends BaseController with Authorise
       }
   }
 
-  //HO5-1 and HO6
-  def handleSubmission(registrationID : String): Action[JsValue] =
-    AuthorisedAction(registrationID).retrieve(credentials).async(parse.json){ credentials =>
-    implicit request =>
-      val requestAsAnyContentAsJson: Request[AnyContentAsJson] = request.map(AnyContentAsJson)
-      withJsonBody[ConfirmationReferences] { refs =>
-        val timer = metricsService.updateReferencesCRTimer.time()
-        ctService.handleSubmission(registrationID, credentials.providerId, refs)(
-          hc, requestAsAnyContentAsJson, isAdmin = false) map { references =>
-          timer.stop()
-          logger.info(s"[Confirmation Refs] Acknowledgement ref:${references.acknowledgementReference} " +
-            s"- Transaction id:${references.transactionId} - Payment ref:${references.paymentReference}")
-          Ok(Json.toJson[ConfirmationReferences](references))
-        }
-      }
-  }
-
   def retrieveConfirmationReference(registrationID: String): Action[AnyContent] = AuthorisedAction(registrationID).async{
     implicit request =>
       val timer = metricsService.retrieveConfirmationReferenceCRTimer.time()
@@ -120,49 +102,13 @@ trait CorporationTaxRegistrationController extends BaseController with Authorise
       }
   }
 
-  def acknowledgementConfirmation(ackRef : String): Action[JsValue] = Action.async[JsValue](parse.json) {
-    logger.debug(s"[CorporationTaxRegistrationController] [acknowledgementConfirmation] confirming for ack ${ackRef}")
-    implicit request =>
-      withJsonBody[AcknowledgementReferences]{ etmpNotification =>
-
-        (etmpNotification.ctUtr.isDefined, etmpNotification.status) match {
-
-          case accepted @ (true, "04" | "05") => {
-            val timer = metricsService.acknowledgementConfirmationCRTimer.time()
-            ctService.updateCTRecordWithAckRefs(ackRef, etmpNotification) map {
-              case Some(_) =>
-                timer.stop()
-                metricsService.ctutrConfirmationCounter.inc(1)
-                Ok
-              case None =>
-                timer.stop()
-                NotFound(s"Document not found for Ack ref: $ackRef")
-            }
-          }
-
-          case rejected @ (_, "06" | "07" | "08" | "09" | "10") => {
-            pagerduty(PagerDutyKeys.CT_REJECTED, Some(s"Received a Rejected response code (${etmpNotification.status}) from ETMP for ackRef: $ackRef"))
-            ctService.updateCTRecordWithAckRefs(ackRef, etmpNotification.copy(ctUtr = None)) map { _ => Ok }
-          }
-
-          case missingCTUTR @ (_, "04" | "05") => {
-            pagerduty(PagerDutyKeys.CT_ACCEPTED_MISSING_UTR, Some(s"Received an Accepted response code (${etmpNotification.status}) from ETMP without a CTUTR for ackRef: $ackRef"))
-            Future.successful(BadRequest(s"Accepted but no CTUTR provided for ackRef: $ackRef"))
-          }
-
-          case unrecognised =>
-            Future.failed(new RuntimeException(s"Unknown notification code (${etmpNotification.status}) received from ETMP for ackRef: $ackRef"))
-        }
-      }
-  }
-
   def updateRegistrationProgress(registrationID: String): Action[JsValue] = AuthorisedAction(registrationID).async(parse.json) {
     implicit request =>
       withJsonBody[JsObject] { body =>
         val progress = (body \ "registration-progress").as[String]
         ctService.updateRegistrationProgress(registrationID, progress) map {
-          case (RegistrationProgressUpdated) => Ok
-          case (CompanyRegistrationDoesNotExist) => NotFound
+          case Some(_) => Ok
+          case _       => NotFound
         }
       }
   }

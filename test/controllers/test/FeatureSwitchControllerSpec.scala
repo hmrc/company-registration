@@ -32,7 +32,6 @@ class FeatureSwitchControllerSpec extends UnitSpec with BeforeAndAfterEach {
     System.clearProperty("feature.submissionCheck")
     System.clearProperty("feature.missingIncorp")
     System.clearProperty("feature.registerInterest")
-    System.clearProperty("feature.etmpHoldingPen")
     System.clearProperty("feature.graphiteMetrics")
   }
 
@@ -49,7 +48,6 @@ class FeatureSwitchControllerSpec extends UnitSpec with BeforeAndAfterEach {
         "submissionCheck false\n" +
           "missingIncorp false\n" +
           "registerInterest false\n" +
-          "etmpHoldingPen false\n" +
           "graphiteMetrics false\n" +
           "removeStaleDocuments false\n"
     }

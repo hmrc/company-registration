@@ -59,9 +59,9 @@ trait IncorporationInformationConnector extends AlertLogging {
 
   def registerInterest(regId: String, transactionId: String, admin: Boolean = false)(implicit hc: HeaderCarrier, req: Request[_]): Future[Boolean] = {
     val callbackUrl = if(admin) {
-      s"${controllers.routes.ProcessIncorporationsController.processAdminIncorp().absoluteURL()}"
+      s"${controllers.routes.ProcessIncorporationsController.processAdminIncorporation().absoluteURL()}"
     } else {
-      s"${controllers.routes.ProcessIncorporationsController.processIncorp().absoluteURL()}"
+      s"${controllers.routes.ProcessIncorporationsController.processIncorporationNotification().absoluteURL()}"
     }
     val json = Json.obj("SCRSIncorpSubscription" -> Json.obj("callbackUrl" -> callbackUrl))
     http.POST[JsObject, HttpResponse](s"$url${buildUri(transactionId)}", json) map { res =>

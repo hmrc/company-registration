@@ -63,6 +63,7 @@ class Module extends AbstractModule {
     bind(classOf[HeldController]) to classOf[HeldControllerImpl]
     bind(classOf[AccountingDetailsController]) to classOf[AccountingDetailsControllerImpl]
     bind(classOf[TestEndpointController]) to classOf[TestEndpointControllerImpl]
+    bind(classOf[SubmissionController]) to classOf[SubmissionControllerImpl]
   }
 
   private def bindServices() {
@@ -81,7 +82,8 @@ class Module extends AbstractModule {
     bind(classOf[ThrottleService]) to classOf[ThrottleServiceImpl]
     bind(classOf[TradingDetailsService]) to classOf[TradingDetailsServiceImpl]
     bind(classOf[UserAccessService]) to classOf[UserAccessServiceImpl]
-    bind(classOf[RegistrationHoldingPenService]) to classOf[RegistrationHoldingPenServiceImpl]
+    bind(classOf[ProcessIncorporationService]) to classOf[ProcessIncorporationServiceImpl]
+    bind(classOf[SubmissionService]) to classOf[SubmissionServiceImpl]
   }
 
   private def bindConnectors() = {

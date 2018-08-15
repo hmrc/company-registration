@@ -58,7 +58,7 @@ class AccountingDetailsControllerSpec extends BaseSpec with AccountingDetailsFix
 
     "return a 200 with accounting details in the js on body when authorised" in new Setup {
       mockAuthorise(Future.successful(internalId))
-      mockGetInternalId(Future.successful(Some(internalId)))
+      mockGetInternalId(Future.successful(internalId))
 
       AccountingDetailsServiceMocks.retrieveAccountingDetails(registrationID, Some(validAccountingDetails))
 
@@ -73,7 +73,7 @@ class AccountingDetailsControllerSpec extends BaseSpec with AccountingDetailsFix
 
     "return a 404 when the user is authorised but accounting details cannot be found" in new Setup {
       mockAuthorise(Future.successful(internalId))
-      mockGetInternalId(Future.successful(Some(internalId)))
+      mockGetInternalId(Future.successful(internalId))
 
       AccountingDetailsServiceMocks.retrieveAccountingDetails(registrationID, None)
 
@@ -92,7 +92,7 @@ class AccountingDetailsControllerSpec extends BaseSpec with AccountingDetailsFix
 
     "return a 200 with accounting details in the json body when authorised" in new Setup {
       mockAuthorise(Future.successful(internalId))
-      mockGetInternalId(Future.successful(Some(internalId)))
+      mockGetInternalId(Future.successful(internalId))
 
       AccountingDetailsServiceMocks.updateAccountingDetails(registrationID, Some(validAccountingDetails))
 
@@ -103,7 +103,7 @@ class AccountingDetailsControllerSpec extends BaseSpec with AccountingDetailsFix
 
     "return a 404 when the user is authorised but accounting details cannot be found" in new Setup {
       mockAuthorise(Future.successful(internalId))
-      mockGetInternalId(Future.successful(Some(internalId)))
+      mockGetInternalId(Future.successful(internalId))
 
       AccountingDetailsServiceMocks.updateAccountingDetails(registrationID, None)
 

@@ -68,15 +68,15 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
     val startupJobs = app.injector.instanceOf[AppStartupJobs]
 
     val regid = app.configuration.getString("companyNameRegID").getOrElse("")
-    app.injector.instanceOf[AppStartupJobs].getCTCompanyName(regid)
+    startupJobs.getCTCompanyName(regid)
 
     val base64TransactionIds = app.configuration.getString("list-of-txids").getOrElse("")
     val listOftxIDs = new String(Base64.getDecoder.decode(base64TransactionIds), "UTF-8").split(",").toList
-    app.injector.instanceOf[AppStartupJobs].fetchRegIds(listOftxIDs)
+    startupJobs.fetchRegIds(listOftxIDs)
 
     val base64ackRefs = app.configuration.getString("list-of-ackrefs").getOrElse("")
     val listOfackRefs = new String(Base64.getDecoder.decode(base64ackRefs), "UTF-8").split(",").toList
-    app.injector.instanceOf[AppStartupJobs].fetchByAckRef(listOfackRefs)
+    startupJobs.fetchByAckRef(listOfackRefs)
 
     startupJobs.fetchIndexes()
 
@@ -116,6 +116,8 @@ class AppStartupJobs @Inject()(config: Configuration,
     val message = regIds.map(rid => s" RegId: $rid")
     Logger.info(s"RegIds with locked status:$message")
   }
+
+  repositories.oldHoldingPenRepository.dropDatabase
 
   def getCTCompanyName(rid: String) : Future[Unit] = {
     ctRepo.retrieveMultipleCorporationTaxRegistration(rid) map {

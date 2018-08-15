@@ -77,7 +77,6 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with Login
     ctRegCount shouldBe 0
 
     System.clearProperty("feature.registerInterest")
-    System.clearProperty("feature.etmpHoldingPen")
   }
 
   val ws: WSClient = app.injector.instanceOf(classOf[WSClient])
@@ -406,7 +405,6 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with Login
 
     "update confirmation ref, register an interest to incorporation-information and send the partial submission to ETMP" in new Setup {
       System.setProperty("feature.registerInterest", "true")
-      System.setProperty("feature.etmpHoldingPen", "true")
 
       setupSimpleAuthMocks()
 
@@ -425,7 +423,6 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with Login
 
     "use existing conf refs when called again after registration of interest fails" in new Setup {
       System.setProperty("feature.registerInterest", "true")
-      System.setProperty("feature.etmpHoldingPen", "false")
 
       setupSimpleAuthMocks()
       stubIISubscribe(500, Json.obj())
@@ -465,7 +462,6 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with Login
 
     "be able to retry a submission when the submission to DES fails" in new Setup {
       System.setProperty("feature.registerInterest", "true")
-      System.setProperty("feature.etmpHoldingPen", "true")
 
       setupSimpleAuthMocks()
       stubIISubscribe(202, Json.obj())

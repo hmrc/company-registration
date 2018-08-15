@@ -14,8 +14,12 @@
  * limitations under the License.
  */
 
-package auth
+package helpers
 
-import uk.gov.hmrc.auth.core.AuthorisationException
+import mocks.SCRSMocks
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.play.PlaySpec
+import play.api.test.{DefaultAwaitTimeout, FutureAwaits}
 
-case class UnauthorisedAccess(msg: String = "Unauthorised Access") extends AuthorisationException(msg)
+trait SCRSBaseSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach with SCRSMocks with FutureAwaits with DefaultAwaitTimeout

@@ -53,6 +53,7 @@ object CorporationTaxRegistrationMongo extends ReactiveMongoFormats {
 trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegistration, BSONObjectID]{
   def createCorporationTaxRegistration(metadata: CorporationTaxRegistration): Future[CorporationTaxRegistration]
   def retrieveCorporationTaxRegistration(regID: String): Future[Option[CorporationTaxRegistration]]
+  def getExistingRegistration(registrationID: String): Future[CorporationTaxRegistration]
   def retrieveStaleDocuments(count: Int, storageThreshold: Int): Future[List[CorporationTaxRegistration]]
   def retrieveMultipleCorporationTaxRegistration(regID: String): Future[List[CorporationTaxRegistration]]
   def retrieveRegistrationByTransactionID(regID: String): Future[Option[CorporationTaxRegistration]]
@@ -92,7 +93,7 @@ trait CorporationTaxRegistrationRepository extends Repository[CorporationTaxRegi
   def updateTransactionId(updateFrom: String, updateTo: String): Future[String]
 }
 
-private[repositories] class MissingCTDocument(regId: String) extends NoStackTrace
+class MissingCTDocument(regId: String) extends NoStackTrace
 
 class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
   extends ReactiveRepository[CorporationTaxRegistration, BSONObjectID]("corporation-tax-registration-information",
@@ -195,72 +196,70 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
     collection.find(selector).one[CorporationTaxRegistration]
   }
 
+  override def getExistingRegistration(registrationID: String): Future[CorporationTaxRegistration] = {
+    retrieveCorporationTaxRegistration(registrationID).map {
+      _.getOrElse{
+        Logger.warn(s"[getExistingRegistration] No Document Found for RegId: $registrationID")
+        throw new MissingCTDocument(registrationID)
+      }
+    }
+  }
+
   override def retrieveMultipleCorporationTaxRegistration(registrationID: String): Future[List[CorporationTaxRegistration]] = {
     val selector = registrationIDSelector(registrationID)
     collection.find(selector).cursor[CorporationTaxRegistration]().collect[List]()
   }
 
   override def updateCompanyDetails(registrationID: String, companyDetails: CompanyDetails): Future[Option[CompanyDetails]] = {
-    retrieveCorporationTaxRegistration(registrationID).flatMap {
-      case Some(data) => collection.update(registrationIDSelector(registrationID), data.copy(companyDetails = Some(companyDetails)), upsert = false)
-        .map(_ => Some(companyDetails))
-      case None => Future.successful(None)
-    }
+    OptionT(retrieveCorporationTaxRegistration(registrationID)).semiflatMap {
+      data => collection.update(registrationIDSelector(registrationID), data.copy(companyDetails = Some(companyDetails)), upsert = false)
+        .map(_ => companyDetails)
+    }.value
   }
 
   override def retrieveCompanyDetails(registrationID: String): Future[Option[CompanyDetails]] = {
-    retrieveCorporationTaxRegistration(registrationID).map {
-      case Some(cTRegistration) => cTRegistration.companyDetails
-      case None => None
-    }
+    OptionT(retrieveCorporationTaxRegistration(registrationID)).subflatMap {
+      data => data.companyDetails
+    }.value
   }
 
   override def retrieveAccountingDetails(registrationID: String): Future[Option[AccountingDetails]] = {
-    retrieveCorporationTaxRegistration(registrationID).map {
-      case Some(cTRegistration) => cTRegistration.accountingDetails
-      case None => None
-    }
+    OptionT(retrieveCorporationTaxRegistration(registrationID)).subflatMap {
+      data => data.accountingDetails
+    }.value
   }
 
   override def updateAccountingDetails(registrationID: String, accountingDetails: AccountingDetails): Future[Option[AccountingDetails]] = {
-    retrieveCorporationTaxRegistration(registrationID).flatMap {
-      case Some(data) => collection.update(registrationIDSelector(registrationID), data.copy(accountingDetails = Some(accountingDetails))).map(
-        _ => Some(accountingDetails)
-      )
-      case None => Future.successful(None)
-    }
+    OptionT(retrieveCorporationTaxRegistration(registrationID)).semiflatMap {
+      data => collection.update(registrationIDSelector(registrationID), data.copy(accountingDetails = Some(accountingDetails)), upsert = false)
+        .map(_ => accountingDetails)
+    }.value
   }
 
   override def retrieveTradingDetails(registrationID: String): Future[Option[TradingDetails]] = {
-    retrieveCorporationTaxRegistration(registrationID).map {
-      case Some(ctRegistration) =>
-        ctRegistration.tradingDetails
-      case None => None
-    }
-  }
-
-  override def retrieveContactDetails(registrationID: String): Future[Option[ContactDetails]] = {
-    retrieveCorporationTaxRegistration(registrationID) map {
-      case Some(registration) => registration.contactDetails
-      case None => None
-    }
+    OptionT(retrieveCorporationTaxRegistration(registrationID)).subflatMap {
+      data => data.tradingDetails
+    }.value
   }
 
   override def updateTradingDetails(registrationID: String, tradingDetails: TradingDetails): Future[Option[TradingDetails]] = {
-    retrieveCorporationTaxRegistration(registrationID).flatMap {
-      case Some(data) => collection.update(registrationIDSelector(registrationID), data.copy(tradingDetails = Some(tradingDetails))).map(
-        _ => Some(tradingDetails)
-      )
-      case None => Future.successful(None)
-    }
+    OptionT(retrieveCorporationTaxRegistration(registrationID)).semiflatMap {
+      data => collection.update(registrationIDSelector(registrationID), data.copy(tradingDetails = Some(tradingDetails)), upsert = false)
+        .map(_ => tradingDetails)
+    }.value
+  }
+
+  override def retrieveContactDetails(registrationID: String): Future[Option[ContactDetails]] = {
+    OptionT(retrieveCorporationTaxRegistration(registrationID)).subflatMap {
+      data => data.contactDetails
+    }.value
   }
 
   override def updateContactDetails(registrationID: String, contactDetails: ContactDetails): Future[Option[ContactDetails]] = {
-    retrieveCorporationTaxRegistration(registrationID) flatMap {
-      case Some(registration) => collection.update(registrationIDSelector(registrationID), registration.copy(contactDetails = Some(contactDetails)), upsert = false)
-        .map(_ => Some(contactDetails))
-      case None => Future.successful(None)
-    }
+    OptionT(retrieveCorporationTaxRegistration(registrationID)).semiflatMap {
+      data => collection.update(registrationIDSelector(registrationID), data.copy(contactDetails = Some(contactDetails)), upsert = false)
+        .map(_ => contactDetails)
+    }.value
   }
 
   override def retrieveConfirmationReferences(registrationID: String) : Future[Option[ConfirmationReferences]] = {
@@ -268,28 +267,24 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
   }
 
   override def updateConfirmationReferences(registrationID: String, confirmationReferences: ConfirmationReferences) : Future[Option[ConfirmationReferences]] = {
-    retrieveCorporationTaxRegistration(registrationID) flatMap {
-      case Some(registration) => collection.update(registrationIDSelector(registrationID), registration.copy(confirmationReferences = Some(confirmationReferences)), upsert = false)
-        .map(_ => Some(confirmationReferences))
-      case None => Future.successful(None)
-    }
+    OptionT(retrieveCorporationTaxRegistration(registrationID)).semiflatMap {
+      data => collection.update(registrationIDSelector(registrationID), data.copy(confirmationReferences = Some(confirmationReferences)), upsert = false)
+        .map(_ => confirmationReferences)
+    }.value
   }
 
   override def updateConfirmationReferencesAndUpdateStatus(registrationID: String, confirmationReferences: ConfirmationReferences, status: String) : Future[Option[ConfirmationReferences]] = {
-    retrieveCorporationTaxRegistration(registrationID) flatMap {
-      case Some(registration) => collection.update(registrationIDSelector(registrationID), registration.copy(confirmationReferences = Some(confirmationReferences), status = status), upsert = false)
-        .map(_ => Some(confirmationReferences))
-      case None => Future.successful(None)
-    }
+    OptionT(retrieveCorporationTaxRegistration(registrationID)).semiflatMap {
+      data => collection.update(registrationIDSelector(registrationID), data.copy(confirmationReferences = Some(confirmationReferences), status = status), upsert = false)
+        .map(_ => confirmationReferences)
+    }.value
   }
 
   override def updateCompanyEndDate(registrationID: String, model: AccountPrepDetails): Future[Option[AccountPrepDetails]] = {
-    retrieveCorporationTaxRegistration(registrationID) flatMap {
-      case Some(ct) =>
-        collection.update(registrationIDSelector(registrationID), ct.copy(accountsPreparation = Some(model)), upsert = false)
-          .map(_=>Some(model))
-        case None => Future.successful(None)
-    }
+    OptionT(retrieveCorporationTaxRegistration(registrationID)).semiflatMap {
+      data => collection.update(registrationIDSelector(registrationID), data.copy(accountsPreparation = Some(model)), upsert = false)
+        .map(_ => model)
+    }.value
   }
 
   override def updateSubmissionStatus(registrationID: String, status: String): Future[String] = {
@@ -302,14 +297,8 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
   override def removeTaxRegistrationInformation(registrationId: String): Future[Boolean] = {
     val modifier = BSONDocument("$unset" -> BSONDocument("tradingDetails" -> 1, "contactDetails" -> 1, "companyDetails" -> 1))
     collection.findAndUpdate(registrationIDSelector(registrationId), modifier, fetchNewObject = true, upsert = false) map { r =>
-      val tradingDetails = (r.result[JsValue].get \ "tradingDetails").asOpt[JsObject].fold(true)(_ => false)
-      val contactDetails = (r.result[JsValue].get \ "contactDetails").asOpt[JsObject].fold(true)(_ => false)
-      val companyDetails = (r.result[JsValue].get \ "companyDetails").asOpt[JsObject].fold(true)(_ => false)
-
-      (tradingDetails, contactDetails, companyDetails) match {
-        case (true, true, true) => true
-        case _ => false
-      }
+      val corpTaxModel = r.result[CorporationTaxRegistration].getOrElse(throw new MissingCTDocument(registrationId))
+      List(corpTaxModel.tradingDetails, corpTaxModel.contactDetails, corpTaxModel.companyDetails).forall(_.isEmpty)
     }
   }
 
@@ -333,8 +322,8 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
   }
 
   override def updateHeldToSubmitted(registrationId: String, crn: String, submissionTS: String): Future[Boolean] = {
-    retrieveCorporationTaxRegistration(registrationId) flatMap {
-      case Some(ct) =>
+    getExistingRegistration(registrationId) flatMap {
+      ct =>
         import RegistrationStatus.SUBMITTED
         val updatedDoc = ct.copy(
           status = SUBMITTED,
@@ -348,53 +337,45 @@ class CorporationTaxRegistrationMongoRepository(mongo: () => DB)
           updatedDoc,
           upsert = false
         ).map( _ => true )
-      case None => Future.failed(new MissingCTDocument(registrationId))
     }
   }
 
-  override def getInternalId(id: String): Future[Option[(String, String)]] = {
-    retrieveCorporationTaxRegistration(id) map {
-      case None => None
-      case Some(m) => Some(m.registrationID -> m.internalId)
-    }
-  }
+  override def getInternalId(id: String): Future[(String, String)] =
+    getExistingRegistration(id).map{ c => c.registrationID -> c.internalId }
+
 
   override def removeTaxRegistrationById(registrationId: String): Future[Boolean] = {
-    retrieveCorporationTaxRegistration(registrationId) flatMap {
-      case Some(ct) => collection.remove(registrationIDSelector(registrationId)) map { _ => true }
-      case None => Future.failed(new MissingCTDocument(registrationId))
+    getExistingRegistration(registrationId) flatMap {
+      _ => collection.remove(registrationIDSelector(registrationId)) map { _ => true }
     }
   }
 
   override def updateEmail(registrationId: String, email: Email): Future[Option[Email]] = {
-    retrieveCorporationTaxRegistration(registrationId) flatMap {
-      case Some(registration) =>
+    OptionT(retrieveCorporationTaxRegistration(registrationId)).semiflatMap {
+      registration =>
         collection.update(
         registrationIDSelector(registrationId),
         registration.copy(verifiedEmail = Some(email)),
         upsert = false
-      ).map(_ => Some(email))
-      case None => Future.successful(None)
-    }
+      ).map(_ => email)
+    }.value
   }
 
   override def retrieveEmail(registrationId: String): Future[Option[Email]] = {
-    retrieveCorporationTaxRegistration(registrationId) map {
-      case Some(registration) => registration.verifiedEmail
-      case None => None
-    }
+    OptionT(retrieveCorporationTaxRegistration(registrationId)).subflatMap {
+      registration => registration.verifiedEmail
+    }.value
   }
 
   override def updateRegistrationProgress(regId: String, progress: String): Future[Option[String]] = {
-    retrieveCorporationTaxRegistration(regId) flatMap {
-      case Some(registration) =>
+    OptionT(retrieveCorporationTaxRegistration(regId)).semiflatMap {
+      registration =>
         collection.update(
           registrationIDSelector(regId),
           registration.copy(registrationProgress = Some(progress)),
           upsert = false
-        ).map(_ => Some(progress))
-      case _ => Future.successful(None)
-    }
+        ).map(_ => progress)
+    }.value
   }
 
   override def getRegistrationStats(): Future[Map[String, Int]] = {

@@ -20,6 +20,7 @@ import helpers.BaseSpec
 import mocks.AuthorisationMocks
 import play.api.test.FakeRequest
 import play.api.mvc.Results.Ok
+import repositories.MissingCTDocument
 import uk.gov.hmrc.auth.core.{BearerTokenExpired, InvalidBearerToken, MissingBearerToken, SessionRecordNotFound}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
@@ -45,7 +46,7 @@ class AuthorisedActionsSpec extends BaseSpec with AuthorisationMocks {
 
     "run the block and return a 200 when the user is authorised" in new Setup {
       mockAuthorise(Future.successful(internalId))
-      mockGetInternalId(Future.successful(Some(internalId)))
+      mockGetInternalId(Future.successful(internalId))
 
       val result = await(authorisedActions.AuthorisedAction(registrationID).async(block)(request))
       status(result) shouldBe 200
@@ -53,7 +54,7 @@ class AuthorisedActionsSpec extends BaseSpec with AuthorisationMocks {
 
     "return a 404 when fetching the internal id from the resource returns a None" in new Setup {
       mockAuthorise(Future.successful(internalId))
-      mockGetInternalId(Future.successful(None))
+      mockGetInternalId(Future.failed(new MissingCTDocument("hfbhdbf")))
 
       val result = await(authorisedActions.AuthorisedAction(registrationID).async(block)(request))
       status(result) shouldBe 404
@@ -61,7 +62,7 @@ class AuthorisedActionsSpec extends BaseSpec with AuthorisationMocks {
 
     "return a 403 when the request is authorised but is not allowed to access the resource" in new Setup {
       mockAuthorise(Future.successful(internalId))
-      mockGetInternalId(Future.successful(Some(otherInternalID)))
+      mockGetInternalId(Future.successful(otherInternalID))
 
       val result = await(authorisedActions.AuthorisedAction(registrationID).async(block)(request))
       status(result) shouldBe 403

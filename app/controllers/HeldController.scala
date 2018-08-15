@@ -21,14 +21,14 @@ import javax.inject.Inject
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
-import services.RegistrationHoldingPenService
+import services.ProcessIncorporationService
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 class HeldControllerImpl @Inject()(
-        val authConnector: AuthClientConnector,
-        val service: RegistrationHoldingPenService,
-        val repositories: Repositories
+                                    val authConnector: AuthClientConnector,
+                                    val service: ProcessIncorporationService,
+                                    val repositories: Repositories
       ) extends HeldController {
   val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 }
@@ -36,12 +36,12 @@ class HeldControllerImpl @Inject()(
 trait HeldController extends BaseController with AuthorisedActions {
 
   val resource: CorporationTaxRegistrationMongoRepository
-  val service: RegistrationHoldingPenService
+  val service: ProcessIncorporationService
 
   def fetchHeldSubmissionTime(regId: String): Action[AnyContent] = AuthenticatedAction.async {
     implicit request =>
-      resource.retrieveCorporationTaxRegistration(regId) map { doc =>
-          Ok(Json.toJson(doc.get.heldTimestamp))
+      resource.getExistingRegistration(regId) map { doc =>
+          Ok(Json.toJson(doc.heldTimestamp))
       }
   }
 

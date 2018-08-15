@@ -25,7 +25,7 @@ import play.api.Logger
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent}
 import repositories._
-import services.CorporationTaxRegistrationService
+import services.{CorporationTaxRegistrationService, SubmissionService}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -33,9 +33,9 @@ import scala.concurrent.Future
 
 
 class TestEndpointControllerImpl @Inject()(
-        val cTService: CorporationTaxRegistrationService,
-        val bRConnector: BusinessRegistrationConnector,
-        val repositories: Repositories
+                                            val submissionService: SubmissionService,
+                                            val bRConnector: BusinessRegistrationConnector,
+                                            val repositories: Repositories
       ) extends TestEndpointController {
   val throttleMongoRepository = repositories.throttleRepository
   val cTMongoRepository = repositories.cTRepository
@@ -47,7 +47,7 @@ trait TestEndpointController extends BaseController {
   val throttleMongoRepository: ThrottleMongoRepository
   val cTMongoRepository: CorporationTaxRegistrationMongoRepository
   val bRConnector: BusinessRegistrationConnector
-  val cTService: CorporationTaxRegistrationService
+  val submissionService: SubmissionService
   val stateRepo: StateDataRepository
 
   def modifyThrottledUsers(usersIn: Int) = Action.async {
@@ -81,7 +81,7 @@ trait TestEndpointController extends BaseController {
   def updateConfirmationRefs(registrationId: String): Action[AnyContent] = Action.async {
     implicit request =>
       val confirmationRefs = ConfirmationReferences("", "testOnlyTransactionId", Some("testOnlyPaymentRef"), Some("12"))
-      cTService.handleSubmission(registrationId, "testAuthProviderId", confirmationRefs)(hc, request, isAdmin = false)
+      submissionService.handleSubmission(registrationId, "testAuthProviderId", confirmationRefs)(hc, request, isAdmin = false)
         .map(_ => Ok)
   }
 

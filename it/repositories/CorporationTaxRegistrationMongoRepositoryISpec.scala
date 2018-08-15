@@ -45,7 +45,11 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
     implicit val jsObjWts: OWrites[JsObject] = OWrites(identity)
 
-    def insert(reg: CorporationTaxRegistration) = await(repository.insert(reg))
+    def insert(reg: CorporationTaxRegistration) = {
+      val currentCount = count
+      await(repository.insert(reg))
+      count shouldBe currentCount + 1
+    }
     def insertRaw(reg: JsObject) = await(repository.collection.insert(reg))
     def count = await(repository.count)
     def retrieve(regId: String) = await(repository.retrieveCorporationTaxRegistration(regId))
@@ -91,6 +95,17 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     lastSignedIn = lastSignedIn
   )
 
+  val registrationId = "testRegId"
+
+  def newCTDoc = CorporationTaxRegistration(
+    internalId = "testID",
+    registrationID = registrationId,
+    formCreationTimestamp = "testDateTime",
+    language = "en"
+  )
+
+  val testRoAddress = CHROAddress("premises", "address line 1", None, "uk", "local", None, None, None)
+
   "retrieveCorporationTaxRegistration" should {
     "retrieve a registration with an invalid phone number" in new Setup {
       val registrationId = "testRegId"
@@ -115,6 +130,455 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     }
   }
 
+  "getExistingRegistration" should {
+    "throw an exception if no document is found" in new Setup {
+      intercept[MissingCTDocument](await(repository.getExistingRegistration(registrationId)))
+    }
+
+    "retrieve a document if exists" in new Setup {
+      val corporationTaxRegistration = CorporationTaxRegistration(
+        internalId = "testID",
+        registrationID = registrationId,
+        formCreationTimestamp = "testDateTime",
+        language = "en",
+        contactDetails = Some(ContactDetails(
+          firstName = "First",
+          middleName = Some("Middle"),
+          surname = "Sur",
+          phone = Some("12345"),
+          mobile = Some("1234567890"),
+          email = None))
+      )
+
+      val now = DateTime.now()
+      insert(corporationTaxRegistration)
+      val response = await(repository.getExistingRegistration(registrationId))
+      response.copy(createdTime = now, lastSignedIn = now) shouldBe corporationTaxRegistration.copy(createdTime = now, lastSignedIn = now)
+    }
+  }
+
+  "updateAccountingDetails" should {
+    "return some updated company details if document exists" in new Setup {
+
+      val accountingDetails: AccountingDetails  = AccountingDetails("some-status", Some("some-date"))
+
+      insert(newCTDoc)
+      val response = await(repository.updateAccountingDetails(registrationId, accountingDetails))
+      response shouldBe Some(accountingDetails)
+    }
+
+    "return None if no document exists" in new Setup {
+      val accountingDetails: AccountingDetails  = AccountingDetails("some-status", Some("some-date"))
+
+      val response = await(repository.updateAccountingDetails(registrationId, accountingDetails))
+      response shouldBe None
+    }
+  }
+
+  "retrieveAccountingDetails" should {
+    "return some company details if document exists" in new Setup {
+      val accountingDetails: AccountingDetails  = AccountingDetails("some-status", Some("some-date"))
+
+      val corporationTaxRegistrationModel = newCTDoc.copy(
+        accountingDetails = Some(accountingDetails)
+      )
+
+      insert(corporationTaxRegistrationModel)
+      val response = await(repository.retrieveAccountingDetails(registrationId))
+      response shouldBe Some(accountingDetails)
+    }
+
+    "return None if no accounting details are present in the ct doc" in new Setup {
+      insert(newCTDoc)
+      val response = await(repository.retrieveAccountingDetails(registrationId))
+      response shouldBe None
+    }
+
+    "return None if no document exists" in new Setup {
+      val response = await(repository.retrieveAccountingDetails(registrationId))
+      response shouldBe None
+    }
+  }
+
+  "updateCompanyDetails" should {
+    "return some updated company details if document exists" in new Setup {
+      val companyDetails: CompanyDetails  = CompanyDetails("company-name", testRoAddress, PPOB("RO", None), "jurisdiction")
+
+      insert(newCTDoc)
+      val response = await(repository.updateCompanyDetails(registrationId, companyDetails))
+      response shouldBe Some(companyDetails)
+    }
+
+    "return None if no document exists" in new Setup {
+      val companyDetails: CompanyDetails  = CompanyDetails("company-name", testRoAddress, PPOB("RO", None), "jurisdiction")
+
+      val response = await(repository.updateCompanyDetails(registrationId, companyDetails))
+      response shouldBe None
+    }
+  }
+
+  "retrieveCompanyDetails" should {
+    "return some company details if document exists" in new Setup {
+      val registrationId = "testRegId"
+
+      val companyDetails: CompanyDetails  = CompanyDetails("company-name", testRoAddress, PPOB("RO", None), "jurisdiction")
+
+      val corporationTaxRegistrationModel = newCTDoc.copy(
+        companyDetails = Some(companyDetails)
+      )
+
+      insert(corporationTaxRegistrationModel)
+      val response = await(repository.retrieveCompanyDetails(registrationId))
+      response shouldBe Some(companyDetails)
+    }
+
+    "return None if no company details are present in the ct doc" in new Setup {
+      insert(newCTDoc)
+      val response = await(repository.retrieveCompanyDetails(registrationId))
+      response shouldBe None
+    }
+
+    "return None if no document exists" in new Setup {
+      val response = await(repository.retrieveCompanyDetails(registrationId))
+      response shouldBe None
+    }
+  }
+
+  "updateTradingDetails" should {
+    "return some updated trading details if document exists" in new Setup {
+      val tradingDetails: TradingDetails  = TradingDetails("yes")
+
+      insert(newCTDoc)
+      val response = await(repository.updateTradingDetails(registrationId, tradingDetails))
+      response shouldBe Some(tradingDetails)
+    }
+
+    "return override trading details if document already has trading details" in new Setup {
+      val tradingDetails: TradingDetails  = TradingDetails("yes")
+      val newTradingDetails: TradingDetails  = TradingDetails()
+
+      insert(newCTDoc.copy(tradingDetails = Some(tradingDetails)))
+      val response = await(repository.updateTradingDetails(registrationId, newTradingDetails))
+      response shouldBe Some(newTradingDetails)
+    }
+
+    "return None if no document exists" in new Setup {
+      val tradingDetails: TradingDetails  = TradingDetails("yes")
+
+      val response = await(repository.updateTradingDetails(registrationId, tradingDetails))
+      response shouldBe None
+    }
+  }
+
+  "retrieveTradingDetails" should {
+    "return some trading details if document exists" in new Setup {
+      val registrationId = "testRegId"
+
+      val tradingDetails: TradingDetails  = TradingDetails("yes")
+
+      val corporationTaxRegistrationModel = newCTDoc.copy(
+        tradingDetails = Some(tradingDetails)
+      )
+
+      insert(corporationTaxRegistrationModel)
+      val response = await(repository.retrieveTradingDetails(registrationId))
+      response shouldBe Some(tradingDetails)
+    }
+
+    "return None if no trading details are present in the ct doc" in new Setup {
+      insert(newCTDoc)
+      await(repository.retrieveTradingDetails(registrationId)) shouldBe None
+    }
+
+    "return None if no document exists" in new Setup {
+      await(repository.retrieveTradingDetails(registrationId)) shouldBe None
+    }
+  }
+
+  "updateContactDetails" should {
+    "return some updated contact details if document exists" in new Setup {
+      val testContactDetails: ContactDetails = ContactDetails(
+        firstName = "DC",
+        surname = "DC",
+        middleName = None,
+        phone = None,
+        email = None,
+        mobile = None
+      )
+
+      insert(newCTDoc)
+      await(repository.updateContactDetails(registrationId, testContactDetails)) shouldBe Some(testContactDetails)
+    }
+
+    "return override contact details if document already has contact details" in new Setup {
+      val contactDetails: ContactDetails = ContactDetails(
+        firstName = "DC",
+        surname = "DC",
+        middleName = None,
+        phone = None,
+        email = None,
+        mobile = None
+      )
+      val newContactDetails: ContactDetails  = contactDetails.copy(firstName = "Some-FirstName", phone = Some("12333334234234"))
+
+      insert(newCTDoc.copy(contactDetails = Some(contactDetails)))
+      await(repository.updateContactDetails(registrationId, newContactDetails)) shouldBe Some(newContactDetails)
+    }
+
+    "return None if no document exists" in new Setup {
+      val contactDetails: ContactDetails = ContactDetails(
+        firstName = "DC",
+        surname = "DC",
+        middleName = None,
+        phone = None,
+        email = None,
+        mobile = None
+      )
+
+      await(repository.updateContactDetails(registrationId, contactDetails)) shouldBe None
+    }
+  }
+
+  "retrieveContactDetails" must {
+    "return none when there is no document" in new Setup {
+      await(repository.retrieveContactDetails(registrationId)) shouldBe None
+    }
+    "return none when there are no contact details" in new Setup {
+      insert(newCTDoc)
+      await(repository.retrieveContactDetails(registrationId)) shouldBe None
+    }
+    "return some when there are contact details" in new Setup {
+      val testContactDetails: ContactDetails = ContactDetails(
+        firstName = "DC",
+        surname = "DC",
+        middleName = None,
+        phone = None,
+        email = None,
+        mobile = None
+      )
+      insert(newCTDoc.copy(contactDetails = Some(testContactDetails)))
+      await(repository.retrieveContactDetails(registrationId)) shouldBe Some(testContactDetails)
+    }
+  }
+
+  "updateConfirmationReferences" should {
+    "return some confirmation references if document exists" in new Setup {
+      val confirmationReferences: ConfirmationReferences = ConfirmationReferences(
+        acknowledgementReference = "some-ackref",
+        transactionId = "some-txid",
+        paymentReference = None,
+        paymentAmount = None
+      )
+
+      insert(newCTDoc)
+      await(repository.updateConfirmationReferences(registrationId, confirmationReferences)) shouldBe Some(confirmationReferences)
+    }
+
+    "return override confirmation references if document already has confirmation references" in new Setup {
+      val confirmationReferences: ConfirmationReferences = ConfirmationReferences(
+        acknowledgementReference = "some-ackref",
+        transactionId = "some-txid",
+        paymentReference = None,
+        paymentAmount = None
+      )
+      val newConfirmationReferences: ConfirmationReferences  = confirmationReferences.copy(paymentReference = Some("Some-pay-ref"), paymentAmount = Some("12333334234234"))
+
+      insert(newCTDoc.copy(confirmationReferences = Some(confirmationReferences)))
+      await(repository.updateConfirmationReferences(registrationId, newConfirmationReferences)) shouldBe Some(newConfirmationReferences)
+    }
+
+    "return None if no document exists" in new Setup {
+      val confirmationReferences: ConfirmationReferences = ConfirmationReferences(
+        acknowledgementReference = "some-ackref",
+        transactionId = "some-txid",
+        paymentReference = None,
+        paymentAmount = None
+      )
+
+      await(repository.updateConfirmationReferences(registrationId, confirmationReferences)) shouldBe None
+    }
+  }
+
+  "retrieveConfirmationReferences" must {
+    "return none when there is no document" in new Setup {
+      await(repository.retrieveConfirmationReferences(registrationId)) shouldBe None
+    }
+    "return none when there are no confirmation references" in new Setup {
+      insert(newCTDoc)
+      await(repository.retrieveConfirmationReferences(registrationId)) shouldBe None
+    }
+    "return some when there are confirmation references" in new Setup {
+      val confirmationReferences: ConfirmationReferences = ConfirmationReferences(
+        acknowledgementReference = "some-ackref",
+        transactionId = "some-txid",
+        paymentReference = None,
+        paymentAmount = None
+      )
+
+      insert(newCTDoc.copy(confirmationReferences = Some(confirmationReferences)))
+      await(repository.retrieveConfirmationReferences(registrationId)) shouldBe Some(confirmationReferences)
+    }
+  }
+
+  "updateConfirmationReferencesAndStatus" should {
+    "return some confirmation references if document exists" in new Setup {
+      val confirmationReferences: ConfirmationReferences = ConfirmationReferences(
+        acknowledgementReference = "some-ackref",
+        transactionId = "some-txid",
+        paymentReference = None,
+        paymentAmount = None
+      )
+
+      insert(newCTDoc)
+      await(repository.updateConfirmationReferencesAndUpdateStatus(registrationId, confirmationReferences, "passed")) shouldBe Some(confirmationReferences)
+      retrieve(registrationId).get.status shouldBe "passed"
+    }
+
+    "return override confirmation references if document already has confirmation references and status" in new Setup {
+      val confirmationReferences: ConfirmationReferences = ConfirmationReferences(
+        acknowledgementReference = "some-ackref",
+        transactionId = "some-txid",
+        paymentReference = None,
+        paymentAmount = None
+      )
+      val newConfirmationReferences: ConfirmationReferences  = confirmationReferences.copy(paymentReference = Some("Some-pay-ref"), paymentAmount = Some("12333334234234"))
+
+      insert(newCTDoc.copy(confirmationReferences = Some(confirmationReferences), status = "passed"))
+      await(repository.updateConfirmationReferencesAndUpdateStatus(registrationId, newConfirmationReferences, "unpassed")) shouldBe Some(newConfirmationReferences)
+      retrieve(registrationId).get.status shouldBe "unpassed"
+    }
+
+    "return None if no document exists" in new Setup {
+      val confirmationReferences: ConfirmationReferences = ConfirmationReferences(
+        acknowledgementReference = "some-ackref",
+        transactionId = "some-txid",
+        paymentReference = None,
+        paymentAmount = None
+      )
+
+      await(repository.updateConfirmationReferencesAndUpdateStatus(registrationId, confirmationReferences, "passed")) shouldBe None
+    }
+  }
+
+  "updateCompanyEndDate" should {
+    "return some Accounting Details prep if document exists" in new Setup {
+      val accountingPrepDetails: AccountPrepDetails = AccountPrepDetails(
+        status = "end",
+        endDate = None
+      )
+
+      insert(newCTDoc)
+      await(repository.updateCompanyEndDate(registrationId, accountingPrepDetails)) shouldBe Some(accountingPrepDetails)
+    }
+
+    "return override accounting Details prep if document already has Accounting Details prep" in new Setup {
+      val accountingPrepDetails: AccountPrepDetails = AccountPrepDetails(
+        status = "end",
+        endDate = None
+      )
+      val newAccountingPrepDetails: AccountPrepDetails  = accountingPrepDetails.copy(endDate = Some(DateTime.now()))
+
+      insert(newCTDoc.copy(accountsPreparation = Some(accountingPrepDetails)))
+      await(repository.updateCompanyEndDate(registrationId, newAccountingPrepDetails)) shouldBe Some(newAccountingPrepDetails)
+    }
+
+    "return None if no document exists" in new Setup {
+      val accountingPrepDetails: AccountPrepDetails = AccountPrepDetails(
+        status = "end",
+        endDate = None
+      )
+
+      await(repository.updateCompanyEndDate(registrationId, accountingPrepDetails)) shouldBe None
+    }
+  }
+
+  "updateEmail" should {
+    "return some email if document exists" in new Setup {
+      val email: Email = Email(
+        address = "end@end.end",
+        emailType = "type",
+        linkSent = false,
+        verified = false,
+        returnLinkEmailSent = false
+      )
+
+      insert(newCTDoc)
+      await(repository.updateEmail(registrationId, email)) shouldBe Some(email)
+    }
+
+    "return override email if document already has email" in new Setup {
+      val email: Email = Email(
+        address = "end@end.end",
+        emailType = "type",
+        linkSent = false,
+        verified = false,
+        returnLinkEmailSent = false
+      )
+      val newEmail: Email  = email.copy(linkSent = true, returnLinkEmailSent = true)
+
+      insert(newCTDoc.copy(verifiedEmail = Some(email)))
+      await(repository.updateEmail(registrationId, newEmail)) shouldBe Some(newEmail)
+    }
+
+    "return None if no document exists" in new Setup {
+      val email: Email = Email(
+        address = "end@end.end",
+        emailType = "type",
+        linkSent = false,
+        verified = false,
+        returnLinkEmailSent = false
+      )
+
+      await(repository.updateEmail(registrationId, email)) shouldBe None
+    }
+  }
+
+  "retrieveEmail" must {
+    "return none when there is no document" in new Setup {
+      await(repository.retrieveEmail(registrationId)) shouldBe None
+    }
+    "return none when there is no email block" in new Setup {
+      insert(newCTDoc)
+      await(repository.retrieveEmail(registrationId)) shouldBe None
+    }
+
+    "return some when there is an email block" in new Setup {
+      val email: Email = Email(
+        address = "some@address.com",
+        emailType = "type",
+        linkSent = false,
+        verified = false,
+        returnLinkEmailSent = false
+      )
+
+      insert(newCTDoc.copy(verifiedEmail = Some(email)))
+      await(repository.retrieveEmail(registrationId)) shouldBe Some(email)
+    }
+  }
+
+  "updateRegistrationProgress" should {
+    "return some registrationPrgoress if document exists" in new Setup {
+      val registrationPrgoress: String = "progress"
+      insert(newCTDoc)
+      await(repository.updateRegistrationProgress(registrationId, registrationPrgoress)) shouldBe Some(registrationPrgoress)
+    }
+
+    "return override registration progress if document already has registration progress" in new Setup {
+      val registrationProgress: String = "progress"
+      val newRegistrationProgress: String = "stopped"
+
+      insert(newCTDoc.copy(registrationProgress = Some(registrationProgress)))
+      await(repository.updateRegistrationProgress(registrationId, newRegistrationProgress)) shouldBe Some(newRegistrationProgress)
+    }
+
+    "return None if no document exists" in new Setup {
+      val registrationProgress: String = "progress"
+
+      await(repository.updateRegistrationProgress(registrationId, registrationProgress)) shouldBe None
+    }
+  }
+
+  /////////
 
   "removeUnnecessaryRegistrationInformation" should {
     "clear all un-needed data" when {
@@ -198,10 +662,13 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     "return an updated held status" in new Setup {
       val status = "held"
 
-      await(setupCollection(repository, corporationTaxRegistration))
+      insert(corporationTaxRegistration)
 
       val response = repository.updateSubmissionStatus(registrationId, status)
       await(response) shouldBe "held"
+    }
+    "return an exception when document is missing because mapping on result will not contain status" in new Setup {
+      intercept[Exception](await(repository.updateSubmissionStatus(registrationId,"foo")))
     }
   }
 
@@ -231,6 +698,24 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
       val response = repository.removeTaxRegistrationInformation(registrationId)
       await(response) shouldBe true
+    }
+    "remove just company details when contact details and trading details are already empty" in new Setup {
+      await(setupCollection(repository, corporationTaxRegistration.copy(tradingDetails = None, contactDetails = None)))
+
+      val response = repository.removeTaxRegistrationInformation(registrationId)
+      await(response) shouldBe true
+    }
+    "throw a MissingCTDocument exception when document does not exist" in new Setup {
+      intercept[MissingCTDocument](await(repository.removeTaxRegistrationInformation("foo")))
+    }
+  }
+  "getInternalId" should {
+    "return None when no CT Doc exists" in new Setup {
+      intercept[MissingCTDocument](await(repository.getInternalId("fooBarWizz")))
+    }
+    "return Some(regId, InternalId) when ct doc exists" in new Setup {
+      insert(newCTDoc)
+      await(repository.getInternalId(registrationId)) shouldBe (newCTDoc.registrationID, newCTDoc.internalId)
     }
   }
 
@@ -372,7 +857,6 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     "remove all details under that RegId from the collection" in new Setup {
       await(setupCollection(repository, corporationTaxRegistration))
 
-
       lazy val response = repository.removeTaxRegistrationById(regId)
 
       retrieve(regId) shouldBe Some(corporationTaxRegistration)
@@ -391,6 +875,10 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       count shouldBe 1
       retrieve(regId) shouldBe None
       retrieve("otherRegId") shouldBe Some(corporationTaxRegistration.copy(registrationID = "otherRegId"))
+    }
+
+    "experience an missing ct doc exception if not document exists" in new Setup {
+      intercept[MissingCTDocument](await(repository.removeTaxRegistrationById(regId)))
     }
   }
 
@@ -795,7 +1283,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     }
   }
 
-  "fetchIndexes" should {
+  "fetchIndexes" ignore {
 
     val indexes = List(
       Index(

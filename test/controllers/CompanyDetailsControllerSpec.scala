@@ -23,6 +23,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import mocks.{AuthorisationMocks, MockMetricsService}
 import models.ErrorResponse
+import repositories.MissingCTDocument
 import uk.gov.hmrc.auth.core.MissingBearerToken
 
 import scala.concurrent.Future
@@ -48,7 +49,7 @@ class CompanyDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
 
     "return a 200 and a Company details record when authorised" in new Setup {
       mockAuthorise(Future.successful(internalId))
-      mockGetInternalId(Future.successful(Some(internalId)))
+      mockGetInternalId(Future.successful(internalId))
 
       CompanyDetailsServiceMocks.retrieveCompanyDetails(registrationID, Some(validCompanyDetails))
 
@@ -60,7 +61,7 @@ class CompanyDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
 
     "return a 404 if company details are not found on the CT document" in new Setup {
       mockAuthorise(Future.successful(internalId))
-      mockGetInternalId(Future.successful(Some(internalId)))
+      mockGetInternalId(Future.successful(internalId))
 
       CompanyDetailsServiceMocks.retrieveCompanyDetails(registrationID, None)
 
@@ -71,7 +72,7 @@ class CompanyDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
 
     "return a 404 when the CT document cannot be found" in new Setup {
       mockAuthorise(Future.successful(internalId))
-      mockGetInternalId(Future.successful(None))
+      mockGetInternalId(Future.failed(new MissingCTDocument("hfbhdbf")))
 
       val result = controller.retrieveCompanyDetails(registrationID)(FakeRequest())
       status(result) shouldBe NOT_FOUND
@@ -79,7 +80,7 @@ class CompanyDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
 
     "return a 403 when the user is unauthorised to access the record" in new Setup {
       mockAuthorise(Future.successful(internalId))
-      mockGetInternalId(Future.successful(Some(otherInternalID)))
+      mockGetInternalId(Future.successful(otherInternalID))
 
       val result = controller.retrieveCompanyDetails(registrationID)(FakeRequest())
       status(result) shouldBe FORBIDDEN
@@ -99,7 +100,7 @@ class CompanyDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
 
     "return a 200 and a company details response if the user is authorised" in new Setup {
       mockAuthorise(Future.successful(internalId))
-      mockGetInternalId(Future.successful(Some(internalId)))
+      mockGetInternalId(Future.successful(internalId))
 
       CompanyDetailsServiceMocks.updateCompanyDetails(registrationID, Some(validCompanyDetails))
 
@@ -110,7 +111,7 @@ class CompanyDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
 
     "return a 404 if the record to update does not exist" in new Setup {
       mockAuthorise(Future.successful(internalId))
-      mockGetInternalId(Future.successful(Some(internalId)))
+      mockGetInternalId(Future.successful(internalId))
 
       CompanyDetailsServiceMocks.updateCompanyDetails(registrationID, None)
 
@@ -121,7 +122,7 @@ class CompanyDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
 
     "return a 404 when the user is authorised but the CT document does not exist" in new Setup {
       mockAuthorise(Future.successful(internalId))
-      mockGetInternalId(Future.successful(None))
+      mockGetInternalId(Future.failed(new MissingCTDocument("hfbhdbf")))
 
       val result = await(controller.updateCompanyDetails(registrationID)(request))
       status(result) shouldBe NOT_FOUND
@@ -136,7 +137,7 @@ class CompanyDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
 
     "return a 403 when the user is unauthorised to access the record" in new Setup {
       mockAuthorise(Future.successful(internalId))
-      mockGetInternalId(Future.successful(Some(otherInternalID)))
+      mockGetInternalId(Future.successful(otherInternalID))
 
       val result = await(controller.updateCompanyDetails(registrationID)(request))
       status(result) shouldBe FORBIDDEN
@@ -144,7 +145,7 @@ class CompanyDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
 
     "verify that metrics are captured on a successful update" in new Setup {
       mockAuthorise(Future.successful(internalId))
-      mockGetInternalId(Future.successful(Some(internalId)))
+      mockGetInternalId(Future.successful(internalId))
 
       CompanyDetailsServiceMocks.updateCompanyDetails(registrationID, Some(validCompanyDetails))
 

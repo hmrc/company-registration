@@ -24,7 +24,7 @@ import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import repositories.CorporationTaxRegistrationMongoRepository
+import repositories.{CorporationTaxRegistrationMongoRepository, MissingCTDocument}
 import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.Future
@@ -50,7 +50,7 @@ class HeldControllerSpec extends BaseSpec with AuthorisationMocks {
   val timestamp = "2016-12-31T12:00:00.000Z"
   val dateTime = DateTime.parse(timestamp)
 
-  def doc(timestamp: Option[DateTime]) = {
+  def doc(timestamp: Option[DateTime]): CorporationTaxRegistration = {
     CorporationTaxRegistration(internalId = "",
       registrationID = regId,
       status = RegistrationStatus.HELD,
@@ -74,11 +74,34 @@ class HeldControllerSpec extends BaseSpec with AuthorisationMocks {
 
   }
 
+  "fetchHeldTimestamp" should {
+    "return a 200 and a held time stamp" in new Setup {
+      mockAuthorise()
+      val now = DateTime.now()
+
+      when(mockResource.getExistingRegistration(ArgumentMatchers.any()))
+        .thenReturn(Future.successful(doc(Some(now))))
+
+      val result = await(controller.fetchHeldSubmissionTime(regId)(FakeRequest()))
+      status(result) shouldBe OK
+      contentAsString(result) shouldBe s"${now.getMillis}"
+    }
+
+    "return an exception if experieced" in new Setup {
+      mockAuthorise()
+
+      when(mockResource.getExistingRegistration(ArgumentMatchers.any()))
+        .thenReturn(Future.failed(new MissingCTDocument("regId")))
+
+      intercept[MissingCTDocument](await(controller.fetchHeldSubmissionTime(regId)(FakeRequest())))
+    }
+  }
+
   "deleteSubmissionData" should {
 
     "return a 200 response when a user is logged in and their rejected submission data is deleted" in new Setup {
       mockAuthorise(Future.successful(internalId))
-      mockGetInternalId(Future.successful(Some(internalId)))
+      mockGetInternalId(Future.successful(internalId))
 
       when(controller.service.deleteRejectedSubmissionData(ArgumentMatchers.any())(ArgumentMatchers.any())).thenReturn(Future.successful(true))
 
@@ -88,7 +111,7 @@ class HeldControllerSpec extends BaseSpec with AuthorisationMocks {
 
     "return a 404 (Not found) response when a user's rejected submission data is not found" in new Setup {
       mockAuthorise(Future.successful(internalId))
-      mockGetInternalId(Future.successful(Some(internalId)))
+      mockGetInternalId(Future.successful(internalId))
 
       when(controller.service.deleteRejectedSubmissionData(ArgumentMatchers.any())(ArgumentMatchers.any())).thenReturn(Future.successful(false))
 

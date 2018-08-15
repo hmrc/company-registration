@@ -46,8 +46,8 @@ trait AuthorisationMocks {
       .thenReturn(returns)
   }
 
-  def mockGetInternalId(returns: Future[Option[String]]): OngoingStubbing[Future[Option[(String, String)]]] = {
+  def mockGetInternalId(returns: Future[String]): OngoingStubbing[Future[(String, String)]] = {
     when(mockResource.getInternalId(any()))
-      .thenReturn(returns.map(_.map(id => "someRegId" -> id)))
+      .thenReturn(returns.map(id => "someRegId" -> id))
   }
 }
