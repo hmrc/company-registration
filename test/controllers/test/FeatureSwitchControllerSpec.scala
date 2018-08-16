@@ -29,7 +29,6 @@ class FeatureSwitchControllerSpec extends UnitSpec with BeforeAndAfterEach {
   implicit val materializer = ActorMaterializer()
 
   override def beforeEach() {
-    System.clearProperty("feature.submissionCheck")
     System.clearProperty("feature.missingIncorp")
     System.clearProperty("feature.registerInterest")
     System.clearProperty("feature.graphiteMetrics")
@@ -45,7 +44,6 @@ class FeatureSwitchControllerSpec extends UnitSpec with BeforeAndAfterEach {
       val result = controller.show(FakeRequest())
       status(result) shouldBe 200
       bodyOf(await(result)) shouldBe
-        "submissionCheck false\n" +
           "missingIncorp false\n" +
           "registerInterest false\n" +
           "graphiteMetrics false\n" +
@@ -55,31 +53,31 @@ class FeatureSwitchControllerSpec extends UnitSpec with BeforeAndAfterEach {
 
   "switch" should {
 
-    "return a first submissionCheck feature state set to false when we specify off" in new Setup {
-      val featureName = "submissionCheck"
+    "return a first registerInterest feature state set to false when we specify off" in new Setup {
+      val featureName = "registerInterest"
       val featureState = "off"
 
       val result = controller.switch(featureName, featureState)(FakeRequest())
       status(result) shouldBe OK
-      bodyOf(await(result)) shouldBe """{"name":"submissionCheck","enabled":false}"""
+      bodyOf(await(result)) shouldBe """{"name":"registerInterest","enabled":false}"""
     }
 
-    "return a submissionCheck feature state set to true when we specify on" in new Setup {
-      val featureName = "submissionCheck"
+    "return a registerInterest feature state set to true when we specify on" in new Setup {
+      val featureName = "registerInterest"
       val featureState = "on"
 
       val result = controller.switch(featureName, featureState)(FakeRequest())
       status(result) shouldBe OK
-      bodyOf(await(result)) shouldBe """{"name":"submissionCheck","enabled":true}"""
+      bodyOf(await(result)) shouldBe """{"name":"registerInterest","enabled":true}"""
     }
 
-    "return a submissionCheck feature state set to false as a default when we specify xxxx" in new Setup {
-      val featureName = "submissionCheck"
+    "return a registerInterest feature state set to false as a default when we specify xxxx" in new Setup {
+      val featureName = "registerInterest"
       val featureState = "xxxx"
 
       val result = controller.switch(featureName, featureState)(FakeRequest())
       status(result) shouldBe OK
-      bodyOf(await(result)) shouldBe """{"name":"submissionCheck","enabled":false}"""
+      bodyOf(await(result)) shouldBe """{"name":"registerInterest","enabled":false}"""
     }
 
     "return a bad request when we specify a non implemented feature name" in new Setup {

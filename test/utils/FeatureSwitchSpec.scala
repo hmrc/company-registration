@@ -295,32 +295,6 @@ class FeatureSwitchSpec extends UnitSpec with BeforeAndAfterEach {
   }
 
   "SCRSFeatureSwitches" should {
-    "return a disabled feature when the associated system property doesn't exist" in {
-      SCRSFeatureSwitches.scheduler.enabled shouldBe false
-    }
-
-    "return an enabled feature when the associated system property is true" in {
-      FeatureSwitch.enable(SCRSFeatureSwitches.scheduler)
-
-      SCRSFeatureSwitches.scheduler.enabled shouldBe true
-    }
-
-    "return a disable feature when the associated system property is false" in {
-      FeatureSwitch.disable(SCRSFeatureSwitches.scheduler)
-
-      SCRSFeatureSwitches.scheduler.enabled shouldBe false
-    }
-
-    "return an enabled submissionCheck feature switch if it exists" in {
-      System.setProperty("feature.submissionCheck", "true")
-
-      SCRSFeatureSwitches("submissionCheck") shouldBe Some(BooleanFeatureSwitch("submissionCheck", true))
-    }
-
-    "return a disable feature switch if the submissionCheck system property doesn't exist when using the apply function" in {
-      SCRSFeatureSwitches("submissionCheck") shouldBe Some(BooleanFeatureSwitch("submissionCheck", false))
-    }
-
     "return an enabled missingIncorp feature switch if it exists" in {
       System.setProperty("feature.missingIncorp", "true")
 
