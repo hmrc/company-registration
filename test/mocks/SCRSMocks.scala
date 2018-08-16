@@ -44,7 +44,7 @@ trait SCRSMocks
   lazy val mockStateDataRepository = mock[StateDataRepository]
   lazy val mockIncorporationCheckAPIConnector = mock[IncorporationCheckAPIConnector]
   lazy val mockMetrics = mock[MetricsService]
-  lazy val mockRegHoldingPen = mock[ProcessIncorporationService]
+  lazy val mockProcessIncorporationService = mock[ProcessIncorporationService]
   val mockBusRegConnector = mock[BusinessRegistrationConnector]
 
   object CTServiceMocks {
@@ -131,5 +131,4 @@ trait SCRSMocks
         .thenReturn(Future.successful(returns))
     }
   }
-
 }

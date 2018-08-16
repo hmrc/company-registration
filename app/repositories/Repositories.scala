@@ -30,5 +30,4 @@ class Repositories @Inject()() {
   lazy val throttleRepository = new ThrottleMongoRepository()
   lazy val stateDataRepository = new StateDataMongoRepository()
   lazy val lockRepository = new LockRepository()
-  lazy val oldHoldingPenRepository = new OldHoldingPenRepository(mongo)
 }

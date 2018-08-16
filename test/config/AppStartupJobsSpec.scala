@@ -25,7 +25,7 @@ import org.mockito.Mockito._
 import org.scalatest.concurrent.Eventually
 import org.scalatest.mock.MockitoSugar
 import play.api.{Application, Configuration, Logger}
-import repositories.{CorporationTaxRegistrationMongoRepository, OldHoldingPenRepository, Repositories}
+import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.admin.AdminServiceImpl
 import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
 
@@ -39,7 +39,6 @@ class AppStartupJobsSpec extends UnitSpec with MockitoSugar with LogCapturing
   val mockCTRepository: CorporationTaxRegistrationMongoRepository = mock[CorporationTaxRegistrationMongoRepository]
   val mockAdminService: AdminServiceImpl = mock[AdminServiceImpl]
   val mockRepositories: Repositories = mock[Repositories]
-  val mockOldHoldingPenRepos: OldHoldingPenRepository = mock[OldHoldingPenRepository]
 
   val expectedLockedReg = List()
   val expectedRegStats  = Map.empty[String,Int]
@@ -53,10 +52,6 @@ class AppStartupJobsSpec extends UnitSpec with MockitoSugar with LogCapturing
 
     when(mockCTRepository.getRegistrationStats())
       .thenReturn(Future.successful(expectedRegStats))
-
-    when(mockRepositories.oldHoldingPenRepository)
-      .thenReturn(mockOldHoldingPenRepos)
-
 
     val appStartupJobs: AppStartupJobs = new AppStartupJobs(mockConfig, mockAdminService, mockRepositories)
   }

@@ -45,13 +45,13 @@ class ProcessIncorporationsControllerSpec extends UnitSpec with MockitoSugar wit
   val transactionId = "trans-12345"
   val crn = "crn-12345"
 
-  val mockRegHoldingPenService = mock[ProcessIncorporationService]
+  val mockProcessIncorporationService = mock[ProcessIncorporationService]
   val mockCorpRegTaxService = mock[CorporationTaxRegistrationService]
   val mockSubmissionService = mock[SubmissionService]
 
   class Setup {
     val controller = new ProcessIncorporationsController {
-      override val processIncorporationService = mockRegHoldingPenService
+      override val processIncorporationService = mockProcessIncorporationService
       override val corpTaxRegService = mockCorpRegTaxService
       override val submissionService = mockSubmissionService
     }
@@ -120,7 +120,7 @@ class ProcessIncorporationsControllerSpec extends UnitSpec with MockitoSugar wit
 
     "return a 200 response " in new Setup {
 
-      when(mockRegHoldingPenService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.successful(true))
+      when(mockProcessIncorporationService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.successful(true))
 
       val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
 
@@ -138,7 +138,7 @@ class ProcessIncorporationsControllerSpec extends UnitSpec with MockitoSugar wit
     }
 
     "return a 200 response " in new Setup {
-      when(mockRegHoldingPenService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.successful(true))
+      when(mockProcessIncorporationService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.successful(true))
 
       val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
       val result = await(call(controller.processIncorporationNotification, request))
@@ -149,7 +149,7 @@ class ProcessIncorporationsControllerSpec extends UnitSpec with MockitoSugar wit
 
   "Failing Topup" should {
     "log the correct error message" in new Setup {
-      when(mockRegHoldingPenService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.failed(new RuntimeException))
+      when(mockProcessIncorporationService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.failed(new RuntimeException))
 
       val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
       withCaptureOfLoggingFrom(Logger) { logEvents =>
@@ -167,7 +167,7 @@ class ProcessIncorporationsControllerSpec extends UnitSpec with MockitoSugar wit
   "Invalid Data" should {
 
     "return a 202 response for non admin flow" in new Setup {
-      when(mockRegHoldingPenService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.successful(false))
+      when(mockProcessIncorporationService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.successful(false))
       when(mockSubmissionService.setupPartialForTopupOnLocked(any())(any(), any(), any())).thenReturn(Future.successful(false))
       val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
       val result = await(call(controller.processIncorporationNotification, request))
@@ -177,7 +177,7 @@ class ProcessIncorporationsControllerSpec extends UnitSpec with MockitoSugar wit
 
 
     "return a 500 response for admin flow" in new Setup {
-      when(mockRegHoldingPenService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.successful(false))
+      when(mockProcessIncorporationService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.successful(false))
       val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
       val result = await(call(controller.processAdminIncorporation, request))
 
