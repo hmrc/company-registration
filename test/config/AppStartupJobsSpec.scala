@@ -121,19 +121,20 @@ class AppStartupJobsSpec extends UnitSpec with MockitoSugar with LogCapturing
       )
     }
 
-    val txIds = Seq("transid-1","transid-2","transid-3")
+    val regIds = Seq("regId1","regId2","regId3")
 
     "log specific company name relating to reg id passed in" in new Setup {
-      when(mockCTRepository.retrieveRegistrationByTransactionID("transid-1"))
-        .thenReturn(Future.successful(Some(corporationTaxRegistration("1","TestStatus","transid-1"))))
-      when(mockCTRepository.retrieveRegistrationByTransactionID("transid-2"))
-        .thenReturn(Future.successful(Some(corporationTaxRegistration("2","TestStatus2","transid-2"))))
-      when(mockCTRepository.retrieveRegistrationByTransactionID("transid-3"))
+      when(mockCTRepository.retrieveCorporationTaxRegistration("regId1"))
+        .thenReturn(Future.successful(Some(corporationTaxRegistration("regId1","TestStatus","transid-1"))))
+      when(mockCTRepository.retrieveCorporationTaxRegistration("regId2"))
+        .thenReturn(Future.successful(Some(corporationTaxRegistration("regId2","TestStatus2","transid-2"))))
+      when(mockCTRepository.retrieveCorporationTaxRegistration("regId3"))
         .thenReturn(Future.successful(None))
 
       withCaptureOfLoggingFrom(Logger){ logEvents =>
         eventually {
-          await(appStartupJobs.fetchRegIds(txIds))
+          await(appStartupJobs.fetchDocInfoByRegId(regIds))
+          logEvents.size shouldBe 3
         }
       }
     }

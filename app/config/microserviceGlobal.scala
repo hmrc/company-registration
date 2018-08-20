@@ -70,9 +70,9 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
     val regid = app.configuration.getString("companyNameRegID").getOrElse("")
     startupJobs.getCTCompanyName(regid)
 
-    val base64TransactionIds = app.configuration.getString("list-of-txids").getOrElse("")
-    val listOftxIDs = new String(Base64.getDecoder.decode(base64TransactionIds), "UTF-8").split(",").toList
-    startupJobs.fetchRegIds(listOftxIDs)
+    val base64RegIds = app.configuration.getString("list-of-regids").getOrElse("")
+    val listOftxIDs = new String(Base64.getDecoder.decode(base64RegIds), "UTF-8").split(",").toList
+    startupJobs.fetchDocInfoByRegId(listOftxIDs)
 
     val base64ackRefs = app.configuration.getString("list-of-ackrefs").getOrElse("")
     val listOfackRefs = new String(Base64.getDecoder.decode(base64ackRefs), "UTF-8").split(",").toList
@@ -162,17 +162,27 @@ class AppStartupJobs @Inject()(config: Configuration,
     }
   }
 
-  def fetchRegIds(txIDs: Seq[String]): Unit = {
+  def fetchDocInfoByRegId(regIds: Seq[String]): Unit = {
 
-    for (txId <- txIDs) {
-      ctRepo.retrieveRegistrationByTransactionID(txId).map {
+    for (regId <- regIds) {
+      ctRepo.retrieveCorporationTaxRegistration(regId).map {
         case Some(doc) =>
           Logger.info(
             s"""
-              |[StartUp] [fetchByTransactionID] TxId: $txId, RegId: ${doc.registrationID}, Status: ${doc.status}, LastSignedIn: ${doc.lastSignedIn}, ConfRefs: ${doc.confirmationReferences}
+              |[StartUp] [fetchByRegID] regId: $regId,
+              | status: ${doc.status},
+              | lastSignedIn: ${doc.lastSignedIn},
+              | confRefs: ${doc.confirmationReferences},
+              | tradingDetails: ${doc.tradingDetails.isDefined},
+              | contactDetails: ${doc.contactDetails.isDefined},
+              | companyDetails: ${doc.companyDetails.isDefined},
+              | accountingDetails: ${doc.accountingDetails.isDefined},
+              | accountsPreparation: ${doc.accountsPreparation.isDefined},
+              | crn: ${doc.crn.isDefined},
+              | verifiedEmail: ${doc.verifiedEmail.isDefined}
             """.stripMargin
           )
-        case _ => Logger.info(s"[StartUp] [fetchByTransactionID] No registration document found for $txId")
+        case _ => Logger.info(s"[StartUp] [fetchByRegID] No registration document found for $regId")
       }
     }
   }
