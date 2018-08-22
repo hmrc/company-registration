@@ -29,7 +29,7 @@ import org.scalatest.concurrent.Eventually
 import org.scalatest.mock.MockitoSugar
 import play.api.Logger
 import play.api.libs.json.{JsObject, JsString, Json}
-import repositories.{CorporationTaxRegistrationRepository, StateDataRepository}
+import repositories.CorporationTaxRegistrationRepository
 import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
 //import services.RegistrationHoldingPenService.MissingAccountingDates
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, InternalServerException, Upstream4xxResponse}
@@ -40,7 +40,6 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class ProcessIncorporationServiceSpec extends UnitSpec with MockitoSugar with CorporationTaxRegistrationFixture with BeforeAndAfterEach with Eventually with LogCapturing {
 
-  val mockStateDataRepository = mock[StateDataRepository]
   val mockIncorporationCheckAPIConnector = mock[IncorporationCheckAPIConnector]
   val mockCTRepository = mock[CorporationTaxRegistrationRepository]
   val mockAccountService = mock[AccountingDetailsService]
@@ -57,7 +56,6 @@ class ProcessIncorporationServiceSpec extends UnitSpec with MockitoSugar with Co
   def resetMocks() = reset(
       mockAuthConnector,
       mockAuditConnector,
-      mockStateDataRepository,
       mockIncorporationCheckAPIConnector,
       mockCTRepository,
       mockDesConnector,
@@ -68,7 +66,6 @@ class ProcessIncorporationServiceSpec extends UnitSpec with MockitoSugar with Co
 
 
   trait mockService extends ProcessIncorporationService {
-    val stateDataRepository = mockStateDataRepository
     val incorporationCheckAPIConnector = mockIncorporationCheckAPIConnector
     val ctRepository = mockCTRepository
     val accountingService = mockAccountService
@@ -248,30 +245,6 @@ class ProcessIncorporationServiceSpec extends UnitSpec with MockitoSugar with Co
     }
   }
 
-  "checkSubmission" should {
-    Seq(
-      "an empty" -> submissionCheckResponseNone,
-      "a single" -> submissionCheckResponseSingle,
-      "a double" -> submissionCheckResponseDouble
-    ) foreach { case (title, response) =>
-      s"return $title submission if a timepoint was retrieved successfully" in new Setup {
-        when(mockStateDataRepository.retrieveTimePoint).thenReturn(Future.successful(Some(timepoint)))
-        when(mockIncorporationCheckAPIConnector.checkSubmission(ArgumentMatchers.eq(Some(timepoint)))(ArgumentMatchers.any()))
-          .thenReturn(Future.successful(response))
-
-        await(service.fetchIncorpUpdate()) shouldBe response.items
-      }
-
-
-      s"return $title submission if a timepoint was not retrieved" in new Setup {
-        when(mockStateDataRepository.retrieveTimePoint).thenReturn(Future.successful(None))
-        when(mockIncorporationCheckAPIConnector.checkSubmission(ArgumentMatchers.eq(None))(ArgumentMatchers.any()))
-          .thenReturn(Future.successful(response))
-
-        await(service.fetchIncorpUpdate()) shouldBe response.items
-      }
-    }
-  }
 
   "activeDates" should {
     "return DoNotIntendToTrade if that was selected" in new Setup {

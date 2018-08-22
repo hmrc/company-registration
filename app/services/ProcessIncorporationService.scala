@@ -48,7 +48,6 @@ class ProcessIncorporationServiceImpl @Inject()(
                                                    val repositories: Repositories
                                                  ) extends ProcessIncorporationService with ServicesConfig {
 
-  val stateDataRepository = repositories.stateDataRepository
   val ctRepository = repositories.cTRepository
   lazy val auditConnector = MicroserviceAuditConnector
   val addressLine4FixRegID = getConfString("address-line-4-fix.regId", throw new Exception("could not find config key address-line-4-fix.regId"))
@@ -68,7 +67,6 @@ private[services] object FailedToDeleteSubmissionData extends NoStackTrace
 trait ProcessIncorporationService extends DateHelper with HttpErrorFunctions with Logging {
 
   val desConnector: DesConnector
-  val stateDataRepository: StateDataRepository
   val incorporationCheckAPIConnector: IncorporationCheckAPIConnector
   val ctRepository: CorporationTaxRegistrationRepository
   val accountingService: AccountingDetailsService
@@ -302,16 +300,6 @@ trait ProcessIncorporationService extends DateHelper with HttpErrorFunctions wit
             "intendedAccountsPreparationDate" -> formatDate(dates.intendedAccountsPreparationDate)
           )
         )
-    }
-  }
-
-  private[services] def fetchIncorpUpdate(): Future[Seq[IncorpUpdate]] = {
-    val hc = HeaderCarrier()
-    for {
-      timepoint <- stateDataRepository.retrieveTimePoint
-      submission <- incorporationCheckAPIConnector.checkSubmission(timepoint)(hc)
-    } yield {
-      submission.items
     }
   }
 

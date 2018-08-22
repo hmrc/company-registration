@@ -44,7 +44,6 @@ class CorporationTaxRegistrationServiceImpl @Inject()(
 
   val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
   val sequenceRepository: SequenceMongoRepository = repositories.sequenceRepository
-  val stateDataRepository: StateDataMongoRepository = repositories.stateDataRepository
 
   lazy val auditConnector = MicroserviceAuditConnector
 
@@ -58,7 +57,6 @@ trait CorporationTaxRegistrationService extends DateHelper {
 
   val cTRegistrationRepository: CorporationTaxRegistrationRepository
   val sequenceRepository: SequenceRepository
-  val stateDataRepository: StateDataRepository
   val brConnector: BusinessRegistrationConnector
   val auditConnector: AuditConnector
   val incorpInfoConnector :IncorporationInformationConnector

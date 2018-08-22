@@ -61,7 +61,6 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
     val service = new CorporationTaxRegistrationService {
       val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository = mockCTDataRepository
       val sequenceRepository: SequenceRepository = mockSequenceRepository
-      val stateDataRepository: StateDataRepository = mockStateDataRepository
       val microserviceAuthConnector: AuthConnector = mockAuthConnector
       val brConnector: BusinessRegistrationConnector = mockBRConnector
       val submissionCheckAPIConnector: IncorporationCheckAPIConnector = mockIncorporationCheckAPIConnector
@@ -72,7 +71,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
     }
 
     reset(
-      mockCTDataRepository, mockSequenceRepository, mockStateDataRepository, mockAuthConnector, mockBRConnector,
+      mockCTDataRepository, mockSequenceRepository, mockAuthConnector, mockBRConnector,
       mockIncorporationCheckAPIConnector, mockAuditConnector, mockIIConnector, mockDesConnector
     )
   }

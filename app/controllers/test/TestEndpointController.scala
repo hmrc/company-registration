@@ -39,7 +39,6 @@ class TestEndpointControllerImpl @Inject()(
       ) extends TestEndpointController {
   val throttleMongoRepository = repositories.throttleRepository
   val cTMongoRepository = repositories.cTRepository
-  val stateRepo = repositories.stateDataRepository
 }
 
 trait TestEndpointController extends BaseController {
@@ -48,7 +47,6 @@ trait TestEndpointController extends BaseController {
   val cTMongoRepository: CorporationTaxRegistrationMongoRepository
   val bRConnector: BusinessRegistrationConnector
   val submissionService: SubmissionService
-  val stateRepo: StateDataRepository
 
   def modifyThrottledUsers(usersIn: Int) = Action.async {
     implicit request =>
@@ -88,11 +86,6 @@ trait TestEndpointController extends BaseController {
   def removeTaxRegistrationInformation(registrationId: String) = Action.async {
     implicit request =>
       cTMongoRepository.removeTaxRegistrationInformation(registrationId) map(if(_) Ok else BadRequest)
-  }
-
-  def updateTimePoint(timepoint: String) = Action.async {
-    implicit request =>
-      stateRepo.updateTimepoint(timepoint).map(tp => Ok(Json.toJson(tp)))
   }
 
   def pagerDuty(name: String) = Action.async {

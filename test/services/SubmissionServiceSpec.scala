@@ -78,7 +78,7 @@ class SubmissionServiceSpec extends UnitSpec with SCRSMocks with CorporationTaxR
     }
 
     reset(
-      mockCorpTaxRepo, mockSequenceRepository, mockStateDataRepository, mockAuthConnector, mockBRConnector,
+      mockCorpTaxRepo, mockSequenceRepository, mockAuthConnector, mockBRConnector,
       mockIncorporationCheckAPIConnector, mockAuditConnector, mockIIConnector, mockDesConnector
     )
   }
