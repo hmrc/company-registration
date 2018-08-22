@@ -117,8 +117,6 @@ class AppStartupJobs @Inject()(config: Configuration,
     Logger.info(s"RegIds with locked status:$message")
   }
 
-  repositories.oldHoldingPenRepository.dropDatabase
-
   def getCTCompanyName(rid: String) : Future[Unit] = {
     ctRepo.retrieveMultipleCorporationTaxRegistration(rid) map {
       _ foreach { ctDoc =>

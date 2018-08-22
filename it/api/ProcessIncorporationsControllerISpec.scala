@@ -672,7 +672,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
       reg2.status shouldBe "submitted"
     }
 
-    "return a 200 when receiving a top up for an Accepted document when there is no document to delete in the RegistrationHoldingPen" in new Setup {
+    "return a 200 when receiving a top up for an Accepted document" in new Setup {
 
       val jsonBodyFromII: String = jsonIncorpStatus(testIncorpDate)
 
