@@ -28,6 +28,5 @@ class Repositories @Inject()() {
   lazy val cTRepository = new CorporationTaxRegistrationMongoRepository(mongo)
   lazy val sequenceRepository = new SequenceMongoRepository(mongo)
   lazy val throttleRepository = new ThrottleMongoRepository()
-  lazy val stateDataRepository = new StateDataMongoRepository()
   lazy val lockRepository = new LockRepository()
 }

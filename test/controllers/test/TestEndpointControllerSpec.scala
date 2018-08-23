@@ -42,7 +42,6 @@ class TestEndpointControllerSpec extends BaseSpec with LogCapturing {
   val mockThrottleRepository = mock[ThrottleMongoRepository]
   val mockCTRepository = mock[CorporationTaxRegistrationMongoRepository]
   val mockSubmissionService = mock[SubmissionService]
-  val mockStateRepository = mock[StateDataMongoRepository]
 
   class Setup {
     val controller = new TestEndpointController {
@@ -50,7 +49,6 @@ class TestEndpointControllerSpec extends BaseSpec with LogCapturing {
       val cTMongoRepository = mockCTRepository
       val bRConnector = mockBusRegConnector
       val submissionService = mockSubmissionService
-      val stateRepo = mockStateRepository
     }
   }
 
@@ -101,20 +99,6 @@ class TestEndpointControllerSpec extends BaseSpec with LogCapturing {
 
       val result = await(controller.updateConfirmationRefs(registrationId)(FakeRequest()))
       status(result) shouldBe OK
-    }
-  }
-
-  "updateTimepoint" should {
-
-    val timepoint = "12345"
-
-    "return a 200" in new Setup {
-      when(mockStateRepository.updateTimepoint(ArgumentMatchers.eq(timepoint)))
-        .thenReturn(Future.successful(timepoint))
-
-      val result = await(controller.updateTimePoint(timepoint)(FakeRequest()))
-      status(result) shouldBe OK
-      jsonBodyOf(result) shouldBe Json.toJson(timepoint)
     }
   }
 
