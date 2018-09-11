@@ -396,7 +396,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
         stubPost("/hmrc/email", 202, "")
         val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
 
-        stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
+        stubGet(s"/business-registration/admin/business-tax-registration/$regId", 200, businessRegistrationResponse)
         stubPost(s"/business-registration/corporation-tax", 200, """{"a": "b"}""")
         stubFor(post(urlEqualTo("/incorporation-information/subscribe/trans-id-2345/regime/ctax/subscriber/SCRS?force=true"))
           .willReturn(
@@ -431,7 +431,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
         stubPost("/hmrc/email", 202, "")
         val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
 
-        stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
+        stubGet(s"/business-registration/admin/business-tax-registration/$regId", 200, businessRegistrationResponse)
         stubPost(s"/business-registration/corporation-tax", 400, """{"a": "b"}""")
         stubFor(post(urlEqualTo("/incorporation-information/subscribe/trans-id-2345/regime/ctax/subscriber/SCRS?force=true"))
           .willReturn(
@@ -493,7 +493,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
         stubPost("/hmrc/email", 202, "")
         val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
 
-        stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
+        stubGet(s"/business-registration/admin/business-tax-registration/$regId", 200, businessRegistrationResponse)
         stubPost(s"/business-registration/corporation-tax", 200, """{"a": "b"}""")
         stubFor(post(urlEqualTo("/incorporation-information/subscribe/trans-id-2345/regime/ctax/subscriber/SCRS?force=true"))
           .willReturn(
@@ -528,7 +528,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
         stubPost("/hmrc/email", 202, "")
         val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
 
-        stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
+        stubGet(s"/business-registration/admin/business-tax-registration/$regId", 200, businessRegistrationResponse)
         stubPost(s"/business-registration/corporation-tax", 400, """{"a": "b"}""")
         stubFor(post(urlEqualTo("/incorporation-information/subscribe/trans-id-2345/regime/ctax/subscriber/SCRS?force=true"))
           .willReturn(

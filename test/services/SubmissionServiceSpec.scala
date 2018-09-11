@@ -62,8 +62,6 @@ class SubmissionServiceSpec extends UnitSpec with SCRSMocks with CorporationTaxR
   val timestamp = "2016-10-27T17:06:23.000Z"
   val authProviderId = "auth-prov-id-12345"
 
-  implicit val isAdmin: Boolean = false
-
   class Setup {
     val service = new SubmissionService {
       override val cTRegistrationRepository: CorporationTaxRegistrationRepository = mockCorpTaxRepo
@@ -195,7 +193,7 @@ class SubmissionServiceSpec extends UnitSpec with SCRSMocks with CorporationTaxR
       when(mockCorpTaxRepo.updateRegistrationToHeld(eqTo(regId), eqTo(confRefs)))
         .thenReturn(Future.successful(Some(corporationTaxRegistration(regId, transId, Option(confRefs)))))
 
-      val result: ConfirmationReferences = await(service.handleSubmission(regId, authProviderId, ho6RequestBody))
+      val result: ConfirmationReferences = await(service.handleSubmission(regId, authProviderId, ho6RequestBody, false))
       result shouldBe confRefs
     }
 
@@ -209,7 +207,7 @@ class SubmissionServiceSpec extends UnitSpec with SCRSMocks with CorporationTaxR
       when(mockCorpTaxRepo.retrieveConfirmationReferences(eqTo(regId)))
         .thenReturn(Future.successful(Some(confRefs)))
 
-      await(service.handleSubmission(regId, authProviderId, ho6RequestBody)) shouldBe confRefs
+      await(service.handleSubmission(regId, authProviderId, ho6RequestBody, false)) shouldBe confRefs
     }
 
     "return the confirmation references when document is already Held and update it with payment info" in new Setup {
@@ -226,7 +224,7 @@ class SubmissionServiceSpec extends UnitSpec with SCRSMocks with CorporationTaxR
       when(mockCorpTaxRepo.updateConfirmationReferences(eqTo(regId), eqTo(confRefs)))
           .thenReturn(Future.successful(Some(confRefs)))
 
-      await(service.handleSubmission(regId, authProviderId, confRefs)) shouldBe confRefs
+      await(service.handleSubmission(regId, authProviderId, confRefs, false)) shouldBe confRefs
     }
 
     "throw an exception when document is in Held but has no confirmation references" in new Setup {
@@ -235,7 +233,7 @@ class SubmissionServiceSpec extends UnitSpec with SCRSMocks with CorporationTaxR
       when(mockCorpTaxRepo.retrieveConfirmationReferences(eqTo(regId)))
         .thenReturn(Future.successful(None))
 
-      intercept[RuntimeException](await(service.handleSubmission(regId, authProviderId, ho6RequestBody)))
+      intercept[RuntimeException](await(service.handleSubmission(regId, authProviderId, ho6RequestBody, false)))
     }
   }
 
@@ -319,6 +317,18 @@ class SubmissionServiceSpec extends UnitSpec with SCRSMocks with CorporationTaxR
 
       val result: BusinessRegistration = await(service.retrieveBRMetadata(regId))
       result shouldBe businessRegistration
+    }
+    "return future failed if success response but regId's do not match" in new Setup {
+      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+        .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
+
+    intercept[Exception](await(service.retrieveBRMetadata("123DoesNotMatch")))
+    }
+    "return future failed if anything but success response" in new Setup {
+      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+        .thenReturn(Future.successful(BusinessRegistrationNotFoundResponse))
+
+      intercept[Exception](await(service.retrieveBRMetadata(regId)))
     }
   }
 

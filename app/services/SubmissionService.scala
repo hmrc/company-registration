@@ -60,13 +60,13 @@ trait SubmissionService extends DateHelper {
 
   def currentDateTime: DateTime
 
-  def handleSubmission(rID: String, authProvId: String, handOffRefs: ConfirmationReferences)
-                      (implicit hc: HeaderCarrier, req: Request[AnyContent], isAdmin: Boolean): Future[ConfirmationReferences] = {
+  def handleSubmission(rID: String, authProvId: String, handOffRefs: ConfirmationReferences, isAdmin: Boolean)
+                      (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[ConfirmationReferences] = {
     cTRegistrationRepository.retrieveCorporationTaxRegistration(rID) flatMap {
       case Some(doc) =>
         if (doc.status == DRAFT || doc.status == LOCKED) {
           prepareDocumentForSubmission(rID, authProvId, handOffRefs, doc) flatMap { confRefs =>
-            processPartialSubmission(rID, authProvId, confRefs, doc).ifM(
+            processPartialSubmission(rID, authProvId, confRefs, doc, isAdmin).ifM(
               ifTrue = Future.successful(confRefs),
               ifFalse = throw new RuntimeException(s"[handleSubmission] Failed to submit for regid: $rID")
             )
@@ -102,7 +102,7 @@ trait SubmissionService extends DateHelper {
   }
 
   def prepareDocumentForSubmission(rID: String, authProvId: String, refs: ConfirmationReferences, doc: CorporationTaxRegistration)
-                                  (implicit hc: HeaderCarrier, req: Request[AnyContent], isAdmin: Boolean): Future[ConfirmationReferences] = {
+                                  (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[ConfirmationReferences] = {
     doc.confirmationReferences match {
       case None =>
         for {
@@ -128,8 +128,8 @@ trait SubmissionService extends DateHelper {
     }
   }
 
-  private[services] def processPartialSubmission(regId: String, authProvId: String, confRefs: ConfirmationReferences, doc: CorporationTaxRegistration)
-                                                (implicit hc: HeaderCarrier, req: Request[AnyContent], isAdmin: Boolean): Future[Boolean] = {
+  private[services] def processPartialSubmission(regId: String, authProvId: String, confRefs: ConfirmationReferences, doc: CorporationTaxRegistration, isAdmin: Boolean)
+                                                (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[Boolean] = {
     for{
       brMetadata                <- retrieveBRMetadata(regId, isAdmin)
       partialSubmission         =  buildPartialDesSubmission(regId, confRefs.acknowledgementReference, authProvId, brMetadata, doc)
@@ -142,7 +142,7 @@ trait SubmissionService extends DateHelper {
   }
 
   private[services] def buildPartialDesSubmission(regId: String, ackRef: String, authProvId: String, brMetadata: BusinessRegistration, ctData: CorporationTaxRegistration)
-                                                 (implicit hc: HeaderCarrier, isAdmin: Boolean): InterimDesRegistration = {
+                                                 (implicit hc: HeaderCarrier): InterimDesRegistration = {
     val (sessionID, credID): (String, String) = hc.headers.toMap.get("X-Session-ID") match {
           case Some(sesID) => (sesID, authProvId)
           case None => ctData.sessionIdentifiers match {
@@ -225,13 +225,15 @@ trait SubmissionService extends DateHelper {
   private[services] def retrieveBRMetadata(regId: String, isAdmin: Boolean = false)(implicit hc: HeaderCarrier): Future[BusinessRegistration] = {
     (if(isAdmin) brConnector.adminRetrieveMetadata(regId) else brConnector.retrieveMetadata(regId)) flatMap {
       case BusinessRegistrationSuccessResponse(metadata) if metadata.registrationID == regId => Future.successful(metadata)
+      case  BusinessRegistrationSuccessResponse(metadata) if metadata.registrationID != regId =>
+        Future.failed(new RuntimeException(s"[retrieveBRMetadata] ${metadata.registrationID} does not match $regId with isAdmin $isAdmin"))
       case _ => Future.failed(new RuntimeException("[retrieveBRMetadata] Could not find BR Metadata"))
     }
   }
 
   private def confirmationRefsAndPaymentRefsAreEmpty(refs: ConfirmationReferences): Boolean = refs.paymentReference.isEmpty && refs.paymentAmount.isEmpty
 
-  def setupPartialForTopupOnLocked(transID : String)(implicit hc : HeaderCarrier, req: Request[AnyContent], isAdmin: Boolean): Future[Boolean] = {
+  def setupPartialForTopupOnLocked(transID : String)(implicit hc : HeaderCarrier, req: Request[AnyContent]): Future[Boolean] = {
     Logger.info(s"[setupPartialForTopup] Trying to update locked document of txId: $transID to held for topup with incorp update")
 
     cTRegistrationRepository.retrieveRegistrationByTransactionID(transID) flatMap {
@@ -245,7 +247,7 @@ trait SubmissionService extends DateHelper {
             throw new RuntimeException(s"[setupPartialForTopup] Document status of txID: $transID was not locked, was ${reg.status}")
 
           case (Some(sIds), Some(confRefs)) =>
-            processPartialSubmission(reg.registrationID, sIds.credId, confRefs, reg)
+            processPartialSubmission(reg.registrationID, sIds.credId, confRefs, reg, true)
 
           case _ =>
             Logger.warn(s"[setupPartialForTopup] No session identifiers or conf refs for registration with txID: $transID")

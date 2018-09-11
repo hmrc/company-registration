@@ -94,7 +94,7 @@ class TestEndpointControllerSpec extends BaseSpec with LogCapturing {
     val confirmationRefs = ConfirmationReferences("", "testTransID", Some("testPaymentRef"), Some("12"))
 
     "return a 200 if the document was successfully updated with a set of confirmation refs" in new Setup {
-      when(mockSubmissionService.handleSubmission(eqTo(registrationId), any(), any())(any(), any(), eqTo(false)))
+      when(mockSubmissionService.handleSubmission(eqTo(registrationId), any(), any(),eqTo(false))(any(), any()))
         .thenReturn(Future.successful(confirmationRefs))
 
       val result = await(controller.updateConfirmationRefs(registrationId)(FakeRequest()))

@@ -50,8 +50,8 @@ trait SubmissionController extends BaseController with AuthorisedActions with Lo
         val requestAsAnyContentAsJson: Request[AnyContentAsJson] = request.map(AnyContentAsJson)
         withJsonBody[ConfirmationReferences] { refs =>
           val timer = metricsService.updateReferencesCRTimer.time()
-          submissionService.handleSubmission(registrationID, credentials.providerId, refs)(
-            hc, requestAsAnyContentAsJson, isAdmin = false) map { references =>
+          submissionService.handleSubmission(registrationID, credentials.providerId, refs, isAdmin = false)(
+            hc, requestAsAnyContentAsJson) map { references =>
             timer.stop()
             logger.info(s"[Confirmation Refs] Acknowledgement ref:${references.acknowledgementReference} " +
               s"- Transaction id:${references.transactionId} - Payment ref:${references.paymentReference}")
