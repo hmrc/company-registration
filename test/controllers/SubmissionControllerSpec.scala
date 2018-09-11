@@ -66,7 +66,7 @@ class SubmissionControllerSpec extends BaseSpec with AuthorisationMocks with Cor
 
       val expectedRefs = ConfirmationReferences("BRCT00000000123", "tx", Some("py"), Some("12.00"))
 
-      when(mockSubmissionService.handleSubmission(eqTo(regId), any(), any())(any(), any(), eqTo(false)))
+      when(mockSubmissionService.handleSubmission(eqTo(regId), any(), any(), eqTo(false))(any(), any()))
         .thenReturn(Future.successful(expectedRefs))
 
       when(mockCTDataService.retrieveConfirmationReferences(eqTo(regId)))

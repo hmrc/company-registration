@@ -77,8 +77,8 @@ trait AdminController extends BaseController with FutureInstances with Applicati
         Logger.info(s"[AdminController] [updateConfirmationReferences] Updating confirmation references for ${ids.registrationId}")
 
         fetchStatus(ids.registrationId) { statusBefore =>
-          submissionService.handleSubmission(ids.registrationId, ids.credId, confirmationReferences)(
-            updatedHc, request.map(AnyContentAsJson), isAdmin = true).flatMap{
+          submissionService.handleSubmission(ids.registrationId, ids.credId, confirmationReferences, isAdmin = true)(
+            updatedHc, request.map(AnyContentAsJson)).flatMap{
             references =>
               Logger.info(s"[Admin Confirmation Refs] Acknowledgement ref : ${references.acknowledgementReference} " +
                 s"- Transaction id : ${references.transactionId} - Payment ref : ${references.paymentReference}")

@@ -168,7 +168,7 @@ class ProcessIncorporationsControllerSpec extends UnitSpec with MockitoSugar wit
 
     "return a 202 response for non admin flow" in new Setup {
       when(mockProcessIncorporationService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.successful(false))
-      when(mockSubmissionService.setupPartialForTopupOnLocked(any())(any(), any(), any())).thenReturn(Future.successful(false))
+      when(mockSubmissionService.setupPartialForTopupOnLocked(any())(any(), any())).thenReturn(Future.successful(false))
       val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
       val result = await(call(controller.processIncorporationNotification, request))
 

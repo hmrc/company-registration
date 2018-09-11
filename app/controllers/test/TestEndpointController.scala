@@ -79,7 +79,7 @@ trait TestEndpointController extends BaseController {
   def updateConfirmationRefs(registrationId: String): Action[AnyContent] = Action.async {
     implicit request =>
       val confirmationRefs = ConfirmationReferences("", "testOnlyTransactionId", Some("testOnlyPaymentRef"), Some("12"))
-      submissionService.handleSubmission(registrationId, "testAuthProviderId", confirmationRefs)(hc, request, isAdmin = false)
+      submissionService.handleSubmission(registrationId, "testAuthProviderId", confirmationRefs, isAdmin = false)(hc, request)
         .map(_ => Ok)
   }
 

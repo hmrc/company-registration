@@ -54,7 +54,7 @@ trait ProcessIncorporationsController extends BaseController {
         val requestAsAnyContentAsJson: Request[AnyContentAsJson] = request.map(AnyContentAsJson)
         processIncorporationService.processIncorporationUpdate(incorp.toIncorpUpdate) flatMap {
           if(_) Future.successful(Ok) else {
-            submissionService.setupPartialForTopupOnLocked(incorp.transactionId)(hc, requestAsAnyContentAsJson, isAdmin = false) map { _ =>
+            submissionService.setupPartialForTopupOnLocked(incorp.transactionId)(hc, requestAsAnyContentAsJson) map { _ =>
               Logger.info(s"[processIncorp] Sent partial submission in response to locked document on incorp update: ${incorp.transactionId}")
               Accepted
             }
