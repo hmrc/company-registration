@@ -115,7 +115,11 @@ trait AdminController extends BaseController with FutureInstances with Applicati
   def updateSessionId(id: String): Action[JsValue] = Action.async(BodyParsers.parse.json) {
     implicit request =>
       withJsonBody[JsObject] { json =>
-        adminService.updateDocSessionID(id, (json \ "sessionId").as[String], (json \ "username").as[String]) map {
+        adminService.updateDocSessionID(
+          id,
+          (json \ "sessionId").as[String],
+          (json \ "credId").as[String],
+          (json \ "username").as[String]) map {
           sessionIdData => Ok(Json.toJson(sessionIdData))
         }
       }
