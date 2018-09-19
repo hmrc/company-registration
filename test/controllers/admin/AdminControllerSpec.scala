@@ -93,15 +93,17 @@ class AdminControllerSpec extends UnitSpec with MockitoSugar {
 
     "return a 200 and HO6 registration information as json" in new Setup {
       val sessionId = "session-id"
+      val credId = "cred-id"
       val companyName = "Fake Company Name"
       val ackRef = "fakeAckRef"
 
-      val regInfo = SessionIdData(Some(sessionId), Some(companyName), Some(ackRef))
+      val regInfo = SessionIdData(Some(sessionId), Some(credId), Some(companyName), Some(ackRef))
 
       val expectedJson = Json.parse(
         s"""
           |{
           |  "sessionId":"$sessionId",
+          |  "credId":"$credId",
           |  "companyName":"$companyName",
           |  "ackRef":"$ackRef"
           |}
@@ -214,6 +216,7 @@ class AdminControllerSpec extends UnitSpec with MockitoSugar {
     val jsrequest = FakeRequest().withBody(Json.parse("""
         |{
         | "sessionId" : "new-session-id",
+        | "credId" : "new-cred-id",
         | "username" : "username"
         |}""".stripMargin))
 
@@ -223,9 +226,9 @@ class AdminControllerSpec extends UnitSpec with MockitoSugar {
         |}""".stripMargin))
 
     "return a success when provided a session id to update with" in new Setup {
-      val sessionIdData = SessionIdData(Some("new-session-id"), None, None)
+      val sessionIdData = SessionIdData(Some("new-session-id"), Some("new-cred-id"), None, None)
 
-      when(mockAdminService.updateDocSessionID(any(), any(), any())(any()))
+      when(mockAdminService.updateDocSessionID(any(), any(), any(), any())(any()))
         .thenReturn(sessionIdData)
 
       val result: Result = await(controller.updateSessionId(regId)(jsrequest))

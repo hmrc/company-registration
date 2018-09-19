@@ -353,12 +353,14 @@ object HO6RegistrationInformation {
 }
 
 case class SessionIdData(sessionId: Option[String],
+                         credId: Option[String],
                          companyName: Option[String],
                          ackRef: Option[String])
 
 object SessionIdData {
   implicit val writes = (
     (__ \ "sessionId").writeNullable[String] and
+    (__ \ "credId").writeNullable[String] and
       (__ \ "companyName").writeNullable[String] and
       (__ \ "ackRef").writeNullable[String]
     )(unlift(SessionIdData.unapply))

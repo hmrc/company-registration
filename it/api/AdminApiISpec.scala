@@ -171,7 +171,7 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with Login
     accountsPreparation = None,
     sessionIdentifiers = Some(SessionIds(
       sessionId = "oldSessionId",
-      credId = "credId"
+      credId = "oldCredId"
     ))
   )
 
@@ -260,6 +260,7 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with Login
         s"""
           |{
           |  "sessionId":"oldSessionId",
+          |  "credId":"oldCredId",
           |  "companyName":"testCompanyName",
           |  "ackRef":"$ackRef"
           |}
@@ -611,6 +612,7 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with Login
       s"""
          |{
          |  "sessionId":"cleanNewShinySessionId",
+         |  "credId":"cleanNewShinyCredId",
          |  "username" :"username"
          |}
         """.stripMargin)
@@ -623,6 +625,7 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with Login
         s"""
            |{
            |  "sessionId":"cleanNewShinySessionId",
+           |  "credId":"cleanNewShinyCredId",
            |  "companyName":"testCompanyName",
            |  "ackRef":"$ackRef"
            |}
@@ -648,6 +651,7 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with Login
         s"""
            |{
            |  "sessionId":"oldSessionId",
+           |  "credId":"oldCredId",
            |  "companyName":"testCompanyName",
            |  "ackRef":"$ackRef"
            |}

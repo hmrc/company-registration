@@ -70,6 +70,7 @@ trait AdminService extends DateFormatter {
     corpTaxRegRepo.retrieveCorporationTaxRegistration(regId) map (_.map{ reg =>
       SessionIdData(
         reg.sessionIdentifiers.map(_.sessionId),
+        reg.sessionIdentifiers.map(_.credId),
         reg.companyDetails.map(_.companyName),
         reg.confirmationReferences.map(_.acknowledgementReference)
       )
@@ -234,13 +235,13 @@ trait AdminService extends DateFormatter {
     }
   }
 
-  def updateDocSessionID(regId: String, sessionId: String, username : String)(implicit hc : HeaderCarrier) : Future[SessionIdData] = {
+  def updateDocSessionID(regId: String, sessionId: String, credId: String, username : String)(implicit hc : HeaderCarrier) : Future[SessionIdData] = {
     Logger.info(s"[updateDocSessionID] Updating document session id regId $regId")
 
     corpTaxRegRepo.retrieveSessionIdentifiers(regId) flatMap {
       case Some(sessionIds) =>
         for {
-          _             <- corpTaxRegRepo.storeSessionIdentifiers(regId, sessionId, sessionIds.credId)
+          _             <- corpTaxRegRepo.storeSessionIdentifiers(regId, sessionId, credId)
           sessionIdData <- fetchSessionIdData(regId).map(
             _.getOrElse(throw new RuntimeException(s"Registration Document does not exist or Document does not have sessionIdInfo for regId $regId")))
           timestamp     = Json.obj("timestamp" -> Json.toJson(nowAsZonedDateTime)(zonedDateTimeWrites))

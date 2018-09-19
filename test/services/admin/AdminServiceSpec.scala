@@ -76,7 +76,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
   implicit val hc = HeaderCarrier()
   implicit val req: Request[AnyContent] = FakeRequest()
 
-  val sessionIdData = SessionIdData(Some("session-id"), Some("fakeCompanyName"), Some(ackRef))
+  val sessionIdData = SessionIdData(Some("session-id"), Some("credId"), Some("fakeCompanyName"), Some(ackRef))
 
   def makeSessionReg(sessionIds : Option[SessionIdData]) = CorporationTaxRegistration(
     internalId = "testID",
@@ -106,7 +106,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
       paymentReference = Some("payref"),
       paymentAmount = Some("12")
     )),
-    sessionIdentifiers = sessionIds.map(ids => SessionIds(ids.sessionId.getOrElse(""), "credId"))
+    sessionIdentifiers = sessionIds.map(ids => SessionIds(ids.sessionId.getOrElse(""), ids.credId.getOrElse("")))
   )
 
   "fetchSessionIdData" should {
@@ -564,6 +564,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
 
   "updateDocSessionID" should {
     val newSessionId = "newSessionId"
+    val newCredId = "newCredId"
     val userName = "admin"
 
     "update a document's session id" when {
@@ -580,7 +581,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
         when(mockAuditConnector.sendExtendedEvent(any())(any(), any()))
           .thenReturn(Future.successful(Success))
 
-        await(service.updateDocSessionID(regId, newSessionId, userName)) shouldBe sessionIdData.copy(sessionId = Some(newSessionId))
+        await(service.updateDocSessionID(regId, newSessionId, newCredId, userName)) shouldBe sessionIdData.copy(sessionId = Some(newSessionId))
 
         val captor = ArgumentCaptor.forClass(classOf[AdminSessionIDEvent])
         eventually {
@@ -593,17 +594,17 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
         (audit.get(0).detail \ "sessionId").as[String] shouldBe newSessionId
       }
       "audit event fails" in new Setup {
-        val data = Some(sessionIdData.copy(sessionId = Some(newSessionId)))
+        val data = Some(sessionIdData.copy(sessionId = Some(newSessionId), credId = Some(newCredId)))
         val reg = makeSessionReg(data)
 
-        when(mockCorpTaxRegistrationRepo.retrieveCorporationTaxRegistration(any()))
-          .thenReturn(Future.successful(Some(reg)))
         when(mockCorpTaxRegistrationRepo.retrieveSessionIdentifiers(any()))
-          .thenReturn(Future.successful(Some(SessionIds(sessionIdData.sessionId.get, "credId"))))
+          .thenReturn(Future.successful(Some(SessionIds(sessionIdData.sessionId.get, sessionIdData.credId.get))))
         when(mockCorpTaxRegistrationRepo.storeSessionIdentifiers(any(), any(), any()))
           .thenReturn(Future.successful(true))
+        when(mockCorpTaxRegistrationRepo.retrieveCorporationTaxRegistration(any()))
+          .thenReturn(Future.successful(Some(reg)))
 
-        await(service.updateDocSessionID(regId, newSessionId, userName)) shouldBe sessionIdData.copy(sessionId = Some(newSessionId))
+        await(service.updateDocSessionID(regId, newSessionId, newCredId, userName)) shouldBe sessionIdData.copy(sessionId = Some(newSessionId), credId = Some(newCredId))
       }
     }
 
@@ -612,7 +613,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
         when(mockCorpTaxRegistrationRepo.retrieveSessionIdentifiers(any()))
           .thenReturn(Future.successful(None))
 
-        intercept[RuntimeException](await(service.updateDocSessionID(regId, newSessionId, userName)))
+        intercept[RuntimeException](await(service.updateDocSessionID(regId, newSessionId, newCredId, userName)))
       }
       "storeSessionIdentifiers fails" in new Setup {
         when(mockCorpTaxRegistrationRepo.retrieveSessionIdentifiers(any()))
@@ -620,7 +621,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
         when(mockCorpTaxRegistrationRepo.storeSessionIdentifiers(any(), any(), any()))
           .thenReturn(Future.failed(new RuntimeException("Failed to store")))
 
-        intercept[RuntimeException](await(service.updateDocSessionID(regId, newSessionId, userName)))
+        intercept[RuntimeException](await(service.updateDocSessionID(regId, newSessionId, newCredId, userName)))
       }
       "retrieveCorporationTaxRegistration fails" in new Setup {
         when(mockCorpTaxRegistrationRepo.retrieveCorporationTaxRegistration(any()))
@@ -630,7 +631,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
         when(mockCorpTaxRegistrationRepo.storeSessionIdentifiers(any(), any(), any()))
           .thenReturn(Future.successful(true))
 
-        intercept[RuntimeException](await(service.updateDocSessionID(regId, newSessionId, userName)))
+        intercept[RuntimeException](await(service.updateDocSessionID(regId, newSessionId, newCredId, userName)))
       }
 
     }
