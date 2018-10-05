@@ -31,4 +31,5 @@ trait MicroserviceAppConfig {
   val subscriber: String = getConfigString("subscriber")
 
   val incorpInfoUrl: String = config.baseUrl("incorporation-information")
+  val compRegUrl: String    = config.baseUrl("company-registration")
 }

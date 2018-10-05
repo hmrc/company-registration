@@ -35,7 +35,8 @@ class SubscriptionFailure(msg: String) extends NoStackTrace {
 }
 
 class IncorporationInformationConnectorImpl @Inject()(config: MicroserviceAppConfig) extends IncorporationInformationConnector {
-  val url: String = config.incorpInfoUrl
+  val iiUrl: String = config.incorpInfoUrl
+  val companyRegUrl = config.compRegUrl
   val http: WSGet with WSPost with WSDelete = WSHttp
   val regime: String = config.regime
   val subscriber: String = config.subscriber
@@ -43,11 +44,21 @@ class IncorporationInformationConnectorImpl @Inject()(config: MicroserviceAppCon
 
 trait IncorporationInformationConnector extends AlertLogging {
 
-  val url: String
+  val iiUrl: String
   val http: WSGet with WSPost with WSDelete
-
+  val companyRegUrl: String
   val regime: String
   val subscriber: String
+
+  private[connectors] val callBackurl = (isAdmin: Boolean) => {
+    companyRegUrl + {
+      if (isAdmin) {
+        controllers.routes.ProcessIncorporationsController.processAdminIncorporation().url
+      } else {
+        controllers.routes.ProcessIncorporationsController.processIncorporationNotification().url
+      }
+    }
+  }
 
   private[connectors] def buildUri(transactionId: String): String = {
     s"/incorporation-information/subscribe/$transactionId/regime/$regime/subscriber/$subscriber?force=true"
@@ -58,13 +69,8 @@ trait IncorporationInformationConnector extends AlertLogging {
   }
 
   def registerInterest(regId: String, transactionId: String, admin: Boolean = false)(implicit hc: HeaderCarrier, req: Request[_]): Future[Boolean] = {
-    val callbackUrl = if(admin) {
-      s"${controllers.routes.ProcessIncorporationsController.processAdminIncorporation().absoluteURL()}"
-    } else {
-      s"${controllers.routes.ProcessIncorporationsController.processIncorporationNotification().absoluteURL()}"
-    }
-    val json = Json.obj("SCRSIncorpSubscription" -> Json.obj("callbackUrl" -> callbackUrl))
-    http.POST[JsObject, HttpResponse](s"$url${buildUri(transactionId)}", json) map { res =>
+    val json = Json.obj("SCRSIncorpSubscription" -> Json.obj("callbackUrl" -> callBackurl(admin)))
+    http.POST[JsObject, HttpResponse](s"$iiUrl${buildUri(transactionId)}", json) map { res =>
       res.status match {
         case ACCEPTED =>
           Logger.info(s"[IncorporationInformationConnector] [registerInterest] Registration forced returned 202 for regId: $regId txId: $transactionId ")
@@ -83,7 +89,7 @@ trait IncorporationInformationConnector extends AlertLogging {
   def cancelSubscription(regId: String, transactionId: String, useOldRegime: Boolean = false)(implicit hc: HeaderCarrier): Future[Boolean] = {
     val cancelUri = if(useOldRegime) buildCancelUri(transactionId) else buildUri(transactionId)
 
-    http.DELETE[HttpResponse](s"$url$cancelUri") map { res =>
+    http.DELETE[HttpResponse](s"$iiUrl$cancelUri") map { res =>
       res.status match {
         case OK    =>
           Logger.info(s"[IncorporationInformationConnector] [cancelSubscription] Cancelled subscription for regId: $regId txId: $transactionId ")
@@ -100,7 +106,7 @@ trait IncorporationInformationConnector extends AlertLogging {
   }
 
   def checkCompanyIncorporated(transactionID: String)(implicit hc: HeaderCarrier): Future[Option[String]] = {
-    http.GET[HttpResponse](s"$url/incorporation-information/$transactionID/incorporation-update") map { res =>
+    http.GET[HttpResponse](s"$iiUrl/incorporation-information/$transactionID/incorporation-update") map { res =>
       res.status match {
         case OK =>
           val crn = (res.json \ "crn").asOpt[String]
