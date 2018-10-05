@@ -39,10 +39,11 @@ class IncorporationInformationConnectorSpec extends UnitSpec with MockitoSugar w
 
   trait Setup {
     val connector = new IncorporationInformationConnector {
-      override val url = "testUrl"
+      override val iiUrl = "testUrl"
       override val http = mockWSHttp
       override val regime = tRegime
       override val subscriber = tSubscriber
+      override val companyRegUrl: String = "http://foo/bar"
     }
   }
 
@@ -78,7 +79,19 @@ class IncorporationInformationConnectorSpec extends UnitSpec with MockitoSugar w
       |}
       """.stripMargin)
 
+
+
   val expected = IncorpStatus(txId, status, Some(crn), Some(description), Some(DateTime.parse(incorpDate)))
+
+  "callBackUrl" should {
+    "return admin url when admin is true" in new Setup {
+      connector.callBackurl(true) shouldBe "http://foo/bar/corporation-tax-registration/process-admin-incorp"
+    }
+    "return non admin url when admin is false" in new Setup {
+      connector.callBackurl(false) shouldBe "http://foo/bar/corporation-tax-registration/process-incorp"
+
+    }
+  }
 
   "createMetadataEntry" should {
     "make a http POST request to Incorporation Information micro-service to register an interest and return 202" in new Setup {
@@ -113,7 +126,7 @@ class IncorporationInformationConnectorSpec extends UnitSpec with MockitoSugar w
 
   "cancelSubscription" should {
     "make a http DELETE request to Incorporation Information micro-service to register an interest and return 202" in new Setup {
-      val expectedURL = s"${connector.url}/incorporation-information/subscribe/$txId/regime/$tRegime/subscriber/$tSubscriber?force=true"
+      val expectedURL = s"${connector.iiUrl}/incorporation-information/subscribe/$txId/regime/$tRegime/subscriber/$tSubscriber?force=true"
       when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.eq(expectedURL))(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(HttpResponse(200)))
 
@@ -140,7 +153,7 @@ class IncorporationInformationConnectorSpec extends UnitSpec with MockitoSugar w
 
     "use the old regime" in new Setup {
       val oldRegime = "ct"
-      val expectedURL = s"${connector.url}/incorporation-information/subscribe/$txId/regime/$oldRegime/subscriber/$tSubscriber?force=true"
+      val expectedURL = s"${connector.iiUrl}/incorporation-information/subscribe/$txId/regime/$oldRegime/subscriber/$tSubscriber?force=true"
       when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.eq(expectedURL))(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(HttpResponse(200)))
 
@@ -151,7 +164,7 @@ class IncorporationInformationConnectorSpec extends UnitSpec with MockitoSugar w
   "checkNotIncorporated" should {
     "return None" when {
       "the CRN is not there" in new Setup {
-        val expectedURL = s"${connector.url}/incorporation-information/$txId/incorporation-update"
+        val expectedURL = s"${connector.iiUrl}/incorporation-information/$txId/incorporation-update"
         when(mockWSHttp.GET[HttpResponse](ArgumentMatchers.eq(expectedURL))(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
           .thenReturn(HttpResponse(200))
 
@@ -159,7 +172,7 @@ class IncorporationInformationConnectorSpec extends UnitSpec with MockitoSugar w
       }
 
       "on a no content response" in new Setup {
-        val expectedURL = s"${connector.url}/incorporation-information/$txId/incorporation-update"
+        val expectedURL = s"${connector.iiUrl}/incorporation-information/$txId/incorporation-update"
         when(mockWSHttp.GET[HttpResponse](ArgumentMatchers.eq(expectedURL))(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
           .thenReturn(HttpResponse(204))
 
@@ -169,7 +182,7 @@ class IncorporationInformationConnectorSpec extends UnitSpec with MockitoSugar w
 
     "return Some crn" when {
       "the CRN is there" in new Setup {
-        val expectedURL = s"${connector.url}/incorporation-information/$txId/incorporation-update"
+        val expectedURL = s"${connector.iiUrl}/incorporation-information/$txId/incorporation-update"
         when(mockWSHttp.GET[HttpResponse](ArgumentMatchers.eq(expectedURL))(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
           .thenReturn(HttpResponse(200, Some(Json.obj("crn" -> "crn"))))
 

@@ -160,9 +160,9 @@ class AppStartupJobs @Inject()(config: Configuration,
     }
   }
 
-  def fetchDocInfoByRegId(regIds: Seq[String]): Unit = {
+  def fetchDocInfoByRegId(regIds: Seq[String]): Future[Seq[Unit]] = {
 
-    for (regId <- regIds) {
+    Future.sequence(regIds.map{ regId =>
       ctRepo.retrieveCorporationTaxRegistration(regId).map {
         case Some(doc) =>
           Logger.info(
@@ -182,7 +182,7 @@ class AppStartupJobs @Inject()(config: Configuration,
           )
         case _ => Logger.info(s"[StartUp] [fetchByRegID] No registration document found for $regId")
       }
-    }
+    })
   }
 
   def fetchByAckRef(ackRefs: Seq[String]): Unit = {
