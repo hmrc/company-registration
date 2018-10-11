@@ -164,9 +164,6 @@ class AdminControllerSpec extends UnitSpec with MockitoSugar {
         "testJurisdiction"
       )),
       contactDetails = Some(ContactDetails(
-        "testFirstName",
-        Some("testMiddleName"),
-        "testSurname",
         Some("0123456789"),
         Some("0123456789"),
         Some("test@email.co.uk")

@@ -67,11 +67,6 @@ class UserRegistrationSubmissionEventSpec extends UnitSpec {
           |         "country": "United Kingdom",
           |         "uprn": "$uprn"
           |      },
-          |      "businessContactName": {
-          |         "firstName": "Billy",
-          |         "middleNames": "bob",
-          |         "lastName": "Jones"
-          |      },
           |      "businessContactDetails": {
           |         "telephoneNumber": "0123456789",
           |         "mobileNumber": "0123456789",
@@ -96,11 +91,6 @@ class UserRegistrationSubmissionEventSpec extends UnitSpec {
             "Company Co",
             returnsOnCT61 = false,
             Some(BusinessAddress("14 Matheson House", "Grange Central", Some("Town Centre"),Some("Telford"), Some("TF3 4ER"), Some("United Kingdom"))),
-            BusinessContactName(
-              "Billy",
-              Some("bob"),
-              "Jones"
-            ),
             BusinessContactDetails(
               Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
             )
@@ -134,11 +124,6 @@ class UserRegistrationSubmissionEventSpec extends UnitSpec {
           |      "companiesHouseCompanyName": "Company Co",
           |      "returnsOnCT61": false,
           |      "companyACharity": false,
-          |      "businessContactName": {
-          |         "firstName": "Billy",
-          |         "middleNames": "bob",
-          |         "lastName": "Jones"
-          |      },
           |      "businessContactDetails": {
           |         "telephoneNumber": "0123456789",
           |         "mobileNumber": "0123456789",
@@ -163,11 +148,6 @@ class UserRegistrationSubmissionEventSpec extends UnitSpec {
             "Company Co",
             returnsOnCT61 = false,
             Some(BusinessAddress("14 Matheson House", "Grange Central", Some("Town Centre"),Some("Telford"), Some("TF3 4ER"), Some("United Kingdom"))),
-            BusinessContactName(
-              "Billy",
-              Some("bob"),
-              "Jones"
-            ),
             BusinessContactDetails(
               Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
             )

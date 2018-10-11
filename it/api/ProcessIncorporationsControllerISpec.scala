@@ -116,9 +116,6 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
       regularPayments = "true"
     )),
     contactDetails = Some(ContactDetails(
-      firstName = "testContactFirstName",
-      middleName = Some("testContactMiddleName"),
-      surname = "testContactLastName",
       phone = Some("02072899066"),
       mobile = Some("07567293726"),
       email = Some("test@email.co.uk")
@@ -156,11 +153,6 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
       |            "line3":"address line 3",
       |            "line4":"address line 4",
       |            "postcode":"ZZ11 1ZZ"
-      |         },
-      |         "businessContactName":{
-      |            "firstName":"MGD",
-      |            "middleNames":"GG Stub Test",
-      |            "lastName":"Org"
       |         },
       |         "businessContactDetails":{
       |            "phoneNumber":"1234",

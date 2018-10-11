@@ -51,9 +51,6 @@ class SendEmailConnectorSpec  extends UnitSpec with MockitoSugar with SCRSMocks 
     true
   )
 
-
-
-
   "send Email" should {
 
     "Return a true when a request to send a new email is successful" in new Setup {
@@ -124,6 +121,4 @@ class SendEmailConnectorSpec  extends UnitSpec with MockitoSugar with SCRSMocks 
       intercept[Upstream4xxResponse](connector.customRead("test","test", response))
     }
   }
-
-
 }

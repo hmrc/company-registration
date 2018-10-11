@@ -91,9 +91,6 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
         "testJurisdiction"
       )),
       contactDetails = Some(ContactDetails(
-        "testFirstName",
-        Some("testMiddleName"),
-        "testSurname",
         Some("0123456789"),
         Some("0123456789"),
         Some("test@email.co.uk")
@@ -134,11 +131,6 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
        |       "line4":null,
        |       "postcode":null,
        |       "country":null
-       |     },
-       |     "businessContactName":{
-       |       "firstName":"Jenifer",
-       |       "middleNames":null,
-       |       "lastName":null
        |     },
        |     "businessContactDetails":{
        |       "telephoneNumber":"123",
@@ -235,9 +227,6 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
         "testJurisdiction"
       )),
       contactDetails = Some(ContactDetails(
-        "testFirstName",
-        Some("testMiddleName"),
-        "testSurname",
         Some("0123456789"),
         Some("0123456789"),
         Some("test@email.co.uk")

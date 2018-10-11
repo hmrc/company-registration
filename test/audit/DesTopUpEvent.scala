@@ -79,9 +79,7 @@ class DesTopUpEventSpec extends UnitSpec {
       None,
       None
     )
-
     Json.toJson(testModel)(DesTopUpSubmissionEventDetail.writes) shouldBe expected
-  }}
-
-
+    }
+  }
  }

@@ -72,7 +72,6 @@ trait BaseJsonFormatting {
 
   //Contact Details
   def contactDetailsFormatWithFilter(formatDef: OFormat[ContactDetails]): Format[ContactDetails]
-  val nameValidator: Format[String]
   val phoneValidator: Format[String]
   val emailValidator: Format[String]
 

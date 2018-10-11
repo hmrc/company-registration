@@ -53,15 +53,6 @@ trait JsonFormatValidation {
             }
           }
         }
-
-
-//        errors(0) match {
-//          case (path, error) => {
-//            path shouldBe errorPath
-//            error.length shouldBe 1
-//            error(0) shouldBe expectedError
-//          }
-//        }
       }
     }
   }

@@ -75,9 +75,6 @@ object CorporationTaxRegistrationFixture {
       |   "regularPayments":"true"
       | },
       | "contactDetails":{
-      |   "contactFirstName":"testFirstName",
-      |   "contactMiddleName":"testMiddleName",
-      |   "contactSurname":"testSurname",
       |   "contactDaytimeTelephoneNumber":"0123456789",
       |   "contactMobileNumber":"0123456789",
       |   "contactEmail":"test@email.co.uk"

@@ -86,7 +86,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       "testJurisdiction"
     )),
     contactDetails = Some(ContactDetails(
-      "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+     Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
     )),
     tradingDetails = Some(TradingDetails("true")),
     confirmationReferences = Some(ConfirmationReferences(acknowledgementReference = ackRef, "txId", None, None)),
@@ -116,9 +116,6 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         formCreationTimestamp = "testDateTime",
         language = "en",
         contactDetails = Some(ContactDetails(
-          firstName = "First",
-          middleName = Some("Middle"),
-          surname = "Sur",
           phone = Some("12345"),
           mobile = Some("1234567890"),
           email = None))
@@ -142,9 +139,6 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         formCreationTimestamp = "testDateTime",
         language = "en",
         contactDetails = Some(ContactDetails(
-          firstName = "First",
-          middleName = Some("Middle"),
-          surname = "Sur",
           phone = Some("12345"),
           mobile = Some("1234567890"),
           email = None))
@@ -298,9 +292,6 @@ class CorporationTaxRegistrationMongoRepositoryISpec
   "updateContactDetails" should {
     "return some updated contact details if document exists" in new Setup {
       val testContactDetails: ContactDetails = ContactDetails(
-        firstName = "DC",
-        surname = "DC",
-        middleName = None,
         phone = None,
         email = None,
         mobile = None
@@ -312,14 +303,11 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
     "return override contact details if document already has contact details" in new Setup {
       val contactDetails: ContactDetails = ContactDetails(
-        firstName = "DC",
-        surname = "DC",
-        middleName = None,
         phone = None,
         email = None,
         mobile = None
       )
-      val newContactDetails: ContactDetails  = contactDetails.copy(firstName = "Some-FirstName", phone = Some("12333334234234"))
+      val newContactDetails: ContactDetails  = contactDetails.copy(phone = Some("12333334234234"))
 
       insert(newCTDoc.copy(contactDetails = Some(contactDetails)))
       await(repository.updateContactDetails(registrationId, newContactDetails)) shouldBe Some(newContactDetails)
@@ -327,9 +315,6 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
     "return None if no document exists" in new Setup {
       val contactDetails: ContactDetails = ContactDetails(
-        firstName = "DC",
-        surname = "DC",
-        middleName = None,
         phone = None,
         email = None,
         mobile = None
@@ -349,10 +334,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     }
     "return some when there are contact details" in new Setup {
       val testContactDetails: ContactDetails = ContactDetails(
-        firstName = "DC",
-        surname = "DC",
-        middleName = None,
-        phone = None,
+        phone = Some("123456"),
         email = None,
         mobile = None
       )
@@ -687,8 +669,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"), None, "txid"))),
         "testJurisdiction"
       )),
-      contactDetails = Some(ContactDetails(
-        "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+      contactDetails = Some(ContactDetails(Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
       )),
       tradingDetails = Some(TradingDetails("true"))
     )
@@ -846,8 +827,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         PPOB("LOOKUP", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"), Some("xxx"), "txid"))),
         "testJurisdiction"
       )),
-      contactDetails = Some(ContactDetails(
-        "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+      contactDetails = Some(ContactDetails(Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
       )),
       tradingDetails = Some(TradingDetails("true")),
       createdTime = DateTime.now,
@@ -930,8 +910,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"), None, "txid"))),
         "testJurisdiction"
       )),
-      contactDetails = Some(ContactDetails(
-        "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+      contactDetails = Some(ContactDetails(Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
       )),
       tradingDetails = Some(TradingDetails("true")),
       status = RegistrationStatus.DRAFT,
@@ -991,7 +970,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         "testJurisdiction"
       )),
       contactDetails = Some(ContactDetails(
-        "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+     Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
       )),
       tradingDetails = Some(TradingDetails("true")),
       status = RegistrationStatus.DRAFT,
@@ -1010,8 +989,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"), None, "txid"))),
         "testJurisdiction"
       )),
-      contactDetails = Some(ContactDetails(
-        "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+      contactDetails = Some(ContactDetails(Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
       )),
       tradingDetails = Some(TradingDetails("true")),
       status = RegistrationStatus.LOCKED,
@@ -1045,8 +1023,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"), None, "txid"))),
         "testJurisdiction"
       )),
-      contactDetails = Some(ContactDetails(
-        "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+      contactDetails = Some(ContactDetails(Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
       )),
       tradingDetails = Some(TradingDetails("true")),
       status = RegistrationStatus.ACKNOWLEDGED,
@@ -1093,8 +1070,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"), None, "txid"))),
         "testJurisdiction"
       )),
-      contactDetails = Some(ContactDetails(
-        "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+      contactDetails = Some(ContactDetails(Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
       )),
       tradingDetails = Some(TradingDetails("true")),
       status = RegistrationStatus.DRAFT,
@@ -1142,8 +1118,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"), None, "txid"))),
         "testJurisdiction"
       )),
-      contactDetails = Some(ContactDetails(
-        "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+      contactDetails = Some(ContactDetails(Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
       )),
       tradingDetails = Some(TradingDetails("true")),
       status = RegistrationStatus.DRAFT,
@@ -1190,8 +1165,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"), None, "txid"))),
         "testJurisdiction"
       )),
-      contactDetails = Some(ContactDetails(
-        "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+      contactDetails = Some(ContactDetails(Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
       )),
       tradingDetails = Some(TradingDetails("true")),
       status = RegistrationStatus.DRAFT,

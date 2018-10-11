@@ -91,9 +91,6 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
       "testJurisdiction"
     )),
     contactDetails = Some(ContactDetails(
-      "testFirstName",
-      Some("testMiddleName"),
-      "testSurname",
       Some("0123456789"),
       Some("0123456789"),
       Some("test@email.co.uk")
@@ -167,9 +164,6 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
         "testJurisdiction"
       )),
       contactDetails = Some(ContactDetails(
-        "testFirstName",
-        Some("testMiddleName"),
-        "testSurname",
         Some("0123456789"),
         Some("0123456789"),
         Some("test@email.co.uk")
@@ -345,9 +339,6 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
         None
       },
       contactDetails = Some(ContactDetails(
-        "testFirstName",
-        Some("testMiddleName"),
-        "testSurname",
         Some("0123456789"),
         Some("0123456789"),
         Some("test@email.co.uk")

@@ -150,11 +150,6 @@ class InterimDesRegistrationSpec extends UnitSpec {
                                       |                       "postcode" : "TF3 4ER",
                                       |                       "country" : "England"
                                       |                           },
-                                      |  "businessContactName" : {
-                                      |                           "firstName" : "Adam",
-                                      |                           "middleNames" : "the",
-                                      |                           "lastName" : "ant"
-                                      |                           },
                                       |  "businessContactDetails" : {
                                       |                           "phoneNumber" : "0121 000 000",
                                       |                           "mobileNumber" : "0700 000 000",
@@ -170,11 +165,6 @@ class InterimDesRegistrationSpec extends UnitSpec {
         Some("England")
       )
 
-      val desBusinessContactName = BusinessContactName(
-        "Adam",
-        Some("the"),
-        "ant"
-      )
       val desBusinessContactContactDetails = BusinessContactDetails(
         Some("0121 000 000"),
         Some("0700 000 000"),
@@ -185,7 +175,6 @@ class InterimDesRegistrationSpec extends UnitSpec {
                                   "DG Limited",
                                   false,
                                   Some(desBusinessAddress),
-                                  desBusinessContactName,
                                   desBusinessContactContactDetails
                                 )
       val result = Json.toJson[InterimCorporationTax](desModel)
@@ -226,11 +215,6 @@ class InterimDesRegistrationSpec extends UnitSpec {
                                       |                       "postcode" : "TF3 4ER",
                                       |                       "country" : "England"
                                       |                           },
-                                      |  "businessContactName" : {
-                                      |                           "firstName" : "Adam",
-                                      |                           "middleNames" : "the",
-                                      |                           "lastName" : "ant"
-                                      |                           },
                                       |  "businessContactDetails" : {
                                       |                           "phoneNumber" : "0121 000 000",
                                       |                           "mobileNumber" : "0700 000 000",
@@ -250,11 +234,6 @@ class InterimDesRegistrationSpec extends UnitSpec {
         Some("England")
       )
 
-      val desBusinessContactName = BusinessContactName(
-        "Adam",
-        Some("the"),
-        "ant"
-      )
       val desBusinessContactContactDetails = BusinessContactDetails(
         Some("0121 000 000"),
         Some("0700 000 000"),
@@ -265,7 +244,6 @@ class InterimDesRegistrationSpec extends UnitSpec {
         "DG Limited",
         false,
         Some(desBusinessAddress),
-        desBusinessContactName,
         desBusinessContactContactDetails
       )
 
@@ -296,11 +274,6 @@ class InterimDesRegistrationSpec extends UnitSpec {
                                       |  "companiesHouseCompanyName" : "DG Limited",
                                       |  "returnsOnCT61" : false,
                                       |  "companyACharity" : false,
-                                      |  "businessContactName" : {
-                                      |                           "firstName" : "Adam",
-                                      |                           "middleNames" : "the",
-                                      |                           "lastName" : "ant"
-                                      |                           },
                                       |  "businessContactDetails" : {
                                       |                             "email" : "d@ddd.com"
                                       |                             }
@@ -310,11 +283,6 @@ class InterimDesRegistrationSpec extends UnitSpec {
 
       val testMetadata = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), Director )
 
-      val desBusinessContactName = BusinessContactName(
-        "Adam",
-        Some("the"),
-        "ant"
-      )
       val desBusinessContactContactDetails = BusinessContactDetails(
         None,
         None,
@@ -325,7 +293,6 @@ class InterimDesRegistrationSpec extends UnitSpec {
         "DG Limited",
         false,
         None,
-        desBusinessContactName,
         desBusinessContactContactDetails
       )
 
@@ -355,26 +322,15 @@ class InterimDesRegistrationSpec extends UnitSpec {
                                      |  "companiesHouseCompanyName" : "ss Oscar eg ant",
                                      |  "returnsOnCT61" : false,
                                      |  "companyACharity" : false,
-                                     |  "businessContactName" : {
-                                     |                           "firstName" : "Adam",
-                                     |                           "middleNames" : "the",
-                                     |                           "lastName" : "ant"
-                                     |                           },
                                      |  "businessContactDetails" : {
                                      |                             "email" : "d@ddd.com"
                                      |                             }
                                      |                           }
                                      |  }
                                      |}""".stripMargin
-      
-              val testMetadata = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), Director )
-      
-              val desBusinessContactName = BusinessContactName(
-                "Adam",
-                Some("the"),
-                "ant"
-                )
-            val desBusinessContactContactDetails = BusinessContactDetails(
+
+      val testMetadata = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), Director )
+      val desBusinessContactContactDetails = BusinessContactDetails(
                 None,
                 None,
                 Some("d@ddd.com")
@@ -384,7 +340,6 @@ class InterimDesRegistrationSpec extends UnitSpec {
                 "ß Ǭscar ég ànt",
                 false,
                 None,
-                desBusinessContactName,
                 desBusinessContactContactDetails
                 )
       
@@ -416,11 +371,6 @@ class InterimDesRegistrationSpec extends UnitSpec {
                                      |  "companiesHouseCompanyName" : "Test Company",
                                      |  "returnsOnCT61" : false,
                                      |  "companyACharity" : false,
-                                     |  "businessContactName" : {
-                                     |                           "firstName" : "Adam",
-                                     |                           "middleNames" : "the",
-                                     |                           "lastName" : "ant"
-                                     |                           },
                                      |  "businessContactDetails" : {
                                      |                             "email" : "d@ddd.com"
                                      |                             }
@@ -428,13 +378,8 @@ class InterimDesRegistrationSpec extends UnitSpec {
                                      |  }
                                      |}""".stripMargin
       
-              val testMetadata = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), Director )
-      
-              val desBusinessContactName = BusinessContactName(
-                "Adam",
-                Some("the"),
-                "ant"
-                )
+            val testMetadata = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), Director )
+
             val desBusinessContactContactDetails = BusinessContactDetails(
                 None,
                 None,
@@ -445,7 +390,6 @@ class InterimDesRegistrationSpec extends UnitSpec {
                 "[Test Company]»",
                 false,
                 None,
-                desBusinessContactName,
                 desBusinessContactContactDetails
                 )
       

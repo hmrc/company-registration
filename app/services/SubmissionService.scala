@@ -171,7 +171,6 @@ trait SubmissionService extends DateHelper {
         )
     }
 
-    val businessContactName = BusinessContactName(contactDetails.firstName, contactDetails.middleName, contactDetails.surname)
     val businessContactDetails = BusinessContactDetails(contactDetails.phone, contactDetails.mobile, contactDetails.email)
 
     InterimDesRegistration(
@@ -187,7 +186,6 @@ trait SubmissionService extends DateHelper {
         companyName = companyDetails.companyName,
         returnsOnCT61 = tradingDetails.regularPayments.toBoolean,
         businessAddress = businessAddress,
-        businessContactName = businessContactName,
         businessContactDetails = businessContactDetails
       )
     )
@@ -242,13 +240,10 @@ trait SubmissionService extends DateHelper {
           case _ if reg.status == SUBMITTED || reg.status == ACKNOWLEDGED =>
             Logger.info(s"[setupPartialForTopup] Accepting incorporation update, registration already submitted for txID: $transID")
             Future.successful(true)
-
           case _ if reg.status != RegistrationStatus.LOCKED =>
             throw new RuntimeException(s"[setupPartialForTopup] Document status of txID: $transID was not locked, was ${reg.status}")
-
           case (Some(sIds), Some(confRefs)) =>
             processPartialSubmission(reg.registrationID, sIds.credId, confRefs, reg, true)
-
           case _ =>
             Logger.warn(s"[setupPartialForTopup] No session identifiers or conf refs for registration with txID: $transID")
             throw NoSessionIdentifiersInDocument
@@ -256,5 +251,4 @@ trait SubmissionService extends DateHelper {
       case _ => throw new RuntimeException(s"[setupPartialForTopup] Could not find registration by txID: $transID")
     }
   }
-
 }

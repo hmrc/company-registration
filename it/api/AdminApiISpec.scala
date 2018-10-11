@@ -104,9 +104,6 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with Login
       regularPayments = "true"
     )),
     contactDetails = Some(ContactDetails(
-      firstName = "testContactFirstName",
-      middleName = Some("testContactMiddleName"),
-      surname = "testContactLastName",
       phone = Some("02072899066"),
       mobile = Some("07567293726"),
       email = Some("test@email.co.uk")
@@ -152,9 +149,6 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with Login
       regularPayments = "true"
     )),
     contactDetails = Some(ContactDetails(
-      firstName = "testContactFirstName",
-      middleName = Some("testContactMiddleName"),
-      surname = "testContactLastName",
       phone = Some("02072899066"),
       mobile = Some("07567293726"),
       email = Some("test@email.co.uk")
