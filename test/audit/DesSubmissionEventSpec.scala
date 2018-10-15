@@ -58,11 +58,6 @@ class DesSubmissionEventSpec extends UnitSpec {
           |         "postcode": "TF3 4ER",
           |         "country": "United Kingdom"
           |      },
-          |      "businessContactName": {
-          |         "firstName": "Billy",
-          |         "middleNames": "bob",
-          |         "lastName": "Jones"
-          |      },
           |      "businessContactDetails": {
           |         "phoneNumber": "0123456789",
           |         "mobileNumber": "0123456789",
@@ -83,11 +78,6 @@ class DesSubmissionEventSpec extends UnitSpec {
             "Company Co",
             returnsOnCT61 = false,
             Some(BusinessAddress("14 Matheson House", "Grange Central", Some("Town Centre"),Some("Telford"), Some("TF3 4ER"), Some("United Kingdom"))),
-            BusinessContactName(
-              "Billy",
-              Some("bob"),
-              "Jones"
-            ),
             BusinessContactDetails(
               Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
             )

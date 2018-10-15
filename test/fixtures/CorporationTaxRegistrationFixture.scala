@@ -139,11 +139,6 @@ trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with Accou
       |            "line4":"address line 4",
       |            "postcode":"ZZ11 1ZZ"
       |         },
-      |         "businessContactName":{
-      |            "firstName":"MGD",
-      |            "middleNames":"GG Stub Test",
-      |            "lastName":"Org"
-      |         },
       |         "businessContactDetails":{
       |            "phoneNumber":"1234",
       |            "mobileNumber":"123456",

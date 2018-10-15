@@ -20,10 +20,7 @@ import controllers.routes
 import models.{ContactDetails, Links}
 import play.api.libs.json.Json
 
-case class ContactDetailsResponse(contactFirstName: String,
-                                  contactMiddleName: Option[String],
-                                  contactSurname: String,
-                                  contactDaytimeTelephoneNumber: Option[String],
+case class ContactDetailsResponse(contactDaytimeTelephoneNumber: Option[String],
                                   contactMobileNumber: Option[String],
                                   contactEmail: Option[String],
                                   links: Links)
@@ -36,18 +33,12 @@ object ContactDetailsResponse {
 trait ContactDetailsFixture {
 
    val contactDetails = ContactDetails(
-    "testContactFirstName",
-    Some("testContactMiddleName"),
-    "testContactLastName",
     Some("02072899066"),
     Some("07567293726"),
     Some("test@email.co.uk")
   )
 
   def contactDetailsResponse(regId: String) = ContactDetailsResponse(
-    contactDetails.firstName,
-    contactDetails.middleName,
-    contactDetails.surname,
     contactDetails.phone,
     contactDetails.mobile,
     contactDetails.email,
@@ -58,9 +49,6 @@ trait ContactDetailsFixture {
 
 
    val contactDetailsResponse = ContactDetailsResponse(
-    contactDetails.firstName,
-    contactDetails.middleName,
-    contactDetails.surname,
     contactDetails.phone,
     contactDetails.mobile,
     contactDetails.email,

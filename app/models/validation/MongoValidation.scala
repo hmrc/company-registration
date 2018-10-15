@@ -27,7 +27,6 @@ object MongoValidation extends BaseJsonFormatting {
 
   //ContactDetails
   def contactDetailsFormatWithFilter(formatDef: OFormat[ContactDetails]): Format[ContactDetails] = formatDef
-  val nameValidator = defaultStringFormat
   val phoneValidator = defaultStringFormat
   val emailValidator = defaultStringFormat
 

@@ -16,17 +16,16 @@
 
 package services
 
-import connectors._
-import models._
 import connectors.SendEmailConnector
 import mocks.SCRSMocks
+import models._
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.test.UnitSpec
 
 
 class SendEmailServiceSpec extends UnitSpec with MockitoSugar with SCRSMocks with BeforeAndAfterEach  {
@@ -87,10 +86,7 @@ class SendEmailServiceSpec extends UnitSpec with MockitoSugar with SCRSMocks wit
            |}
          """.stripMargin
       }
-
       resultAsJson shouldBe expectedJson
     }
   }
-
-
 }

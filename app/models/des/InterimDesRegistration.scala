@@ -157,19 +157,6 @@ object BusinessContactDetails {
   }
 }
 
-case class BusinessContactName(
-                                firstName: String,
-                                middleNames: Option[String],
-                                lastName: String
-                              )
-
-object BusinessContactName {
-  implicit val writes: Writes[BusinessContactName] = (
-    (__ \ "firstName").write[String] and
-      (__ \ "middleNames").writeNullable[String] and
-      (__ \ "lastName").write[String]
-    ) (unlift(BusinessContactName.unapply))
-}
 
 case class Metadata(
                      sessionId: String,
@@ -212,7 +199,6 @@ case class InterimCorporationTax(
                                   companyName: String,
                                   returnsOnCT61: Boolean,
                                   businessAddress: Option[BusinessAddress],
-                                  businessContactName: BusinessContactName,
                                   businessContactDetails: BusinessContactDetails
                                 )
 
@@ -220,7 +206,6 @@ object InterimCorporationTax {
   implicit val writes = new Writes[InterimCorporationTax] {
     def writes(m: InterimCorporationTax) = {
       val address = m.businessAddress map {Json.toJson(_).as[JsObject]}
-      val name: JsObject = Json.toJson(m.businessContactName).as[JsObject]
       val contactDetails: JsObject = Json.toJson(m.businessContactDetails).as[JsObject]
       Json.obj(
         "companyOfficeNumber" -> "623",
@@ -231,7 +216,6 @@ object InterimCorporationTax {
         "companyACharity" -> false
       ) ++
         address.fold(Json.obj())(add => Json.obj("businessAddress" -> add)) ++
-        Json.obj("businessContactName" -> name) ++
         Json.obj("businessContactDetails" -> contactDetails)
     }
   }
