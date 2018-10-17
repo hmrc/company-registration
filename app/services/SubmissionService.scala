@@ -171,7 +171,7 @@ trait SubmissionService extends DateHelper {
         )
     }
 
-    val businessContactName = BusinessContactName(contactDetails.firstName, contactDetails.middleName, contactDetails.surname)
+    val businessContactName = BusinessContactName(contactDetails.firstName.getOrElse(" "), contactDetails.middleName, contactDetails.surname.getOrElse(" "))
     val businessContactDetails = BusinessContactDetails(contactDetails.phone, contactDetails.mobile, contactDetails.email)
 
     InterimDesRegistration(

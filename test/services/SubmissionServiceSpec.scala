@@ -96,9 +96,9 @@ class SubmissionServiceSpec extends UnitSpec with SCRSMocks with CorporationTaxR
         "testJurisdiction"
       )),
       contactDetails = Some(ContactDetails(
-        "testFirstName",
+        Some("testFirstName"),
         Some("testMiddleName"),
-        "testSurname",
+        Some("testSurname"),
         Some("0123456789"),
         Some("0123456789"),
         Some("test@email.co.uk")
@@ -366,8 +366,8 @@ class SubmissionServiceSpec extends UnitSpec with SCRSMocks with CorporationTaxR
       PPOB("RO", None),
       "J"
     )
-    val contactDetails1 = ContactDetails("F", Some("M"), "S", Some("1"), Some("2"), Some("a@b.c"))
-    val contactDetails2 = ContactDetails("F", None, "S", None, None, Some("a@b.c"))
+    val contactDetails1 = ContactDetails(Some("F"), Some("M"), Some("S"), Some("1"), Some("2"), Some("a@b.c"))
+    val contactDetails2 = ContactDetails(Some("F"), None, Some("S"), None, None, Some("a@b.c"))
 
     def getCTReg(regId: String, company: Option[CompanyDetails], contact: Option[ContactDetails]) = {
       CorporationTaxRegistration(
@@ -393,9 +393,9 @@ class SubmissionServiceSpec extends UnitSpec with SCRSMocks with CorporationTaxR
         "testJurisdiction"
       )),
       contactDetails = Some(ContactDetails(
-        "testFirstName",
+        Some("testFirstName"),
         Some("testMiddleName"),
-        "testSurname",
+        Some("testSurname"),
         Some("0123456789"),
         Some("0123456789"),
         Some("test@email.co.uk")
@@ -415,9 +415,9 @@ class SubmissionServiceSpec extends UnitSpec with SCRSMocks with CorporationTaxR
           returnsOnCT61 = false,
           Some(BusinessAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"))),
           BusinessContactName(
-            corporationTaxRegistration.contactDetails.get.firstName,
+            corporationTaxRegistration.contactDetails.get.firstName.get,
             corporationTaxRegistration.contactDetails.get.middleName,
-            corporationTaxRegistration.contactDetails.get.surname
+            corporationTaxRegistration.contactDetails.get.surname.get
           ),
           BusinessContactDetails(Some("0123456789"), Some("0123456789"), Some("test@email.co.uk"))
         )
@@ -478,7 +478,7 @@ class SubmissionServiceSpec extends UnitSpec with SCRSMocks with CorporationTaxR
           "name",
           returnsOnCT61 = false,
           Some(BusinessAddress("1", "1", None, None, Some("ZZ1 1ZZ"), None)),
-          BusinessContactName("F", None, "S"),
+          BusinessContactName("F", None,"S"),
           BusinessContactDetails(None, None, Some("a@b.c"))
         )
       )
@@ -506,7 +506,7 @@ class SubmissionServiceSpec extends UnitSpec with SCRSMocks with CorporationTaxR
           "name",
           returnsOnCT61 = false,
           Some(BusinessAddress("P 1", "2", Some("L"), Some("R"), Some("ZZ1 1ZZ"), Some("CustomCountry"))),
-          BusinessContactName("F", None, "S"),
+          BusinessContactName("F", None,"S"),
           BusinessContactDetails(None, None, Some("a@b.c"))
         )
       )
@@ -523,9 +523,9 @@ class SubmissionServiceSpec extends UnitSpec with SCRSMocks with CorporationTaxR
           returnsOnCT61 = false,
           Some(BusinessAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"))),
           BusinessContactName(
-            corporationTaxRegistration.contactDetails.get.firstName,
+            corporationTaxRegistration.contactDetails.get.firstName.get,
             corporationTaxRegistration.contactDetails.get.middleName,
-            corporationTaxRegistration.contactDetails.get.surname
+            corporationTaxRegistration.contactDetails.get.surname.get
           ),
           BusinessContactDetails(Some("0123456789"), Some("0123456789"), Some("test@email.co.uk"))
         )
@@ -553,9 +553,9 @@ class SubmissionServiceSpec extends UnitSpec with SCRSMocks with CorporationTaxR
           returnsOnCT61 = false,
           Some(BusinessAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"))),
           BusinessContactName(
-            corporationTaxRegistration.contactDetails.get.firstName,
+            corporationTaxRegistration.contactDetails.get.firstName.get,
             corporationTaxRegistration.contactDetails.get.middleName,
-            corporationTaxRegistration.contactDetails.get.surname
+            corporationTaxRegistration.contactDetails.get.surname.get
           ),
           BusinessContactDetails(Some("0123456789"), Some("0123456789"), Some("test@email.co.uk"))
         )
@@ -634,9 +634,9 @@ class SubmissionServiceSpec extends UnitSpec with SCRSMocks with CorporationTaxR
       status = RegistrationStatus.LOCKED,
       companyDetails = Some(companyDetails),
       contactDetails = Some(ContactDetails(
-        "testFirstName",
+        Some("testFirstName"),
         Some("testMiddleName"),
-        "testSurname",
+        Some("testSurname"),
         Some("0123456789"),
         Some("0123456789"),
         Some("test@email.co.uk")

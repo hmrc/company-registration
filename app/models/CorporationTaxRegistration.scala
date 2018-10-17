@@ -253,9 +253,9 @@ object CorporationTaxRegistrationRequest {
   implicit val format = Json.format[CorporationTaxRegistrationRequest]
 }
 
-case class ContactDetails(firstName: String,
+case class ContactDetails(firstName: Option[String],
                           middleName: Option[String],
-                          surname: String,
+                          surname: Option[String],
                           phone: Option[String],
                           mobile: Option[String],
                           email: Option[String]) {
@@ -264,9 +264,9 @@ case class ContactDetails(firstName: String,
 object ContactDetails {
   def format(formatter: BaseJsonFormatting): Format[ContactDetails] = {
     val formatDef = (
-      (__ \ "contactFirstName").format[String](formatter.nameValidator) and
-      (__ \ "contactMiddleName").formatNullable[String](formatter.nameValidator) and
-      (__ \ "contactSurname").format[String](formatter.nameValidator) and
+      (__ \ "contactFirstName").formatNullable[String] and
+      (__ \ "contactMiddleName").formatNullable[String] and
+      (__ \ "contactSurname").formatNullable[String] and
       (__ \ "contactDaytimeTelephoneNumber").formatNullable[String](formatter.phoneValidator) and
       (__ \ "contactMobileNumber").formatNullable[String](formatter.phoneValidator) and
       (__ \ "contactEmail").formatNullable[String](formatter.emailValidator)

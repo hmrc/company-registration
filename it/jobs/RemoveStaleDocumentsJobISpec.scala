@@ -91,7 +91,7 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with LogCapturing
       "testJurisdiction"
     )),
     contactDetails = Some(ContactDetails(
-      "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+      Some("testFirstName"), Some("testMiddleName"), Some("testSurname"), Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
     )),
     tradingDetails = Some(TradingDetails("true")),
     confirmationReferences = Some(ConfirmationReferences("ackRef", txID, None, None)),

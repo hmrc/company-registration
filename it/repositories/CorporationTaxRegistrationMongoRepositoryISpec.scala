@@ -86,7 +86,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       "testJurisdiction"
     )),
     contactDetails = Some(ContactDetails(
-      "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+      Some("testFirstName"), Some("testMiddleName"), Some("testSurname"), Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
     )),
     tradingDetails = Some(TradingDetails("true")),
     confirmationReferences = Some(ConfirmationReferences(acknowledgementReference = ackRef, "txId", None, None)),
@@ -116,9 +116,9 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         formCreationTimestamp = "testDateTime",
         language = "en",
         contactDetails = Some(ContactDetails(
-          firstName = "First",
+          firstName = Some("First"),
           middleName = Some("Middle"),
-          surname = "Sur",
+          surname = Some("Sur"),
           phone = Some("12345"),
           mobile = Some("1234567890"),
           email = None))
@@ -142,9 +142,9 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         formCreationTimestamp = "testDateTime",
         language = "en",
         contactDetails = Some(ContactDetails(
-          firstName = "First",
+          firstName = Some("First"),
           middleName = Some("Middle"),
-          surname = "Sur",
+          surname = Some("Sur"),
           phone = Some("12345"),
           mobile = Some("1234567890"),
           email = None))
@@ -298,8 +298,8 @@ class CorporationTaxRegistrationMongoRepositoryISpec
   "updateContactDetails" should {
     "return some updated contact details if document exists" in new Setup {
       val testContactDetails: ContactDetails = ContactDetails(
-        firstName = "DC",
-        surname = "DC",
+        firstName = Some("DC"),
+        surname = Some("DC"),
         middleName = None,
         phone = None,
         email = None,
@@ -312,14 +312,14 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
     "return override contact details if document already has contact details" in new Setup {
       val contactDetails: ContactDetails = ContactDetails(
-        firstName = "DC",
-        surname = "DC",
+        firstName = Some("DC"),
+        surname = Some("DC"),
         middleName = None,
         phone = None,
         email = None,
         mobile = None
       )
-      val newContactDetails: ContactDetails  = contactDetails.copy(firstName = "Some-FirstName", phone = Some("12333334234234"))
+      val newContactDetails: ContactDetails  = contactDetails.copy(firstName = Some("Some-FirstName"), phone = Some("12333334234234"))
 
       insert(newCTDoc.copy(contactDetails = Some(contactDetails)))
       await(repository.updateContactDetails(registrationId, newContactDetails)) shouldBe Some(newContactDetails)
@@ -327,8 +327,8 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
     "return None if no document exists" in new Setup {
       val contactDetails: ContactDetails = ContactDetails(
-        firstName = "DC",
-        surname = "DC",
+        firstName = Some("DC"),
+        surname = Some("DC"),
         middleName = None,
         phone = None,
         email = None,
@@ -349,8 +349,8 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     }
     "return some when there are contact details" in new Setup {
       val testContactDetails: ContactDetails = ContactDetails(
-        firstName = "DC",
-        surname = "DC",
+        firstName = Some("DC"),
+        surname = Some("DC"),
         middleName = None,
         phone = None,
         email = None,
@@ -688,7 +688,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         "testJurisdiction"
       )),
       contactDetails = Some(ContactDetails(
-        "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+        Some("testFirstName"), Some("testMiddleName"), Some("testSurname"), Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
       )),
       tradingDetails = Some(TradingDetails("true"))
     )
@@ -847,7 +847,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         "testJurisdiction"
       )),
       contactDetails = Some(ContactDetails(
-        "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+        Some("testFirstName"), Some("testMiddleName"), Some("testSurname"), Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
       )),
       tradingDetails = Some(TradingDetails("true")),
       createdTime = DateTime.now,
@@ -931,7 +931,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         "testJurisdiction"
       )),
       contactDetails = Some(ContactDetails(
-        "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+        Some("testFirstName"), Some("testMiddleName"), Some("testSurname"), Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
       )),
       tradingDetails = Some(TradingDetails("true")),
       status = RegistrationStatus.DRAFT,
@@ -991,7 +991,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         "testJurisdiction"
       )),
       contactDetails = Some(ContactDetails(
-        "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+        Some("testFirstName"), Some("testMiddleName"), Some("testSurname"), Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
       )),
       tradingDetails = Some(TradingDetails("true")),
       status = RegistrationStatus.DRAFT,
@@ -1011,7 +1011,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         "testJurisdiction"
       )),
       contactDetails = Some(ContactDetails(
-        "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+        Some("testFirstName"), Some("testMiddleName"), Some("testSurname"), Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
       )),
       tradingDetails = Some(TradingDetails("true")),
       status = RegistrationStatus.LOCKED,
@@ -1046,7 +1046,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         "testJurisdiction"
       )),
       contactDetails = Some(ContactDetails(
-        "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+        Some("testFirstName"), Some("testMiddleName"), Some("testSurname"), Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
       )),
       tradingDetails = Some(TradingDetails("true")),
       status = RegistrationStatus.ACKNOWLEDGED,
@@ -1094,7 +1094,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         "testJurisdiction"
       )),
       contactDetails = Some(ContactDetails(
-        "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+        Some("testFirstName"), Some("testMiddleName"), Some("testSurname"), Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
       )),
       tradingDetails = Some(TradingDetails("true")),
       status = RegistrationStatus.DRAFT,
@@ -1143,7 +1143,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         "testJurisdiction"
       )),
       contactDetails = Some(ContactDetails(
-        "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+        Some("testFirstName"), Some("testMiddleName"), Some("testSurname"), Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
       )),
       tradingDetails = Some(TradingDetails("true")),
       status = RegistrationStatus.DRAFT,
@@ -1191,7 +1191,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         "testJurisdiction"
       )),
       contactDetails = Some(ContactDetails(
-        "testFirstName", Some("testMiddleName"), "testSurname", Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+        Some("testFirstName"), Some("testMiddleName"), Some("testSurname"), Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
       )),
       tradingDetails = Some(TradingDetails("true")),
       status = RegistrationStatus.DRAFT,
