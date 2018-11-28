@@ -24,7 +24,7 @@ import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.http.logging.SessionId
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, Upstream4xxResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, Upstream4xxResponse, Upstream5xxResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
 import uk.gov.hmrc.play.config.{AppName, RunMode}
@@ -157,6 +157,13 @@ class DesConnectorSpec extends UnitSpec with MockitoSugar with WSHttpMock {
         await(connector.customDESRead("", "", response))
       }
       ex.reportAs shouldBe 502
+    }
+    "return a Upstream5xxResponse when response is 503" in new Setup {
+      val response = HttpResponse(429)
+      val ex = intercept[Upstream5xxResponse] {
+        await(connector.customDESRead("", "", response))
+      }
+      ex.reportAs shouldBe 503
     }
   }
 }

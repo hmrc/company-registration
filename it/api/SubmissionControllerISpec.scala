@@ -277,7 +277,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub {
         reg.status shouldBe HELD
       }
 
-      "registration is in Draft status and update Confirmation References but DES submission failed (old HO6)" in new Setup {
+      "registration is in Draft status and update Confirmation References but DES submission failed 403 (old HO6)" in new Setup {
         stubAuthorise(200, authorisedRetrievals)
 
         await(ctRepository.insert(draftRegistration))
@@ -294,6 +294,29 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub {
 
         val response = await(client(s"/$regId/confirmation-references").put(jsonConfirmationRefs("", Some(payRef), Some(payAmount))))
         response.status shouldBe 400
+
+        val reg = await(ctRepository.findAll()).head
+        reg.confirmationReferences shouldBe Some(confRefsWithPayment)
+        reg.sessionIdentifiers shouldBe Some(SessionIds(SessionId, authProviderId))
+        reg.status shouldBe LOCKED
+      }
+      "registration is in Draft status and update Confirmation References but DES submission failed 429 (old HO6)" in new Setup {
+        stubAuthorise(200, authorisedRetrievals)
+
+        await(ctRepository.insert(draftRegistration))
+
+        stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
+        stubPost(s"/business-registration/corporation-tax", 429, "")
+        stubFor(post(urlEqualTo("/incorporation-information/subscribe/trans-id-2345/regime/ctax/subscriber/SCRS?force=true"))
+          .willReturn(
+            aResponse().
+              withStatus(202).
+              withBody("""{"a": "b"}""")
+          )
+        )
+
+        val response = await(client(s"/$regId/confirmation-references").put(jsonConfirmationRefs("", Some(payRef), Some(payAmount))))
+        response.status shouldBe 503
 
         val reg = await(ctRepository.findAll()).head
         reg.confirmationReferences shouldBe Some(confRefsWithPayment)
@@ -406,7 +429,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub {
         reg.status shouldBe HELD
       }
 
-      "registration is in Draft status and update Confirmation References with Ack Ref but DES submission FAILED (new HO5-1)" in new Setup {
+      "registration is in Draft status and update Confirmation References with Ack Ref but DES submission FAILED 403 (new HO5-1)" in new Setup {
         stubAuthorise(200, authorisedRetrievals)
 
         val confRefsWithoutPayment = ConfirmationReferences(
@@ -436,7 +459,36 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub {
         reg.sessionIdentifiers shouldBe Some(SessionIds(SessionId, authProviderId))
         reg.status shouldBe LOCKED
       }
+      "registration is in Draft status and update Confirmation References with Ack Ref but DES submission FAILED 429 (new HO5-1)" in new Setup {
+        stubAuthorise(200, authorisedRetrievals)
 
+        val confRefsWithoutPayment = ConfirmationReferences(
+          acknowledgementReference = ackRef,
+          transactionId = transId,
+          paymentReference = None,
+          paymentAmount = None
+        )
+
+        await(ctRepository.insert(draftRegistration))
+
+        stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
+        stubPost(s"/business-registration/corporation-tax", 429, "")
+        stubFor(post(urlEqualTo("/incorporation-information/subscribe/trans-id-2345/regime/ctax/subscriber/SCRS?force=true"))
+          .willReturn(
+            aResponse().
+              withStatus(202).
+              withBody("""{"a": "b"}""")
+          )
+        )
+
+        val response = await(client(s"/$regId/confirmation-references").put(jsonConfirmationRefs()))
+        response.status shouldBe 503
+
+        val reg = await(ctRepository.findAll()).head
+        reg.confirmationReferences shouldBe Some(confRefsWithoutPayment)
+        reg.sessionIdentifiers shouldBe Some(SessionIds(SessionId, authProviderId))
+        reg.status shouldBe LOCKED
+      }
       "registration is in Locked status and update Confirmation References with Payment infos (new HO6)" in new Setup {
         stubAuthorise(200, authorisedRetrievals)
 

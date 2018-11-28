@@ -58,6 +58,9 @@ trait DesConnector extends AuditService with RawResponseReads with HttpErrorFunc
       case 409 =>
         Logger.warn("[DesConnector] [customDESRead] Received 409 from DES - converting to 202")
         HttpResponse(202, Some(response.json), response.allHeaders, Option(response.body))
+      case 429 =>
+        Logger.warn("[DesConnector] [customDESRead] Received 429 from DES - converting to 503")
+        throw Upstream5xxResponse("Timeout received from DES submission", 499, 503)
       case 499 =>
         Logger.warn("[DesConnector] [customDESRead] Received 499 from DES - converting to 502")
         throw Upstream4xxResponse("Timeout received from DES submission", 499, 502)
