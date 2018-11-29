@@ -229,11 +229,10 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
 
   "Process Incorporation" should {
 
-    val path = "/process-incorp"
+    val processIncorpPath = "/process-incorp"
     val testIncorpDate = "2017-07-24"
 
     "send a top up submission to DES with correct active date" when {
-
       "user has selected a Future Date for Accounting Dates before the incorporation date" in new Setup {
         val incorpDate = "2017-07-24"
 
@@ -244,7 +243,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
         val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
         stubPost("/business-incorporation/corporation-tax", 200, ctSubmission)
 
-        val response = await(client("/process-incorp").post(jsonIncorpStatus(incorpDate)))
+        val response = await(client(processIncorpPath).post(jsonIncorpStatus(incorpDate)))
         response.status shouldBe 200
 
         val crPosts = findAll(postRequestedFor(urlMatching(s"/business-incorporation/corporation-tax")))
@@ -263,7 +262,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
         val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(activeDate)).toString
         stubPost("/business-incorporation/corporation-tax", 200, ctSubmission)
 
-        val response = await(client("/process-incorp").post(jsonIncorpStatus(incorpDate)))
+        val response = await(client(processIncorpPath).post(jsonIncorpStatus(incorpDate)))
         response.status shouldBe 200
 
         val crPosts = findAll(postRequestedFor(urlMatching(s"/business-incorporation/corporation-tax")))
@@ -287,7 +286,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
         val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
         stubPost("/business-incorporation/corporation-tax", 200, ctSubmission)
 
-        val response = await(client("/process-incorp").post(jsonIncorpStatus(incorpDate)))
+        val response = await(client(processIncorpPath).post(jsonIncorpStatus(incorpDate)))
         response.status shouldBe 200
 
         val crPosts = findAll(postRequestedFor(urlMatching(s"/business-incorporation/corporation-tax")))
@@ -312,7 +311,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
         val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
         stubPost("/business-incorporation/corporation-tax", 200, ctSubmission)
 
-        val response = await(client("/process-incorp").post(jsonIncorpStatus(incorpDate)))
+        val response = await(client(processIncorpPath).post(jsonIncorpStatus(incorpDate)))
         response.status shouldBe 200
 
         val crPosts = findAll(postRequestedFor(urlMatching(s"/business-incorporation/corporation-tax")))
@@ -333,7 +332,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
         val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
         stubPost("/business-incorporation/corporation-tax", 400, "")
 
-        val response = await(client("/process-incorp").post(jsonIncorpStatus(incorpDate)))
+        val response = await(client(processIncorpPath).post(jsonIncorpStatus(incorpDate)))
         response.status shouldBe 400
       }
       "it is a 409" in new Setup {
@@ -344,8 +343,19 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
         val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
         stubPost("/business-incorporation/corporation-tax", 409, """{"wibble" : "bar"}""")
 
-        val response = await(client("/process-incorp").post(jsonIncorpStatus(incorpDate)))
+        val response = await(client(processIncorpPath).post(jsonIncorpStatus(incorpDate)))
         response.status shouldBe 200
+      }
+      "it is a 429" in new Setup {
+        await(ctRepository.insert(heldRegistration))
+
+        setupSimpleAuthMocks()
+        stubPost("/hmrc/email", 202, "")
+        val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
+        stubPost("/business-incorporation/corporation-tax", 429, """{"wibble" : "bar"}""")
+
+        val response = await(client(processIncorpPath).post(jsonIncorpStatus(incorpDate)))
+        response.status shouldBe 503
       }
       "it is a 499" in new Setup {
         await(ctRepository.insert(heldRegistration))
@@ -355,7 +365,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
         val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
         stubPost("/business-incorporation/corporation-tax", 499, """{"wibble" : "bar"}""")
 
-        val response = await(client("/process-incorp").post(jsonIncorpStatus(incorpDate)))
+        val response = await(client(processIncorpPath).post(jsonIncorpStatus(incorpDate)))
         response.status shouldBe 502
       }
       "it is a 501" in new Setup {
@@ -366,7 +376,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
         val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
         stubPost("/business-incorporation/corporation-tax", 501, """{"wibble" : "bar"}""")
 
-        val response = await(client("/process-incorp").post(jsonIncorpStatus(incorpDate)))
+        val response = await(client(processIncorpPath).post(jsonIncorpStatus(incorpDate)))
         response.status shouldBe 502
       }
       "registration is Locked by returning 202 to postpone the II notification" in new Setup {
@@ -398,7 +408,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
           )
         )
 
-        val response = await(client("/process-incorp").post(jsonIncorpStatus(incorpDate)))
+        val response = await(client(processIncorpPath).post(jsonIncorpStatus(incorpDate)))
         response.status shouldBe 202
 
         val reg = await(ctRepository.findAll()).head
@@ -433,7 +443,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
           )
         )
 
-        val response = await(client("/process-incorp").post(jsonIncorpStatus(incorpDate)))
+        val response = await(client(processIncorpPath).post(jsonIncorpStatus(incorpDate)))
         response.status shouldBe 400
 
         val reg = await(ctRepository.findAll()).head
@@ -460,7 +470,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
 
         stubGet(s"/business-registration/admin/business-tax-registration/$regId", 200, businessRegistrationResponse)
 
-        val response = await(client("/process-incorp").post(jsonIncorpStatus(incorpDate)))
+        val response = await(client(processIncorpPath).post(jsonIncorpStatus(incorpDate)))
         response.status shouldBe 200
 
         val reg = await(ctRepository.findAll()).head
@@ -495,7 +505,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
           )
         )
 
-        val response = await(client("/process-incorp").post(jsonIncorpStatusRejected))
+        val response = await(client(processIncorpPath).post(jsonIncorpStatusRejected))
         response.status shouldBe 202
 
         val reg = await(ctRepository.findAll()).head
@@ -530,7 +540,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
           )
         )
 
-        val response = await(client("/process-incorp").post(jsonIncorpStatusRejected))
+        val response = await(client(processIncorpPath).post(jsonIncorpStatusRejected))
         response.status shouldBe 400
 
         val reg = await(ctRepository.findAll()).head
@@ -546,7 +556,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
         stubDesTopUpPost(200, """{"test":"json"}""")
         stubEmailPost(202)
 
-        val response: WSResponse = client(path).post(jsonIncorpStatusRejected)
+        val response: WSResponse = client(processIncorpPath).post(jsonIncorpStatusRejected)
 
         response.status shouldBe 200
 
@@ -566,7 +576,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
       "submission has already been deleted" in new Setup {
         setupSimpleAuthMocks()
 
-        val response: WSResponse = client(path).post(jsonIncorpStatusRejected)
+        val response: WSResponse = client(processIncorpPath).post(jsonIncorpStatusRejected)
 
         response.status shouldBe 200
         ctRepository.awaitCount shouldBe 0
@@ -586,7 +596,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
         stubDesTopUpPost(200, """{"test":"json"}""")
         stubEmailPost(202)
 
-        val response: WSResponse = client(path).post(jsonIncorpStatusRejected)
+        val response: WSResponse = client(processIncorpPath).post(jsonIncorpStatusRejected)
 
         response.status shouldBe 200
 
@@ -614,7 +624,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
       stubDesTopUpPost(200, """{"test":"json"}""")
       stubEmailPost(202)
 
-      val response: WSResponse = client(path).post(jsonBodyFromII)
+      val response: WSResponse = client(processIncorpPath).post(jsonBodyFromII)
 
       response.status shouldBe 200
 
@@ -633,7 +643,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
       stubEmailPost(202)
       stubPost("/write/audit", 200, """{"x":2}""")
 
-      val response: WSResponse = client(path).post(jsonBodyFromII)
+      val response: WSResponse = client(processIncorpPath).post(jsonBodyFromII)
       response.status shouldBe 500
     }
 
@@ -647,7 +657,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
       stubDesTopUpPost(502, """{"test":"json for 502"}""")
       stubEmailPost(202)
 
-      val response1: WSResponse = client(path).post(jsonBodyFromII)
+      val response1: WSResponse = client(processIncorpPath).post(jsonBodyFromII)
 
       response1.status shouldBe 502
 
@@ -656,7 +666,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
 
       stubDesTopUpPost(200, """{"test":"json for 200"}""")
 
-      val response2: WSResponse = client(path).post(jsonBodyFromII)
+      val response2: WSResponse = client(processIncorpPath).post(jsonBodyFromII)
 
       response2.status shouldBe 200
 
@@ -671,7 +681,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
       setupSimpleAuthMocks()
       setupCTRegistration(heldRegistration.copy(status = RegistrationStatus.ACKNOWLEDGED))
 
-      val response1: WSResponse = client(path).post(jsonBodyFromII)
+      val response1: WSResponse = client(processIncorpPath).post(jsonBodyFromII)
 
       response1.status shouldBe 200
 
@@ -685,7 +695,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
 
       setupSimpleAuthMocks()
 
-      val response1: WSResponse = client(path).post(jsonBodyFromII)
+      val response1: WSResponse = client(processIncorpPath).post(jsonBodyFromII)
 
       response1.status shouldBe 200
    }
