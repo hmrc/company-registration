@@ -17,7 +17,7 @@
 package api
 
 import auth.Crypto
-import itutil.{IntegrationSpecBase, LoginStub, WiremockHelper}
+import itutil.{IntegrationSpecBase, LoginStub, RequestFinder, WiremockHelper}
 import models.RegistrationStatus._
 import models._
 import play.api.Application
@@ -34,7 +34,7 @@ import com.github.tomakehurst.wiremock.client.WireMock._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub {
+class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with RequestFinder{
   val mockHost = WiremockHelper.wiremockHost
   val mockPort = WiremockHelper.wiremockPort
   val mockUrl = s"http://$mockHost:$mockPort"
@@ -427,6 +427,50 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub {
         reg.confirmationReferences shouldBe Some(confRefsWithoutPayment)
         reg.sessionIdentifiers shouldBe None
         reg.status shouldBe HELD
+      }
+      "registration is in Draft status, at 5-1, sending the RO address as the PPOB and RO has unormalised characters" in new Setup {
+        stubAuthorise(200, authorisedRetrievals)
+
+        val confRefsWithoutPayment = ConfirmationReferences(
+          acknowledgementReference = ackRef,
+          transactionId = transId,
+          paymentReference = None,
+          paymentAmount = None
+        )
+
+        await(ctRepository.insert(draftRegistration.copy(companyDetails =
+          Some(CompanyDetails(
+            companyName = "testCompanyName",
+            CHROAddress("<123> {ABC} !*^%$£","BDT & CFD /|@", Some("A¥€ 1 «»"), "D£q|l", ":~#Rts!2", Some("B~ ¬` 2^ -+=_:;"),Some("XX1 1ØZ"),Some("test coûntry")),
+            PPOB("RO", None),
+            jurisdiction = "testJurisdiction"
+          ))
+        )))
+
+        stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
+        stubPost(s"/business-registration/corporation-tax", 200, """{"a": "b"}""")
+        stubFor(post(urlEqualTo("/incorporation-information/subscribe/trans-id-2345/regime/ctax/subscriber/SCRS?force=true"))
+          .willReturn(
+            aResponse().
+              withStatus(202).
+              withBody("""{"a": "b"}""")
+          )
+        )
+
+        val response = await(client(s"/$regId/confirmation-references").put(jsonConfirmationRefs()))
+        response.status shouldBe 200
+        response.json shouldBe Json.toJson(confRefsWithoutPayment)
+
+        val reg = await(ctRepository.findAll()).head
+        reg.confirmationReferences shouldBe Some(confRefsWithoutPayment)
+        reg.sessionIdentifiers shouldBe None
+        reg.status shouldBe HELD
+
+        val s = Json.parse(getRequestBody("post", "/business-registration/corporation-tax")).as[JsObject]
+        val registration = (s \ "registration" \ "metadata").as[JsObject] - "sessionId" - "formCreationTimestamp"
+        val corp =  (s \ "registration" \ "corporationTax").as[JsObject]
+        val res = s.as[JsObject]- "registration" ++ Json.obj("registration" -> Json.obj("metadata" -> registration, "corporationTax" -> corp))
+        res shouldBe Json.parse("""{"acknowledgementReference":"BRCT00000000001","registration":{"metadata":{"businessType":"Limited company","submissionFromAgent":false,"declareAccurateAndComplete":true,"credentialId":"testAuthProviderId","language":"en","completionCapacity":"Director"},"corporationTax":{"companyOfficeNumber":"623","hasCompanyTakenOverBusiness":false,"companyMemberOfGroup":false,"companiesHouseCompanyName":"testCompanyName","returnsOnCT61":true,"companyACharity":false,"businessAddress":{"line1":"123 ABC  BDT & CFD /","line2":"A 1 ","line3":"Rts2","line4":"test country","postcode":"XX1 1OZ","country":"Dql"},"businessContactDetails":{"phoneNumber":"02072899066","mobileNumber":"07567293726","email":"test@email.co.uk"}}}}""")
       }
 
       "registration is in Draft status and update Confirmation References with Ack Ref but DES submission FAILED 403 (new HO5-1)" in new Setup {

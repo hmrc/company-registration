@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,39 +30,39 @@ import utils.{AlertLogging, Logging}
 import scala.concurrent.Future
 
 class CorporationTaxRegistrationControllerImpl @Inject()(
-        val metricsService: MetricsService,
-        val authConnector: AuthClientConnector,
-        val ctService: CorporationTaxRegistrationService,
-        val repositories: Repositories) extends CorporationTaxRegistrationController {
+                                                          val metricsService: MetricsService,
+                                                          val authConnector: AuthClientConnector,
+                                                          val ctService: CorporationTaxRegistrationService,
+                                                          val repositories: Repositories) extends CorporationTaxRegistrationController {
 
   val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 }
 
 trait CorporationTaxRegistrationController extends BaseController with AuthorisedActions with Logging with AlertLogging {
 
-  val ctService : CorporationTaxRegistrationService
-  val metricsService : MetricsService
+  val ctService: CorporationTaxRegistrationService
+  val metricsService: MetricsService
 
   def createCorporationTaxRegistration(registrationId: String): Action[JsValue] =
-    AuthenticatedAction.retrieve(internalId).async(parse.json){ internalId =>
-    implicit request =>
-      val timer = metricsService.createCorporationTaxRegistrationCRTimer.time()
-      withJsonBody[CorporationTaxRegistrationRequest] { ctRequest =>
-        ctService.createCorporationTaxRegistrationRecord(internalId, registrationId, ctRequest.language).map{ res =>
-          timer.stop()
-          Created(Json.obj(
-            "registrationID" -> res.registrationID,
-            "status" -> res.status,
-            "formCreationTimestamp" -> res.formCreationTimestamp,
-            "links" -> Json.obj(
-              "self" -> routes.CorporationTaxRegistrationController.retrieveCorporationTaxRegistration(registrationId).url
-            )
-          ))
+    AuthenticatedAction.retrieve(internalId).async(parse.json) { internalId =>
+      implicit request =>
+        val timer = metricsService.createCorporationTaxRegistrationCRTimer.time()
+        withJsonBody[CorporationTaxRegistrationRequest] { ctRequest =>
+          ctService.createCorporationTaxRegistrationRecord(internalId, registrationId, ctRequest.language).map { res =>
+            timer.stop()
+            Created(Json.obj(
+              "registrationID" -> res.registrationID,
+              "status" -> res.status,
+              "formCreationTimestamp" -> res.formCreationTimestamp,
+              "links" -> Json.obj(
+                "self" -> routes.CorporationTaxRegistrationController.retrieveCorporationTaxRegistration(registrationId).url
+              )
+            ))
+          }
         }
-      }
-  }
+    }
 
-  def retrieveCorporationTaxRegistration(registrationID: String): Action[AnyContent] = AuthorisedAction(registrationID).async{
+  def retrieveCorporationTaxRegistration(registrationID: String): Action[AnyContent] = AuthorisedAction(registrationID).async {
     implicit request =>
       val timer = metricsService.retrieveCorporationTaxRegistrationCRTimer.time()
       ctService.retrieveCorporationTaxRegistrationRecord(registrationID).map {
@@ -80,7 +80,7 @@ trait CorporationTaxRegistrationController extends BaseController with Authorise
       }
   }
 
-  def retrieveFullCorporationTaxRegistration(registrationID: String): Action[AnyContent] = AuthorisedAction(registrationID).async{
+  def retrieveFullCorporationTaxRegistration(registrationID: String): Action[AnyContent] = AuthorisedAction(registrationID).async {
     implicit request =>
       val timer = metricsService.retrieveFullCorporationTaxRegistrationCRTimer.time()
       ctService.retrieveCorporationTaxRegistrationRecord(registrationID).map {
@@ -91,7 +91,7 @@ trait CorporationTaxRegistrationController extends BaseController with Authorise
       }
   }
 
-  def retrieveConfirmationReference(registrationID: String): Action[AnyContent] = AuthorisedAction(registrationID).async{
+  def retrieveConfirmationReference(registrationID: String): Action[AnyContent] = AuthorisedAction(registrationID).async {
     implicit request =>
       val timer = metricsService.retrieveConfirmationReferenceCRTimer.time()
       ctService.retrieveConfirmationReferences(registrationID) map {
@@ -108,7 +108,7 @@ trait CorporationTaxRegistrationController extends BaseController with Authorise
         val progress = (body \ "registration-progress").as[String]
         ctService.updateRegistrationProgress(registrationID, progress) map {
           case Some(_) => Ok
-          case _       => NotFound
+          case _ => NotFound
         }
       }
   }
@@ -116,10 +116,13 @@ trait CorporationTaxRegistrationController extends BaseController with Authorise
   def roAddressValid(): Action[JsValue] = Action.async[JsValue](parse.json) {
     implicit request =>
       withJsonBody[CHROAddress] { body =>
-        Future.successful(ctService.convertROToPPOBAddress(body) match {
-          case Some(ppob) => Ok(Json.toJson(ppob)(PPOBAddress.writes))
-          case _          => BadRequest
-        })
+
+        ctService.convertROToPPOBAddress(body) match {
+          case Some(ppob) => {
+            Future.successful(Ok(Json.toJson(ppob)(PPOBAddress.writes)))
+          }
+          case _ => Future.successful(BadRequest)
+        }
       }
   }
 }
