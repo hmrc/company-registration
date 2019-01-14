@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -105,15 +105,17 @@ trait AddressValidator {
   }
 
   private def regexWrap(regex : String): Regex = {
-    ("^" + regex + "$").r
+    regex.r
+
   }
 
-  val linePattern = regexWrap("[a-zA-Z0-9,.\\(\\)/&amp;'&quot;\\-]{1}[a-zA-Z0-9, .\\(\\)/&amp;'&quot;\\-]{0,26}")
-  val line4Pattern = regexWrap("[a-zA-Z0-9,.\\(\\)/&amp;'&quot;\\-]{1}[a-zA-Z0-9, .\\(\\)/&amp;'&quot;\\-]{0,17}")
+
+  val linePattern = regexWrap("""[a-zA-Z0-9\/\\("),.'&-]{1}[a-zA-Z0-9\/\\("), .'&-]{0,26}""")
+  val line4Pattern = regexWrap("""[a-zA-Z0-9\/\\("),.'&-]{1}[a-zA-Z0-9\/\\("), .'&-]{0,17}""")
   val postCodePattern = regexWrap("[A-Z]{1,2}[0-9][0-9A-Z]? [0-9][A-Z]{2}")
   val countryPattern = regexWrap("[A-Za-z0-9]{1}[A-Za-z 0-9]{0,19}")
 
-  val lineInvert = regexWrap("[a-zA-Z0-9,.\\(\\)/&amp;'&quot;\\- ]")
+  val lineInvert = regexWrap("""[a-zA-Z0-9\/\\("), .'&-]""")
   val postCodeInvert = regexWrap("[A-Z0-9 ]")
   val countryInvert = regexWrap("[A-Za-z0-9 ]")
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,15 +42,15 @@ class CorporationTaxRegistrationServiceImpl @Inject()(
                                                        val repositories: Repositories
                                                      ) extends CorporationTaxRegistrationService {
 
+  lazy val auditConnector = MicroserviceAuditConnector
   val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
   val sequenceRepository: SequenceMongoRepository = repositories.sequenceRepository
-
-  lazy val auditConnector = MicroserviceAuditConnector
 
   def currentDateTime: DateTime = DateTime.now(DateTimeZone.UTC)
 }
 
 sealed trait FailedPartialForLockedTopup extends NoStackTrace
+
 case object NoSessionIdentifiersInDocument extends FailedPartialForLockedTopup
 
 trait CorporationTaxRegistrationService extends DateHelper {
@@ -59,7 +59,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
   val sequenceRepository: SequenceRepository
   val brConnector: BusinessRegistrationConnector
   val auditConnector: AuditConnector
-  val incorpInfoConnector :IncorporationInformationConnector
+  val incorpInfoConnector: IncorporationInformationConnector
   val desConnector: DesConnector
   val submissionCheckAPIConnector: IncorporationCheckAPIConnector
 
@@ -82,12 +82,12 @@ trait CorporationTaxRegistrationService extends DateHelper {
     val repo = cTRegistrationRepository
     repo.retrieveCorporationTaxRegistration(rID) map {
       doc =>
-        lastSignedIn map ( repo.updateLastSignedIn(rID, _))
+        lastSignedIn map (repo.updateLastSignedIn(rID, _))
         doc
     }
   }
 
-  def convertROToPPOBAddress(rOAddress: CHROAddress) : Option[PPOBAddress] = {
+  def convertROToPPOBAddress(rOAddress: CHROAddress): Option[PPOBAddress] = {
     import APIValidation._
 
     Try {
@@ -119,25 +119,24 @@ trait CorporationTaxRegistrationService extends DateHelper {
       }
 
       PPOBAddress(linesResults.head.get, linesResults(1).get, linesResults(2), linesResults(3), postCodeOpt, countryOpt, None, "")
-    } match {
-      case Success(ppob) =>
-        Logger.info(s"[convertROToPPOBAddress] Converted RO address")
-        Some(ppob)
-      case Failure(e)    =>
-        Logger.warn(s"[convertROToPPOBAddress] Could not convert RO address - ${e.getMessage}")
-        None
-    }
+    }.map { s =>
+      Logger.info(s"[convertROToPPOBAddress] Convertd RO address")
+      Some(s)
+    }.recoverWith {
+      case e => Logger.warn(s"[convertROToPPOBAddress] Could not convert RO address - ${e.getMessage}")
+        Success(None)
+    }.get
   }
 
   def retrieveConfirmationReferences(rID: String): Future[Option[ConfirmationReferences]] = {
     cTRegistrationRepository.retrieveConfirmationReferences(rID)
   }
 
-  def locateOldHeldSubmissions(implicit hc : HeaderCarrier): Future[String] = {
-    cTRegistrationRepository.retrieveAllWeekOldHeldSubmissions().map {submissions =>
+  def locateOldHeldSubmissions(implicit hc: HeaderCarrier): Future[String] = {
+    cTRegistrationRepository.retrieveAllWeekOldHeldSubmissions().map { submissions =>
       if (submissions.nonEmpty) {
         Logger.error("ALERT_missing_incorporations")
-        submissions.map {submission =>
+        submissions.map { submission =>
           val txID = submission.confirmationReferences.fold("")(cr => cr.transactionId)
           val heldTimestamp = submission.heldTimestamp.fold("")(ht => ht.toString())
 
@@ -151,13 +150,13 @@ trait CorporationTaxRegistrationService extends DateHelper {
     }
   }
 
-  final class FailedToGetCTData extends NoStackTrace
-
   def retrieveCTData(regId: String): Future[CorporationTaxRegistration] = {
     cTRegistrationRepository.retrieveCorporationTaxRegistration(regId) flatMap {
       case Some(ct) => Future.successful(ct)
       case _ => Future.failed(new FailedToGetCTData)
     }
   }
+
+  final class FailedToGetCTData extends NoStackTrace
 
 }

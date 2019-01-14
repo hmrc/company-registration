@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,21 +16,22 @@
 
 package utils
 
+
 import java.text.Normalizer.Form
 import java.text.Normalizer._
-
-import models.validation.APIValidation
 
 import scala.util.matching.Regex
 
 object StringNormaliser {
   val specialCharacterConverts = Map('æ' -> "ae", 'Æ' -> "AE", 'œ' -> "oe", 'Œ' -> "OE", 'ß' -> "ss", 'ø' -> "o", 'Ø' -> "O")
   def normaliseString(string : String, charFilter : Regex) : String = {
-    normalize(string, Form.NFKD)
+   val ourString =  normalize(string, Form.NFKD)
       .replaceAll("\\p{M}", "")
       .trim
       .map(char => specialCharacterConverts.getOrElse(char, char))
       .mkString
-      .filter(c => c.toString matches charFilter.regex)
+
+    charFilter.findAllMatchIn(ourString).mkString
+
   }
 }
