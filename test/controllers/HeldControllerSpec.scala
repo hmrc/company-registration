@@ -86,6 +86,16 @@ class HeldControllerSpec extends BaseSpec with AuthorisationMocks {
       status(result) shouldBe OK
       contentAsString(result) shouldBe s"${now.getMillis}"
     }
+    "return 404 If no date exists" in new Setup {
+      mockAuthorise()
+
+      when(mockResource.getExistingRegistration(ArgumentMatchers.any()))
+        .thenReturn(Future.successful(doc(None)))
+
+      val result = await(controller.fetchHeldSubmissionTime(regId)(FakeRequest()))
+      status(result) shouldBe 404
+      contentAsString(result) shouldBe ""
+    }
 
     "return an exception if experieced" in new Setup {
       mockAuthorise()

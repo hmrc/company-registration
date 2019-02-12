@@ -111,13 +111,14 @@ trait SubmissionService extends DateHelper {
         } yield updatedRefs
 
       case Some(cr) if confirmationRefsAndPaymentRefsAreEmpty(cr) =>
-        Future.successful(cr.copy(paymentReference = refs.paymentReference, paymentAmount = refs.paymentAmount))
+        storeConfirmationReferencesAndUpdateStatus(rID, cr.copy(paymentReference = refs.paymentReference, paymentAmount = refs.paymentAmount), None)
 
       case Some(cr) =>
         Future.successful(cr)
 
     }
   }
+
 
   private[services] def storeConfirmationReferencesAndUpdateStatus(regId: String, refs: ConfirmationReferences, status: Option[String]): Future[ConfirmationReferences] = {
     status.fold(cTRegistrationRepository.updateConfirmationReferences(regId, refs))(cTRegistrationRepository.updateConfirmationReferencesAndUpdateStatus(regId, refs, _)) map {
