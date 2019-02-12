@@ -41,7 +41,7 @@ trait HeldController extends BaseController with AuthorisedActions {
   def fetchHeldSubmissionTime(regId: String): Action[AnyContent] = AuthenticatedAction.async {
     implicit request =>
       resource.getExistingRegistration(regId) map { doc =>
-          Ok(Json.toJson(doc.heldTimestamp))
+        doc.heldTimestamp.fold(NotFound(""))(date => Ok(Json.toJson(date)))
       }
   }
 

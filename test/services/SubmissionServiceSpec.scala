@@ -753,4 +753,74 @@ class SubmissionServiceSpec extends UnitSpec with SCRSMocks with CorporationTaxR
       intercept[RuntimeException](await(service.setupPartialForTopupOnLocked(tID)))
     }
   }
+
+"setup for prepareDocumentForSubmission" should {
+
+  val registrationId = "testRegId"
+  val tID = "transID"
+  val ackRef = "ackRef"
+
+  val confRefs = ConfirmationReferences(
+    acknowledgementReference = ackRef,
+    transactionId = tID,
+    paymentReference = Some("payref"),
+    paymentAmount = Some("12")
+  )
+
+  val lockedSubmission = CorporationTaxRegistration(
+    internalId = "testID",
+    registrationID = registrationId,
+    formCreationTimestamp = "",
+    language = "en",
+    status = RegistrationStatus.LOCKED,
+    confirmationReferences = Some(confRefs)
+  )
+
+  val noneSubmission = CorporationTaxRegistration(
+    internalId = "testID",
+    registrationID = registrationId,
+    formCreationTimestamp = "",
+    language = "en",
+    confirmationReferences = None
+
+  )
+
+  val refsEmpty = ConfirmationReferences(
+    acknowledgementReference = ackRef,
+    transactionId = tID,
+    paymentReference = None,
+    paymentAmount = None
+  )
+
+  val emptySubmission = CorporationTaxRegistration(
+    internalId = "testID",
+    registrationID = registrationId,
+    formCreationTimestamp = "",
+    language = "en",
+    status = RegistrationStatus.LOCKED,
+    confirmationReferences = Some(refsEmpty)
+  )
+
+"throw exception when updateConfirmationReferencesAndUpdateStatus is none " in new Setup{
+  when(mockSequenceRepo.getNext(any()))
+    .thenReturn(Future.successful(1))
+  when(mockCorpTaxRepo.updateConfirmationReferencesAndUpdateStatus(any(), any(), any()))
+    .thenReturn(Future.successful(None))
+
+  intercept[Exception](await(service prepareDocumentForSubmission(registrationId, "a", confRefs, noneSubmission)))
+}
+
+"successfully return confirmation refs and not change data when updateConfirmationReferencesAndUpdateStatus has data " in new Setup{
+    await(service prepareDocumentForSubmission(registrationId, "a", confRefs, lockedSubmission)) shouldBe confRefs
+  }
+
+  "successfully update details when confirmationRefsAndPaymentRefsAreEmpty is true " in new Setup{
+    when(mockCorpTaxRepo.updateConfirmationReferences(any(), any()))
+      .thenReturn(Future.successful(Some(refsEmpty)))
+
+    await(service prepareDocumentForSubmission(registrationId, "a", refsEmpty, emptySubmission)) shouldBe refsEmpty
+  }
+
+
+  }
 }
