@@ -24,7 +24,7 @@ import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import scala.concurrent.Future
 
 class ContactDetailsServiceImpl @Inject()(val repositories: Repositories) extends ContactDetailsService {
-  override val corporationTaxRegistrationRepository = repositories.cTRepository
+  lazy val corporationTaxRegistrationRepository = repositories.cTRepository
 }
 
 trait ContactDetailsService {

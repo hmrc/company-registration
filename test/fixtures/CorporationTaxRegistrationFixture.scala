@@ -84,7 +84,7 @@ trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with Accou
     formCreationTimestamp = "2001-12-31T12:00:00Z",
     language = "en",
     confirmationReferences = Some(validConfRefsWithData(Some("BRCT1234"))),
-    companyDetails = Some(validCompanyDetails.copy(companyName = companyName)),//Some(CompanyDetails(companyName, "roadress", )),
+    companyDetails = Some(validCompanyDetails.copy(companyName = companyName)),
     accountingDetails = Some(AccountingDetails(AccountingDetails.FUTURE_DATE, Some("2019-12-31"))),
     tradingDetails = None,
     contactDetails = None

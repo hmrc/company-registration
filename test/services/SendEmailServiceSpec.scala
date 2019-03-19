@@ -17,18 +17,18 @@
 package services
 
 import connectors.SendEmailConnector
-import mocks.SCRSMocks
+import mocks.{AuthorisationMocks, SCRSMocks}
 import models._
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
 
 
-class SendEmailServiceSpec extends UnitSpec with MockitoSugar with SCRSMocks with BeforeAndAfterEach  {
+class SendEmailServiceSpec extends UnitSpec with SCRSMocks with AuthorisationMocks with MockitoSugar  with BeforeAndAfterEach  {
 
   implicit val hc = HeaderCarrier()
   implicit val req = FakeRequest("GET", "/test-path")

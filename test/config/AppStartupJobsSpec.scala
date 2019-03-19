@@ -23,10 +23,10 @@ import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
 import org.scalatest.concurrent.Eventually
-import org.scalatest.mock.MockitoSugar
-import play.api.{Application, Configuration, Logger}
-import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
-import services.admin.AdminServiceImpl
+import org.scalatest.mockito.MockitoSugar
+import play.api.{Configuration, Logger}
+import repositories._
+import services.admin.{AdminService, AdminServiceImpl}
 import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
 
 import scala.concurrent.Future
@@ -34,27 +34,12 @@ import scala.concurrent.Future
 class AppStartupJobsSpec extends UnitSpec with MockitoSugar with LogCapturing
   with CorporationTaxRegistrationFixture with Eventually {
 
-  val mockApp: Application = mock[Application]
-  val mockConfig: Configuration = mock[Configuration]
+  val mockConfig: Configuration = Configuration.empty
   val mockCTRepository: CorporationTaxRegistrationMongoRepository = mock[CorporationTaxRegistrationMongoRepository]
-  val mockAdminService: AdminServiceImpl = mock[AdminServiceImpl]
-  val mockRepositories: Repositories = mock[Repositories]
 
+  val mockAdminService: AdminServiceImpl = mock[AdminServiceImpl]
   val expectedLockedReg = List()
   val expectedRegStats  = Map.empty[String,Int]
-
-  trait Setup {
-    when(mockRepositories.cTRepository)
-      .thenReturn(mockCTRepository)
-
-    when(mockCTRepository.retrieveLockedRegIDs())
-      .thenReturn(Future.successful(expectedLockedReg))
-
-    when(mockCTRepository.getRegistrationStats())
-      .thenReturn(Future.successful(expectedRegStats))
-
-    val appStartupJobs: AppStartupJobs = new AppStartupJobs(mockConfig, mockAdminService, mockRepositories)
-  }
 
   "get Company Name" should {
 
@@ -66,18 +51,29 @@ class AppStartupJobsSpec extends UnitSpec with MockitoSugar with LogCapturing
     val ctDoc2 = validCTRegWithCompanyName(regId1, companyName2)
 
 
-    "log specific company name relating to reg id passed in" in new Setup {
-      when(mockCTRepository.retrieveMultipleCorporationTaxRegistration(any()))
-        .thenReturn(Future.successful(List(ctDoc1,ctDoc2)))
+    "log specific company name relating to reg id passed in" in {
+      when(mockCTRepository.retrieveLockedRegIDs())
+        .thenReturn(Future.successful(expectedLockedReg))
 
-      withCaptureOfLoggingFrom(Logger){ logEvents =>
+      when(mockCTRepository.getRegistrationStats())
+        .thenReturn(Future.successful(expectedRegStats))
+      when(mockCTRepository.retrieveMultipleCorporationTaxRegistration(any()))
+        .thenReturn(Future.successful(List(ctDoc1, ctDoc2)))
+
+
+      val appStartupJobs: AppStartupJobs = new AppStartupJobs {
+        override def runEverythingOnStartUp: Future[Unit] = Future.successful(())
+        override val config: Configuration = Configuration()
+        override val service: AdminService = mockAdminService
+        override val ctRepo:CorporationTaxRegistrationMongoRepository = mockCTRepository
+      }
+      withCaptureOfLoggingFrom(Logger) { logEvents =>
         eventually {
           await(appStartupJobs.getCTCompanyName(regId1))
           val expectedLogs = List(
             s"[CompanyName] status : held - reg Id : $regId1 - Company Name : $companyName1 - Trans ID : TX1",
             s"[CompanyName] status : held - reg Id : $regId1 - Company Name : $companyName2 - Trans ID : TX1"
           )
-
           expectedLogs.diff(logEvents.map(_.getMessage)) shouldBe List.empty
         }
       }
@@ -90,7 +86,7 @@ class AppStartupJobsSpec extends UnitSpec with MockitoSugar with LogCapturing
     def corporationTaxRegistration(regId: String,
                                    status: String = SUBMITTED,
                                    transId: String = "transid-1"
-                                   ): CorporationTaxRegistration = {
+                                  ): CorporationTaxRegistration = {
       CorporationTaxRegistration(
         internalId = "testID",
         registrationID = regId,
@@ -115,7 +111,13 @@ class AppStartupJobsSpec extends UnitSpec with MockitoSugar with LogCapturing
 
     val regIds = Seq("regId1","regId2","regId3")
 
-    "log specific company name relating to reg id passed in" in new Setup {
+    "log specific company name relating to reg id passed in" in {
+
+      when(mockCTRepository.retrieveLockedRegIDs())
+        .thenReturn(Future.successful(expectedLockedReg))
+
+      when(mockCTRepository.getRegistrationStats())
+        .thenReturn(Future.successful(expectedRegStats))
       when(mockCTRepository.retrieveCorporationTaxRegistration("regId1"))
         .thenReturn(Future.successful(Some(corporationTaxRegistration("regId1","TestStatus","transid-1"))))
       when(mockCTRepository.retrieveCorporationTaxRegistration("regId2"))
@@ -123,9 +125,19 @@ class AppStartupJobsSpec extends UnitSpec with MockitoSugar with LogCapturing
       when(mockCTRepository.retrieveCorporationTaxRegistration("regId3"))
         .thenReturn(Future.successful(None))
 
+      val appStartupJobs: AppStartupJobs = new AppStartupJobs {
+        override val config: Configuration = mockConfig
+
+        override val service: AdminService = mockAdminService
+        override val ctRepo: CorporationTaxRegistrationMongoRepository = mockCTRepository
+
+        override def runEverythingOnStartUp: Future[Unit] = Future.successful(())
+      }
+
       withCaptureOfLoggingFrom(Logger){ logEvents =>
         eventually {
           await(appStartupJobs.fetchDocInfoByRegId(regIds))
+
           logEvents.size shouldBe 3
         }
       }

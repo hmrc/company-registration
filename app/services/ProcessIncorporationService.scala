@@ -20,7 +20,7 @@ import java.time.LocalTime
 import java.util.Base64
 
 import audit._
-import config.MicroserviceAuditConnector
+import config.MicroserviceAppConfig
 import connectors._
 import helpers.DateHelper
 import javax.inject.Inject
@@ -31,7 +31,6 @@ import play.api.libs.json.{JsObject, Json}
 import repositories.{Repositories, _}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpErrorFunctions}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.config.ServicesConfig
 import utils.{DateCalculators, Logging, PagerDutyKeys}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -44,16 +43,16 @@ class ProcessIncorporationServiceImpl @Inject()(
                                                    val accountingService: AccountingDetailsService,
                                                    val brConnector: BusinessRegistrationConnector,
                                                    val sendEmailService: SendEmailService,
-                                                   val microserviceAuthConnector: AuthConnector,
-                                                   val repositories: Repositories
-                                                 ) extends ProcessIncorporationService with ServicesConfig {
+                                                   val repositories: Repositories,
+                                                   val auditConnector: AuditConnector,
+                                                   val microserviceAppConfig: MicroserviceAppConfig
+                                                 ) extends ProcessIncorporationService  {
 
-  val ctRepository = repositories.cTRepository
-  lazy val auditConnector = MicroserviceAuditConnector
-  val addressLine4FixRegID = getConfString("address-line-4-fix.regId", throw new Exception("could not find config key address-line-4-fix.regId"))
-  val amendedAddressLine4 = getConfString("address-line-4-fix.address-line-4", throw new Exception("could not find config key address-line-4-fix.address-line-4"))
-  val blockageLoggingDay = getConfString("check-submission-job.schedule.blockage-logging-day", throw new RuntimeException(s"Could not find config schedule.blockage-logging-day"))
-  val blockageLoggingTime = getConfString("check-submission-job.schedule.blockage-logging-time", throw new RuntimeException(s"Could not find config schedule.blockage-logging-time"))
+  lazy val ctRepository = repositories.cTRepository
+  lazy val addressLine4FixRegID = microserviceAppConfig.getConfigString("address-line-4-fix.regId")
+  lazy val amendedAddressLine4 = microserviceAppConfig.getConfigString("address-line-4-fix.address-line-4")
+  lazy val blockageLoggingDay = microserviceAppConfig.getConfigString("check-submission-job.schedule.blockage-logging-day")
+  lazy val blockageLoggingTime = microserviceAppConfig.getConfigString("check-submission-job.schedule.blockage-logging-time")
 }
 
 private[services] class MissingAckRef(val message: String) extends NoStackTrace
@@ -72,7 +71,6 @@ trait ProcessIncorporationService extends DateHelper with HttpErrorFunctions wit
   val accountingService: AccountingDetailsService
   val brConnector: BusinessRegistrationConnector
   val auditConnector: AuditConnector
-  val microserviceAuthConnector: AuthConnector
   val sendEmailService: SendEmailService
 
   val addressLine4FixRegID: String

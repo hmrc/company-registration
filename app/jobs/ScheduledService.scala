@@ -14,20 +14,14 @@
  * limitations under the License.
  */
 
-package fixtures
+package jobs
 
-import models.{Authority, UserIds}
+import scala.concurrent.{ExecutionContext, Future}
 
+sealed trait LockResponse
+case object MongoLocked extends LockResponse
+case object UnlockingFailed extends LockResponse
 
-trait AuthFixture {
-
-  val validAuthority = Authority(
-    "test.uri", "testGGID", "test.userDetailsLink", UserIds("tiid","teid")
-  )
-
-  def buildAuthority(internalId: String = "tiid") = {
-    Authority(
-      "test.uri", "testGGID", "test.userDetailsLink", UserIds(internalId,"teid")
-    )
-  }
+trait ScheduledService[R] {
+  def invoke(implicit ec : ExecutionContext) : Future[R]
 }

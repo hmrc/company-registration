@@ -16,22 +16,35 @@
 
 package repositories
 
+import auth.CryptoSCRS
+import itutil.IntegrationSpecBase
 import models._
-import org.scalatest.BeforeAndAfterEach
-import org.scalatest.concurrent.{Eventually, ScalaFutures}
+import play.api.Application
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, Json}
+import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.WriteResult
-import uk.gov.hmrc.mongo.MongoSpecSupport
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class CRTradingDetailsRepositoryISpec
-  extends UnitSpec with MongoSpecSupport with BeforeAndAfterEach with ScalaFutures with Eventually with WithFakeApplication {
+  extends IntegrationSpecBase {
+
+  val additionalConfiguration = Map(
+    "schedules.missing-incorporation-job.enabled" -> "false",
+    "schedules.metrics-job.enabled" -> "false",
+    "schedules.remove-stale-documents-job.enabled" -> "false"
+  )
+  override implicit lazy val app: Application = new GuiceApplicationBuilder()
+    .configure(additionalConfiguration)
+    .build()
 
   class Setup {
-    val repository = new CorporationTaxRegistrationMongoRepository(mongo)
+    val rmc = app.injector.instanceOf[ReactiveMongoComponent]
+    val crypto = app.injector.instanceOf[CryptoSCRS]
+
+    val repository = new CorporationTaxRegistrationMongoRepository(rmc,crypto)
     await(repository.drop)
     await(repository.ensureIndexes)
   }

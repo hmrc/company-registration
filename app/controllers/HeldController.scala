@@ -22,15 +22,17 @@ import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.ProcessIncorporationService
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
-import uk.gov.hmrc.play.microservice.controller.BaseController
+import uk.gov.hmrc.auth.core.AuthConnector
+import uk.gov.hmrc.play.bootstrap.controller.BaseController
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class HeldControllerImpl @Inject()(
-                                    val authConnector: AuthClientConnector,
+                                    val authConnector: AuthConnector,
                                     val service: ProcessIncorporationService,
                                     val repositories: Repositories
       ) extends HeldController {
-  val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
+  lazy val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 }
 
 trait HeldController extends BaseController with AuthorisedActions {

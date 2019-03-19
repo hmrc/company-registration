@@ -18,28 +18,39 @@ package repositories
 
 import java.util.UUID
 
+import auth.CryptoSCRS
 import fixtures.CorporationTaxRegistrationFixture.ctRegistrationJson
+import itutil.IntegrationSpecBase
 import models.RegistrationStatus._
 import models._
 import org.joda.time.{DateTime, DateTimeZone}
-import org.scalatest.BeforeAndAfterEach
-import org.scalatest.concurrent.{Eventually, ScalaFutures}
+import play.api.Application
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, Json, OWrites}
+import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONString}
-import uk.gov.hmrc.mongo.MongoSpecSupport
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class CorporationTaxRegistrationMongoRepositoryISpec
-  extends UnitSpec with MongoSpecSupport with BeforeAndAfterEach
-    with ScalaFutures with Eventually with WithFakeApplication {
+  extends IntegrationSpecBase {
+
+  val additionalConfiguration = Map(
+    "schedules.missing-incorporation-job.enabled" -> "false",
+    "schedules.metrics-job.enabled" -> "false",
+    "schedules.remove-stale-documents-job.enabled" -> "false"
+  )
+  override implicit lazy val app: Application = new GuiceApplicationBuilder()
+    .configure(additionalConfiguration)
+    .build()
 
   class Setup {
-    val repository = new CorporationTaxRegistrationMongoRepository(mongo)
+    val rmc = app.injector.instanceOf[ReactiveMongoComponent]
+    val crypto = app.injector.instanceOf[CryptoSCRS]
+    val repository = new CorporationTaxRegistrationMongoRepository(rmc,crypto)
     await(repository.drop)
     await(repository.ensureIndexes)
 
@@ -56,7 +67,10 @@ class CorporationTaxRegistrationMongoRepositoryISpec
   }
 
   class SetupWithIndexes(indexList: List[Index]) {
-    val repository = new CorporationTaxRegistrationMongoRepository(mongo){
+    val rmComp = fakeApplication.injector.instanceOf[ReactiveMongoComponent]
+    val crypto = fakeApplication.injector.instanceOf[CryptoSCRS]
+    val repository = new CorporationTaxRegistrationMongoRepository(
+      rmComp,crypto){
       override def indexes = indexList
     }
     await(repository.drop)
@@ -559,9 +573,6 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       await(repository.updateRegistrationProgress(registrationId, registrationProgress)) shouldBe None
     }
   }
-
-  /////////
-
   "removeUnnecessaryRegistrationInformation" should {
     "clear all un-needed data" when {
       "mongo statement executes with no errors" in new Setup {

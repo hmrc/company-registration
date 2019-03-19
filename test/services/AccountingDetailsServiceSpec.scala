@@ -21,7 +21,7 @@ import helpers.SCRSSpec
 import mocks.SCRSMocks
 import models.SubmissionDates
 import org.joda.time.DateTime
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import uk.gov.hmrc.play.test.UnitSpec
 
 class AccountingDetailsServiceSpec extends UnitSpec with MockitoSugar with SCRSMocks with AccountingDetailsFixture {

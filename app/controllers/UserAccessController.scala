@@ -16,18 +16,18 @@
 
 package controllers
 
-import javax.inject.Inject
-
 import auth._
+import javax.inject.Inject
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent}
 import services.{MetricsService, UserAccessService}
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
-import uk.gov.hmrc.play.microservice.controller.BaseController
+import uk.gov.hmrc.auth.core.AuthConnector
+import uk.gov.hmrc.play.bootstrap.controller.BaseController
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class UserAccessControllerImpl @Inject()(val authConnector: AuthClientConnector,
+class UserAccessControllerImpl @Inject()(val authConnector: AuthConnector,
                                          val metricsService: MetricsService,
                                          val userAccessService: UserAccessService) extends UserAccessController
 

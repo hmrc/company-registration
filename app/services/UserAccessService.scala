@@ -16,8 +16,8 @@
 
 package services
 
+import config.MicroserviceAppConfig
 import javax.inject.Inject
-
 import connectors.{BusinessRegistrationConnector, BusinessRegistrationNotFoundResponse, BusinessRegistrationSuccessResponse}
 import models.{CorporationTaxRegistration, UserAccessLimitReachedResponse, UserAccessSuccessResponse}
 import org.joda.time.{DateTime, DateTimeZone}
@@ -35,11 +35,12 @@ class UserAccessServiceImpl @Inject()(
         val throttleService: ThrottleService,
         val ctService: CorporationTaxRegistrationService,
         val brConnector: BusinessRegistrationConnector,
-        val repositories: Repositories
-      ) extends UserAccessService with ServicesConfig {
+        val repositories: Repositories,
+        val microserviceAppConfig: MicroserviceAppConfig
+      ) extends UserAccessService {
 
-  val ctRepository = repositories.cTRepository
-  val threshold = getConfInt("throttle-threshold", throw new Exception("Could not find Threshold in config"))
+  lazy val ctRepository = repositories.cTRepository
+  lazy val threshold = microserviceAppConfig.getConfInt("throttle-threshold", throw new Exception("Could not find Threshold in config"))
 }
 
 private[services] class MissingRegistration(regId: String) extends NoStackTrace

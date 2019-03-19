@@ -23,8 +23,6 @@ import uk.gov.hmrc.play.test.UnitSpec
 class FeatureSwitchSpec extends UnitSpec with BeforeAndAfterEach {
 
   override def beforeEach() {
-    System.clearProperty("feature.submissionCheck")
-    System.clearProperty("feature.missingIncorp")
     System.clearProperty("feature.test")
   }
 
@@ -291,18 +289,6 @@ class FeatureSwitchSpec extends UnitSpec with BeforeAndAfterEach {
 
       EnabledTimedFeatureSwitch("test", None, endDatetime, now).enabled shouldBe true
       DisabledTimedFeatureSwitch("test", None, endDatetime, now).enabled shouldBe false
-    }
-  }
-
-  "SCRSFeatureSwitches" should {
-    "return an enabled missingIncorp feature switch if it exists" in {
-      System.setProperty("feature.missingIncorp", "true")
-
-      SCRSFeatureSwitches("missingIncorp") shouldBe Some(BooleanFeatureSwitch("missingIncorp", true))
-    }
-
-    "return a disable feature switch if the missingIncorp system property doesn't exist when using the apply function" in {
-      SCRSFeatureSwitches("missingIncorp") shouldBe Some(BooleanFeatureSwitch("missingIncorp", false))
     }
   }
 }

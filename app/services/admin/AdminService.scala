@@ -19,46 +19,54 @@ package services.admin
 import java.util.Base64
 
 import audit._
-import config.MicroserviceAuditConnector
+import config.MicroserviceAppConfig
 import connectors.{BusinessRegistrationConnector, DesConnector, IncorporationInformationConnector}
 import helpers.DateFormatter
 import javax.inject.Inject
+import jobs.{LockResponse, MongoLocked, ScheduledService, UnlockingFailed}
 import models.RegistrationStatus._
 import models.admin.{AdminCTReferenceDetails, HO6Identifiers, HO6Response}
 import models.{ConfirmationReferences, CorporationTaxRegistration, HO6RegistrationInformation, SessionIdData}
-import org.joda.time.DateTime
+import org.joda.time.{DateTime, Duration}
 import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.Request
-import repositories.{CorpTaxRegistrationRepo, CorporationTaxRegistrationMongoRepository}
+import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.FailedToDeleteSubmissionData
 import uk.gov.hmrc.http.{HeaderCarrier, NotFoundException}
+import uk.gov.hmrc.lock.LockKeeper
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
-import uk.gov.hmrc.play.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
-class AdminServiceImpl @Inject()(
-                                 corpTaxRepo: CorpTaxRegistrationRepo,
+class AdminServiceImpl @Inject()(val corpTaxRegRepo: CorporationTaxRegistrationMongoRepository,
                                  val brConnector: BusinessRegistrationConnector,
                                  val desConnector: DesConnector,
-                                 val incorpInfoConnector: IncorporationInformationConnector) extends AdminService with ServicesConfig {
+                                 val repositories: Repositories,
+                                 val incorpInfoConnector: IncorporationInformationConnector, microserviceAppConfig: MicroserviceAppConfig,
+                                 val auditConnector: AuditConnector)
+                                 extends AdminService {
+  lazy val staleAmount: Int = microserviceAppConfig.getInt("staleDocumentAmount")
+  lazy val clearAfterXDays: Int = microserviceAppConfig.getInt("clearAfterXDays")
+  lazy val ignoredDocs: Set[String] = new String(Base64.getDecoder.decode(microserviceAppConfig.getConfigString("skipStaleDocs")), "UTF-8").split(",").toSet
 
-  val corpTaxRegRepo: CorporationTaxRegistrationMongoRepository = corpTaxRepo.repo
-  lazy val staleAmount: Int = getInt("staleDocumentAmount")
-  lazy val clearAfterXDays: Int = getInt("clearAfterXDays")
-  lazy val ignoredDocs: Set[String] = new String(Base64.getDecoder.decode(getConfString("skipStaleDocs", "")), "UTF-8").split(",").toSet
-  lazy val auditConnector = MicroserviceAuditConnector
+  lazy val lockoutTimeout = microserviceAppConfig.getInt("schedules.remove-stale-documents-job.lockTimeout")
+  lazy val lockKeeper: LockKeeper = new LockKeeper() {
+    override val lockId = "remove-stale-documents-job-lock"
+    override val forceLockReleaseAfter: Duration = Duration.standardSeconds(lockoutTimeout)
+    override lazy val repo = repositories.lockRepository
+  }
 }
 
-trait AdminService extends DateFormatter {
+trait AdminService extends ScheduledService[Either[Int, LockResponse]] with DateFormatter {
 
   val corpTaxRegRepo: CorporationTaxRegistrationMongoRepository
   val desConnector: DesConnector
   val auditConnector: AuditConnector
   val incorpInfoConnector: IncorporationInformationConnector
   val brConnector: BusinessRegistrationConnector
+  val lockKeeper: LockKeeper
 
   val staleAmount: Int
   val clearAfterXDays: Int
@@ -128,7 +136,7 @@ trait AdminService extends DateFormatter {
             incorpInfoConnector.cancelSubscription(info.regId, tId, useOldRegime = true) recover {
               case e : NotFoundException =>
                 Logger.warn(s"[processStaleDocument] Registration ${info.regId} - $tId has no subscriptions.")
-                Future.successful(true)
+                true
             }
         }
       case _         => Future.successful(true)
@@ -148,6 +156,7 @@ trait AdminService extends DateFormatter {
     }
   }
 
+
   def updateTransactionId(updateFrom: String, updateTo: String): Future[Boolean] = {
     corpTaxRegRepo.updateTransactionId(updateFrom, updateTo) map {
       _ == updateTo
@@ -155,13 +164,35 @@ trait AdminService extends DateFormatter {
       case _ => false
     }
   }
+  def invoke(implicit ec: ExecutionContext): Future[Either[Int, LockResponse]] = {
+    implicit val hc = HeaderCarrier()
+    lockKeeper.tryLock(deleteStaleDocuments()).map {
+      case Some(res) =>
+        Logger.info("AdminService acquired lock and returned results")
+        Logger.info(s"[remove-stale-documents-job] Successfully deleted $res stale documents")
+        Left(res)
+      case None =>
+        Logger.info("AdminService cant acquire lock")
+        Right(MongoLocked)
+    }.recover {
+      case e: Exception => Logger.error(s"Error running deleteStaleDocuments with message: ${e.getMessage}")
+        Right(UnlockingFailed)
+    }
+  }
+
 
   def deleteStaleDocuments(): Future[Int] = {
+    val startTS = System.currentTimeMillis
     for {
       documents <- corpTaxRegRepo.retrieveStaleDocuments(staleAmount, clearAfterXDays)
       _         = Logger.info(s"[deleteStaleDocuments] Mongo query found ${documents.size} stale documents. Now processing.")
       processed <- Future.sequence(documents filterNot(doc => ignoredDocs(doc.registrationID)) map processStaleDocument)
-    } yield processed count (_ == true)
+    } yield {
+      val duration = System.currentTimeMillis - startTS
+      val res =  processed count (_ == true)
+      Logger.info(s"[remove-stale-documents-job] Duration to run $duration ms")
+      res
+    }
   }
 
   case class DocumentInfo(regId: String, status: String, lastSignedIn: DateTime)

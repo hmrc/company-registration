@@ -19,7 +19,7 @@ package services
 import fixtures.ContactDetailsFixture
 import helpers.SCRSSpec
 import mocks.SCRSMocks
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import repositories.Repositories
 import uk.gov.hmrc.play.test.UnitSpec
 

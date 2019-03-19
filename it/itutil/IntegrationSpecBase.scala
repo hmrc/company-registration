@@ -45,8 +45,6 @@ trait FakeAppConfig {
   def fakeConfig(additionalConfig: Map[String, String] = Map.empty) = Map(
     "auditing.consumer.baseUri.host" -> s"$wiremockHost",
     "auditing.consumer.baseUri.port" -> s"$wiremockPort",
-    "Test.auditing.consumer.baseUri.host" -> s"$wiremockHost",
-    "Test.auditing.consumer.baseUri.port" -> s"$wiremockPort",
     "microservice.services.auth.host" -> s"$wiremockHost",
     "microservice.services.auth.port" -> s"$wiremockPort",
     "microservice.services.business-registration.host" -> s"$wiremockHost",

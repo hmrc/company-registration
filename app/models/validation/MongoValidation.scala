@@ -15,7 +15,7 @@
  */
 
 package models.validation
-import auth.Crypto
+import auth.CryptoSCRS
 import models.{AccountPrepDetails, AccountingDetails, ContactDetails, PPOBAddress}
 import org.joda.time.DateTime
 import play.api.libs.json.{Format, OFormat, Reads, Writes}
@@ -23,7 +23,7 @@ import play.api.libs.json.{Format, OFormat, Reads, Writes}
 object MongoValidation extends BaseJsonFormatting {
   val defaultStringFormat = Format(Reads.StringReads, Writes.StringWrites)
 
-  override val cryptoFormat: Format[String] = Format(Crypto.rds, Crypto.wts)
+  override def cryptoFormat(crypto: CryptoSCRS): Format[String] = Format(crypto.rds, crypto.wts)
 
   //ContactDetails
   def contactDetailsFormatWithFilter(formatDef: OFormat[ContactDetails]): Format[ContactDetails] = formatDef

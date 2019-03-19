@@ -18,75 +18,50 @@ package controllers.test
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import org.scalatest.BeforeAndAfterEach
+import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
+import org.mockito.ArgumentMatchers
+import org.mockito.Mockito._
+import org.scalatest.mockito.MockitoSugar
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.play.test.UnitSpec
 
-class FeatureSwitchControllerSpec extends UnitSpec with BeforeAndAfterEach {
+class FeatureSwitchControllerSpec extends UnitSpec with MockitoSugar {
 
   implicit val system = ActorSystem("CR")
   implicit val materializer = ActorMaterializer()
 
-  override def beforeEach() {
-    System.clearProperty("feature.missingIncorp")
-    System.clearProperty("feature.registerInterest")
-    System.clearProperty("feature.graphiteMetrics")
-  }
+
+  val mockQuartz = mock[QuartzSchedulerExtension]
 
   class Setup {
-    val controller = FeatureSwitchController
+    val controller = new FeatureSwitchController {
+      override val scheduler: QuartzSchedulerExtension = mockQuartz
+    }
   }
 
   "show" should {
 
-    "return a 200 and display all feature flags and their " in new Setup {
+    "return a 200 and display all feature flags and their status " in new Setup {
       val result = controller.show(FakeRequest())
       status(result) shouldBe 200
-      bodyOf(await(result)) shouldBe
-          "missingIncorp false\n" +
-          "registerInterest false\n" +
-          "graphiteMetrics false\n" +
-          "removeStaleDocuments false\n"
+      bodyOf(await(result)) shouldBe ""
     }
   }
 
   "switch" should {
 
-    "return a first registerInterest feature state set to false when we specify off" in new Setup {
-      val featureName = "registerInterest"
-      val featureState = "off"
-
-      val result = controller.switch(featureName, featureState)(FakeRequest())
+    "enable scheduledJob successfully" in new Setup {
+      when(mockQuartz.resumeJob(ArgumentMatchers.any())).thenReturn(true)
+      val result = controller.switch("missing-incorporation-job", "enable")(FakeRequest())
       status(result) shouldBe OK
-      bodyOf(await(result)) shouldBe """{"name":"registerInterest","enabled":false}"""
+      verify(mockQuartz,times(1)).resumeJob(ArgumentMatchers.any())
     }
-
-    "return a registerInterest feature state set to true when we specify on" in new Setup {
-      val featureName = "registerInterest"
-      val featureState = "on"
-
-      val result = controller.switch(featureName, featureState)(FakeRequest())
+    "disable scheduledJob successfully" in new Setup {
+      when(mockQuartz.suspendJob(ArgumentMatchers.any())).thenReturn(true)
+      val result = controller.switch("missing-incorporation-job", "disable")(FakeRequest())
       status(result) shouldBe OK
-      bodyOf(await(result)) shouldBe """{"name":"registerInterest","enabled":true}"""
-    }
-
-    "return a registerInterest feature state set to false as a default when we specify xxxx" in new Setup {
-      val featureName = "registerInterest"
-      val featureState = "xxxx"
-
-      val result = controller.switch(featureName, featureState)(FakeRequest())
-      status(result) shouldBe OK
-      bodyOf(await(result)) shouldBe """{"name":"registerInterest","enabled":false}"""
-    }
-
-    "return a bad request when we specify a non implemented feature name" in new Setup {
-      val featureName = "Rubbish"
-      val featureState = "on"
-
-      val result = controller.switch(featureName, featureState)(FakeRequest())
-
-      status(result) shouldBe BAD_REQUEST
+      verify(mockQuartz,times(1)).suspendJob(ArgumentMatchers.any())
     }
   }
 }

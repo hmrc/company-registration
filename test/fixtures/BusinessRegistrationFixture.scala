@@ -16,7 +16,7 @@
 
 package fixtures
 
-import models.{BusinessRegistration, Links}
+import models.BusinessRegistration
 
 trait BusinessRegistrationFixture {
 

@@ -16,6 +16,7 @@
 
 package api
 
+import auth.CryptoSCRS
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import itutil.WiremockHelper._
 import itutil.{IntegrationSpecBase, LoginStub}
@@ -26,14 +27,13 @@ import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json._
 import play.api.libs.ws.{WSClient, WSRequest, WSResponse}
-import play.modules.reactivemongo.MongoDbConnection
+import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.WriteResult
-import repositories.{CorporationTaxRegistrationMongoRepository, SequenceMongoRepository}
-import uk.gov.hmrc.mongo.MongoSpecSupport
+import repositories.{CorporationTaxRegistrationMongoRepository, SequenceMongoRepo}
 
 import scala.concurrent.ExecutionContext
 
-class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with LoginStub {
+class AdminApiISpec extends IntegrationSpecBase with LoginStub {
 
   val regime = "testRegime"
   val subscriber = "testSubcriber"
@@ -61,9 +61,12 @@ class AdminApiISpec extends IntegrationSpecBase with MongoSpecSupport with Login
   val ackRef = "BRCT00000000001"
   val strideUser = "stride-12345"
 
-  class Setup extends MongoDbConnection {
-    val corpTaxRepo = new CorporationTaxRegistrationMongoRepository(db)
-    val seqRepo = new SequenceMongoRepository(db)
+  class Setup {
+    val rmComp = app.injector.instanceOf[ReactiveMongoComponent]
+    val crypto = app.injector.instanceOf[CryptoSCRS]
+    val corpTaxRepo = new CorporationTaxRegistrationMongoRepository(
+      rmComp,crypto)
+    val seqRepo = app.injector.instanceOf[SequenceMongoRepo].repo
 
     await(corpTaxRepo.drop)
     await(seqRepo.drop)

@@ -34,23 +34,18 @@ package controllers
 
 import java.util.UUID
 
-import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
-import connectors.AuthConnector
-import fixtures.AuthFixture
-import helpers.{BaseSpec, SCRSSpec}
+import helpers.BaseSpec
+import mocks.{AuthorisationMocks, MockMetricsService, SCRSMocks}
 import models.TradingDetails
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
+import org.scalatest.mockito.MockitoSugar
 import play.api.libs.json.Json
+import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import play.api.mvc.Result
-import services.{CorporationTaxRegistrationService, MetricsService, TradingDetailsService}
-import mocks.{AuthorisationMocks, MockMetricsService, SCRSMocks}
-import org.scalatest.mock.MockitoSugar
+import services.TradingDetailsService
 import uk.gov.hmrc.auth.core.MissingBearerToken
-import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 
@@ -61,7 +56,7 @@ class TradingDetailsControllerSpec extends BaseSpec with MockitoSugar with SCRSM
   trait Setup {
     val controller = new TradingDetailsController {
       override val tradingDetailsService = mockTradingDetailsService
-      override val authConnector = mockAuthClientConnector
+      override val authConnector = mockAuthConnector
       override val resource = mockResource
       override val metricsService = MockMetricsService
     }

@@ -16,29 +16,25 @@
 
 package auth
 
+import javax.inject.Inject
+import play.api.Configuration
 import play.api.libs.json.{JsString, Reads, Writes}
-import uk.gov.hmrc.crypto.{CryptoWithKeysFromConfig, CompositeSymmetricCrypto, Crypted, PlainText}
+import uk.gov.hmrc.crypto.{ApplicationCrypto, CompositeSymmetricCrypto, Crypted, PlainText}
 
+class CryptoSCRSImpl @Inject()(config: Configuration) extends CryptoSCRS {
+  override lazy val crypto: CompositeSymmetricCrypto = new ApplicationCrypto(config.underlying).JsonCrypto
+}
 
-trait Crypto {
+trait CryptoSCRS {
   def crypto: CompositeSymmetricCrypto
 
   val rds: Reads[String] = Reads[String](js =>
-    js.validate[String].map(encryptedUtr => {
-      val crypted = Crypted.fromBase64(encryptedUtr)
-      crypto.decrypt(crypted).value
+    js.validate[String].map { encryptedUtr =>
+      crypto.decrypt(Crypted.fromBase64(encryptedUtr)).value
     }
-    )
   )
-
-  val wts: Writes[String] = Writes[String](utr => {
-    val crypted = crypto.encrypt(PlainText(utr))
-    val encryptedUtr = new String(crypted.toBase64)
+  val wts: Writes[String] = Writes[String] { utr =>
+    val encryptedUtr = new String(crypto.encrypt(PlainText(utr)).toBase64)
     JsString(encryptedUtr)
   }
-  )
-}
-
-object Crypto extends Crypto {
-  override lazy val crypto = CryptoWithKeysFromConfig(baseConfigKey = "mongo-encryption")
 }

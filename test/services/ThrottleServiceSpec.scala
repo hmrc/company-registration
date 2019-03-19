@@ -18,7 +18,7 @@ package services
 
 import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import repositories.{Repositories, ThrottleMongoRepository}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 import org.mockito.Mockito._

@@ -20,6 +20,8 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 import DateCalculators.{getCurrentDay, getCurrentTime}
+import config.MicroserviceAppConfig
+import javax.inject.Inject
 import play.api.Logger
 import uk.gov.hmrc.play.config.ServicesConfig
 
@@ -30,9 +32,9 @@ object PagerDutyKeys extends Enumeration {
   val CT_ACCEPTED_NO_REG_DOC_II_SUBS_DELETED = Value
 }
 
-object AlertLogging extends AlertLogging with ServicesConfig {
-  override protected val loggingDays: String = getConfString("alert-config.logging-day", throw new Exception("Could not find config key: LoggingDay"))
-  override protected val loggingTimes: String = getConfString("alert-config.logging-time", throw new Exception("Could not find config key: LoggingTime"))
+class AlertLoggingImpl @Inject()(microserviceAppConfig: MicroserviceAppConfig) extends AlertLogging {
+  override protected val loggingDays: String = microserviceAppConfig.getConfigString("alert-config.logging-day")
+  override protected val loggingTimes: String = microserviceAppConfig.getConfigString("alert-config.logging-time")
 }
 
 trait AlertLogging {

@@ -16,17 +16,15 @@
 
 package repositories
 
-import javax.inject.{Inject, Singleton}
-
+import javax.inject.Inject
 import uk.gov.hmrc.lock.LockRepository
-import play.modules.reactivemongo.MongoDbConnection
 
-@Singleton
-class Repositories @Inject()() {
-  private implicit lazy val mongo = new MongoDbConnection {}.db
-
-  lazy val cTRepository = new CorporationTaxRegistrationMongoRepository(mongo)
-  lazy val sequenceRepository = new SequenceMongoRepository(mongo)
-  lazy val throttleRepository = new ThrottleMongoRepository()
-  lazy val lockRepository = new LockRepository()
+class Repositories @Inject()(corpRepo: CorporationTaxRegistrationMongoRepository,
+                             seqMongoRepo: SequenceMongoRepo,
+                             throttleMongoRepo: ThrottleMongoRepo,
+                             lockRepo: LockRepositoryProvider) {
+  lazy val cTRepository: CorporationTaxRegistrationMongoRepository = corpRepo
+  lazy val sequenceRepository: SequenceMongoRepository = seqMongoRepo.repo
+  lazy val throttleRepository: ThrottleMongoRepository = throttleMongoRepo.repo
+  lazy val lockRepository: LockRepository = lockRepo.repo
 }

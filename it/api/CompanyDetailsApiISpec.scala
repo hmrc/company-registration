@@ -1,6 +1,7 @@
 
 package api
 
+import auth.CryptoSCRS
 import controllers.routes
 import itutil.{IntegrationSpecBase, LoginStub, WiremockHelper}
 import models._
@@ -9,9 +10,9 @@ import play.api.http.HeaderNames
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws.WS
-import play.modules.reactivemongo.MongoDbConnection
+import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.WriteResult
-import repositories.{CorporationTaxRegistrationMongoRepository, SequenceMongoRepository}
+import repositories.{CorporationTaxRegistrationMongoRepository, SequenceMongoRepo}
 import uk.gov.hmrc.http.{HeaderNames => GovHeaderNames}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -83,9 +84,12 @@ class CompanyDetailsApiISpec extends IntegrationSpecBase with LoginStub {
     .withHeaders(HeaderNames.SET_COOKIE -> getSessionCookie())
     .withHeaders(GovHeaderNames.xSessionId -> SessionId)
 
-  class Setup extends MongoDbConnection {
-    val ctRepository = new CorporationTaxRegistrationMongoRepository(db)
-    val seqRepo = new SequenceMongoRepository(db)
+  class Setup {
+    val rmComp = app.injector.instanceOf[ReactiveMongoComponent]
+    val crypto = app.injector.instanceOf[CryptoSCRS]
+    val ctRepository = new CorporationTaxRegistrationMongoRepository(
+      rmComp,crypto)
+    val seqRepo = app.injector.instanceOf[SequenceMongoRepo].repo
 
     await(ctRepository.drop)
     await(ctRepository.ensureIndexes)

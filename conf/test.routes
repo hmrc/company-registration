@@ -2,5 +2,5 @@ GET        /modify-throttled-users/:usersIn                    @controllers.test
 GET        /drop-ct                                            @controllers.test.TestEndpointController.dropJourneyCollections
 GET        /pager-duty/:name                                   @controllers.test.TestEndpointController.pagerDuty(name: String)
 
-GET        /feature-flag/:featureName/:featureStatus           controllers.test.FeatureSwitchController.switch(featureName: String, featureStatus: String)
-GET        /feature-flag                                       controllers.test.FeatureSwitchController.show
+GET        /feature-flag/:featureName/:featureStatus           @controllers.test.FeatureSwitchController.switch(featureName: String, featureStatus: String)
+GET        /feature-flag                                       @controllers.test.FeatureSwitchController.show

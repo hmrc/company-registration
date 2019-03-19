@@ -18,9 +18,10 @@ package mocks
 
 import com.codahale.metrics.{Counter, Timer}
 import com.kenshoo.play.metrics.Metrics
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import repositories.{CorporationTaxRegistrationMongoRepository, CorporationTaxRegistrationRepository}
 import services._
+import uk.gov.hmrc.lock.LockKeeper
 
 object MockMetricsService extends MetricsService with MockitoSugar {
   override val metrics = mock[Metrics]
@@ -56,4 +57,5 @@ object MockMetricsService extends MetricsService with MockitoSugar {
   val userAccessCRTimer : Timer = mockTimer
 
   val desSubmissionCRTimer : Timer = mockTimer
+  override val lockKeeper: LockKeeper = mock[LockKeeper]
 }

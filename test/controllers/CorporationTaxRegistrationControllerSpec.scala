@@ -18,10 +18,12 @@ package controllers
 
 import java.time.LocalTime
 
+import auth.CryptoSCRS
 import fixtures.CorporationTaxRegistrationFixture
 import helpers.BaseSpec
 import mocks.{AuthorisationMocks, MockMetricsService}
-import models.{CHROAddress, ConfirmationReferences, PPOBAddress}
+import models.validation.MongoValidation
+import models.{CHROAddress, ConfirmationReferences, CorporationTaxRegistration, PPOBAddress}
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
 import org.mockito.{ArgumentCaptor, ArgumentMatchers}
@@ -38,10 +40,11 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
     val controller = new CorporationTaxRegistrationController {
       val ctService = mockCTDataService
       val resource = mockResource
-      val authConnector = mockAuthClientConnector
+      val authConnector = mockAuthConnector
       val metricsService = MockMetricsService
       val alertLogging: AlertLogging = new AlertLogging {
       }
+      override val cryptoSCRS: CryptoSCRS = mockInstanceOfCrypto
     }
   }
 
@@ -118,7 +121,7 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
 
       val result = await(controller.retrieveFullCorporationTaxRegistration(regId)(FakeRequest()))
       status(result) shouldBe OK
-      contentAsJson(result) shouldBe Json.toJson(validDraftCorporationTaxRegistration)
+      contentAsJson(result) shouldBe Json.toJson(validDraftCorporationTaxRegistration)(CorporationTaxRegistration.format(MongoValidation, mockInstanceOfCrypto))
     }
 
     "return a 404 if a CT registration record cannot be found" in new Setup {

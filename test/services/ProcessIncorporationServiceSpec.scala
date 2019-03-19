@@ -18,25 +18,26 @@ package services
 
 import java.util.UUID
 
+import auth.AuthClientConnector
 import connectors._
 import fixtures.CorporationTaxRegistrationFixture
 import models._
 import org.joda.time.DateTime
+import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
-import org.mockito.{ArgumentCaptor, ArgumentMatchers}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.Eventually
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import play.api.Logger
 import play.api.libs.json.{JsObject, JsString, Json}
 import repositories.CorporationTaxRegistrationRepository
-import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
-//import services.RegistrationHoldingPenService.MissingAccountingDates
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, InternalServerException, Upstream4xxResponse}
+import uk.gov.hmrc.auth.core.AuthConnector
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, InternalServerException}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
+import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 class ProcessIncorporationServiceSpec extends UnitSpec with MockitoSugar with CorporationTaxRegistrationFixture with BeforeAndAfterEach with Eventually with LogCapturing {
 

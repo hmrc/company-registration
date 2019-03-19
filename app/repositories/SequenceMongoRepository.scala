@@ -16,24 +16,30 @@
 
 package repositories
 
-import javax.inject.Singleton
+import javax.inject.{Inject, Singleton}
 import models.Sequence
 import play.api.Logger
 import play.api.libs.json.JsValue
+import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.DB
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import reactivemongo.play.json.ImplicitBSONHandlers.BSONDocumentWrites
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
-import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
+import uk.gov.hmrc.mongo.ReactiveRepository
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-trait SequenceRepository extends Repository[Sequence, BSONObjectID]{
+trait SequenceRepository {
   def getNext(sequenceID: String): Future[Int]
 }
 
-@Singleton
+class SequenceMongoRepo @Inject()(mongo: ReactiveMongoComponent) {
+  Logger.info("Creating CorporationTaxRegistrationMongoRepository")
+
+  val repo = new SequenceMongoRepository(mongo.mongoConnector.db)
+}
+
 class SequenceMongoRepository(mongo: () => DB)
   extends ReactiveRepository[Sequence, BSONObjectID]("sequence", mongo, Sequence.formats, ReactiveMongoFormats.objectIdFormats)
   with SequenceRepository{

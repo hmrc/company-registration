@@ -20,14 +20,13 @@ import javax.inject.Inject
 
 import models.TradingDetails
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
-import uk.gov.hmrc.play.microservice.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-
 class TradingDetailsServiceImpl @Inject()(val repositories: Repositories) extends TradingDetailsService {
-  val corporationTaxRegistrationRepository = repositories.cTRepository
+  lazy val corporationTaxRegistrationRepository = repositories.cTRepository
 }
 
 trait TradingDetailsService extends BaseController {

@@ -19,9 +19,8 @@ package services
 import audit.UserRegistrationSubmissionEvent
 import cats.data.OptionT
 import connectors._
-import fixtures.{AuthFixture, CorporationTaxRegistrationFixture}
-import helpers.MongoMocks
-import mocks.SCRSMocks
+import fixtures.CorporationTaxRegistrationFixture
+import mocks.{AuthorisationMocks, SCRSMocks}
 import models.RegistrationStatus._
 import models._
 import models.des._
@@ -29,9 +28,12 @@ import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.Eventually
+import org.scalatest.mockito.MockitoSugar
 import play.api.libs.json.{JsObject, Json}
 import play.api.test.FakeRequest
+import reactivemongo.api.commands.{DefaultWriteResult, WriteResult}
 import repositories._
 import uk.gov.hmrc.http.logging.SessionId
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, Upstream4xxResponse, Upstream5xxResponse}
@@ -41,8 +43,9 @@ import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class SubmissionServiceSpec extends UnitSpec with SCRSMocks with CorporationTaxRegistrationFixture
-  with AuthFixture with MongoMocks with LogCapturing with Eventually {
+class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMocks  with CorporationTaxRegistrationFixture
+  with MockitoSugar with LogCapturing with Eventually with BeforeAndAfterEach {
+
 
   implicit val hc = HeaderCarrier(sessionId = Some(SessionId("testSessionId")))
   implicit val req = FakeRequest("GET", "/test-path")
@@ -62,6 +65,12 @@ class SubmissionServiceSpec extends UnitSpec with SCRSMocks with CorporationTaxR
   val timestamp = "2016-10-27T17:06:23.000Z"
   val authProviderId = "auth-prov-id-12345"
 
+  override def beforeEach(): Unit = {
+    reset(
+      mockCorpTaxRepo, mockSequenceRepository, mockAuthConnector, mockBRConnector,
+      mockIncorporationCheckAPIConnector, mockAuditConnector, mockIIConnector, mockDesConnector
+    )
+  }
   class Setup {
     val service = new SubmissionService {
       override val cTRegistrationRepository: CorporationTaxRegistrationRepository = mockCorpTaxRepo
@@ -75,10 +84,7 @@ class SubmissionServiceSpec extends UnitSpec with SCRSMocks with CorporationTaxR
       override def currentDateTime: DateTime = dateTime
     }
 
-    reset(
-      mockCorpTaxRepo, mockSequenceRepository, mockAuthConnector, mockBRConnector,
-      mockIncorporationCheckAPIConnector, mockAuditConnector, mockIIConnector, mockDesConnector
-    )
+
   }
 
   def corporationTaxRegistration(regId: String = regId,
@@ -330,7 +336,6 @@ class SubmissionServiceSpec extends UnitSpec with SCRSMocks with CorporationTaxR
     val ackRef = "testAckRef"
     val sessionId = "testSessionId"
     val credId = "testCredId"
-    val userIDs = UserIds("foo", "bar")
 
     val businessRegistration = BusinessRegistration(
       regId,
@@ -550,8 +555,6 @@ class SubmissionServiceSpec extends UnitSpec with SCRSMocks with CorporationTaxR
 
     val updated = validHeldCorporationTaxRegistration.copy(acknowledgementReferences = Some(refs), status = RegistrationStatus.ACKNOWLEDGED)
 
-    val successfulWrite = mockWriteResult()
-
     "return None" when {
       "the given ack ref cant be matched against a CT record" in new Setup {
         when(mockCorpTaxRepo.retrieveByAckRef(eqTo(ackRef)))
@@ -568,7 +571,7 @@ class SubmissionServiceSpec extends UnitSpec with SCRSMocks with CorporationTaxR
           .thenReturn(Future.successful(Some(validHeldCorporationTaxRegistration)))
 
         when(mockCorpTaxRepo.updateCTRecordWithAcknowledgments(eqTo(ackRef), eqTo(updated)))
-          .thenReturn(Future.successful(successfulWrite))
+          .thenReturn(Future.successful(DefaultWriteResult(true,1,Seq.empty,None,None,None)))
 
         val result = await(service.updateCTRecordWithAckRefs(ackRef, refs))
         result shouldBe Some(validHeldCorporationTaxRegistration)

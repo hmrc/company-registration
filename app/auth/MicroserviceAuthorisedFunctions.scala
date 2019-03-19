@@ -16,8 +16,8 @@
 
 package auth
 
-import uk.gov.hmrc.auth.core.AuthorisedFunctions
+import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
 
 trait MicroserviceAuthorisedFunctions extends AuthorisedFunctions {
-  override def authConnector: AuthClientConnector
+  override def authConnector: AuthConnector
 }

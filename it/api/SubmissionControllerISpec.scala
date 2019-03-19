@@ -16,7 +16,8 @@
 
 package api
 
-import auth.Crypto
+import auth.CryptoSCRS
+import com.github.tomakehurst.wiremock.client.WireMock._
 import itutil.{IntegrationSpecBase, LoginStub, RequestFinder, WiremockHelper}
 import models.RegistrationStatus._
 import models._
@@ -25,16 +26,15 @@ import play.api.http.HeaderNames
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json._
 import play.api.libs.ws.WS
-import play.modules.reactivemongo.MongoDbConnection
+import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.play.json._
-import repositories.{CorporationTaxRegistrationMongoRepository, SequenceMongoRepository}
+import repositories.{CorporationTaxRegistrationMongoRepository, SequenceMongoRepo}
 import uk.gov.hmrc.http.{HeaderNames => GovHeaderNames}
-import com.github.tomakehurst.wiremock.client.WireMock._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with RequestFinder{
+class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with RequestFinder {
   val mockHost = WiremockHelper.wiremockHost
   val mockPort = WiremockHelper.wiremockPort
   val mockUrl = s"http://$mockHost:$mockPort"
@@ -72,17 +72,18 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
     .withHeaders(HeaderNames.SET_COOKIE -> getSessionCookie())
     .withHeaders(GovHeaderNames.xSessionId -> SessionId)
 
-  class Setup extends MongoDbConnection {
-    val ctRepository = new CorporationTaxRegistrationMongoRepository(db)
-    val seqRepo = new SequenceMongoRepository(db)
+  class Setup {
+    val rmComp = app.injector.instanceOf[ReactiveMongoComponent]
+    val crypto = app.injector.instanceOf[CryptoSCRS]
+    val ctRepository = new CorporationTaxRegistrationMongoRepository(
+      rmComp,crypto)
+    val seqRepo = app.injector.instanceOf[SequenceMongoRepo].repo
 
     await(ctRepository.drop)
     await(ctRepository.ensureIndexes)
 
     await(seqRepo.drop)
     await(seqRepo.ensureIndexes)
-
-    System.clearProperty("feature.registerInterest")
 
     def setupCTRegistration(reg: CorporationTaxRegistration): WriteResult = ctRepository.insert(reg)
 
@@ -578,7 +579,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
 
         val encryptedCtUtr = ctRegJson \ "acknowledgementReferences" \ "ct-utr"
 
-        encryptedCtUtr.get shouldBe Crypto.wts.writes(ctutr)
+        encryptedCtUtr.get shouldBe app.injector.instanceOf[CryptoSCRS].wts.writes(ctutr)
 
         val response = await(client(s"/$regId/corporation-tax-registration").get())
 

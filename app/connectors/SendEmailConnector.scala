@@ -16,28 +16,28 @@
 
 package connectors
 
+import config.MicroserviceAppConfig
 import javax.inject.Inject
-
-import config.WSHttp
 import models.SendEmailRequest
 import play.api.Logger
 import play.api.http.Status._
 import uk.gov.hmrc.http._
-import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
+import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.control.NoStackTrace
 
 class EmailErrorResponse(s: String) extends NoStackTrace
 
-class SendEmailConnectorImpl @Inject()() extends SendEmailConnector with ServicesConfig with HttpErrorFunctions  {
-  val http: CoreGet with CorePost with CorePut = WSHttp
-  val sendEmailURL = getConfString("email.sendEmailURL", throw new Exception("email.sendEmailURL not found"))
+class SendEmailConnectorImpl @Inject()(
+                                        val microserviceAppConfig: MicroserviceAppConfig,
+                                        val http: HttpClient) extends SendEmailConnector with HttpErrorFunctions {
+  val sendEmailURL = microserviceAppConfig.getConfString("email.sendEmailURL", throw new Exception("email.sendEmailURL not found"))
 }
 
 trait SendEmailConnector extends HttpErrorFunctions {
-  val http : CorePost with CorePut
+  val http: HttpClient
   val sendEmailURL : String
 
   def requestEmail(EmailRequest : SendEmailRequest)(implicit hc: HeaderCarrier): Future[Boolean] = {
@@ -70,5 +70,4 @@ trait SendEmailConnector extends HttpErrorFunctions {
       case 502 => throw new BadGatewayException("Email service returned an upstream error")
       case _ => handleResponse(http, url)(response)
     }
-
 }

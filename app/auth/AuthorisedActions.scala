@@ -24,12 +24,13 @@ import uk.gov.hmrc.auth.core.AuthProvider.GovernmentGateway
 import uk.gov.hmrc.auth.core.retrieve.{Retrieval, SimpleRetrieval}
 import uk.gov.hmrc.auth.core.retrieve.~
 import uk.gov.hmrc.auth.core.{AuthorisationException, _}
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
-import uk.gov.hmrc.play.microservice.controller.BaseController
+import scala.concurrent.ExecutionContext.Implicits.global
+import uk.gov.hmrc.play.bootstrap.controller.BaseController
 
 import scala.concurrent.Future
 
-trait AuthenticatedActions extends MicroserviceAuthorisedFunctions {
+trait
+AuthenticatedActions extends MicroserviceAuthorisedFunctions {
   self: BaseController =>
 
   private[auth] val predicate = ConfidenceLevel.L50 and AuthProviders(GovernmentGateway)

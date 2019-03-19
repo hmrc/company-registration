@@ -46,8 +46,6 @@ trait ContactDetailsFixture {
       Some(routes.CorporationTaxRegistrationController.retrieveCorporationTaxRegistration(regId).url))
   )
 
-
-
    val contactDetailsResponse = ContactDetailsResponse(
     contactDetails.phone,
     contactDetails.mobile,

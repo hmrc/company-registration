@@ -16,29 +16,33 @@
 
 package services
 
+import auth.AuthClientConnector
 import connectors._
-import fixtures.{AuthFixture, CorporationTaxRegistrationFixture}
-import helpers.MongoMocks
-import mocks.SCRSMocks
+import fixtures.CorporationTaxRegistrationFixture
+import mocks.{AuthorisationMocks, SCRSMocks}
 import models.RegistrationStatus._
 import models._
 import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers.{eq => eqTo}
 import org.mockito.Mockito._
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.Eventually
+import org.scalatest.mockito.MockitoSugar
 import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import play.api.test.FakeRequest
 import repositories._
+import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.logging.SessionId
+import uk.gov.hmrc.lock.LockKeeper
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
 
 import scala.concurrent.Future
 
-class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with CorporationTaxRegistrationFixture
-  with AuthFixture with MongoMocks with LogCapturing with Eventually {
+class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with AuthorisationMocks with MockitoSugar
+   with LogCapturing with Eventually with BeforeAndAfterEach {
 
   implicit val hc = HeaderCarrier(sessionId = Some(SessionId("testSessionId")))
   implicit val req = FakeRequest("GET", "/test-path")
@@ -56,8 +60,14 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
   val authProviderId = "auth-prov-id-12345"
 
   implicit val isAdmin: Boolean = false
+  override protected def beforeEach(): Unit = {
+    reset(
+      mockCTDataRepository, mockSequenceRepository, mockAuthConnector, mockBRConnector,
+      mockIncorporationCheckAPIConnector, mockAuditConnector, mockIIConnector, mockDesConnector, mockLockKeeper
+    )
+  }
 
-  class Setup {
+  class Setup extends CorporationTaxRegistrationFixture {
     val service = new CorporationTaxRegistrationService {
       val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository = mockCTDataRepository
       val sequenceRepository: SequenceRepository = mockSequenceRepository
@@ -68,12 +78,8 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
       val incorpInfoConnector: IncorporationInformationConnector = mockIIConnector
       val desConnector: DesConnector = mockDesConnector
       val currentDateTime: DateTime = dateTime
+      override val lockKeeper: LockKeeper = mockLockKeeper
     }
-
-    reset(
-      mockCTDataRepository, mockSequenceRepository, mockAuthConnector, mockBRConnector,
-      mockIncorporationCheckAPIConnector, mockAuditConnector, mockIIConnector, mockDesConnector
-    )
   }
 
   def corporationTaxRegistration(regId: String = regId,

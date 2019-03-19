@@ -13,33 +13,28 @@ object MicroServiceBuild extends Build with MicroService {
   )
 
   override lazy val appDependencies: Seq[ModuleID] = AppDependencies()
-
-  override lazy val playSettings : Seq[Setting[_]] = Seq(
-    dependencyOverrides += "io.netty" % "netty" % "3.9.9.Final"
-  )
 }
 
 private object AppDependencies {
   import play.core.PlayVersion
   import play.sbt.PlayImport._
 
-  private val microserviceBootstrapVersion = "8.7.0"
+  private val bootstrapPlayVersion = "4.9.0"
   private val domainVersion = "5.3.0"
   private val hmrcTestVersion = "3.2.0"
-  private val reactiveMongoVersion = "6.2.0"
+  private val reactiveMongoVersion = "7.14.0-play-25"
   private val mockitoVersion = "2.13.0"
   private val scalatestPlusPlayVersion = "2.0.0"
-  private val playSchedulingVersion = "4.1.0"
-  private val mongoLockVersion = "5.1.0"
-  private val authClientVersion = "2.19.0-play-25"
+  private val mongoLockVersion = "6.10.0-play-25"
+  private val authClientVersion = "2.20.0-play-25"
 
   val compile = Seq(
     ws,
-    "uk.gov.hmrc" %% "microservice-bootstrap" % microserviceBootstrapVersion,
+    "com.enragedginger" %% "akka-quartz-scheduler" % "1.8.0-akka-2.5.x",
+    "uk.gov.hmrc" %% "bootstrap-play-25" % bootstrapPlayVersion,
     "uk.gov.hmrc" %% "domain" % domainVersion,
-    "uk.gov.hmrc" %% "play-scheduling" % playSchedulingVersion,
     "uk.gov.hmrc" %% "mongo-lock" % mongoLockVersion,
-    "uk.gov.hmrc" %% "play-reactivemongo" % reactiveMongoVersion,
+    "uk.gov.hmrc" %% "simple-reactivemongo" % reactiveMongoVersion,
     "org.typelevel" %% "cats" % "0.9.0",
     "uk.gov.hmrc" %% "auth-client" % authClientVersion
   )
@@ -74,7 +69,6 @@ private object AppDependencies {
         "org.pegdown" % "pegdown" % "1.5.0" % scope,
         "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
         "org.scalatestplus.play" %% "scalatestplus-play" % scalatestPlusPlayVersion % scope,
-        "uk.gov.hmrc" %% "reactivemongo-test" % "2.0.0" % scope,
         "com.github.tomakehurst" % "wiremock" % "2.6.0" % scope
       )
     }.test

@@ -16,28 +16,28 @@
 
 package mocks
 
-import connectors.{AuthConnector, BusinessRegistrationConnector, IncorporationCheckAPIConnector}
+import auth.{AuthClientConnector, CryptoSCRS}
+import connectors.{BusinessRegistrationConnector, IncorporationCheckAPIConnector}
 import models._
 import org.mockito.ArgumentMatchers
-import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
 import org.mockito.stubbing.OngoingStubbing
-import org.scalatest.mock.MockitoSugar
-import repositories.{CorporationTaxRegistrationMongoRepository, MissingCTDocument, SequenceRepository}
+import org.scalatest.mockito.MockitoSugar
+import play.api.Configuration
+import repositories.{CorporationTaxRegistrationMongoRepository, SequenceRepository}
 import services._
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.crypto.ApplicationCrypto
+import uk.gov.hmrc.lock.LockKeeper
 
 import scala.concurrent.Future
 
 trait SCRSMocks
   extends WSHttpMock
-    with AccountingServiceMock
-    with ServicesConfigMock {
+    with AccountingServiceMock {
   this: MockitoSugar =>
 
   lazy val mockCTDataService = mock[CorporationTaxRegistrationService]
   lazy val mockCTDataRepository = mock[CorporationTaxRegistrationMongoRepository]
-  lazy val mockAuthConnector = mock[AuthConnector]
   lazy val mockCompanyDetailsService = mock[CompanyDetailsService]
   lazy val mockContactDetailsService = mock[ContactDetailsService]
   lazy val mockSequenceRepository = mock[SequenceRepository]
@@ -45,6 +45,10 @@ trait SCRSMocks
   lazy val mockMetrics = mock[MetricsService]
   lazy val mockProcessIncorporationService = mock[ProcessIncorporationService]
   val mockBusRegConnector = mock[BusinessRegistrationConnector]
+  val mockLockKeeper = mock[LockKeeper]
+  val mockInstanceOfCrypto = new CryptoSCRS {
+    val crypto = new ApplicationCrypto(Configuration("json.encryption.key" -> "MTIzNDU2Nzg5MDEyMzQ1Ng==").underlying).JsonCrypto
+  }
 
   object CTServiceMocks {
     def createCTDataRecord(result: CorporationTaxRegistration): OngoingStubbing[Future[CorporationTaxRegistration]] = {

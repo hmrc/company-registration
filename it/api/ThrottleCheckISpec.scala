@@ -18,13 +18,14 @@ package api
 
 import java.util.UUID
 
+import auth.CryptoSCRS
 import itutil.{IntegrationSpecBase, LoginStub, WiremockHelper}
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsBoolean, JsObject, JsString, Json}
 import play.api.libs.ws.WS
-import play.modules.reactivemongo.MongoDbConnection
-import repositories.{CorporationTaxRegistrationMongoRepository, ThrottleMongoRepository}
+import play.modules.reactivemongo.ReactiveMongoComponent
+import repositories.{CorporationTaxRegistrationMongoRepository, ThrottleMongoRepo}
 import uk.gov.hmrc.time.DateTimeUtils
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -40,12 +41,12 @@ class ThrottleCheckISpec extends IntegrationSpecBase with LoginStub {
   val additionalConfiguration = Map(
     "auditing.consumer.baseUri.host" -> s"$mockHost",
     "auditing.consumer.baseUri.port" -> s"$mockPort",
-    "Test.auditing.consumer.baseUri.host" -> s"$mockHost",
-    "Test.auditing.consumer.baseUri.port" -> s"$mockPort",
+    "auditing.consumer.baseUri.host" -> s"$mockHost",
+    "auditing.consumer.baseUri.port" -> s"$mockPort",
     "microservice.services.auth.host" -> s"$mockHost",
     "microservice.services.auth.port" -> s"$mockPort",
-    "Test.microservice.services.business-registration.port" -> s"$mockPort",
-    "Test.microservice.services.throttle-threshold" -> throttleThreshold.toString
+    "microservice.services.business-registration.port" -> s"$mockPort",
+    "microservice.services.throttle-threshold" -> throttleThreshold.toString
   )
 
   override implicit lazy val app: Application = new GuiceApplicationBuilder()
@@ -56,12 +57,15 @@ class ThrottleCheckISpec extends IntegrationSpecBase with LoginStub {
     withFollowRedirects(false).
     withHeaders("Content-Type"->"application/json")
 
-  class Setup extends MongoDbConnection {
-    val crRepo = new CorporationTaxRegistrationMongoRepository(db)
+  class Setup {
+    val rmComp = app.injector.instanceOf[ReactiveMongoComponent]
+    val crypto = app.injector.instanceOf[CryptoSCRS]
+    val crRepo = new CorporationTaxRegistrationMongoRepository(
+      rmComp,crypto)
     await(crRepo.drop)
     await(crRepo.ensureIndexes)
 
-    val throttleRepo = new ThrottleMongoRepository
+    val throttleRepo = app.injector.instanceOf[ThrottleMongoRepo].repo
     await(throttleRepo.drop)
     await(throttleRepo.ensureIndexes)
   }

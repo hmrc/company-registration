@@ -21,13 +21,16 @@ import org.joda.time.DateTime
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import uk.gov.hmrc.play.config.ServicesConfig
 import java.util.Base64
+
+import config.MicroserviceAppConfig
 import javax.inject.Inject
 
 import scala.concurrent.Future
 
-class AccountingDetailsServiceImpl @Inject()(val repositories: Repositories) extends AccountingDetailsService with ServicesConfig {
-  override val corporationTaxRegistrationRepository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
-  val doNotIntendToTradeConf: String = getConfString("doNotIndendToTradeDefaultDate", throw new RuntimeException("Unable to retrieve doNotIndendToTradeDefaultDate from config"))
+class AccountingDetailsServiceImpl @Inject()(val repositories: Repositories,
+                                             val microserviceAppConfig: MicroserviceAppConfig) extends AccountingDetailsService {
+  lazy val corporationTaxRegistrationRepository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
+  lazy val doNotIntendToTradeConf: String = microserviceAppConfig.getConfString("doNotIndendToTradeDefaultDate", throw new RuntimeException("Unable to retrieve doNotIndendToTradeDefaultDate from config"))
   override val doNotIndendToTradeDefaultDate = new String(Base64.getDecoder.decode(doNotIntendToTradeConf.getBytes()), "UTF-8")
 }
 

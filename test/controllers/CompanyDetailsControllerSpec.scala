@@ -32,7 +32,7 @@ class CompanyDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
 
   trait Setup {
     val controller = new CompanyDetailsController {
-      override val authConnector = mockAuthClientConnector
+      override val authConnector = mockAuthConnector
       override val resource = mockResource
       override val companyDetailsService = mockCompanyDetailsService
       override val metricsService = MockMetricsService

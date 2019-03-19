@@ -19,6 +19,7 @@ package models.validation
 import java.text.Normalizer
 import java.text.Normalizer.Form
 
+import auth.CryptoSCRS
 import models.{AccountPrepDetails, AccountingDetails, ContactDetails, PPOBAddress}
 import org.joda.time.DateTime
 import play.api.data.validation.ValidationError
@@ -34,8 +35,6 @@ trait BaseJsonFormatting {
   val dateTimePattern = "yyyy-MM-dd"
 
   def length(maxLen: Int, minLen: Int = 1)(implicit reads: Reads[String]): Reads[String] = maxLength[String](maxLen) keepAnd minLength[String](minLen)
-
-
 
   def readToFmt(rds: Reads[String])(implicit wts: Writes[String]): Format[String] = Format(rds, wts)
 
@@ -68,7 +67,7 @@ trait BaseJsonFormatting {
   ).replaceAll("[^\\p{ASCII}]", "").filterNot(forbiddenPunctuation)
 
   //Acknowledgement Reference
-  val cryptoFormat: Format[String] = Format(Reads.StringReads, Writes.StringWrites)
+  def cryptoFormat(crypto: CryptoSCRS): Format[String] = Format(Reads.StringReads, Writes.StringWrites)
 
   //Contact Details
   def contactDetailsFormatWithFilter(formatDef: OFormat[ContactDetails]): Format[ContactDetails]

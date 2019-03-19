@@ -16,44 +16,53 @@
 
 package services
 
-import config.MicroserviceAuditConnector
+import config.MicroserviceAppConfig
 import connectors._
 import helpers.DateHelper
 import javax.inject.Inject
+import jobs.{LockResponse, MongoLocked, ScheduledService, UnlockingFailed}
 import models.validation.APIValidation
 import models.{HttpResponse => _, _}
-import org.joda.time.{DateTime, DateTimeZone}
+import org.joda.time.{DateTime, DateTimeZone, Duration}
 import play.api.Logger
 import repositories._
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.lock.LockKeeper
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import utils.StringNormaliser
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NoStackTrace
-import scala.util.{Failure, Success, Try}
+import scala.util.{Success, Try}
 
 class CorporationTaxRegistrationServiceImpl @Inject()(
                                                        val submissionCheckAPIConnector: IncorporationCheckAPIConnector,
                                                        val brConnector: BusinessRegistrationConnector,
                                                        val desConnector: DesConnector,
+                                                       val microserviceAppConfig: MicroserviceAppConfig,
                                                        val incorpInfoConnector: IncorporationInformationConnector,
-                                                       val repositories: Repositories
+                                                       val repositories: Repositories,
+                                                       val auditConnector: AuditConnector
                                                      ) extends CorporationTaxRegistrationService {
 
-  lazy val auditConnector = MicroserviceAuditConnector
-  val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
-  val sequenceRepository: SequenceMongoRepository = repositories.sequenceRepository
+  lazy val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
+  lazy val sequenceRepository: SequenceMongoRepository = repositories.sequenceRepository
 
+  lazy val lockoutTimeout = microserviceAppConfig.getInt("schedules.missing-incorporation-job.lockTimeout")
   def currentDateTime: DateTime = DateTime.now(DateTimeZone.UTC)
+  lazy val lockKeeper: LockKeeper = new LockKeeper() {
+    override val lockId = "missing-incorporation-job-lock"
+    override val forceLockReleaseAfter: Duration = Duration.standardSeconds(lockoutTimeout)
+    override lazy val repo = repositories.lockRepository
+  }
 }
 
 sealed trait FailedPartialForLockedTopup extends NoStackTrace
 
 case object NoSessionIdentifiersInDocument extends FailedPartialForLockedTopup
 
-trait CorporationTaxRegistrationService extends DateHelper {
+trait CorporationTaxRegistrationService extends ScheduledService[Either[String,LockResponse]] with DateHelper {
 
   val cTRegistrationRepository: CorporationTaxRegistrationRepository
   val sequenceRepository: SequenceRepository
@@ -62,6 +71,7 @@ trait CorporationTaxRegistrationService extends DateHelper {
   val incorpInfoConnector: IncorporationInformationConnector
   val desConnector: DesConnector
   val submissionCheckAPIConnector: IncorporationCheckAPIConnector
+  val lockKeeper: LockKeeper
 
   def currentDateTime: DateTime
 
@@ -130,6 +140,22 @@ trait CorporationTaxRegistrationService extends DateHelper {
 
   def retrieveConfirmationReferences(rID: String): Future[Option[ConfirmationReferences]] = {
     cTRegistrationRepository.retrieveConfirmationReferences(rID)
+  }
+
+  def invoke(implicit ec: ExecutionContext): Future[Either[String, LockResponse]] = {
+    implicit val hc = HeaderCarrier()
+    lockKeeper.tryLock(locateOldHeldSubmissions).map {
+      case Some(res) =>
+        Logger.info("CorporationTaxRegistrationService acquired lock and returned results")
+        Logger.info(s"Result locateOldHeldSubmissions: $res")
+        Left(res)
+      case None =>
+        Logger.info("CorporationTaxRegistrationService cant acquire lock")
+        Right(MongoLocked)
+    }.recover {
+      case e: Exception => Logger.error(s"Error running locateOldHeldSubmissions with message: ${e.getMessage}")
+        Right(UnlockingFailed)
+    }
   }
 
   def locateOldHeldSubmissions(implicit hc: HeaderCarrier): Future[String] = {

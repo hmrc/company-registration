@@ -17,19 +17,22 @@
 package config
 
 import javax.inject.Inject
+import play.api.Mode.Mode
+import play.api.{Configuration, Environment}
+import uk.gov.hmrc.play.config.ServicesConfig
 
-import uk.gov.hmrc.play.config.inject.ServicesConfig
+class MicroserviceAppConfigImpl @Inject()(val environment:Environment, val runModeConfiguration: Configuration) extends MicroserviceAppConfig {
+  override protected def mode: Mode = environment.mode
+}
 
-class MicroserviceAppConfigImpl @Inject()(val config: ServicesConfig) extends MicroserviceAppConfig
+trait MicroserviceAppConfig extends ServicesConfig {
 
-trait MicroserviceAppConfig {
-  val config: ServicesConfig
 
-  def getConfigString(key: String): String = config.getConfString(key, throw new RuntimeException(s"Could not find $key in config"))
+  def getConfigString(key: String): String = getConfString(key, throw new RuntimeException(s"Could not find $key in config"))
 
   val regime: String = getConfigString("regime")
   val subscriber: String = getConfigString("subscriber")
 
-  val incorpInfoUrl: String = config.baseUrl("incorporation-information")
-  val compRegUrl: String    = config.baseUrl("company-registration")
+  val incorpInfoUrl: String = baseUrl("incorporation-information")
+  val compRegUrl: String    = baseUrl("company-registration")
 }

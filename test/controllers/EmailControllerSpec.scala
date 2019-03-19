@@ -38,7 +38,7 @@ class EmailControllerSpec extends BaseSpec with AuthorisationMocks {
   class Setup {
     val emailController = new EmailController {
       val emailService = mockEmailService
-      val authConnector = mockAuthClientConnector
+      val authConnector = mockAuthConnector
       val resource = mockResource
     }
   }

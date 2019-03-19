@@ -18,7 +18,7 @@ package helpers
 
 import mocks.SCRSMocks
 import org.scalatest.BeforeAndAfterEach
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 import org.mockito.Mockito.reset
 
@@ -27,7 +27,6 @@ trait SCRSSpec extends UnitSpec with MockitoSugar with WithFakeApplication with 
 	override def beforeEach() {
 		reset(mockCTDataService)
 		reset(mockCTDataRepository)
-		reset(mockAuthConnector)
 		reset(mockContactDetailsService)
 		reset(mockCompanyDetailsService)
 		reset(mockSequenceRepository)
