@@ -20,12 +20,12 @@ private object AppDependencies {
   import play.sbt.PlayImport._
 
   private val bootstrapPlayVersion = "4.9.0"
-  private val domainVersion = "5.3.0"
-  private val hmrcTestVersion = "3.2.0"
-  private val reactiveMongoVersion = "7.14.0-play-25"
+  private val domainVersion = "5.6.0-play-25"
+  private val hmrcTestVersion = "3.6.0-play-25"
+  private val reactiveMongoVersion = "7.15.0-play-25"
   private val mockitoVersion = "2.13.0"
   private val scalatestPlusPlayVersion = "2.0.0"
-  private val mongoLockVersion = "6.10.0-play-25"
+  private val mongoLockVersion = "6.12.0-play-25"
   private val authClientVersion = "2.20.0-play-25"
 
   val compile = Seq(
@@ -53,7 +53,7 @@ private object AppDependencies {
         "org.pegdown" % "pegdown" % "1.6.0" % scope,
         "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
         "org.mockito" % "mockito-core" % mockitoVersion % scope,
-        "uk.gov.hmrc" %% "reactivemongo-test" % "3.1.0" % scope
+        "uk.gov.hmrc" %% "reactivemongo-test" % "4.9.0-play-25" % scope
       )
     }.test
   }
