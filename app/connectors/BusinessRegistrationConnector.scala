@@ -16,22 +16,20 @@
 
 package connectors
 
+import config.MicroserviceAppConfig
 import javax.inject.Inject
-
-import config.WSHttp
 import models.{BusinessRegistration, BusinessRegistrationRequest}
 import org.joda.time.DateTime
 import play.api.Logger
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.http._
-import uk.gov.hmrc.play.config.ServicesConfig
+import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class BusinessRegistrationConnectorImpl @Inject()() extends BusinessRegistrationConnector with ServicesConfig {
-  lazy val businessRegUrl = baseUrl("business-registration")
-  val http : CoreGet with CorePost with CorePatch = WSHttp
+class BusinessRegistrationConnectorImpl @Inject()(val http: HttpClient, microserviceAppConfig: MicroserviceAppConfig) extends BusinessRegistrationConnector {
+  lazy val businessRegUrl = microserviceAppConfig.baseUrl("business-registration")
 }
 
 sealed trait BusinessRegistrationResponse
@@ -43,7 +41,7 @@ case class BusinessRegistrationErrorResponse(err: Exception) extends BusinessReg
 trait BusinessRegistrationConnector {
 
   val businessRegUrl: String
-  val http: CoreGet with CorePost with CorePatch
+  val http: HttpClient
 
   def createMetadataEntry(implicit hc: HeaderCarrier): Future[BusinessRegistration] = {
     val json = Json.toJson[BusinessRegistrationRequest](BusinessRegistrationRequest("ENG"))

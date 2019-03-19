@@ -16,21 +16,22 @@
 
 package controllers.test
 
+import auth.AuthorisedActions
 import javax.inject.Inject
-
-import auth.{AuthClientConnector, AuthorisedActions}
 import models.Email
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.EmailService
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
-import uk.gov.hmrc.play.microservice.controller.BaseController
+import uk.gov.hmrc.auth.core.AuthConnector
+import uk.gov.hmrc.play.bootstrap.controller.BaseController
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class EmailControllerImpl @Inject()(val emailService: EmailService,
-                                    val authConnector: AuthClientConnector,
-                                    val repositories: Repositories) extends EmailController {
-  val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
+                                    val authConnector: AuthConnector,
+                                    repositories: Repositories) extends EmailController {
+  lazy val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 }
 
 trait EmailController extends BaseController with AuthorisedActions {

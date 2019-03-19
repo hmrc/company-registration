@@ -16,16 +16,27 @@
 
 package repositories
 
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
-import uk.gov.hmrc.mongo.MongoSpecSupport
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
+import itutil.IntegrationSpecBase
+import play.api.Application
+import play.api.inject.guice.GuiceApplicationBuilder
+import play.modules.reactivemongo.ReactiveMongoComponent
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class SequenceMongoRepositoryISpec extends UnitSpec with MongoSpecSupport with BeforeAndAfterEach with BeforeAndAfterAll with WithFakeApplication {
+class SequenceMongoRepositoryISpec extends IntegrationSpecBase {
+
+  val additionalConfiguration = Map(
+    "schedules.missing-incorporation-job.enabled" -> "false",
+    "schedules.metrics-job.enabled" -> "false",
+    "schedules.remove-stale-documents-job.enabled" -> "false"
+  )
+  override implicit lazy val app: Application = new GuiceApplicationBuilder()
+    .configure(additionalConfiguration)
+    .build()
 
   class Setup {
-    val repository = new SequenceMongoRepository(mongo)
+    val rmc = app.injector.instanceOf[ReactiveMongoComponent]
+    val repository = new SequenceMongoRepository(rmc.mongoConnector.db)
     await(repository.drop)
     await(repository.ensureIndexes)
   }

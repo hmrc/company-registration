@@ -17,9 +17,8 @@
 package audit
 
 import models.des.{BusinessAddress, BusinessContactDetails}
-import play.api.mvc.{AnyContent, Request}
 import play.api.libs.json._
-import utils.SCRSFeatureSwitches
+import play.api.mvc.{AnyContent, Request}
 import uk.gov.hmrc.http.HeaderCarrier
 
 case class SubmissionEventDetail(regId: String,
@@ -31,7 +30,7 @@ case class SubmissionEventDetail(regId: String,
 
 object SubmissionEventDetail {
 
-  import RegistrationAuditEvent.{JOURNEY_ID, ACK_REF, REG_METADATA, CORP_TAX}
+  import RegistrationAuditEvent.{ACK_REF, CORP_TAX, JOURNEY_ID, REG_METADATA}
 
   implicit val writes = new Writes[SubmissionEventDetail] {
     def writes(detail: SubmissionEventDetail) = {

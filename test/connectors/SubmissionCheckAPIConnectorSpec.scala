@@ -18,17 +18,16 @@ package connectors
 
 import java.util.UUID
 
-import config.WSHttp
 import models.{IncorpUpdate, SubmissionCheckResponse}
 import org.joda.time.DateTime
-import org.mockito.{ArgumentCaptor, ArgumentMatchers}
-import org.scalatest.mock.MockitoSugar
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 import org.mockito.Mockito._
-import uk.gov.hmrc.play.http._
+import org.mockito.{ArgumentCaptor, ArgumentMatchers}
+import org.scalatest.mockito.MockitoSugar
+import uk.gov.hmrc.http._
+import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
-import uk.gov.hmrc.http.{ BadRequestException, HeaderCarrier, NotFoundException, Upstream4xxResponse, Upstream5xxResponse }
 
 
 class SubmissionCheckAPIConnectorSpec extends UnitSpec with MockitoSugar  {
@@ -36,7 +35,7 @@ class SubmissionCheckAPIConnectorSpec extends UnitSpec with MockitoSugar  {
   val testProxyUrl = "testBusinessRegUrl"
   implicit val hc = HeaderCarrier()
 
-  val mockWSHttp = mock[WSHttp]
+  val mockWSHttp = mock[HttpClient]
 
   trait Setup {
     val connector = new IncorporationCheckAPIConnector {

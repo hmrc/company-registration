@@ -32,6 +32,7 @@ import play.api.test.FakeRequest
 import repositories.CorporationTaxRegistrationMongoRepository
 import services.FailedToDeleteSubmissionData
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, NotFoundException, Upstream4xxResponse}
+import uk.gov.hmrc.lock.LockKeeper
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.test.UnitSpec
@@ -45,6 +46,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
   val mockCorpTaxRegistrationRepo: CorporationTaxRegistrationMongoRepository = mock[CorporationTaxRegistrationMongoRepository]
   val mockBusRegConnector = mock[BusinessRegistrationConnector]
   val mockDesConnector = mock[DesConnector]
+  val mockLockKeeper = mock[LockKeeper]
 
   class Setup {
     val service = new AdminService {
@@ -53,6 +55,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
       val corpTaxRegRepo: CorporationTaxRegistrationMongoRepository = mockCorpTaxRegistrationRepo
       val brConnector: BusinessRegistrationConnector = mockBusRegConnector
       val desConnector: DesConnector = mockDesConnector
+      override val lockKeeper: LockKeeper = mockLockKeeper
 
       override val staleAmount: Int = 10
       override val clearAfterXDays: Int = 90
@@ -67,6 +70,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
     reset(mockCorpTaxRegistrationRepo)
     reset(mockDesConnector)
     reset(mockIncorpInfoConnector)
+    reset(mockLockKeeper)
   }
 
   val regId = "reg-id-12345"

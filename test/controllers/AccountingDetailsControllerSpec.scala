@@ -17,21 +17,16 @@
 package controllers
 
 
-import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
-import fixtures.{AccountingDetailsFixture, AuthFixture}
-import helpers.{BaseSpec, SCRSSpec}
-import mocks.{AuthorisationMocks, MockMetricsService, SCRSMocks}
+import fixtures.AccountingDetailsFixture
+import helpers.BaseSpec
+import mocks.{AuthorisationMocks, MockMetricsService}
 import models.{AccountPrepDetails, ErrorResponse}
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
-import org.scalatest.mockito.MockitoSugar
-import org.scalatestplus.play.{OneAppPerSuite, OneAppPerTest}
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import services.PrepareAccountService
-import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 
@@ -41,7 +36,7 @@ class AccountingDetailsControllerSpec extends BaseSpec with AccountingDetailsFix
 
   trait Setup {
     val controller = new AccountingDetailsController {
-      override val authConnector = mockAuthClientConnector
+      override val authConnector = mockAuthConnector
       override val resource = mockResource
       override val accountingDetailsService = mockAccountingDetailsService
       override val metricsService = MockMetricsService

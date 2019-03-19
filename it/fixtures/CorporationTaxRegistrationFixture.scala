@@ -18,12 +18,17 @@ package fixtures
 
 import java.util.UUID
 
-import auth.Crypto
+import auth.CryptoSCRS
+import play.api.Configuration
 import play.api.libs.json._
+import uk.gov.hmrc.crypto.ApplicationCrypto
 
 object CorporationTaxRegistrationFixture {
 
-  val cryptoFormat: Format[String] = Format(Crypto.rds, Crypto.wts)
+  val instanceOfCrypto = new CryptoSCRS {
+    val crypto = new ApplicationCrypto(Configuration("json.encryption.key" -> "MTIzNDU2Nzg5MDEyMzQ1Ng==").underlying).JsonCrypto
+  }
+  val cryptoFormat: Format[String] = Format(instanceOfCrypto.rds, instanceOfCrypto.wts)
 
   def ctRegistrationJson(regId: String = UUID.randomUUID().toString,
                          status: String = "draft",

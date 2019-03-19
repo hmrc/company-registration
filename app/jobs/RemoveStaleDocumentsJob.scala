@@ -16,58 +16,21 @@
 
 package jobs
 
+import akka.actor.ActorSystem
 import javax.inject.{Inject, Singleton}
-
-import org.joda.time.Duration
-import play.api.Logger
+import jobs.SchedulingActor.RemoveStaleDocuments
+import play.api.Configuration
 import repositories.Repositories
 import services.admin.AdminService
-import uk.gov.hmrc.lock.LockKeeper
-import uk.gov.hmrc.play.scheduling.ExclusiveScheduledJob
-import utils.SCRSFeatureSwitches
-
-import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class RemoveStaleDocumentsJobImpl @Inject()(
-                                           val repositories: Repositories,
-                                           val adminService : AdminService
-                                         ) extends RemoveStaleDocumentsJob {
-  val name = "remove-stale-documents-job"
+class RemoveStaleDocumentsJob @Inject()(val config:Configuration,
+                                        val repositories: Repositories,
+                                        val adminService : AdminService
+                                         ) extends ScheduledJob {
+  val jobName = "remove-stale-documents-job"
 
-  override lazy val lock: LockKeeper = new LockKeeper() {
-    override val lockId = s"$name-lock"
-    override val forceLockReleaseAfter: Duration = lockTimeout
-    override val repo = repositories.lockRepository
-  }
-}
-
-trait RemoveStaleDocumentsJob extends ExclusiveScheduledJob with JobConfig {
-
-  val lock: LockKeeper
-  val adminService : AdminService
-
-  override def executeInMutex(implicit ec: ExecutionContext): Future[Result] = {
-    if (SCRSFeatureSwitches.removeStaleDocuments.enabled) {
-      lock.tryLock {
-        val startTS = System.currentTimeMillis
-        Logger.info(s"Triggered $name")
-        adminService.deleteStaleDocuments() map {deletions =>
-          val duration = System.currentTimeMillis - startTS
-          Result(s"[remove-stale-documents-job] Successfully deleted $deletions stale documents in $duration ms")
-        }
-      } map {
-        case Some(x) =>
-          Logger.info(s"successfully acquired lock for $name")
-          x
-        case None =>
-          Logger.info(s"failed to acquire lock for $name")
-          Result(s"$name failed")
-      } recover {
-        case _: Exception => Result(s"$name failed")
-      }
-    } else {
-      Future.successful(Result(s"Feature remove-stale-documents-job is turned off"))
-    }
-  }
+  val actorSystem = ActorSystem(jobName)
+  val scheduledMessage = RemoveStaleDocuments(adminService)
+  schedule
 }

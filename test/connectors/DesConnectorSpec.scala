@@ -21,23 +21,17 @@ import java.util.UUID
 import mocks.{MockMetricsService, WSHttpMock}
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.http.logging.SessionId
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, Upstream4xxResponse, Upstream5xxResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
-import uk.gov.hmrc.play.config.{AppName, RunMode}
-import uk.gov.hmrc.play.microservice.config.LoadAuditingConfig
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 
 class DesConnectorSpec extends UnitSpec with MockitoSugar with WSHttpMock {
-
-  object TestAuditConnector extends AuditConnector with AppName with RunMode {
-    override lazy val auditingConfig = LoadAuditingConfig("auditing")
-  }
 
   val mockAuditConnector = mock[AuditConnector]
 

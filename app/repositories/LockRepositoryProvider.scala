@@ -14,21 +14,16 @@
  * limitations under the License.
  */
 
-package mocks
+package repositories
 
-import org.mockito.ArgumentMatchers
-import org.mockito.Mockito._
-import org.mockito.stubbing.OngoingStubbing
-import org.scalatest.mock.MockitoSugar
-import uk.gov.hmrc.play.config.ServicesConfig
+import javax.inject.Inject
+import play.modules.reactivemongo.ReactiveMongoComponent
+import uk.gov.hmrc.lock.{LockMongoRepository, LockRepository}
 
-trait ServicesConfigMock {
-  this: MockitoSugar =>
+class LockRepositoryProviderImpl @Inject()(reactiveMongoComponent: ReactiveMongoComponent) extends LockRepositoryProvider {
 
-  lazy val mockServicesConfig = mock[ServicesConfig]
-
-  def mockGetConfString(url: String): OngoingStubbing[String] = {
-    when(mockServicesConfig.getConfString(ArgumentMatchers.any(), ArgumentMatchers.any()))
-      .thenReturn(url)
-  }
+  lazy val repo = LockMongoRepository(reactiveMongoComponent.mongoConnector.db)
+}
+trait LockRepositoryProvider {
+  val repo: LockRepository
 }

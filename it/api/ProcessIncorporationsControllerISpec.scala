@@ -16,6 +16,7 @@
 
 package api
 
+import auth.CryptoSCRS
 import com.github.tomakehurst.wiremock.client.WireMock.{stubFor, _}
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import itutil.{IntegrationSpecBase, LoginStub, MongoIntegrationSpec, WiremockHelper}
@@ -26,7 +27,7 @@ import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws.{WS, WSResponse}
-import play.modules.reactivemongo.MongoDbConnection
+import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.WriteResult
 import repositories.CorporationTaxRegistrationMongoRepository
 
@@ -69,8 +70,11 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
     withFollowRedirects(false).
     withHeaders("Content-Type"->"application/json")
 
-  class Setup extends MongoDbConnection {
-    val ctRepository = new CorporationTaxRegistrationMongoRepository(db)
+  class Setup {
+    val rmComp = app.injector.instanceOf[ReactiveMongoComponent]
+    val crypto = app.injector.instanceOf[CryptoSCRS]
+    val ctRepository = new CorporationTaxRegistrationMongoRepository(
+      rmComp,crypto)
     await(ctRepository.drop)
     await(ctRepository.ensureIndexes)
 

@@ -16,19 +16,31 @@
 
 package repositories
 
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+import itutil.IntegrationSpecBase
+import play.api.Application
+import play.api.inject.guice.GuiceApplicationBuilder
+import play.modules.reactivemongo.ReactiveMongoComponent
 import services.ThrottleService
-import uk.gov.hmrc.mongo.MongoSpecSupport
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 import uk.gov.hmrc.time.DateTimeUtils
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class ThrottleMongoRepositoryISpec extends UnitSpec with MongoSpecSupport with BeforeAndAfterEach with BeforeAndAfterAll with WithFakeApplication {
+class ThrottleMongoRepositoryISpec extends IntegrationSpecBase {
+
+  val additionalConfiguration = Map(
+    "schedules.missing-incorporation-job.enabled" -> "false",
+    "schedules.metrics-job.enabled" -> "false",
+    "schedules.remove-stale-documents-job.enabled" -> "false"
+  )
+  override implicit lazy val app: Application = new GuiceApplicationBuilder()
+    .configure(additionalConfiguration)
+    .build()
 
   class Setup {
     val service = new ThrottleService {
-      val throttleMongoRepository = new ThrottleMongoRepository
+      val rmc = app.injector.instanceOf[ReactiveMongoComponent]
+
+      val throttleMongoRepository = new ThrottleMongoRepository(rmc.mongoConnector.db)
       val dateTime = DateTimeUtils.now
       val threshold = 10
     }

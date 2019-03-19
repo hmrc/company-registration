@@ -18,13 +18,12 @@ package controllers
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import fixtures.AuthFixture
 import models.IncorpStatus
 import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.concurrent.Eventually
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import play.api.Logger
 import play.api.libs.json.Reads._
 import play.api.libs.json.{JsObject, Json}
@@ -35,7 +34,7 @@ import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
 
 import scala.concurrent.Future
 
-class ProcessIncorporationsControllerSpec extends UnitSpec with MockitoSugar with AuthFixture  with LogCapturing with Eventually {
+class ProcessIncorporationsControllerSpec extends UnitSpec with MockitoSugar with LogCapturing with Eventually {
 
   implicit val as = ActorSystem()
   implicit val mat = ActorMaterializer()

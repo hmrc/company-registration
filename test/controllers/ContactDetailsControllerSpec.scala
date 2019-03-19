@@ -35,7 +35,7 @@ class ContactDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
     val controller = new ContactDetailsController {
       override val contactDetailsService = mockContactDetailsService
       override val resource = mockResource
-      override val authConnector = mockAuthClientConnector
+      override val authConnector = mockAuthConnector
       override val metricsService = MockMetricsService
     }
   }

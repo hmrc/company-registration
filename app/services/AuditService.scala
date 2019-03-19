@@ -16,20 +16,16 @@
 
 package services
 
-import javax.inject.Inject
-
 import audit.{CTRegistrationAuditEvent, CTRegistrationSubmissionAuditEventDetails, DesResponse}
-import config.MicroserviceAuditConnector
+import javax.inject.Inject
 import play.api.libs.json.JsObject
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.concurrent.Future
 
-class AuditServiceImpl @Inject()() extends AuditService {
-  lazy val auditConnector = MicroserviceAuditConnector
-}
+class AuditServiceImpl @Inject()(val auditConnector: AuditConnector) extends AuditService
 
 trait AuditService {
 

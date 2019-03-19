@@ -16,55 +16,18 @@
 
 package jobs
 
+import akka.actor.ActorSystem
 import javax.inject.Inject
-
-import org.joda.time.Duration
-import play.api.Logger
+import jobs.SchedulingActor.MissingIncorporation
+import play.api.Configuration
 import repositories.Repositories
 import services.CorporationTaxRegistrationService
-import uk.gov.hmrc.lock.LockKeeper
-import uk.gov.hmrc.play.scheduling.ExclusiveScheduledJob
-import utils.SCRSFeatureSwitches
 
-import scala.concurrent.{ExecutionContext, Future}
-import uk.gov.hmrc.http.HeaderCarrier
-
-class MissingIncorporationJobImpl @Inject()(
-        val ctRegService: CorporationTaxRegistrationService,
-        val repositories: Repositories
-      ) extends MissingIncorporationJob {
-
-  val name = "missing-incorporation-job"
-  override lazy val lock: LockKeeper = new LockKeeper() {
-    override val lockId = s"$name-lock"
-    override val forceLockReleaseAfter: Duration = lockTimeout
-    override val repo = repositories.lockRepository
-  }
-}
-
-trait MissingIncorporationJob extends ExclusiveScheduledJob with JobConfig {
-
-  val lock: LockKeeper
-  val ctRegService: CorporationTaxRegistrationService
-
-  //$COVERAGE-OFF$
-  override def executeInMutex(implicit ec: ExecutionContext): Future[Result] = {
-    SCRSFeatureSwitches.missingIncorp.enabled match {
-      case true => lock.tryLock {
-        Logger.info(s"Triggered $name")
-        ctRegService.locateOldHeldSubmissions(HeaderCarrier())
-      } map {
-        case Some(x) =>
-          Logger.info(s"successfully acquired lock for $name")
-          Result(s"$name")
-        case None =>
-          Logger.info(s"failed to acquire lock for $name")
-          Result(s"$name failed")
-      } recover {
-        case _: Exception => Result(s"$name failed")
-      }
-      case false => Future.successful(Result(s"Feature is turned off"))
-    }
-  }
-  //$COVERAGE-ON$
+class MissingIncorporationJob @Inject()(val config:Configuration,
+                                        val ctRegService: CorporationTaxRegistrationService,
+                                        val repositories: Repositories) extends ScheduledJob {
+  val jobName = "missing-incorporation-job"
+  val actorSystem = ActorSystem(jobName)
+  val scheduledMessage = MissingIncorporation(ctRegService)
+  schedule
 }

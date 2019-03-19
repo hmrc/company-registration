@@ -16,7 +16,7 @@
 
 package config
 
-import auth.{AuthClientConnector, AuthClientConnectorImpl}
+import auth.{AuthClientConnector, CryptoSCRS, CryptoSCRSImpl}
 import com.google.inject.AbstractModule
 import com.google.inject.name.Names
 import connectors._
@@ -24,76 +24,91 @@ import controllers._
 import controllers.admin.{AdminController, AdminControllerImpl}
 import controllers.test._
 import jobs._
+import repositories._
 import services._
 import services.admin.{AdminService, AdminServiceImpl}
-import uk.gov.hmrc.play.config.inject.{DefaultServicesConfig, ServicesConfig}
-import uk.gov.hmrc.play.scheduling.ScheduledJob
+import uk.gov.hmrc.auth.core.AuthConnector
+import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import utils.{AlertLogging, AlertLoggingImpl}
 
 class Module extends AbstractModule {
 
   override def configure(): Unit = {
-    bindControllers()
+    bindConfig()
+    bindRepositories()
     bindServices()
     bindConnectors()
-    bindConfig()
+    bindControllers()
     bindJobs()
   }
 
   private def bindJobs() = {
-    bind(classOf[MissingIncorporationJob]).to(classOf[MissingIncorporationJobImpl])
-    bind(classOf[ScheduledJob]).annotatedWith(Names.named("remove-stale-documents-job")).to(classOf[RemoveStaleDocumentsJobImpl])
-    bind(classOf[ScheduledJob]).annotatedWith(Names.named("metrics-job")).to(classOf[MetricsJobImpl])
+    bind(classOf[ScheduledJob]).annotatedWith(Names.named("missing-incorporation-job")).to(classOf[MissingIncorporationJob]).asEagerSingleton()
+    bind(classOf[ScheduledJob]).annotatedWith(Names.named("remove-stale-documents-job")).to(classOf[RemoveStaleDocumentsJob]).asEagerSingleton()
+    bind(classOf[ScheduledJob]).annotatedWith(Names.named("metrics-job")).to(classOf[MetricsJob]).asEagerSingleton()
+    bind(classOf[AppStartupJobs]).to(classOf[AppStartupJobsImpl]).asEagerSingleton()
+    bind(classOf[Startup]).asEagerSingleton()
   }
 
   private def bindConfig() = {
-    bind(classOf[MicroserviceAppConfig]).to(classOf[MicroserviceAppConfigImpl])
-    bind(classOf[ServicesConfig]).to(classOf[DefaultServicesConfig])
+    bind(classOf[MicroserviceAppConfig]).to(classOf[MicroserviceAppConfigImpl]).asEagerSingleton()
+    bind(classOf[HttpClient]).to(classOf[WSHttpSCRSImpl]).asEagerSingleton()
+    bind(classOf[CryptoSCRS]).to(classOf[CryptoSCRSImpl]).asEagerSingleton()
+    bind(classOf[AlertLogging]).to(classOf[AlertLoggingImpl]).asEagerSingleton()
   }
 
   private def bindControllers() = {
-    bind(classOf[EmailController]) to classOf[EmailControllerImpl]
-    bind(classOf[AccountingDetailsController]) to classOf[AccountingDetailsControllerImpl]
-    bind(classOf[ProcessIncorporationsController]) to classOf[ProcessIncorporationsControllerImpl]
-    bind(classOf[CompanyDetailsController]) to classOf[CompanyDetailsControllerImpl]
-    bind(classOf[ContactDetailsController]) to classOf[ContactDetailsControllerImpl]
-    bind(classOf[CorporationTaxRegistrationController]) to classOf[CorporationTaxRegistrationControllerImpl]
-    bind(classOf[TradingDetailsController]) to classOf[TradingDetailsControllerImpl]
-    bind(classOf[UserAccessController]) to classOf[UserAccessControllerImpl]
-    bind(classOf[AdminController]) to classOf[AdminControllerImpl]
-    bind(classOf[HeldController]) to classOf[HeldControllerImpl]
-    bind(classOf[AccountingDetailsController]) to classOf[AccountingDetailsControllerImpl]
-    bind(classOf[TestEndpointController]) to classOf[TestEndpointControllerImpl]
-    bind(classOf[SubmissionController]) to classOf[SubmissionControllerImpl]
+    bind(classOf[EmailController]).to(classOf[EmailControllerImpl]).asEagerSingleton()
+    bind(classOf[AccountingDetailsController]).to(classOf[AccountingDetailsControllerImpl]).asEagerSingleton()
+    bind(classOf[ProcessIncorporationsController]).to(classOf[ProcessIncorporationsControllerImpl]).asEagerSingleton()
+    bind(classOf[CompanyDetailsController]).to(classOf[CompanyDetailsControllerImpl]).asEagerSingleton()
+    bind(classOf[ContactDetailsController]).to(classOf[ContactDetailsControllerImpl]).asEagerSingleton()
+    bind(classOf[CorporationTaxRegistrationController]).to(classOf[CorporationTaxRegistrationControllerImpl]).asEagerSingleton()
+    bind(classOf[TradingDetailsController]).to(classOf[TradingDetailsControllerImpl]).asEagerSingleton()
+    bind(classOf[UserAccessController]).to(classOf[UserAccessControllerImpl]).asEagerSingleton()
+    bind(classOf[AdminController]).to(classOf[AdminControllerImpl]).asEagerSingleton()
+    bind(classOf[HeldController]).to(classOf[HeldControllerImpl]).asEagerSingleton()
+    bind(classOf[AccountingDetailsController]).to(classOf[AccountingDetailsControllerImpl]).asEagerSingleton()
+    bind(classOf[TestEndpointController]).to(classOf[TestEndpointControllerImpl]).asEagerSingleton()
+    bind(classOf[SubmissionController]).to(classOf[SubmissionControllerImpl]).asEagerSingleton()
+    bind(classOf[FeatureSwitchController]).to(classOf[FeatureSwitchControllerImpl]).asEagerSingleton()
   }
 
   private def bindServices() {
-    bind(classOf[AdminService]).to(classOf[AdminServiceImpl])
-    bind(classOf[AuditService]).to(classOf[AuditServiceImpl])
-    bind(classOf[AccountingDetailsService]).to(classOf[AccountingDetailsServiceImpl])
-    bind(classOf[MetricsService]) to classOf[MetricsServiceImpl]
-    bind(classOf[CompanyDetailsService]) to classOf[CompanyDetailsServiceImpl]
-    bind(classOf[ContactDetailsService]) to classOf[ContactDetailsServiceImpl]
-    bind(classOf[CorporationTaxRegistrationService]) to classOf[CorporationTaxRegistrationServiceImpl]
-    bind(classOf[CorporationTaxRegistrationService]) to classOf[CorporationTaxRegistrationServiceImpl]
-    bind(classOf[EmailService]) to classOf[EmailServiceImpl]
-    bind(classOf[SendEmailService]) to classOf[SendEmailServiceImpl]
-    bind(classOf[MetricsService]) to classOf[MetricsServiceImpl]
-    bind(classOf[PrepareAccountService]) to classOf[PrepareAccountServiceImpl]
-    bind(classOf[ThrottleService]) to classOf[ThrottleServiceImpl]
-    bind(classOf[TradingDetailsService]) to classOf[TradingDetailsServiceImpl]
-    bind(classOf[UserAccessService]) to classOf[UserAccessServiceImpl]
-    bind(classOf[ProcessIncorporationService]) to classOf[ProcessIncorporationServiceImpl]
-    bind(classOf[SubmissionService]) to classOf[SubmissionServiceImpl]
+    bind(classOf[AdminService]).to(classOf[AdminServiceImpl]).asEagerSingleton()
+    bind(classOf[AuditService]).to(classOf[AuditServiceImpl]).asEagerSingleton()
+    bind(classOf[AccountingDetailsService]).to(classOf[AccountingDetailsServiceImpl]).asEagerSingleton()
+    bind(classOf[MetricsService]).to(classOf[MetricsServiceImpl]).asEagerSingleton()
+    bind(classOf[CompanyDetailsService]).to(classOf[CompanyDetailsServiceImpl]).asEagerSingleton()
+    bind(classOf[ContactDetailsService]).to(classOf[ContactDetailsServiceImpl]).asEagerSingleton()
+    bind(classOf[CorporationTaxRegistrationService]).to(classOf[CorporationTaxRegistrationServiceImpl]).asEagerSingleton()
+    bind(classOf[CorporationTaxRegistrationService]).to(classOf[CorporationTaxRegistrationServiceImpl]).asEagerSingleton()
+    bind(classOf[EmailService]).to(classOf[EmailServiceImpl]).asEagerSingleton()
+    bind(classOf[SendEmailService]).to(classOf[SendEmailServiceImpl]).asEagerSingleton()
+    bind(classOf[MetricsService]).to(classOf[MetricsServiceImpl]).asEagerSingleton()
+    bind(classOf[PrepareAccountService]).to(classOf[PrepareAccountServiceImpl]).asEagerSingleton()
+    bind(classOf[ThrottleService]).to(classOf[ThrottleServiceImpl]).asEagerSingleton()
+    bind(classOf[TradingDetailsService]).to(classOf[TradingDetailsServiceImpl]).asEagerSingleton()
+    bind(classOf[UserAccessService]).to(classOf[UserAccessServiceImpl]).asEagerSingleton()
+    bind(classOf[ProcessIncorporationService]).to(classOf[ProcessIncorporationServiceImpl]).asEagerSingleton()
+    bind(classOf[SubmissionService]).to(classOf[SubmissionServiceImpl]).asEagerSingleton()
   }
 
   private def bindConnectors() = {
-    bind(classOf[IncorporationInformationConnector]).to(classOf[IncorporationInformationConnectorImpl])
-    bind(classOf[BusinessRegistrationConnector]).to(classOf[BusinessRegistrationConnectorImpl])
-    bind(classOf[DesConnector]).to(classOf[DesConnectorImpl])
-    bind(classOf[AuthClientConnector]).to(classOf[AuthClientConnectorImpl])
-    bind(classOf[AuthConnector]).to(classOf[AuthConnectorImpl])
-    bind(classOf[SendEmailConnector]).to(classOf[SendEmailConnectorImpl])
-    bind(classOf[DesConnector]).to(classOf[DesConnectorImpl])
-    bind(classOf[IncorporationCheckAPIConnector]).to(classOf[IncorporationCheckAPIConnectorImpl])
+    bind(classOf[IncorporationInformationConnector]).to(classOf[IncorporationInformationConnectorImpl]).asEagerSingleton()
+    bind(classOf[BusinessRegistrationConnector]).to(classOf[BusinessRegistrationConnectorImpl]).asEagerSingleton()
+    bind(classOf[DesConnector]).to(classOf[DesConnectorImpl]).asEagerSingleton()
+    bind(classOf[AuthConnector]).to(classOf[AuthClientConnector]).asEagerSingleton()
+    bind(classOf[SendEmailConnector]).to(classOf[SendEmailConnectorImpl]).asEagerSingleton()
+    bind(classOf[DesConnector]).to(classOf[DesConnectorImpl]).asEagerSingleton()
+    bind(classOf[IncorporationCheckAPIConnector]).to(classOf[IncorporationCheckAPIConnectorImpl]).asEagerSingleton()
+  }
+
+  private def bindRepositories() = {
+    bind(classOf[LockRepositoryProvider]).to(classOf[LockRepositoryProviderImpl]).asEagerSingleton()
+    bind(classOf[CorporationTaxRegistrationMongoRepository]).asEagerSingleton()
+    bind(classOf[SequenceMongoRepo]).asEagerSingleton()
+    bind(classOf[ThrottleMongoRepo]).asEagerSingleton()
+    bind(classOf[Repositories]).asEagerSingleton()
   }
 }

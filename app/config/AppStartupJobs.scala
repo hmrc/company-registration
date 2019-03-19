@@ -17,109 +17,53 @@
 package config
 
 import java.util.Base64
+import java.util.concurrent.TimeUnit
 
-import com.typesafe.config.Config
-import javax.inject.{Inject, Named, Singleton}
-import net.ceedubs.ficus.Ficus._
-import play.api.{Application, Configuration, Logger, Play}
+import akka.actor.ActorSystem
+import javax.inject.{Inject, Singleton}
+
+import play.api.{Configuration, Logger}
+import reactivemongo.api.indexes.IndexType
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
-import services.admin.AdminServiceImpl
-import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
-import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
-import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode}
-import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
-import uk.gov.hmrc.play.microservice.filters.{AuditFilter, LoggingFilter, MicroserviceFilterSupport}
-import uk.gov.hmrc.play.scheduling.{RunningOfScheduledJobs, ScheduledJob}
+import services.admin.AdminService
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
 
-object ControllerConfiguration extends ControllerConfig {
-  lazy val controllerConfigs = Play.current.configuration.underlying.as[Config]("controllers")
+
+
+class Startup @Inject()(appStartupJobs: AppStartupJobs, actorSystem: ActorSystem) {
+  actorSystem.scheduler.scheduleOnce(FiniteDuration(1,TimeUnit.MINUTES))(appStartupJobs.runEverythingOnStartUp)
 }
 
-object AuthParamsControllerConfiguration extends AuthParamsControllerConfig {
-  lazy val controllerConfigs = ControllerConfiguration.controllerConfigs
+class AppStartupJobsImpl @Inject()(val config: Configuration,
+                                val service: AdminService,
+                                val ctRepo: CorporationTaxRegistrationMongoRepository) extends AppStartupJobs {
+
 }
+  trait AppStartupJobs {
 
-object MicroserviceAuditFilter extends AuditFilter with AppName with MicroserviceFilterSupport {
-  override val auditConnector = MicroserviceAuditConnector
-  override def controllerNeedsAuditing(controllerName: String) = ControllerConfiguration.paramsForController(controllerName).needsAuditing
-}
+    val config: Configuration
+    val service: AdminService
+    val ctRepo: CorporationTaxRegistrationMongoRepository
 
-object MicroserviceLoggingFilter extends LoggingFilter with MicroserviceFilterSupport {
-  override def controllerNeedsLogging(controllerName: String) = ControllerConfiguration.paramsForController(controllerName).needsLogging
-}
+    def startupStats: Future[Unit] = {
+      ctRepo.getRegistrationStats() map {
+        stats => Logger.info(s"[RegStats] $stats")
+      }
+    }
 
-object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with RunningOfScheduledJobs {
-  override val auditConnector = MicroserviceAuditConnector
-
-  override def microserviceMetricsConfig(implicit app: Application): Option[Configuration] = app.configuration.getConfig(s"microservice.metrics")
-
-  override val loggingFilter = MicroserviceLoggingFilter
-
-  override val microserviceAuditFilter = MicroserviceAuditFilter
-
-  override val authFilter: Option[AuthorisationFilter] = None
-
-  override lazy val scheduledJobs = Play.current.injector.instanceOf[Jobs].lookupJobs()
-
-  override def onStart(app : play.api.Application) : scala.Unit = {
-
-    val startupJobs = app.injector.instanceOf[AppStartupJobs]
-
-    val regid = app.configuration.getString("companyNameRegID").getOrElse("")
-    startupJobs.getCTCompanyName(regid)
-
-    val base64RegIds = app.configuration.getString("list-of-regids").getOrElse("")
-    val listOftxIDs = new String(Base64.getDecoder.decode(base64RegIds), "UTF-8").split(",").toList
-    startupJobs.fetchDocInfoByRegId(listOftxIDs)
-
-    val base64ackRefs = app.configuration.getString("list-of-ackrefs").getOrElse("")
-    val listOfackRefs = new String(Base64.getDecoder.decode(base64ackRefs), "UTF-8").split(",").toList
-    startupJobs.fetchByAckRef(listOfackRefs)
-
-    startupJobs.fetchIndexes()
-
-    super.onStart(app)
-  }
-}
-
-trait JobsList {
-  def lookupJobs(): Seq[ScheduledJob] = Seq()
-}
-
-@Singleton
-class Jobs @Inject()(
-                      @Named("remove-stale-documents-job") removeStaleDocsJob: ScheduledJob,
-                      @Named("metrics-job") metricsJob: ScheduledJob
-                    ) extends JobsList {
-  override def lookupJobs(): Seq[ScheduledJob] =
-    Seq(
-      removeStaleDocsJob,
-      metricsJob
-    )
-}
-
-class AppStartupJobs @Inject()(config: Configuration,
-                                val service: AdminServiceImpl,
-                                val repositories: Repositories) {
-
-  import scala.concurrent.ExecutionContext.Implicits.global
-
-  lazy val ctRepo: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
-
-  ctRepo.getRegistrationStats() map {
-    stats => Logger.info(s"[RegStats] $stats")
-  }
-
-  ctRepo.retrieveLockedRegIDs() map { regIds =>
-    val message = regIds.map(rid => s" RegId: $rid")
-    Logger.info(s"RegIds with locked status:$message")
-  }
+ def lockedRegIds: Future[Unit] = {
+   ctRepo.retrieveLockedRegIDs() map { regIds =>
+     val message = regIds.map(rid => s" RegId: $rid")
+     Logger.info(s"RegIds with locked status:$message")
+   }
+ }
 
   def getCTCompanyName(rid: String) : Future[Unit] = {
     ctRepo.retrieveMultipleCorporationTaxRegistration(rid) map {
-      _ foreach { ctDoc =>
+      list => list foreach { ctDoc =>
         Logger.info(s"[CompanyName] " +
           s"status : ${ctDoc.status} - " +
           s"reg Id : ${ctDoc.registrationID} - " +
@@ -147,7 +91,7 @@ class AppStartupJobs @Inject()(config: Configuration,
         Logger.info(s"[Indexes]\n " +
           s"name : ${index.eventualName}\n " +
           s"""keys : ${index.key match {
-            case Seq(s @ _*) => s"$s\n "
+            case s:Seq[(String, IndexType)] if s.nonEmpty => s"$s\n "
             case Nil => "None\n "}}""" +
           s"unique : ${index.unique}\n " +
           s"background : ${index.background}\n " +
@@ -199,4 +143,22 @@ class AppStartupJobs @Inject()(config: Configuration,
       }
     }
   }
+    def runEverythingOnStartUp = {
+      Logger.info("Running Startup Jobs")
+      lazy val regid = config.getString("companyNameRegID").getOrElse("")
+      getCTCompanyName(regid)
+
+      lazy val base64RegIds = config.getString("list-of-regids").getOrElse("")
+      lazy val listOftxIDs = new String(Base64.getDecoder.decode(base64RegIds), "UTF-8").split(",").toList
+      fetchDocInfoByRegId(listOftxIDs)
+
+      lazy val base64ackRefs = config.getString("list-of-ackrefs").getOrElse("")
+      lazy val listOfackRefs = new String(Base64.getDecoder.decode(base64ackRefs), "UTF-8").split(",").toList
+      fetchByAckRef(listOfackRefs)
+
+      fetchIndexes()
+      startupStats
+      lockedRegIds
+    }
+
 }

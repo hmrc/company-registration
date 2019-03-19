@@ -18,9 +18,11 @@ package controllers
 
 import java.time.LocalTime
 
+import auth.CryptoSCRS
 import fixtures.CorporationTaxRegistrationFixture
 import helpers.BaseSpec
 import mocks.{AuthorisationMocks, MockMetricsService}
+import models.validation.{APIValidation, MongoValidation}
 import models.{AcknowledgementReferences, ConfirmationReferences}
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
@@ -43,9 +45,10 @@ class SubmissionControllerSpec extends BaseSpec with AuthorisationMocks with Cor
     val controller = new SubmissionController {
       val submissionService = mockSubmissionService
       val resource = mockResource
-      val authConnector = mockAuthClientConnector
+      val authConnector = mockAuthConnector
       val metricsService = MockMetricsService
       val alertLogging: AlertLogging = new AlertLogging {}
+      override val cryptoSCRS: CryptoSCRS = mockInstanceOfCrypto
     }
   }
 
@@ -87,7 +90,9 @@ class SubmissionControllerSpec extends BaseSpec with AuthorisationMocks with Cor
 
   "acknowledgementConfirmation" should {
 
-    def request(ctutr: Boolean, code: String) = FakeRequest().withBody(Json.toJson(AcknowledgementReferences(if (ctutr) Option("aaa") else None, "bbb", code)))
+    def request(ctutr: Boolean, code: String) = FakeRequest().withBody(
+      Json.toJson(AcknowledgementReferences(if (ctutr) Option("aaa") else None, "bbb", code))(AcknowledgementReferences.format(APIValidation, mockInstanceOfCrypto))
+    )
 
     "return a bad request" when {
       "given invalid json" in new Setup {
@@ -96,7 +101,7 @@ class SubmissionControllerSpec extends BaseSpec with AuthorisationMocks with Cor
         status(result) shouldBe BAD_REQUEST
       }
       "given an Accepted response without a CTUTR" in new Setup {
-        val json = Json.toJson(AcknowledgementReferences(None, "bbb", "04"))
+        val json = Json.toJson(AcknowledgementReferences(None, "bbb", "04"))(AcknowledgementReferences.format(MongoValidation, mockInstanceOfCrypto))
 
         val request = FakeRequest().withBody(Json.toJson(json))
         val result = await(controller.acknowledgementConfirmation("TestAckRef")(request))

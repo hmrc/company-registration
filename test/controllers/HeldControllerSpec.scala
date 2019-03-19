@@ -39,7 +39,7 @@ class HeldControllerSpec extends BaseSpec with AuthorisationMocks {
   trait Setup {
     val controller = new HeldController {
       override val service = mockProcessIncorporationService
-      override val authConnector = mockAuthClientConnector
+      override val authConnector = mockAuthConnector
       override val resource = mockResource
     }
   }

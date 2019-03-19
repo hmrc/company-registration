@@ -25,12 +25,12 @@ import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc.{Action, _}
 import repositories.{CorporationTaxRegistrationMongoRepository, CorporationTaxRegistrationRepository, Repositories}
-import services.{CorporationTaxRegistrationService, SubmissionService}
 import services.admin.AdminService
+import services.{CorporationTaxRegistrationService, SubmissionService}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.logging.SessionId
 import uk.gov.hmrc.play.audit.http.connector.AuditResult
-import uk.gov.hmrc.play.microservice.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -40,7 +40,7 @@ class AdminControllerImpl @Inject()(
                                      val submissionService: SubmissionService,
                                      val repositories: Repositories
       ) extends AdminController {
-  val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
+  lazy val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 
 }
 
@@ -134,6 +134,9 @@ trait AdminController extends BaseController with FutureInstances with Applicati
         case AuditResult.Success => result
         case AuditResult.Failure(errMsg, _) =>
           Logger.error(s"[Admin] [Audit] - Failed to audit HO6 admin release event for regId : ${identifiers.registrationId} - reason - $errMsg")
+          result
+        case _ =>
+          Logger.info(s"[Admin] [Audit] - Auditing disabled when tryng to audit HO6 admin release event for regId : ${identifiers.registrationId}")
           result
       }
     }

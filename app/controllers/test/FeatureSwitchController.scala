@@ -16,36 +16,37 @@
 
 package controllers.test
 
+import akka.actor.ActorSystem
+import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
+import javax.inject.Inject
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent}
-import play.twirl.api.Html
-import uk.gov.hmrc.play.microservice.controller.BaseController
-import utils.{FeatureSwitch, SCRSFeatureSwitches}
+import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import utils.{BooleanFeatureSwitch, FeatureSwitch, SCRSFeatureSwitches}
 
 import scala.concurrent.Future
 
-object FeatureSwitchController extends FeatureSwitchController
+class FeatureSwitchControllerImpl @Inject()(val actorSystem: ActorSystem) extends FeatureSwitchController {
+  override lazy val scheduler: QuartzSchedulerExtension = QuartzSchedulerExtension(actorSystem)
+}
 
 trait FeatureSwitchController extends BaseController {
+  val scheduler: QuartzSchedulerExtension
 
   val featureSwitch = FeatureSwitch
 
   def switch(featureName : String, featureState : String) = Action.async {
     implicit request =>
 
-      def feature: FeatureSwitch = featureState match {
-        case "off" => featureSwitch.disable(FeatureSwitch(featureName, enabled = false))
-        case "on" => featureSwitch.enable(FeatureSwitch(featureName, enabled = true))
-        case _ => featureSwitch.disable(FeatureSwitch(featureName, enabled = false))
+     def feature = (featureName, featureState) match {
+        case (jobName, "enable")  =>
+          scheduler.resumeJob(jobName)
+          BooleanFeatureSwitch(featureName, true)
+        case (jobName, "disable") =>
+          scheduler.suspendJob(jobName)
+          BooleanFeatureSwitch(featureName, false)
       }
-
-      SCRSFeatureSwitches(featureName) match {
-        case Some(_) => {
-          val f = feature
-          Future.successful(Ok(Json.toJson(f)))
-        }
-        case None => Future.successful(BadRequest)
-      }
+          Future.successful(Ok(Json.toJson(feature)))
   }
 
   def show: Action[AnyContent] = Action.async {
@@ -53,5 +54,4 @@ trait FeatureSwitchController extends BaseController {
       val f = SCRSFeatureSwitches.all.foldLeft("")((s: String, fs: FeatureSwitch) => s + s"""${fs.name} ${fs.enabled}\n""")
       Future.successful(Ok(f))
   }
-
 }

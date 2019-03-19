@@ -25,8 +25,8 @@ import play.api.Logger
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent}
 import repositories._
-import services.{CorporationTaxRegistrationService, SubmissionService}
-import uk.gov.hmrc.play.microservice.controller.BaseController
+import services.SubmissionService
+import uk.gov.hmrc.play.bootstrap.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -35,10 +35,9 @@ import scala.concurrent.Future
 class TestEndpointControllerImpl @Inject()(
                                             val submissionService: SubmissionService,
                                             val bRConnector: BusinessRegistrationConnector,
-                                            val repositories: Repositories
-      ) extends TestEndpointController {
-  val throttleMongoRepository = repositories.throttleRepository
-  val cTMongoRepository = repositories.cTRepository
+                                            val repositories: Repositories) extends TestEndpointController {
+  lazy val throttleMongoRepository = repositories.throttleRepository
+  lazy val cTMongoRepository = repositories.cTRepository
 }
 
 trait TestEndpointController extends BaseController {

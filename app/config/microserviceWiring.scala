@@ -16,25 +16,25 @@
 
 package config
 
-import uk.gov.hmrc.auth.core.PlayAuthConnector
+import akka.actor.ActorSystem
+import com.typesafe.config.Config
+import javax.inject.Inject
+import play.api.Configuration
+import uk.gov.hmrc.auth.core.{AuthConnector, PlayAuthConnector}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.hooks.{HttpHook, HttpHooks}
 import uk.gov.hmrc.play.audit.http.HttpAuditing
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.config.{AppName, RunMode, ServicesConfig}
+import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.play.config.AppName
 import uk.gov.hmrc.play.http.ws._
-import uk.gov.hmrc.play.microservice.config.LoadAuditingConfig
-
-object MicroserviceAuditConnector extends AuditConnector with RunMode {
-  override lazy val auditingConfig = LoadAuditingConfig(s"auditing")
-}
 
 trait Hooks extends HttpHooks with HttpAuditing {
   override val hooks: Seq[HttpHook with AnyRef] = Seq(AuditingHook)
-  override lazy val auditConnector = MicroserviceAuditConnector
+
 }
 
-trait WSHttp extends
+trait WSHttpSCRS extends
   HttpGet with WSGet with
   HttpPut with WSPut with
   HttpPost with WSPost with
@@ -42,11 +42,8 @@ trait WSHttp extends
   HttpPatch with WSPatch with
   Hooks with AppName
 
-object WSHttp extends WSHttp {
+class WSHttpSCRSImpl @Inject()(val actorSystem: ActorSystem, val appNameConfiguration: Configuration, val auditConnector: AuditConnector) extends WSHttpSCRS with HttpClient {
   override val hooks = NoneRequired
-}
 
-object AuthClientConnector extends PlayAuthConnector with ServicesConfig {
-  override val serviceUrl = baseUrl("auth")
-  override val http: CorePost = WSHttp
+  override protected def configuration: Option[Config] = Option(appNameConfiguration.underlying)
 }

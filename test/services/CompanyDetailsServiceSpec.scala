@@ -18,7 +18,7 @@ package services
 
 import fixtures.CompanyDetailsFixture
 import mocks.SCRSMocks
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import uk.gov.hmrc.play.test.UnitSpec
 
 class CompanyDetailsServiceSpec extends UnitSpec with MockitoSugar with SCRSMocks with CompanyDetailsFixture {

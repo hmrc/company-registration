@@ -16,19 +16,17 @@
 
 package connectors
 
-import config.WSHttp
 import fixtures.BusinessRegistrationFixture
-import helpers.SCRSSpec
 import mocks.SCRSMocks
 import models.BusinessRegistration
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import play.api.libs.json.{JsValue, Json}
+import uk.gov.hmrc.http.{ForbiddenException, HeaderCarrier, NotFoundException}
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
-import uk.gov.hmrc.http.{ ForbiddenException, HeaderCarrier, NotFoundException }
 
 class BusinessRegistrationConnectorSpec extends UnitSpec with MockitoSugar with SCRSMocks with BusinessRegistrationFixture {
 

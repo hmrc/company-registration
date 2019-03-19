@@ -20,19 +20,18 @@ import connectors.{BusinessRegistrationConnector, _}
 import fixtures.{BusinessRegistrationFixture, CorporationTaxRegistrationFixture}
 import helpers.MockHelper
 import models.{Email, UserAccessLimitReachedResponse, UserAccessSuccessResponse}
-import org.joda.time.{DateTimeZone, DateTime}
-import org.mockito.ArgumentMatchers.{eq => eqTo}
-import org.mockito.ArgumentMatchers.{any, anyString}
-import org.scalatest.mock.MockitoSugar
-import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
+import org.joda.time.{DateTime, DateTimeZone}
+import org.mockito.ArgumentMatchers.{any, anyString, eq => eqTo}
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
+import org.scalatest.mockito.MockitoSugar
 import play.api.libs.json.Json
-
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
+import repositories.CorporationTaxRegistrationMongoRepository
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.test.UnitSpec
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 class UserAccessServiceSpec
   extends UnitSpec with MockitoSugar with BusinessRegistrationFixture with CorporationTaxRegistrationFixture

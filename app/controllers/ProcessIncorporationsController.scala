@@ -17,23 +17,21 @@
 package controllers
 
 import javax.inject.Inject
-
 import models._
 import play.api.Logger
 import play.api.libs.json.JsValue
 import play.api.mvc.{Action, AnyContentAsJson, Request}
 import services._
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
-import uk.gov.hmrc.play.microservice.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BaseController
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class ProcessIncorporationsControllerImpl @Inject()(
                                                      metricsService: MetricsService,
                                                      val processIncorporationService: ProcessIncorporationService,
                                                      val corpTaxRegService: CorporationTaxRegistrationService,
-                                                     val submissionService: SubmissionService
-      ) extends ProcessIncorporationsController
+                                                     val submissionService: SubmissionService) extends ProcessIncorporationsController
 
 trait ProcessIncorporationsController extends BaseController {
 

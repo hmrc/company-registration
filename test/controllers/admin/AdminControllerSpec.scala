@@ -19,18 +19,18 @@ package controllers.admin
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import models._
-import org.scalatest.mock.MockitoSugar
-import play.api.libs.json.{JsObject, JsResultException, Json}
-import play.api.test.FakeRequest
-import services.admin.AdminService
-import uk.gov.hmrc.play.test.UnitSpec
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
-import play.api.mvc.Result
-import services.{CorporationTaxRegistrationService, SubmissionService}
+import org.scalatest.mockito.MockitoSugar
 import play.api.http.Status._
+import play.api.libs.json.{JsObject, JsResultException, Json}
+import play.api.mvc.Result
+import play.api.test.FakeRequest
 import repositories.CorporationTaxRegistrationRepository
+import services.SubmissionService
+import services.admin.AdminService
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 

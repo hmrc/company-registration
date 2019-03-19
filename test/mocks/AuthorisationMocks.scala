@@ -22,6 +22,7 @@ import org.mockito.Mockito._
 import org.mockito.ArgumentMatchers._
 import org.mockito.stubbing.OngoingStubbing
 import org.scalatest.BeforeAndAfterEach
+import uk.gov.hmrc.auth.core.AuthConnector
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -30,19 +31,19 @@ import scala.reflect.ClassTag
 trait AuthorisationMocks {
   self: MockitoSugar with BeforeAndAfterEach =>
 
-  val mockAuthClientConnector: AuthClientConnector = mock[AuthClientConnector]
+  val mockAuthConnector: AuthConnector = mock[AuthConnector]
   val mockResource: AuthorisationResource[String] = mock[AuthorisationResource[String]]
 
   def mockTypedResource[T <: AuthorisationResource[String] : ClassTag]: T = mock[T]
 
   override protected def beforeEach(): Unit = {
-    reset(mockAuthClientConnector, mockResource)
+    reset(mockAuthConnector, mockResource)
   }
 
   def mockAuthorise(): OngoingStubbing[Future[Unit]] = mockAuthorise(Future.successful(()))
 
   def mockAuthorise[T](returns: Future[T]): OngoingStubbing[Future[T]] = {
-    when(mockAuthClientConnector.authorise[T](any(), any())(any(), any()))
+    when(mockAuthConnector.authorise[T](any(), any())(any(), any()))
       .thenReturn(returns)
   }
 

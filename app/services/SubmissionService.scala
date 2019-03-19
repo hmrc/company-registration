@@ -18,7 +18,6 @@ package services
 
 import audit.{SubmissionEventDetail, UserRegistrationSubmissionEvent}
 import cats.implicits._
-import config.MicroserviceAuditConnector
 import connectors.{BusinessRegistrationConnector, BusinessRegistrationSuccessResponse, DesConnector, IncorporationInformationConnector}
 import helpers.DateHelper
 import javax.inject.Inject
@@ -40,10 +39,10 @@ class SubmissionServiceImpl @Inject()(val repositories: Repositories,
                                       val incorpInfoConnector: IncorporationInformationConnector,
                                       val desConnector: DesConnector,
                                       val brConnector: BusinessRegistrationConnector,
-                                      val corpTaxRegService: CorporationTaxRegistrationService) extends SubmissionService {
-  val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
-  val sequenceRepository: SequenceRepository = repositories.sequenceRepository
-  lazy val auditConnector = MicroserviceAuditConnector
+                                      val corpTaxRegService: CorporationTaxRegistrationService,
+                                      val auditConnector: AuditConnector) extends SubmissionService {
+  lazy val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
+  lazy val sequenceRepository: SequenceRepository = repositories.sequenceRepository
 
   def currentDateTime: DateTime = DateTime.now(DateTimeZone.UTC)
 }
@@ -215,6 +214,7 @@ trait SubmissionService extends DateHelper {
     val (txID, uprn) = (ppob.addressType, ppob.address) match {
       case (RO, _)            => (None, None)
       case (_, Some(address)) => (Some(address.txid), address.uprn)
+      case (_, None) => (None, None)
     }
 
     val event = new UserRegistrationSubmissionEvent(SubmissionEventDetail(regId, authProvId, txID, uprn, ppob.addressType, partialSubmission))(hc, req)

@@ -18,7 +18,7 @@ package services
 
 import models.Email
 import org.mockito.ArgumentMatchers
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import repositories.CorporationTaxRegistrationMongoRepository
 import uk.gov.hmrc.play.test.UnitSpec
 import org.mockito.Mockito._

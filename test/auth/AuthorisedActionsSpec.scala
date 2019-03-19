@@ -22,7 +22,7 @@ import play.api.test.FakeRequest
 import play.api.mvc.Results.Ok
 import repositories.MissingCTDocument
 import uk.gov.hmrc.auth.core.{BearerTokenExpired, InvalidBearerToken, MissingBearerToken, SessionRecordNotFound}
-import uk.gov.hmrc.play.microservice.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BaseController
 
 import scala.concurrent.Future
 
@@ -30,7 +30,7 @@ class AuthorisedActionsSpec extends BaseSpec with AuthorisationMocks {
 
   trait Setup {
     val authorisedActions = new AuthorisedActions with BaseController {
-      override val authConnector = mockAuthClientConnector
+      override val authConnector = mockAuthConnector
       override val resource = mockResource
     }
   }

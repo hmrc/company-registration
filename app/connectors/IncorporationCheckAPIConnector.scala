@@ -16,29 +16,30 @@
 
 package connectors
 
+import config.MicroserviceAppConfig
 import javax.inject.Inject
-
-import config.WSHttp
 import models.SubmissionCheckResponse
 import play.api.Logger
 import uk.gov.hmrc.http._
-import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
+import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.control.NoStackTrace
 
 class SubmissionAPIFailure extends NoStackTrace
 
-class IncorporationCheckAPIConnectorImpl @Inject()() extends IncorporationCheckAPIConnector with ServicesConfig {
-  override lazy val proxyUrl = baseUrl("company-registration-frontend")
-  override lazy val http = WSHttp
+class IncorporationCheckAPIConnectorImpl @Inject()(val microserviceAppConfig: MicroserviceAppConfig,
+                                                   val http: HttpClient) extends IncorporationCheckAPIConnector {
+  lazy val businessRegUrl = microserviceAppConfig.baseUrl("business-registration")
+  override lazy val proxyUrl = microserviceAppConfig.baseUrl("company-registration-frontend")
+
 }
 
 trait IncorporationCheckAPIConnector {
 
   val proxyUrl: String
-  val http: HttpGet with HttpPost
+  val http: HttpClient
 
   def logError(ex: HttpException, timepoint: Option[String]) = {
     Logger.error(s"[IncorporationCheckAPIConnector] [checkSubmission]" +

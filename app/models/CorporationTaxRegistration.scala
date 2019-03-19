@@ -16,9 +16,11 @@
 
 package models
 
+import auth.CryptoSCRS
 import models.validation.{APIValidation, BaseJsonFormatting, MongoValidation}
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.data.validation.ValidationError
+import play.api.libs.Crypto
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import reactivemongo.play.json.BSONFormats.BSONDocumentFormat
@@ -55,9 +57,10 @@ case class CorporationTaxRegistration(internalId: String,
                                      )
 
 object CorporationTaxRegistration {
+
   def now: DateTime = DateTime.now(DateTimeZone.UTC)
 
-  def format(formatter: BaseJsonFormatting): Format[CorporationTaxRegistration] = {
+  def format(formatter: BaseJsonFormatting, cryptoSCRS: CryptoSCRS): Format[CorporationTaxRegistration] = {
     val reads = (
       (__ \ "internalId").read[String] and
       (__ \ "registrationID").read[String] and
@@ -65,7 +68,7 @@ object CorporationTaxRegistration {
       (__ \ "formCreationTimestamp").read[String] and
       (__ \ "language").read[String] and
       (__ \ "registrationProgress").readNullable[String] and
-      (__ \ "acknowledgementReferences").readNullable[AcknowledgementReferences](AcknowledgementReferences.format(formatter)) and
+      (__ \ "acknowledgementReferences").readNullable[AcknowledgementReferences](AcknowledgementReferences.format(formatter, cryptoSCRS)) and
       (__ \ "confirmationReferences").readNullable[ConfirmationReferences](ConfirmationReferences.format(formatter)) and
       (__ \ "companyDetails").readNullable[CompanyDetails](CompanyDetails.format(formatter)) and
       (__ \ "accountingDetails").readNullable[AccountingDetails](AccountingDetails.format(formatter)) and
@@ -78,7 +81,7 @@ object CorporationTaxRegistration {
       (__ \ "createdTime").read[DateTime] and
       (__ \ "lastSignedIn").read[DateTime].map(_.withZone(DateTimeZone.UTC)).orElse(Reads.pure(CorporationTaxRegistration.now)) and
       (__ \ "heldTimestamp").readNullable[DateTime] and
-      (__ \ "sessionIdentifiers").readNullable[SessionIds]
+      (__ \ "sessionIdentifiers").readNullable[SessionIds](SessionIds.format(cryptoSCRS))
     )(CorporationTaxRegistration.apply _)
 
     val writes = (
@@ -88,7 +91,7 @@ object CorporationTaxRegistration {
       (__ \ "formCreationTimestamp").write[String] and
       (__ \ "language").write[String] and
       (__ \ "registrationProgress").writeNullable[String] and
-      (__ \ "acknowledgementReferences").writeNullable[AcknowledgementReferences](AcknowledgementReferences.format(formatter)) and
+      (__ \ "acknowledgementReferences").writeNullable[AcknowledgementReferences](AcknowledgementReferences.format(formatter, cryptoSCRS)) and
       (__ \ "confirmationReferences").writeNullable[ConfirmationReferences](ConfirmationReferences.format(formatter)) and
       (__ \ "companyDetails").writeNullable[CompanyDetails](CompanyDetails.format(formatter)) and
       (__ \ "accountingDetails").writeNullable[AccountingDetails](AccountingDetails.format(formatter)) and
@@ -101,7 +104,7 @@ object CorporationTaxRegistration {
       (__ \ "createdTime").write[DateTime] and
       (__ \ "lastSignedIn").write[DateTime] and
       (__ \ "heldTimestamp").writeNullable[DateTime] and
-      (__ \ "sessionIdentifiers").writeNullable[SessionIds]
+      (__ \ "sessionIdentifiers").writeNullable[SessionIds](SessionIds.format(cryptoSCRS))
     )(unlift(CorporationTaxRegistration.unapply))
 
     Format(reads, writes)
@@ -114,8 +117,6 @@ object CorporationTaxRegistration {
       override def reads(json: JsValue): JsResult[CorporationTaxRegistration] = format.reads(json)
     }
   }
-
-  implicit val apiFormat = format(APIValidation)
 }
 
 case class AcknowledgementReferences(ctUtr: Option[String],
@@ -123,18 +124,17 @@ case class AcknowledgementReferences(ctUtr: Option[String],
                                      status: String)
 
 object AcknowledgementReferences {
-  def format(formatter: BaseJsonFormatting) = {
+  def format(formatter: BaseJsonFormatting, crypto: CryptoSCRS) = {
     val pathCTUtr = formatter match {
       case APIValidation => "ctUtr"
       case MongoValidation => "ct-utr"
     }
-    ((__ \ pathCTUtr).formatNullable[String](formatter.cryptoFormat) and
+    ((__ \ pathCTUtr).formatNullable[String](formatter.cryptoFormat(crypto)) and
      (__ \ "timestamp").format[String] and
      (__ \ "status").format[String]
     )(AcknowledgementReferences.apply, unlift(AcknowledgementReferences.unapply))
   }
 
-  implicit val apiFormat = format(APIValidation)
 }
 
 case class ConfirmationReferences(acknowledgementReference: String = "",
@@ -365,8 +365,8 @@ case class SessionIds(sessionId: String,
                       credId: String)
 
 object SessionIds {
-  implicit val format: Format[SessionIds] = (
-    (__ \ "sessionId").format[String](MongoValidation.cryptoFormat) and
-      (__ \ "credId").format[String](MongoValidation.cryptoFormat)
+  def format(cryptoSCRS: CryptoSCRS) = (
+    (__ \ "sessionId").format[String](MongoValidation.cryptoFormat(cryptoSCRS)) and
+      (__ \ "credId").format[String](MongoValidation.cryptoFormat(cryptoSCRS))
     )(SessionIds.apply, unlift(SessionIds.unapply))
 }

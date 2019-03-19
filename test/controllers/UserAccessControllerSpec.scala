@@ -18,23 +18,19 @@ package controllers
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import connectors.AuthConnector
-import fixtures.AuthFixture
-import helpers.{BaseSpec, SCRSSpec}
+import helpers.BaseSpec
+import mocks.{AuthorisationMocks, MockMetricsService}
 import models.{UserAccessLimitReachedResponse, UserAccessSuccessResponse}
 import org.mockito.ArgumentMatchers.{any, anyString}
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
-import services.{CorporationTaxRegistrationService, MetricsService, UserAccessService}
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 import play.api.test.Helpers._
-import mocks.{AuthorisationMocks, MockMetricsService, SCRSMocks}
+import services.UserAccessService
 import uk.gov.hmrc.auth.core.MissingBearerToken
+import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.Future
-import uk.gov.hmrc.http.HeaderCarrier
 
 class UserAccessControllerSpec extends BaseSpec with AuthorisationMocks {
 
@@ -49,7 +45,7 @@ class UserAccessControllerSpec extends BaseSpec with AuthorisationMocks {
     val controller = new UserAccessController {
       override val userAccessService = mockUserAccessService
       override val metricsService = MockMetricsService
-      override val authConnector = mockAuthClientConnector
+      override val authConnector = mockAuthConnector
     }
   }
 

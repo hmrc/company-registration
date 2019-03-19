@@ -16,22 +16,23 @@
 
 package controllers
 
-import javax.inject.Inject
-
 import auth._
+import javax.inject.Inject
 import models.{ContactDetails, ErrorResponse}
 import play.api.libs.json.{JsObject, JsValue, Json}
-import play.api.mvc.{Action, AnyContent, AnyContentAsJson}
+import play.api.mvc.{Action, AnyContent}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.{ContactDetailsService, MetricsService}
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
-import uk.gov.hmrc.play.microservice.controller.BaseController
+import uk.gov.hmrc.auth.core.AuthConnector
+import uk.gov.hmrc.play.bootstrap.controller.BaseController
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class ContactDetailsControllerImpl @Inject()(val metricsService: MetricsService,
                                              val contactDetailsService: ContactDetailsService,
-                                             val authConnector: AuthClientConnector,
+                                             val authConnector: AuthConnector,
                                              val repositories: Repositories) extends ContactDetailsController {
-  override val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
+  lazy val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 }
 
 trait ContactDetailsController extends BaseController with AuthorisedActions {
