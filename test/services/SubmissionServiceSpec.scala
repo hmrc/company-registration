@@ -83,8 +83,6 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
 
       override def currentDateTime: DateTime = dateTime
     }
-
-
   }
 
   def corporationTaxRegistration(regId: String = regId,
@@ -239,12 +237,18 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
 
     val confRefs = ConfirmationReferences("testAckRef", "testPayRef", Some("testPayAmount"), Some("12"))
 
-    "return the same confirmation refs that were supplied on a successful store" in new Setup {
+    "return the same confirmation refs that were supplied on a successful store with NO status" in new Setup {
 
       when(mockCorpTaxRepo.updateConfirmationReferences(eqTo(regId), eqTo(confRefs)))
         .thenReturn(Future.successful(Some(confRefs)))
 
       val result: ConfirmationReferences = await(service.storeConfirmationReferencesAndUpdateStatus(regId, confRefs, None))
+      result shouldBe confRefs
+    }
+    "return the same confirmation references that were suppiled on a successful store with a status" in new Setup {
+      when(mockCorpTaxRepo.updateConfirmationReferencesAndUpdateStatus(eqTo(regId), eqTo(confRefs),eqTo("locked")))
+        .thenReturn(Future.successful(Some(confRefs)))
+      val result: ConfirmationReferences = await(service.storeConfirmationReferencesAndUpdateStatus(regId, confRefs, Some(RegistrationStatus.LOCKED)))
       result shouldBe confRefs
     }
 
@@ -804,7 +808,7 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
     confirmationReferences = Some(refsEmpty)
   )
 
-"throw exception when updateConfirmationReferencesAndUpdateStatus is none " in new Setup{
+"throw exception when updateConfirmationReferencesAndUpdateStatus is none" in new Setup{
   when(mockSequenceRepo.getNext(any()))
     .thenReturn(Future.successful(1))
   when(mockCorpTaxRepo.updateConfirmationReferencesAndUpdateStatus(any(), any(), any()))
@@ -818,12 +822,20 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
   }
 
   "successfully update details when confirmationRefsAndPaymentRefsAreEmpty is true " in new Setup{
-    when(mockCorpTaxRepo.updateConfirmationReferences(any(), any()))
+    when(mockCorpTaxRepo.updateConfirmationReferencesAndUpdateStatus(any(), any(),eqTo(RegistrationStatus.LOCKED)))
       .thenReturn(Future.successful(Some(refsEmpty)))
 
     await(service prepareDocumentForSubmission(registrationId, "a", refsEmpty, emptySubmission)) shouldBe refsEmpty
   }
-
-
+}
+  "generateAckRef" should {
+    "return a new AckRef" in new Setup {
+      when(mockSequenceRepository.getNext(any())).thenReturn(Future.successful(1))
+      await(service.generateAckRef) shouldBe "BRCT00000000001"
+    }
+    "return an exception when mockSequenceRepository returns an exception" in new Setup {
+      when(mockSequenceRepository.getNext(any())).thenReturn(Future.failed(new Exception("foo")))
+      intercept[Exception](await(service.generateAckRef))
+    }
   }
 }

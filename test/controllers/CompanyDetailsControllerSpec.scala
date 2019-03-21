@@ -18,12 +18,13 @@ package controllers
 
 import fixtures.CompanyDetailsFixture
 import helpers.BaseSpec
-import play.api.libs.json.Json
+import play.api.libs.json.{JsObject, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import mocks.{AuthorisationMocks, MockMetricsService}
 import models.ErrorResponse
 import repositories.MissingCTDocument
+import services.{DidNotExistInCRNowSaved, ExistedInCRAlready, SomethingWentWrongWhenSaving}
 import uk.gov.hmrc.auth.core.MissingBearerToken
 
 import scala.concurrent.Future
@@ -151,6 +152,44 @@ class CompanyDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
 
       val result = await(controller.updateCompanyDetails(registrationID)(request))
       status(result) shouldBe OK
+    }
+  }
+
+  "saveHandOff2ReferenceAndGenerateAckRef" should {
+    val ackRefJsObject = Json.obj("acknowledgement-reference" -> "fooBar")
+    val requestContainingTxId = FakeRequest().withBody(Json.obj("transaction_id" -> "foo"))
+    "return 200 as service returned DidNotExistInCRNowSaved" in new Setup {
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(internalId))
+     CompanyDetailsServiceMocks.saveTxidAndGenerateAckRef(Future.successful(DidNotExistInCRNowSaved(ackRefJsObject)))
+
+      val result = controller.saveHandOff2ReferenceAndGenerateAckRef("fooBarRegId")(requestContainingTxId)
+      status(result) shouldBe 200
+      contentAsJson(result).as[JsObject] shouldBe ackRefJsObject
+    }
+    "return 200 as service returned ExistedInCRAlready" in new Setup {
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(internalId))
+      CompanyDetailsServiceMocks.saveTxidAndGenerateAckRef(Future.successful(ExistedInCRAlready(ackRefJsObject)))
+
+      val result = controller.saveHandOff2ReferenceAndGenerateAckRef("fooBarRegId")(requestContainingTxId)
+      status(result) shouldBe 200
+      contentAsJson(result).as[JsObject] shouldBe ackRefJsObject
+    }
+    "return 500 if service returned SomethingWentWrongWhenSaving" in new Setup {
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(internalId))
+      CompanyDetailsServiceMocks.saveTxidAndGenerateAckRef(Future.successful(SomethingWentWrongWhenSaving(new Exception("foo"), "","")))
+
+      val result = controller.saveHandOff2ReferenceAndGenerateAckRef("fooBarRegId")(requestContainingTxId)
+      status(result) shouldBe 500
+    }
+    "return 400 if json incorrect" in new Setup {
+      val requestNOTContainingTxId = FakeRequest().withBody(Json.obj("transaction_foo_bar" -> "foo"))
+      mockAuthorise(Future.successful(internalId))
+      mockGetInternalId(Future.successful(internalId))
+      val result = await(controller.saveHandOff2ReferenceAndGenerateAckRef("fooBarRegId")(requestNOTContainingTxId))
+      status(result) shouldBe 400
     }
   }
 }

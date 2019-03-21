@@ -153,6 +153,16 @@ object ConfirmationReferences {
   implicit val apiFormat = format(APIValidation)
 }
 
+object ElementsFromH02Reads {
+  val reads = new Reads[String] {
+    override def reads(json: JsValue): JsResult[String] =
+      for {
+        obj <- json.validate[JsObject]
+        str <- (obj \ "transaction_id").validate[String]
+      } yield  str
+  }
+}
+
 case class CompanyDetails(companyName: String,
                           registeredOffice: CHROAddress,
                           ppob: PPOB,

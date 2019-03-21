@@ -100,24 +100,25 @@ trait SubmissionService extends DateHelper {
     }
   }
 
+  def generateAckRef: Future[String] = sequenceRepository.getNext("AcknowledgementID").map(ref => f"BRCT$ref%011d")
+
   def prepareDocumentForSubmission(rID: String, authProvId: String, refs: ConfirmationReferences, doc: CorporationTaxRegistration)
                                   (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[ConfirmationReferences] = {
     doc.confirmationReferences match {
       case None =>
         for {
-          newlyGeneratedAckRef <- sequenceRepository.getNext("AcknowledgementID").map(ref => f"BRCT$ref%011d")
+          newlyGeneratedAckRef <- generateAckRef
           updatedRefs          <- storeConfirmationReferencesAndUpdateStatus(rID, refs.copy(acknowledgementReference = newlyGeneratedAckRef), Some(LOCKED))
         } yield updatedRefs
 
       case Some(cr) if confirmationRefsAndPaymentRefsAreEmpty(cr) =>
-        storeConfirmationReferencesAndUpdateStatus(rID, cr.copy(paymentReference = refs.paymentReference, paymentAmount = refs.paymentAmount), None)
+        storeConfirmationReferencesAndUpdateStatus(rID, cr.copy(paymentReference = refs.paymentReference, paymentAmount = refs.paymentAmount), Some(LOCKED))
 
       case Some(cr) =>
         Future.successful(cr)
 
     }
   }
-
 
   private[services] def storeConfirmationReferencesAndUpdateStatus(regId: String, refs: ConfirmationReferences, status: Option[String]): Future[ConfirmationReferences] = {
     status.fold(cTRegistrationRepository.updateConfirmationReferences(regId, refs))(cTRegistrationRepository.updateConfirmationReferencesAndUpdateStatus(regId, refs, _)) map {
