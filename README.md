@@ -30,7 +30,7 @@ This code is open source software licensed under the [Apache 2.0 License]("http:
 
 PUT /corporation-tax-registration/:registrationID/accounts-preparation-date
 
-with header:
+with header :
 
 Authorization Bearer fNAao9C4kTby8cqa6g75emw1DZIyA5B72nr9oKHHetE=
 
