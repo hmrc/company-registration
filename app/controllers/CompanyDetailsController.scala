@@ -18,11 +18,11 @@ package controllers
 
 import auth._
 import javax.inject.Inject
-import models.{CompanyDetails, ErrorResponse, TradingDetails}
-import play.api.libs.json.{JsObject, JsValue, Json}
+import models.{CompanyDetails, ElementsFromH02Reads, ErrorResponse, TradingDetails}
+import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
-import services.{CompanyDetailsService, MetricsService}
+import services._
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 
@@ -50,6 +50,16 @@ trait CompanyDetailsController extends BaseController with AuthorisedActions {
           "registration" -> routes.CorporationTaxRegistrationController.retrieveCorporationTaxRegistration(registrationID).url
         )
       )
+  }
+
+  def saveHandOff2ReferenceAndGenerateAckRef(registrationID: String): Action[JsValue] = AuthorisedAction(registrationID).async[JsValue](parse.json){implicit request =>
+    withJsonBody[String]{ txId =>
+      companyDetailsService.saveTxIdAndAckRef(registrationID, txId).map {
+        case DidNotExistInCRNowSaved(ackRefJsObject) => Ok(ackRefJsObject)
+        case ExistedInCRAlready(ackRefJsObject) => Ok(ackRefJsObject)
+        case _ => InternalServerError
+      }
+    }(implicitly,implicitly, ElementsFromH02Reads.reads)
   }
 
   def retrieveCompanyDetails(registrationID: String): Action[AnyContent] = AuthorisedAction(registrationID).async{

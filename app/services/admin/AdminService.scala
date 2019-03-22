@@ -217,7 +217,7 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
       case _                                  => Future.successful(false)
     }) recover {
       case e: Throwable =>
-        Logger.warn(s"[processStaleDocument] Failed to delete regId: ${documentInfo.regId} with throwable $e")
+        Logger.warn(s"[processStaleDocument] Failed to delete regId: ${documentInfo.regId} with throwable ${e.getMessage}")
         false
     }
   }
@@ -228,9 +228,9 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
         true
       } { crn =>
         Logger.warn(s"[processStaleDocument] Could not delete document with CRN: $crn " +
-          s"regId: ${documentInfo.regId} transID: ${confRefs.transactionId} lastSignIn: ${documentInfo.lastSignedIn} status: ${documentInfo.status}"
+          s"regId: ${documentInfo.regId} transID: ${confRefs.transactionId} lastSignIn: ${documentInfo.lastSignedIn} status: ${documentInfo.status} paymentRefExists = ${confRefs.paymentReference.isDefined} paymentAmoutExists = ${confRefs.paymentAmount.isDefined} acknowledgmentReference is NOT empty = ${confRefs.acknowledgementReference.nonEmpty}"
         )
-        throw new RuntimeException
+        throw new Exception("No deletion carried out because CRN exists")
       }
     }
   }

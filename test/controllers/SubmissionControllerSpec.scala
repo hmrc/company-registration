@@ -39,8 +39,6 @@ import scala.concurrent.Future
 
 class SubmissionControllerSpec extends BaseSpec with AuthorisationMocks with CorporationTaxRegistrationFixture {
 
-  val mockSubmissionService = mock[SubmissionService]
-
   class Setup (nowTime: LocalTime = LocalTime.parse("13:00:00")){
     val controller = new SubmissionController {
       val submissionService = mockSubmissionService

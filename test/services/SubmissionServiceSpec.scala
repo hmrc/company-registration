@@ -31,6 +31,7 @@ import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.Eventually
 import org.scalatest.mockito.MockitoSugar
+import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import play.api.test.FakeRequest
 import reactivemongo.api.commands.{DefaultWriteResult, WriteResult}
@@ -40,6 +41,7 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, Upstream4xxResponse, Upstr
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
 import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
+import utils.PagerDutyKeys
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -83,8 +85,6 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
 
       override def currentDateTime: DateTime = dateTime
     }
-
-
   }
 
   def corporationTaxRegistration(regId: String = regId,
@@ -195,7 +195,7 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
       result shouldBe confRefs
     }
 
-    "return the confirmation references when document is already Held" in new Setup {
+    "return the confirmation references when document is already Held and no pager duty because txIds match" in new Setup {
 
       val confRefs = ConfirmationReferences("", "testPayRef", Some("testPayAmount"), Some("12"))
 
@@ -204,8 +204,28 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
 
       when(mockCorpTaxRepo.retrieveConfirmationReferences(eqTo(regId)))
         .thenReturn(Future.successful(Some(confRefs)))
+      withCaptureOfLoggingFrom(Logger) { logEvents =>
+        await(service.handleSubmission(regId, authProviderId, ho6RequestBody, false)) shouldBe confRefs
+        logEvents.filter(_.getMessage.contains(s"${PagerDutyKeys.TXID_IN_CR_DOESNT_MATCH_HANDOFF_TXID}")).size shouldBe 0
+      }
 
-      await(service.handleSubmission(regId, authProviderId, ho6RequestBody, false)) shouldBe confRefs
+    }
+    "throw pager duty if txId in handOff doesnt match txId in CR and status is already Held" in new Setup {
+
+      val confRefs = ConfirmationReferences("crFooBar", "crFooBar", Some("testPayAmount"), Some("12"))
+      val ho6RequestBodyDiffTxId = ConfirmationReferences("crFooBar", "handOffTxID", Some("testPayAmount"), Some("12"))
+
+      when(mockCorpTaxRepo.retrieveCorporationTaxRegistration(eqTo(regId)))
+        .thenReturn(Future.successful(Option(corporationTaxRegistration(regId, HELD, Some(confRefs)))))
+
+      when(mockCorpTaxRepo.retrieveConfirmationReferences(eqTo(regId)))
+        .thenReturn(Future.successful(Some(confRefs)))
+      withCaptureOfLoggingFrom(Logger) { logEvents =>
+
+          await(service.handleSubmission(regId, authProviderId, ho6RequestBody, false)) shouldBe confRefs
+          logEvents.filter(_.getMessage.contains(s"${PagerDutyKeys.TXID_IN_CR_DOESNT_MATCH_HANDOFF_TXID}")).size shouldBe 1
+
+      }
     }
 
     "return the confirmation references when document is already Held and update it with payment info" in new Setup {
@@ -239,12 +259,18 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
 
     val confRefs = ConfirmationReferences("testAckRef", "testPayRef", Some("testPayAmount"), Some("12"))
 
-    "return the same confirmation refs that were supplied on a successful store" in new Setup {
+    "return the same confirmation refs that were supplied on a successful store with NO status" in new Setup {
 
       when(mockCorpTaxRepo.updateConfirmationReferences(eqTo(regId), eqTo(confRefs)))
         .thenReturn(Future.successful(Some(confRefs)))
 
       val result: ConfirmationReferences = await(service.storeConfirmationReferencesAndUpdateStatus(regId, confRefs, None))
+      result shouldBe confRefs
+    }
+    "return the same confirmation references that were suppiled on a successful store with a status" in new Setup {
+      when(mockCorpTaxRepo.updateConfirmationReferencesAndUpdateStatus(eqTo(regId), eqTo(confRefs),eqTo("locked")))
+        .thenReturn(Future.successful(Some(confRefs)))
+      val result: ConfirmationReferences = await(service.storeConfirmationReferencesAndUpdateStatus(regId, confRefs, Some(RegistrationStatus.LOCKED)))
       result shouldBe confRefs
     }
 
@@ -804,7 +830,7 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
     confirmationReferences = Some(refsEmpty)
   )
 
-"throw exception when updateConfirmationReferencesAndUpdateStatus is none " in new Setup{
+"throw exception when updateConfirmationReferencesAndUpdateStatus is none" in new Setup{
   when(mockSequenceRepo.getNext(any()))
     .thenReturn(Future.successful(1))
   when(mockCorpTaxRepo.updateConfirmationReferencesAndUpdateStatus(any(), any(), any()))
@@ -818,12 +844,20 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
   }
 
   "successfully update details when confirmationRefsAndPaymentRefsAreEmpty is true " in new Setup{
-    when(mockCorpTaxRepo.updateConfirmationReferences(any(), any()))
+    when(mockCorpTaxRepo.updateConfirmationReferencesAndUpdateStatus(any(), any(),eqTo(RegistrationStatus.LOCKED)))
       .thenReturn(Future.successful(Some(refsEmpty)))
 
     await(service prepareDocumentForSubmission(registrationId, "a", refsEmpty, emptySubmission)) shouldBe refsEmpty
   }
-
-
+}
+  "generateAckRef" should {
+    "return a new AckRef" in new Setup {
+      when(mockSequenceRepository.getNext(any())).thenReturn(Future.successful(1))
+      await(service.generateAckRef) shouldBe "BRCT00000000001"
+    }
+    "return an exception when mockSequenceRepository returns an exception" in new Setup {
+      when(mockSequenceRepository.getNext(any())).thenReturn(Future.failed(new Exception("foo")))
+      intercept[Exception](await(service.generateAckRef))
+    }
   }
 }

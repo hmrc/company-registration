@@ -31,6 +31,7 @@ import play.api.mvc.{AnyContent, Request}
 import repositories.{CorporationTaxRegistrationMongoRepository, CorporationTaxRegistrationRepository, Repositories, SequenceRepository}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
+import utils.PagerDutyKeys
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -63,6 +64,7 @@ trait SubmissionService extends DateHelper {
                       (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[ConfirmationReferences] = {
     cTRegistrationRepository.retrieveCorporationTaxRegistration(rID) flatMap {
       case Some(doc) =>
+        throwPagerDutyIfTxIDInDBDoesntMatchHandOffTxID(doc.confirmationReferences, handOffRefs.transactionId)
         if (doc.status == DRAFT || doc.status == LOCKED) {
           prepareDocumentForSubmission(rID, authProvId, handOffRefs, doc) flatMap { confRefs =>
             processPartialSubmission(rID, authProvId, confRefs, doc, isAdmin).ifM(
@@ -87,6 +89,16 @@ trait SubmissionService extends DateHelper {
       case None => throw new RuntimeException(s"[handleSubmission] Registration Document not found for regId: $rID")
     }
   }
+  private[services] def throwPagerDutyIfTxIDInDBDoesntMatchHandOffTxID(crConfRefs: Option[ConfirmationReferences], hOffTxID: String): Boolean = {
+    crConfRefs.fold(false) {
+      confRef => if(confRef.transactionId != hOffTxID) {
+        Logger.error(s"${PagerDutyKeys.TXID_IN_CR_DOESNT_MATCH_HANDOFF_TXID} - CR txId: ${confRef.transactionId} hand off txId: $hOffTxID ")
+        true
+      } else {
+        false
+      }
+    }
+  }
 
   def updateCTRecordWithAckRefs(ackRef: String, etmpNotification: AcknowledgementReferences): Future[Option[CorporationTaxRegistration]] = {
     cTRegistrationRepository.retrieveByAckRef(ackRef) flatMap {
@@ -100,24 +112,25 @@ trait SubmissionService extends DateHelper {
     }
   }
 
+  def generateAckRef: Future[String] = sequenceRepository.getNext("AcknowledgementID").map(ref => f"BRCT$ref%011d")
+
   def prepareDocumentForSubmission(rID: String, authProvId: String, refs: ConfirmationReferences, doc: CorporationTaxRegistration)
                                   (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[ConfirmationReferences] = {
     doc.confirmationReferences match {
       case None =>
         for {
-          newlyGeneratedAckRef <- sequenceRepository.getNext("AcknowledgementID").map(ref => f"BRCT$ref%011d")
+          newlyGeneratedAckRef <- generateAckRef
           updatedRefs          <- storeConfirmationReferencesAndUpdateStatus(rID, refs.copy(acknowledgementReference = newlyGeneratedAckRef), Some(LOCKED))
         } yield updatedRefs
 
       case Some(cr) if confirmationRefsAndPaymentRefsAreEmpty(cr) =>
-        storeConfirmationReferencesAndUpdateStatus(rID, cr.copy(paymentReference = refs.paymentReference, paymentAmount = refs.paymentAmount), None)
+        storeConfirmationReferencesAndUpdateStatus(rID, cr.copy(paymentReference = refs.paymentReference, paymentAmount = refs.paymentAmount), Some(LOCKED))
 
       case Some(cr) =>
         Future.successful(cr)
 
     }
   }
-
 
   private[services] def storeConfirmationReferencesAndUpdateStatus(regId: String, refs: ConfirmationReferences, status: Option[String]): Future[ConfirmationReferences] = {
     status.fold(cTRegistrationRepository.updateConfirmationReferences(regId, refs))(cTRegistrationRepository.updateConfirmationReferencesAndUpdateStatus(regId, refs, _)) map {

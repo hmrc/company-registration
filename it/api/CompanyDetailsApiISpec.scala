@@ -164,4 +164,33 @@ class CompanyDetailsApiISpec extends IntegrationSpecBase with LoginStub {
       response.json shouldBe validCompanyDetailsResponse(ctDocWithCompDetails.companyDetails.get.copy(ppob = normalisedSpecialCharCheck2))
     }
   }
+
+  s"PUT ${controllers.routes.CompanyDetailsController.saveHandOff2ReferenceAndGenerateAckRef("").url}" should {
+    "return 200 with json body containing ackref if conf refs dont exist in ct" in new Setup {
+      stubAuthorise(internalId)
+      setupCTRegistration(ctDoc)
+      await(ctRepository.count) shouldBe 1
+      await(seqRepo.count) shouldBe 0
+      val response = await(client(s"/$regId/handOff2Reference-ackRef-save")
+        .put(Json.obj("transaction_id" -> "foo").toString()))
+      response.status shouldBe 200
+      response.json.as[JsObject] shouldBe Json.obj("acknowledgement-reference" -> "BRCT00000000001")
+      await(seqRepo.count) shouldBe 1
+     val res = await(ctRepository.getExistingRegistration(regId)).confirmationReferences.get
+     res shouldBe ConfirmationReferences("BRCT00000000001", "foo", None, None)
+    }
+    "return 200 with json body containing ackref already existing in the database, not updating anything on the ct record" in new Setup {
+      stubAuthorise(internalId)
+      setupCTRegistration(ctDoc.copy(confirmationReferences = Some(ConfirmationReferences("fooAckRef","barTxID",None,None))))
+      await(ctRepository.count) shouldBe 1
+      await(seqRepo.count) shouldBe 0
+      val response = await(client(s"/$regId/handOff2Reference-ackRef-save")
+        .put(Json.obj("transaction_id" -> "foo").toString()))
+      response.status shouldBe 200
+      await(seqRepo.count) shouldBe 0
+      response.json.as[JsObject] shouldBe Json.obj("acknowledgement-reference" -> "fooAckRef")
+      val res = await(ctRepository.getExistingRegistration(regId)).confirmationReferences.get
+      res shouldBe ConfirmationReferences("fooAckRef", "barTxID", None, None)
+    }
+  }
 }

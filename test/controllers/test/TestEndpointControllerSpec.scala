@@ -41,7 +41,6 @@ class TestEndpointControllerSpec extends BaseSpec with LogCapturing {
 
   val mockThrottleRepository = mock[ThrottleMongoRepository]
   val mockCTRepository = mock[CorporationTaxRegistrationMongoRepository]
-  val mockSubmissionService = mock[SubmissionService]
 
   class Setup {
     val controller = new TestEndpointController {

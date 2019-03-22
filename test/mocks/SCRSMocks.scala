@@ -16,7 +16,7 @@
 
 package mocks
 
-import auth.{AuthClientConnector, CryptoSCRS}
+import auth.CryptoSCRS
 import connectors.{BusinessRegistrationConnector, IncorporationCheckAPIConnector}
 import models._
 import org.mockito.ArgumentMatchers
@@ -44,6 +44,7 @@ trait SCRSMocks
   lazy val mockIncorporationCheckAPIConnector = mock[IncorporationCheckAPIConnector]
   lazy val mockMetrics = mock[MetricsService]
   lazy val mockProcessIncorporationService = mock[ProcessIncorporationService]
+  lazy val mockSubmissionService = mock[SubmissionService]
   val mockBusRegConnector = mock[BusinessRegistrationConnector]
   val mockLockKeeper = mock[LockKeeper]
   val mockInstanceOfCrypto = new CryptoSCRS {
@@ -108,6 +109,11 @@ trait SCRSMocks
     def retrieveCompanyDetails(registrationID: String, result: Option[CompanyDetails]): OngoingStubbing[Future[Option[CompanyDetails]]] = {
       when(mockCompanyDetailsService.retrieveCompanyDetails(ArgumentMatchers.anyString()))
         .thenReturn(Future.successful(result))
+    }
+
+    def saveTxidAndGenerateAckRef(result: Future[SaveTxIdRes]): OngoingStubbing[Future[SaveTxIdRes]] = {
+      when(mockCompanyDetailsService.saveTxIdAndAckRef(ArgumentMatchers.anyString(),ArgumentMatchers.anyString()))
+        .thenReturn(result)
     }
 
     def updateCompanyDetails(registrationID: String, result: Option[CompanyDetails]): OngoingStubbing[Future[Option[CompanyDetails]]] = {
