@@ -31,6 +31,7 @@ import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.Eventually
 import org.scalatest.mockito.MockitoSugar
+import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import play.api.test.FakeRequest
 import reactivemongo.api.commands.{DefaultWriteResult, WriteResult}
@@ -40,6 +41,7 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, Upstream4xxResponse, Upstr
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
 import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
+import utils.PagerDutyKeys
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -193,7 +195,7 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
       result shouldBe confRefs
     }
 
-    "return the confirmation references when document is already Held" in new Setup {
+    "return the confirmation references when document is already Held and no pager duty because txIds match" in new Setup {
 
       val confRefs = ConfirmationReferences("", "testPayRef", Some("testPayAmount"), Some("12"))
 
@@ -202,8 +204,28 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
 
       when(mockCorpTaxRepo.retrieveConfirmationReferences(eqTo(regId)))
         .thenReturn(Future.successful(Some(confRefs)))
+      withCaptureOfLoggingFrom(Logger) { logEvents =>
+        await(service.handleSubmission(regId, authProviderId, ho6RequestBody, false)) shouldBe confRefs
+        logEvents.filter(_.getMessage.contains(s"${PagerDutyKeys.TXID_IN_CR_DOESNT_MATCH_HANDOFF_TXID}")).size shouldBe 0
+      }
 
-      await(service.handleSubmission(regId, authProviderId, ho6RequestBody, false)) shouldBe confRefs
+    }
+    "throw pager duty if txId in handOff doesnt match txId in CR and status is already Held" in new Setup {
+
+      val confRefs = ConfirmationReferences("crFooBar", "crFooBar", Some("testPayAmount"), Some("12"))
+      val ho6RequestBodyDiffTxId = ConfirmationReferences("crFooBar", "handOffTxID", Some("testPayAmount"), Some("12"))
+
+      when(mockCorpTaxRepo.retrieveCorporationTaxRegistration(eqTo(regId)))
+        .thenReturn(Future.successful(Option(corporationTaxRegistration(regId, HELD, Some(confRefs)))))
+
+      when(mockCorpTaxRepo.retrieveConfirmationReferences(eqTo(regId)))
+        .thenReturn(Future.successful(Some(confRefs)))
+      withCaptureOfLoggingFrom(Logger) { logEvents =>
+
+          await(service.handleSubmission(regId, authProviderId, ho6RequestBody, false)) shouldBe confRefs
+          logEvents.filter(_.getMessage.contains(s"${PagerDutyKeys.TXID_IN_CR_DOESNT_MATCH_HANDOFF_TXID}")).size shouldBe 1
+
+      }
     }
 
     "return the confirmation references when document is already Held and update it with payment info" in new Setup {

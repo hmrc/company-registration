@@ -30,6 +30,7 @@ object PagerDutyKeys extends Enumeration {
   val CT_ACCEPTED_MISSING_UTR = Value
   val STALE_DOCUMENTS_DELETE_WARNING_CRN_FOUND = Value
   val CT_ACCEPTED_NO_REG_DOC_II_SUBS_DELETED = Value
+  val TXID_IN_CR_DOESNT_MATCH_HANDOFF_TXID = Value
 }
 
 class AlertLoggingImpl @Inject()(microserviceAppConfig: MicroserviceAppConfig) extends AlertLogging {
