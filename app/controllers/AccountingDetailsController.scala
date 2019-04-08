@@ -34,7 +34,7 @@ class AccountingDetailsControllerImpl @Inject()(val metricsService: MetricsServi
                                                 val prepareAccountService: PrepareAccountService,
                                                 val accountingDetailsService: AccountingDetailsService,
                                                 val authConnector: AuthConnector,
-                                                val repositories: Repositories)extends AccountingDetailsController {
+                                                val repositories: Repositories) extends AccountingDetailsController {
  lazy val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 }
 

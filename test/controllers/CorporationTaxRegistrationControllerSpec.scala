@@ -22,6 +22,7 @@ import auth.CryptoSCRS
 import fixtures.CorporationTaxRegistrationFixture
 import helpers.BaseSpec
 import mocks.{AuthorisationMocks, MockMetricsService}
+import models.des.BusinessAddress
 import models.validation.MongoValidation
 import models.{CHROAddress, ConfirmationReferences, CorporationTaxRegistration, PPOBAddress}
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
@@ -212,7 +213,7 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
     }
   }
 
-  "roAddressValid" should {
+  "convertAndReturnRoAddressIfValidInPPOBFormat" should {
 
     val cHROAddress = Json.toJson(CHROAddress("p","14 St Test Walk",Some("Test"),"c","l",Some("pb"),Some("TE1 1ST"),Some("r")))
 
@@ -221,7 +222,7 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
         .thenReturn(Future.successful(Some(PPOBAddress("test", "test", None, None, None, None, None, "test"))))
 
       val request = FakeRequest().withBody(cHROAddress)
-      val response = await(controller.roAddressValid()(request))
+      val response = await(controller.convertAndReturnRoAddressIfValidInPPOBFormat()(request))
 
       status(response) shouldBe OK
     }
@@ -231,8 +232,40 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
         .thenReturn(Future.successful(None))
 
       val request = FakeRequest().withBody(cHROAddress)
-      val response = await(controller.roAddressValid()(request))
+      val response = await(controller.convertAndReturnRoAddressIfValidInPPOBFormat()(request))
 
+      status(response) shouldBe BAD_REQUEST
+    }
+  }
+
+  "convertAndReturnRoAddressIfValidInBusinessAddressFormat" should {
+    val anyCHROAddress = Json.toJson(CHROAddress("p","14 St Test Walk",Some("Test"),"c","l",Some("pb"),Some("TE1 1ST"),Some("r")))
+    "return an ok if the Ro can be converted to a Business Address" in new Setup {
+      when(mockCTDataService.convertRoToBusinessAddress(ArgumentMatchers.any())).thenReturn(
+        Future.successful(Some(BusinessAddress("1 abc","2 abc",Some("3 abc"),Some("4 abc"),Some("ZZ1 1ZZ"),Some("foo")))))
+
+      val request = FakeRequest().withBody(anyCHROAddress)
+      val response = controller.convertAndReturnRoAddressIfValidInBusinessAddressFormat(request)
+      status(response) shouldBe OK
+      contentAsJson(response) shouldBe Json.parse(
+        """
+          |{
+          |   "line1" : "1 abc",
+          |   "line2" : "2 abc",
+          |   "line3" : "3 abc",
+          |   "line4" : "4 abc",
+          |   "postcode" : "ZZ1 1ZZ",
+          |   "country" : "foo"
+          |}
+        """.stripMargin
+      )
+    }
+    "return bad request is ro address is invalid and cant be converted into a business address" in new Setup {
+      when(mockCTDataService.convertRoToBusinessAddress(ArgumentMatchers.any())).thenReturn(
+        Future.successful(None))
+
+      val request = FakeRequest().withBody(anyCHROAddress)
+      val response = controller.convertAndReturnRoAddressIfValidInBusinessAddressFormat(request)
       status(response) shouldBe BAD_REQUEST
     }
   }

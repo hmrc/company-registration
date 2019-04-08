@@ -16,7 +16,7 @@
 
 package models.des
 
-import models.validation.APIValidation
+import models.validation.{APIValidation, BaseJsonFormatting}
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import play.api.libs.json._
@@ -78,6 +78,7 @@ case class BusinessAddress(
                           )
 
 object BusinessAddress {
+
   implicit val writes: Writes[BusinessAddress] = (
     (__ \ "line1").write[String] and
       (__ \ "line2").write[String] and

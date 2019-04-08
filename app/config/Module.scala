@@ -72,6 +72,7 @@ class Module extends AbstractModule {
     bind(classOf[TestEndpointController]).to(classOf[TestEndpointControllerImpl]).asEagerSingleton()
     bind(classOf[SubmissionController]).to(classOf[SubmissionControllerImpl]).asEagerSingleton()
     bind(classOf[FeatureSwitchController]).to(classOf[FeatureSwitchControllerImpl]).asEagerSingleton()
+    bind(classOf[GroupsController]).to(classOf[GroupsControllerImpl]).asEagerSingleton()
   }
 
   private def bindServices() {
@@ -81,6 +82,7 @@ class Module extends AbstractModule {
     bind(classOf[MetricsService]).to(classOf[MetricsServiceImpl]).asEagerSingleton()
     bind(classOf[CompanyDetailsService]).to(classOf[CompanyDetailsServiceImpl]).asEagerSingleton()
     bind(classOf[ContactDetailsService]).to(classOf[ContactDetailsServiceImpl]).asEagerSingleton()
+    bind(classOf[GroupsService]).to(classOf[GroupsServiceImpl]).asEagerSingleton()
     bind(classOf[CorporationTaxRegistrationService]).to(classOf[CorporationTaxRegistrationServiceImpl]).asEagerSingleton()
     bind(classOf[CorporationTaxRegistrationService]).to(classOf[CorporationTaxRegistrationServiceImpl]).asEagerSingleton()
     bind(classOf[EmailService]).to(classOf[EmailServiceImpl]).asEagerSingleton()

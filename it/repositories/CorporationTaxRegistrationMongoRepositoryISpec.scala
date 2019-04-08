@@ -19,10 +19,12 @@ package repositories
 import java.util.UUID
 
 import auth.CryptoSCRS
+import fixtures.CorporationTaxRegistrationFixture
 import fixtures.CorporationTaxRegistrationFixture.ctRegistrationJson
 import itutil.IntegrationSpecBase
 import models.RegistrationStatus._
 import models._
+import models.des.BusinessAddress
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -50,7 +52,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
   class Setup {
     val rmc = app.injector.instanceOf[ReactiveMongoComponent]
     val crypto = app.injector.instanceOf[CryptoSCRS]
-    val repository = new CorporationTaxRegistrationMongoRepository(rmc,crypto)
+    val repository = new CorporationTaxRegistrationMongoRepository(rmc, crypto)
     await(repository.drop)
     await(repository.ensureIndexes)
 
@@ -61,8 +63,11 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       await(repository.insert(reg))
       count shouldBe currentCount + 1
     }
+
     def insertRaw(reg: JsObject) = await(repository.collection.insert(reg))
+
     def count = await(repository.count)
+
     def retrieve(regId: String) = await(repository.retrieveCorporationTaxRegistration(regId))
   }
 
@@ -70,12 +75,17 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     val rmComp = fakeApplication.injector.instanceOf[ReactiveMongoComponent]
     val crypto = fakeApplication.injector.instanceOf[CryptoSCRS]
     val repository = new CorporationTaxRegistrationMongoRepository(
-      rmComp,crypto){
+      rmComp, crypto) {
       override def indexes = indexList
     }
     await(repository.drop)
     await(repository.ensureIndexes)
   }
+  val validGroupsModel = Groups(
+    groupRelief = true,
+    nameOfCompany = Some(GroupCompanyName("foo", GroupCompanyNameEnum.Other)),
+    addressAndType = Some(GroupsAddressAndType(GroupAddressTypeEnum.ALF, BusinessAddress("1 abc", "2 abc", Some("3 abc"), Some("4 abc"), Some("ZZ1 1ZZ"), Some("country A")))),
+    groupUTR = Some(GroupUTR(Some("1234567890"))))
 
   def setupCollection(repo: CorporationTaxRegistrationMongoRepository, ctRegistration: CorporationTaxRegistration): Future[WriteResult] = {
     repo.insert(ctRegistration)
@@ -100,7 +110,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       "testJurisdiction"
     )),
     contactDetails = Some(ContactDetails(
-     Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+      Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
     )),
     tradingDetails = Some(TradingDetails("true")),
     confirmationReferences = Some(ConfirmationReferences(acknowledgementReference = ackRef, "txId", None, None)),
@@ -139,6 +149,13 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       val response = repository.retrieveCorporationTaxRegistration(registrationId)
       await(response).flatMap(_.contactDetails) shouldBe corporationTaxRegistration.contactDetails
     }
+    "retrieve ctdoc with new groups block" in new Setup {
+      val ctDoc = corporationTaxRegistration(regId = "123").copy(groups = Some(validGroupsModel))
+     val resOfInsert = await(repository.createCorporationTaxRegistration(ctDoc))
+      count shouldBe 1
+      val response = await(repository.retrieveCorporationTaxRegistration(resOfInsert.registrationID))
+      response.get.groups.get shouldBe validGroupsModel
+    }
   }
 
   "getExistingRegistration" should {
@@ -168,7 +185,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
   "updateAccountingDetails" should {
     "return some updated company details if document exists" in new Setup {
 
-      val accountingDetails: AccountingDetails  = AccountingDetails("some-status", Some("some-date"))
+      val accountingDetails: AccountingDetails = AccountingDetails("some-status", Some("some-date"))
 
       insert(newCTDoc)
       val response = await(repository.updateAccountingDetails(registrationId, accountingDetails))
@@ -176,7 +193,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     }
 
     "return None if no document exists" in new Setup {
-      val accountingDetails: AccountingDetails  = AccountingDetails("some-status", Some("some-date"))
+      val accountingDetails: AccountingDetails = AccountingDetails("some-status", Some("some-date"))
 
       val response = await(repository.updateAccountingDetails(registrationId, accountingDetails))
       response shouldBe None
@@ -185,7 +202,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
   "retrieveAccountingDetails" should {
     "return some company details if document exists" in new Setup {
-      val accountingDetails: AccountingDetails  = AccountingDetails("some-status", Some("some-date"))
+      val accountingDetails: AccountingDetails = AccountingDetails("some-status", Some("some-date"))
 
       val corporationTaxRegistrationModel = newCTDoc.copy(
         accountingDetails = Some(accountingDetails)
@@ -210,7 +227,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
   "updateCompanyDetails" should {
     "return some updated company details if document exists" in new Setup {
-      val companyDetails: CompanyDetails  = CompanyDetails("company-name", testRoAddress, PPOB("RO", None), "jurisdiction")
+      val companyDetails: CompanyDetails = CompanyDetails("company-name", testRoAddress, PPOB("RO", None), "jurisdiction")
 
       insert(newCTDoc)
       val response = await(repository.updateCompanyDetails(registrationId, companyDetails))
@@ -218,7 +235,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     }
 
     "return None if no document exists" in new Setup {
-      val companyDetails: CompanyDetails  = CompanyDetails("company-name", testRoAddress, PPOB("RO", None), "jurisdiction")
+      val companyDetails: CompanyDetails = CompanyDetails("company-name", testRoAddress, PPOB("RO", None), "jurisdiction")
 
       val response = await(repository.updateCompanyDetails(registrationId, companyDetails))
       response shouldBe None
@@ -229,7 +246,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     "return some company details if document exists" in new Setup {
       val registrationId = "testRegId"
 
-      val companyDetails: CompanyDetails  = CompanyDetails("company-name", testRoAddress, PPOB("RO", None), "jurisdiction")
+      val companyDetails: CompanyDetails = CompanyDetails("company-name", testRoAddress, PPOB("RO", None), "jurisdiction")
 
       val corporationTaxRegistrationModel = newCTDoc.copy(
         companyDetails = Some(companyDetails)
@@ -254,7 +271,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
   "updateTradingDetails" should {
     "return some updated trading details if document exists" in new Setup {
-      val tradingDetails: TradingDetails  = TradingDetails("yes")
+      val tradingDetails: TradingDetails = TradingDetails("yes")
 
       insert(newCTDoc)
       val response = await(repository.updateTradingDetails(registrationId, tradingDetails))
@@ -262,8 +279,8 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     }
 
     "return override trading details if document already has trading details" in new Setup {
-      val tradingDetails: TradingDetails  = TradingDetails("yes")
-      val newTradingDetails: TradingDetails  = TradingDetails()
+      val tradingDetails: TradingDetails = TradingDetails("yes")
+      val newTradingDetails: TradingDetails = TradingDetails()
 
       insert(newCTDoc.copy(tradingDetails = Some(tradingDetails)))
       val response = await(repository.updateTradingDetails(registrationId, newTradingDetails))
@@ -271,7 +288,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     }
 
     "return None if no document exists" in new Setup {
-      val tradingDetails: TradingDetails  = TradingDetails("yes")
+      val tradingDetails: TradingDetails = TradingDetails("yes")
 
       val response = await(repository.updateTradingDetails(registrationId, tradingDetails))
       response shouldBe None
@@ -282,7 +299,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     "return some trading details if document exists" in new Setup {
       val registrationId = "testRegId"
 
-      val tradingDetails: TradingDetails  = TradingDetails("yes")
+      val tradingDetails: TradingDetails = TradingDetails("yes")
 
       val corporationTaxRegistrationModel = newCTDoc.copy(
         tradingDetails = Some(tradingDetails)
@@ -321,7 +338,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         email = None,
         mobile = None
       )
-      val newContactDetails: ContactDetails  = contactDetails.copy(phone = Some("12333334234234"))
+      val newContactDetails: ContactDetails = contactDetails.copy(phone = Some("12333334234234"))
 
       insert(newCTDoc.copy(contactDetails = Some(contactDetails)))
       await(repository.updateContactDetails(registrationId, newContactDetails)) shouldBe Some(newContactDetails)
@@ -377,7 +394,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         paymentReference = None,
         paymentAmount = None
       )
-      val newConfirmationReferences: ConfirmationReferences  = confirmationReferences.copy(paymentReference = Some("Some-pay-ref"), paymentAmount = Some("12333334234234"))
+      val newConfirmationReferences: ConfirmationReferences = confirmationReferences.copy(paymentReference = Some("Some-pay-ref"), paymentAmount = Some("12333334234234"))
 
       insert(newCTDoc.copy(confirmationReferences = Some(confirmationReferences)))
       await(repository.updateConfirmationReferences(registrationId, newConfirmationReferences)) shouldBe Some(newConfirmationReferences)
@@ -437,7 +454,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         paymentReference = None,
         paymentAmount = None
       )
-      val newConfirmationReferences: ConfirmationReferences  = confirmationReferences.copy(paymentReference = Some("Some-pay-ref"), paymentAmount = Some("12333334234234"))
+      val newConfirmationReferences: ConfirmationReferences = confirmationReferences.copy(paymentReference = Some("Some-pay-ref"), paymentAmount = Some("12333334234234"))
 
       insert(newCTDoc.copy(confirmationReferences = Some(confirmationReferences), status = "passed"))
       await(repository.updateConfirmationReferencesAndUpdateStatus(registrationId, newConfirmationReferences, "unpassed")) shouldBe Some(newConfirmationReferences)
@@ -472,7 +489,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         status = "end",
         endDate = None
       )
-      val newAccountingPrepDetails: AccountPrepDetails  = accountingPrepDetails.copy(endDate = Some(DateTime.now()))
+      val newAccountingPrepDetails: AccountPrepDetails = accountingPrepDetails.copy(endDate = Some(DateTime.now()))
 
       insert(newCTDoc.copy(accountsPreparation = Some(accountingPrepDetails)))
       await(repository.updateCompanyEndDate(registrationId, newAccountingPrepDetails)) shouldBe Some(newAccountingPrepDetails)
@@ -510,7 +527,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         verified = false,
         returnLinkEmailSent = false
       )
-      val newEmail: Email  = email.copy(linkSent = true, returnLinkEmailSent = true)
+      val newEmail: Email = email.copy(linkSent = true, returnLinkEmailSent = true)
 
       insert(newCTDoc.copy(verifiedEmail = Some(email)))
       await(repository.updateEmail(registrationId, newEmail)) shouldBe Some(newEmail)
@@ -621,23 +638,23 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         corporationTaxRegistration.lastSignedIn shouldBe corporationTaxRegistrationModel.lastSignedIn
       }
     }
-      "should not update document" when {
-        "when the document does not exist" in new Setup {
-          val registrationId = "testRegId"
-          val incorrectRegistrationId = "notTheTestRegId"
+    "should not update document" when {
+      "when the document does not exist" in new Setup {
+        val registrationId = "testRegId"
+        val incorrectRegistrationId = "notTheTestRegId"
 
-          val corporationTaxRegistrationModel = CorporationTaxRegistration(
-            internalId = "testID",
-            registrationID = registrationId,
-            formCreationTimestamp = "testDateTime",
-            language = "en",
-            companyDetails = None
-          )
+        val corporationTaxRegistrationModel = CorporationTaxRegistration(
+          internalId = "testID",
+          registrationID = registrationId,
+          formCreationTimestamp = "testDateTime",
+          language = "en",
+          companyDetails = None
+        )
 
-          await(setupCollection(repository, corporationTaxRegistrationModel))
-          await(repository.removeUnnecessaryRegistrationInformation(incorrectRegistrationId)) shouldBe true
-        }
+        await(setupCollection(repository, corporationTaxRegistrationModel))
+        await(repository.removeUnnecessaryRegistrationInformation(incorrectRegistrationId)) shouldBe true
       }
+    }
   }
 
 
@@ -661,7 +678,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       await(response) shouldBe "held"
     }
     "return an exception when document is missing because mapping on result will not contain status" in new Setup {
-      intercept[Exception](await(repository.updateSubmissionStatus(registrationId,"foo")))
+      intercept[Exception](await(repository.updateSubmissionStatus(registrationId, "foo")))
     }
   }
 
@@ -707,7 +724,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     }
     "return Some(regId, InternalId) when ct doc exists" in new Setup {
       insert(newCTDoc)
-      await(repository.getInternalId(registrationId)) shouldBe (newCTDoc.registrationID, newCTDoc.internalId)
+      await(repository.getInternalId(registrationId)) shouldBe(newCTDoc.registrationID, newCTDoc.internalId)
     }
   }
 
@@ -818,7 +835,9 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       val crn = "foo1234"
       val submissionTS = "2001-12-31T12:00:00Z"
 
-      intercept[MissingCTDocument]{await(repository.updateHeldToSubmitted(heldReg.registrationID, crn, submissionTS))}
+      intercept[MissingCTDocument] {
+        await(repository.updateHeldToSubmitted(heldReg.registrationID, crn, submissionTS))
+      }
 
     }
 
@@ -852,7 +871,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
       retrieve(regId) shouldBe Some(corporationTaxRegistration)
       await(response) shouldBe true
-      retrieve(regId)  shouldBe None
+      retrieve(regId) shouldBe None
     }
 
     "remove only the data associated with the supplied regId" in new Setup {
@@ -981,7 +1000,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         "testJurisdiction"
       )),
       contactDetails = Some(ContactDetails(
-     Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+        Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
       )),
       tradingDetails = Some(TradingDetails("true")),
       status = RegistrationStatus.DRAFT,
@@ -1097,7 +1116,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
       await(setupCollection(repository, corporationTaxRegistration("06", ctutr = false)))
 
-      val Some(result) : Option[CorporationTaxRegistration] = await(repository.updateRegistrationWithAdminCTReference(ackRef, newUtr))
+      val Some(result): Option[CorporationTaxRegistration] = await(repository.updateRegistrationWithAdminCTReference(ackRef, newUtr))
 
       result shouldBe corporationTaxRegistration("06", ctutr = false)
     }
@@ -1106,8 +1125,8 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       val newUtr = "newUtr"
       val newStatus = "04"
 
-      val result : Option[CorporationTaxRegistration] = await(repository.updateRegistrationWithAdminCTReference(ackRef, newUtr))
-      val expected : Option[CorporationTaxRegistration] = None
+      val result: Option[CorporationTaxRegistration] = await(repository.updateRegistrationWithAdminCTReference(ackRef, newUtr))
+      val expected: Option[CorporationTaxRegistration] = None
 
       result shouldBe expected
     }
@@ -1118,6 +1137,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     val (defaultSID, defaultCID) = ("oldSessID", "oldCredId")
 
     val timestamp = DateTime.now()
+
     def corporationTaxRegistration(regId: String, alreadyHasSessionIds: Boolean = false) = CorporationTaxRegistration(
       internalId = "testID",
       registrationID = regId,
@@ -1135,7 +1155,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       status = RegistrationStatus.DRAFT,
       createdTime = timestamp,
       lastSignedIn = timestamp,
-      sessionIdentifiers = if(alreadyHasSessionIds) Some(SessionIds(defaultSID, defaultCID)) else None
+      sessionIdentifiers = if (alreadyHasSessionIds) Some(SessionIds(defaultSID, defaultCID)) else None
     )
 
     "retrieve session identifiers" when {
@@ -1165,6 +1185,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     val (defaultSID, defaultCID) = ("oldSessID", "oldCredId")
 
     val timestamp = DateTime.now()
+
     def corporationTaxRegistration(regId: String, alreadyHasSessionIds: Boolean = false) = CorporationTaxRegistration(
       internalId = "testID",
       registrationID = regId,
@@ -1182,7 +1203,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       status = RegistrationStatus.DRAFT,
       createdTime = timestamp,
       lastSignedIn = timestamp,
-      sessionIdentifiers = if(alreadyHasSessionIds) Some(SessionIds(defaultSID, defaultCID)) else None
+      sessionIdentifiers = if (alreadyHasSessionIds) Some(SessionIds(defaultSID, defaultCID)) else None
     )
 
     "successfully write encrpyted identifiers to mongo" when {
@@ -1437,6 +1458,234 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
         await(repository.retrieveStaleDocuments(2, 90)) shouldBe List(registration91DaysOldDraft)
       }
+    }
+  }
+
+  "returnGroupsBlock" should {
+    "return some of groups when it exists in ct" in new Setup {
+      val encryptedUTR = CorporationTaxRegistrationFixture.instanceOfCrypto.wts.writes("1234567890")
+
+      val fullGroupJsonEncryptedUTR = Json.parse(
+        s"""{
+           |"groups": {
+           |   "groupRelief": true,
+           |   "nameOfCompany": {
+           |     "name": "foo",
+           |     "nameType" : "Other"
+           |   },
+           |   "addressAndType" : {
+           |     "addressType" : "ALF",
+           |       "address" : {
+           |         "line1": "1 abc",
+           |         "line2" : "2 abc",
+           |         "line3" : "3 abc",
+           |         "line4" : "4 abc",
+           |         "country" : "country A",
+           |         "postcode" : "ZZ1 1ZZ"
+           |     }
+           |   },
+           |   "groupUTR" : {
+           |     "UTR" : $encryptedUTR
+           |   }
+           |  }
+           |}
+        """.stripMargin)
+
+      val regWithGroups = ctRegistrationJson(
+        regId = "123",
+        malform = Some(fullGroupJsonEncryptedUTR.as[JsObject])
+      )
+      insertRaw(regWithGroups)
+      count shouldBe 1
+      val res = await(repository.returnGroupsBlock("123"))
+      res.get shouldBe validGroupsModel
+
+    }
+    "return nothing when no groups block exists in ct doc" in new Setup {
+      insertRaw(ctRegistrationJson(regId = "123"))
+      count shouldBe 1
+      val res = await(repository.returnGroupsBlock("123"))
+      res shouldBe None
+    }
+    "return exception when no ctDoc exists" in new Setup {
+      count shouldBe 0
+      intercept[Exception](await(repository.returnGroupsBlock("123")))
+
+    }
+  }
+  "deleteGroupsBlock" should {
+    "return true if no exception occurred" in new Setup {
+      val encryptedUTR = CorporationTaxRegistrationFixture.instanceOfCrypto.wts.writes("1234567890")
+
+      val fullGroupJsonEncryptedUTR = Json.parse(
+        s"""{
+           |"groups": {
+           |   "groupRelief": true,
+           |   "nameOfCompany": {
+           |     "name": "foo",
+           |     "nameType" : "Other"
+           |   },
+           |   "addressAndType" : {
+           |     "addressType" : "ALF",
+           |       "address" : {
+           |         "line1": "1 abc",
+           |         "line2" : "2 abc",
+           |         "line3" : "3 abc",
+           |         "line4" : "4 abc",
+           |         "country" : "country A",
+           |         "postcode" : "ZZ1 1ZZ"
+           |     }
+           |   },
+           |   "groupUTR" : {
+           |     "UTR" : $encryptedUTR
+           |   }
+           |  }
+           |}
+        """.stripMargin)
+      val regWithGroups = ctRegistrationJson(
+        regId = "123",
+        malform = Some(fullGroupJsonEncryptedUTR.as[JsObject])
+      )
+
+      insertRaw(regWithGroups)
+      count shouldBe 1
+      val res = await(repository.deleteGroupsBlock("123"))
+      res shouldBe true
+      count shouldBe 1
+      await(repository.returnGroupsBlock("123")) shouldBe None
+    }
+    "return true if no groups block existed in the first place and a delete occurs" in new Setup {
+      val regWithoutGroups = ctRegistrationJson(
+        regId = "123"
+      )
+      insertRaw(regWithoutGroups)
+      count shouldBe 1
+      val res = await(repository.deleteGroupsBlock("123"))
+      res shouldBe true
+      await(repository.returnGroupsBlock("123")) shouldBe None
+    }
+    "throw exception if no doc is found" in new Setup {
+      count shouldBe 0
+      intercept[Exception](await(repository.deleteGroupsBlock("123")))
+    }
+  }
+
+  "updateGroupsBLock" should {
+    "return updated group and update block if one exists already" in new Setup {
+      val encryptedUTR = CorporationTaxRegistrationFixture.instanceOfCrypto.wts.writes("1234567890")
+
+      val fullGroupJsonEncryptedUTR = Json.parse(
+        s"""{
+           |"groups": {
+           |   "groupRelief": true,
+           |   "nameOfCompany": {
+           |     "name": "foo",
+           |     "nameType" : "Other"
+           |   },
+           |   "addressAndType" : {
+           |     "addressType" : "ALF",
+           |       "address" : {
+           |         "line1": "1 abc",
+           |         "line2" : "2 abc",
+           |         "line3" : "3 abc",
+           |         "line4" : "4 abc",
+           |         "country" : "country A",
+           |         "postcode" : "ZZ1 1ZZ"
+           |     }
+           |   },
+           |   "groupUTR" : {
+           |     "UTR" : $encryptedUTR
+           |   }
+           |  }
+           |}
+        """.stripMargin)
+      val regWithGroups = ctRegistrationJson(
+        regId = "123",
+        malform = Some(fullGroupJsonEncryptedUTR.as[JsObject])
+      )
+      insertRaw(regWithGroups)
+      count shouldBe 1
+      val res = await(repository.returnGroupsBlock("123"))
+      res shouldBe Some(validGroupsModel)
+      val resOfUpdate = await(repository.updateGroups("123",Groups(false,None,None,None)))
+      resOfUpdate shouldBe Groups(false,None,None,None)
+    }
+
+    "return groups when an upsert occurs of the block" in new Setup {
+      import reactivemongo.play.json.ImplicitBSONHandlers._
+      val encryptedUTR = CorporationTaxRegistrationFixture.instanceOfCrypto.wts.writes("1234567890")
+      val fullGroupJsonEncryptedUTR = Json.parse(
+        s"""{
+           |   "groupRelief": true,
+           |   "nameOfCompany": {
+           |     "name": "foo",
+           |     "nameType" : "Other"
+           |   },
+           |   "addressAndType" : {
+           |     "addressType" : "ALF",
+           |       "address" : {
+           |         "line1": "1 abc",
+           |         "line2" : "2 abc",
+           |         "line3" : "3 abc",
+           |         "line4" : "4 abc",
+           |         "country" : "country A",
+           |         "postcode" : "ZZ1 1ZZ"
+           |     }
+           |   },
+           |   "groupUTR" : {
+           |     "UTR" : $encryptedUTR
+           |   }
+           |}
+        """.stripMargin)
+      insert(corporationTaxRegistration(regId = "123").copy(groups = None))
+      count shouldBe 1
+      await(repository.returnGroupsBlock("123")) shouldBe None
+      val resOfUpdate = await(repository.updateGroups("123",validGroupsModel))
+      resOfUpdate shouldBe validGroupsModel
+      val res = await(repository.collection.find(repository.registrationIDSelector("123"),BSONDocument("groups" -> 1)))
+      (res.one[JsObject].get \ "groups").as[JsObject] shouldBe fullGroupJsonEncryptedUTR.as[JsObject]
+    }
+    "return groups when same data is inserted twice" in new Setup {
+      val encryptedUTR = CorporationTaxRegistrationFixture.instanceOfCrypto.wts.writes("1234567890")
+
+      val fullGroupJsonEncryptedUTR = Json.parse(
+        s"""{
+           |"groups": {
+           |   "groupRelief": true,
+           |   "nameOfCompany": {
+           |     "name": "foo",
+           |     "nameType" : "Other"
+           |   },
+           |   "addressAndType" : {
+           |     "addressType" : "ALF",
+           |       "address" : {
+           |         "line1": "1 abc",
+           |         "line2" : "2 abc",
+           |         "line3" : "3 abc",
+           |         "line4" : "4 abc",
+           |         "country" : "country A",
+           |         "postcode" : "ZZ1 1ZZ"
+           |     }
+           |   },
+           |   "groupUTR" : {
+           |     "UTR" : $encryptedUTR
+           |   }
+           |  }
+           |}
+        """.stripMargin)
+      val regWithGroups = ctRegistrationJson(
+        regId = "123",
+        malform = Some(fullGroupJsonEncryptedUTR.as[JsObject])
+      )
+      insertRaw(regWithGroups)
+      count shouldBe 1
+      val resOfUpdate = await(repository.updateGroups("123",validGroupsModel))
+      resOfUpdate shouldBe validGroupsModel
+    }
+
+    "return exception if regDoc doesnt exist" in new Setup {
+      count shouldBe 0
+      intercept[Exception](await(repository.updateGroups("123",validGroupsModel)))
     }
   }
 }

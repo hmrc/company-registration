@@ -20,12 +20,12 @@ import java.text.Normalizer
 import java.text.Normalizer.Form
 
 import auth.CryptoSCRS
-import models.{AccountPrepDetails, AccountingDetails, ContactDetails, PPOBAddress}
+import models.{GroupCompanyNameEnum, _}
 import org.joda.time.DateTime
 import play.api.data.validation.ValidationError
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads.{maxLength, minLength}
-import play.api.libs.json.{Format, JsError, JsSuccess, JsValue, OFormat, Reads, Writes}
+import play.api.libs.json._
 
 trait BaseJsonFormatting {
   private val companyNameRegex = """^[A-Za-z 0-9\-,.()/'&\"!%*_+:@<>?=;]{1,160}$"""
@@ -104,4 +104,10 @@ trait BaseJsonFormatting {
   def accountPrepDetailsFormatWithFilter(formatDef: OFormat[AccountPrepDetails]): Format[AccountPrepDetails]
   val acctPrepStatusValidator: Format[String]
   val dateFormat: Format[DateTime]
+  
+  //Groups
+  def formatsForGroupCompanyNameEnum(name: String): Format[GroupCompanyNameEnum.Value]
+  def formatsForGroupAddressType: Format[GroupAddressTypeEnum.Value]
+  def utrFormats(cryptoSCRS: CryptoSCRS): Format[String]
+  def groupNameValidation: Format[String] = Format(Reads.StringReads, Writes.StringWrites)
 }

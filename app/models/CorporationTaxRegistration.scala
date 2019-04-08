@@ -53,7 +53,8 @@ case class CorporationTaxRegistration(internalId: String,
                                       createdTime: DateTime = CorporationTaxRegistration.now,
                                       lastSignedIn: DateTime = CorporationTaxRegistration.now,
                                       heldTimestamp: Option[DateTime] = None,
-                                      sessionIdentifiers: Option[SessionIds] = None
+                                      sessionIdentifiers: Option[SessionIds] = None,
+                                      groups: Option[Groups] = None
                                      )
 
 object CorporationTaxRegistration {
@@ -81,7 +82,8 @@ object CorporationTaxRegistration {
       (__ \ "createdTime").read[DateTime] and
       (__ \ "lastSignedIn").read[DateTime].map(_.withZone(DateTimeZone.UTC)).orElse(Reads.pure(CorporationTaxRegistration.now)) and
       (__ \ "heldTimestamp").readNullable[DateTime] and
-      (__ \ "sessionIdentifiers").readNullable[SessionIds](SessionIds.format(cryptoSCRS))
+      (__ \ "sessionIdentifiers").readNullable[SessionIds](SessionIds.format(cryptoSCRS)) and
+      (__ \ "groups").readNullable[Groups](Groups.formats(formatter, cryptoSCRS))
     )(CorporationTaxRegistration.apply _)
 
     val writes = (
@@ -104,7 +106,8 @@ object CorporationTaxRegistration {
       (__ \ "createdTime").write[DateTime] and
       (__ \ "lastSignedIn").write[DateTime] and
       (__ \ "heldTimestamp").writeNullable[DateTime] and
-      (__ \ "sessionIdentifiers").writeNullable[SessionIds](SessionIds.format(cryptoSCRS))
+      (__ \ "sessionIdentifiers").writeNullable[SessionIds](SessionIds.format(cryptoSCRS)) and
+      (__ \ "groups").writeNullable[Groups](Groups.formats(formatter, cryptoSCRS))
     )(unlift(CorporationTaxRegistration.unapply))
 
     Format(reads, writes)

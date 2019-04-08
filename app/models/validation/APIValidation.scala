@@ -15,17 +15,21 @@
  */
 
 package models.validation
+import auth.CryptoSCRS
 import models.AccountPrepDetails.{COMPANY_DEFINED, HMRC_DEFINED}
 import models.AccountingDetails.{FUTURE_DATE => FD, NOT_PLANNING_TO_YET => NP2Y, WHEN_REGISTERED => WR}
-import models.{AccountPrepDetails, AccountingDetails, ContactDetails, PPOBAddress}
+import models._
+import models.validation.MongoValidation.lengthFmt
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.{DateTime, DateTimeZone}
+import play.api.Logger
 import play.api.data.validation.ValidationError
 import play.api.libs.json.Reads.{maxLength, pattern}
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import utils.StringNormaliser
 
+import scala.util.Try
 import scala.util.matching.Regex
 
 object APIValidation extends APIValidation
@@ -33,7 +37,7 @@ object APIValidation extends APIValidation
 trait APIValidation extends BaseJsonFormatting
     with ContactDetailsValidator
     with AddressValidator
-    with DateValidator {
+    with DateValidator with GroupsValidator {
 
   val ackRefValidator: Format[String] = readToFmt(maxLength[String](31))
 
@@ -44,6 +48,50 @@ trait APIValidation extends BaseJsonFormatting
   def accountPrepDetailsFormatWithFilter(formatDef: OFormat[AccountPrepDetails]): Format[AccountPrepDetails] = {
     withFilter[AccountPrepDetails](formatDef, ValidationError("If a date is specified, the status must be COMPANY_DEFINED")) {
       aPD => if (aPD.endDate.isDefined) aPD.status == COMPANY_DEFINED else aPD.status != COMPANY_DEFINED
+    }
+  }
+
+}
+trait GroupsValidator {
+  self: BaseJsonFormatting =>
+
+  override def formatsForGroupCompanyNameEnum(name: String): Format[GroupCompanyNameEnum.Value] = new Format[GroupCompanyNameEnum.Value] {
+    override def reads(json: JsValue): JsResult[GroupCompanyNameEnum.Value] = {
+      json.validate[String].flatMap(str =>
+        Try(GroupCompanyNameEnum.withName(str))
+          .toOption
+          .fold[JsResult[GroupCompanyNameEnum.Value]](JsError(s"String value is not an enum: $str")){success =>
+          if(name.length > 20 && success == GroupCompanyNameEnum.Other) {
+            Logger.warn("[Groups API Reads] nameOfCompany.nameType = Other but name.size > 20, could indicate frontend validation issue")
+          }
+          JsSuccess(success)})
+    }
+
+    override def writes(o: GroupCompanyNameEnum.Value): JsValue = JsString(o.toString)
+  }
+  override def formatsForGroupAddressType: Format[GroupAddressTypeEnum.Value] = new Format[GroupAddressTypeEnum.Value] {
+    override def reads(json: JsValue): JsResult[GroupAddressTypeEnum.Value] = {
+      json.validate[String].flatMap(str =>
+        Try(GroupAddressTypeEnum.withName(str))
+          .toOption
+          .fold[JsResult[GroupAddressTypeEnum.Value]](JsError(s"String value is not an enum: $str")){success =>
+          JsSuccess(success)})
+    }
+
+    override def writes(o: GroupAddressTypeEnum.Value): JsValue = JsString(o.toString)
+  }
+
+  override def utrFormats(cryptoSCRS: CryptoSCRS): Format[String] = new Format[String] {
+    override def writes(o: String): JsValue = JsString(o)
+
+    override def reads(json: JsValue): JsResult[String] = json.validate[String].flatMap{
+      str => {
+        if(str.replaceAll(" ","").matches("""[0-9]{1,10}""")) {
+        JsSuccess(str)
+      } else {
+        JsError("UTR does not match regex")
+      }
+      }
     }
   }
 }
@@ -106,18 +154,19 @@ trait AddressValidator {
 
   private def regexWrap(regex : String): Regex = {
     regex.r
-
   }
-
 
   val linePattern = regexWrap("""[a-zA-Z0-9\/\\("),.'&-]{1}[a-zA-Z0-9\/\\("), .'&-]{0,26}""")
   val line4Pattern = regexWrap("""[a-zA-Z0-9\/\\("),.'&-]{1}[a-zA-Z0-9\/\\("), .'&-]{0,17}""")
   val postCodePattern = regexWrap("[A-Z]{1,2}[0-9][0-9A-Z]? [0-9][A-Z]{2}")
   val countryPattern = regexWrap("[A-Za-z0-9]{1}[A-Za-z 0-9]{0,19}")
+  val parentGroupNamePattern = regexWrap("""[A-Z a-z 0-9\\'-]{1,20}$""")
 
   val lineInvert = regexWrap("""[a-zA-Z0-9\/\\("), .'&-]""")
   val postCodeInvert = regexWrap("[A-Z0-9 ]")
   val countryInvert = regexWrap("[A-Za-z0-9 ]")
+  //Groups
+  val parentGroupNameInvert = regexWrap("""[A-Z a-z 0-9\\'-]""")
 
   def normaliseStringReads(regex:Regex, amountToTake: Int)(implicit implReads: Reads[String]): Reads[String] = new Reads[String] {
     override def reads(json: JsValue): JsResult[String] = {
@@ -136,8 +185,20 @@ trait AddressValidator {
     length(maxLength)(normaliseStringReads(regex, maxLength))
   }
 
+  val parentGroupNameValidator = readToFmt(pattern(parentGroupNamePattern)(chainedNormaliseReads(parentGroupNameInvert, 20)))
+
   val lineValidator = readToFmt(pattern(linePattern)(chainedNormaliseReads(lineInvert, 27)))
   val line4Validator = readToFmt(pattern(line4Pattern)(chainedNormaliseReads(lineInvert,18)))
   val postcodeValidator = readToFmt(pattern(postCodePattern)(chainedNormaliseReads(postCodeInvert, 20)))
   val countryValidator = readToFmt(pattern(countryPattern)(chainedNormaliseReads(countryInvert, 20)))
+
+  override def groupNameValidation: Format[String] = new Format[String] {
+    override def reads(json: JsValue): JsResult[String] = {
+      json.validate[String](parentGroupNameValidator).fold(err => {
+        Logger.warn("[Groups API Reads] name of company invalid when normalised and trimmed this doesn't pass Regex validation")
+        JsError(err)
+      }, success => JsSuccess(json.as[String]))
+    }
+    override def writes(o: String): JsValue = JsString(o)
+  }
 }

@@ -118,14 +118,21 @@ trait CorporationTaxRegistrationController extends BaseController with Authorise
       }
   }
 
-  def roAddressValid(): Action[JsValue] = Action.async[JsValue](parse.json) {
+  def convertAndReturnRoAddressIfValidInBusinessAddressFormat: Action[JsValue] = Action.async[JsValue](parse.json) {
     implicit request =>
       withJsonBody[CHROAddress] { body =>
+        ctService.convertRoToBusinessAddress(body) match {
+          case Some(businessAddress) => Future.successful(Ok(Json.toJson(businessAddress)(GroupsAddressAndTypeFormats.bAddressformats(APIValidation))))
+          case _ => Future.successful(BadRequest)
+        }
+      }
+  }
 
+  def convertAndReturnRoAddressIfValidInPPOBFormat(): Action[JsValue] = Action.async[JsValue](parse.json) {
+    implicit request =>
+      withJsonBody[CHROAddress] { body =>
         ctService.convertROToPPOBAddress(body) match {
-          case Some(ppob) => {
-            Future.successful(Ok(Json.toJson(ppob)(PPOBAddress.writes)))
-          }
+          case Some(ppob) => Future.successful(Ok(Json.toJson(ppob)(PPOBAddress.writes)))
           case _ => Future.successful(BadRequest)
         }
       }

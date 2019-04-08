@@ -66,7 +66,7 @@ class RegistrationProgressISpec extends IntegrationSpecBase with LoginStub {
 
     import reactivemongo.play.json._
 
-    val jsonDoc = Json.parse(
+    val jsonDoc = Json.parse (
       s"""
          |{
          |"internalId":"${internalId}","registrationID":"${registrationId}","status":"draft","formCreationTimestamp":"testDateTime","language":"en",

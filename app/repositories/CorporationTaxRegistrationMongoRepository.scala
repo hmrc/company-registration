@@ -21,7 +21,7 @@ import cats.data.OptionT
 import cats.implicits._
 import javax.inject.{Inject, Singleton}
 import models._
-import models.validation.MongoValidation
+import models.validation.{APIValidation, MongoValidation}
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import play.api.libs.json._
@@ -81,6 +81,10 @@ trait CorporationTaxRegistrationRepository {
   def storeSessionIdentifiers(regId: String, sessionId: String, credId: String) : Future[Boolean]
   def retrieveSessionIdentifiers(regId: String) : Future[Option[SessionIds]]
   def updateTransactionId(updateFrom: String, updateTo: String): Future[String]
+
+  def returnGroupsBlock(registrationID: String): Future[Option[Groups]]
+  def deleteGroupsBlock(registrationID: String): Future[Boolean]
+  def updateGroups(registrationID: String, groups: Groups): Future[Groups]
 }
 
 class MissingCTDocument(regId: String) extends NoStackTrace
@@ -132,6 +136,40 @@ class CorporationTaxRegistrationMongoRepository @Inject()(
       sparse = false
     )
   )
+
+  override def returnGroupsBlock(registrationID: String): Future[Option[Groups]] = {
+    val selector = registrationIDSelector(registrationID)
+      collection.find(selector).one[CorporationTaxRegistration]
+        .map(ctDoc => ctDoc.getOrElse {
+          throw new Exception("[returnGroupsBlock] ctDoc does not exist")
+        }.groups)
+    }
+
+  override def deleteGroupsBlock(registrationID: String): Future[Boolean] = {
+    val selector = registrationIDSelector(registrationID)
+    val  update = Json.obj("$unset" -> Json.obj("groups" -> 1))
+    collection.findAndUpdate(selector,update,upsert = false,fetchNewObject = true)
+      .map {
+        potentialctDoc =>
+          potentialctDoc.value
+            .getOrElse(throw new Exception("[deleteGroupsBlock] no Delete occurred Document was not found for regId: $registrationID"))
+          true
+      }
+  }
+
+  override def updateGroups(registrationID: String, groups: Groups): Future[Groups] = {
+    val selector = registrationIDSelector(registrationID)
+    val update = Json.obj("$set" -> Json.obj("groups" -> Json.toJson(groups)(Groups.formats(MongoValidation, crypto))).as[JsObject])
+    collection.update(selector, update, upsert = false).map {
+      uwr =>
+        if (uwr.n == 1) {
+          groups
+        } else {
+          throw new Exception(s"Update Groups failed for regId: $registrationID because a record was not found")
+        }
+    }
+  }
+
 
   override def updateLastSignedIn(regId: String, dateTime: DateTime): Future[DateTime] = {
     val selector = registrationIDSelector(regId)

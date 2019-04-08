@@ -29,8 +29,7 @@ import uk.gov.hmrc.play.bootstrap.controller.BaseController
 
 import scala.concurrent.Future
 
-trait
-AuthenticatedActions extends MicroserviceAuthorisedFunctions {
+trait AuthenticatedActions extends MicroserviceAuthorisedFunctions {
   self: BaseController =>
 
   private[auth] val predicate = ConfidenceLevel.L50 and AuthProviders(GovernmentGateway)

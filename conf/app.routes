@@ -6,7 +6,11 @@ POST       /corporation-tax-registration/process-incorp                         
 
 POST       /corporation-tax-registration/acknowledgement-confirmation                       @controllers.SubmissionController.acknowledgementConfirmation(ackref : String)
 
-POST       /corporation-tax-registration/check-ro-address                                   @controllers.CorporationTaxRegistrationController.roAddressValid
+POST       /corporation-tax-registration/check-ro-address                                   @controllers.CorporationTaxRegistrationController.convertAndReturnRoAddressIfValidInPPOBFormat
+
+POST       /corporation-tax-registration/check-return-business-address                      @controllers.CorporationTaxRegistrationController.convertAndReturnRoAddressIfValidInBusinessAddressFormat
+
+POST      /corporation-tax-registration/check-list-of-group-names                           @controllers.GroupsController.validateListOfNamesAgainstGroupNameValidation
 
 # PUT URLS WITHOUT A REG ID ABOVE THIS LINE !
 
@@ -38,5 +42,10 @@ PUT        /corporation-tax-registration/:registrationID/progress               
 PUT        /corporation-tax-registration/:registrationId/update-email                       @controllers.test.EmailController.updateEmail(registrationId: String)
 GET        /corporation-tax-registration/:registrationId/retrieve-email                     @controllers.test.EmailController.retrieveEmail(registrationId: String)
 
+
 PUT        /corporation-tax-registration/:registrationId/handOff2Reference-ackRef-save      @controllers.CompanyDetailsController.saveHandOff2ReferenceAndGenerateAckRef(registrationId: String)
+
+GET     /corporation-tax-registration/:registrationID/groups                                @controllers.GroupsController.getBlock(registrationID: String)
+DELETE  /corporation-tax-registration/:registrationID/groups                                @controllers.GroupsController.deleteBlock(registrationID: String)
+PUT     /corporation-tax-registration/:registrationID/groups                                @controllers.GroupsController.saveBlock(registrationID: String)
 
