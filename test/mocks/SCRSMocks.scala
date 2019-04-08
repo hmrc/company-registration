@@ -50,6 +50,7 @@ trait SCRSMocks
   val mockInstanceOfCrypto = new CryptoSCRS {
     val crypto = new ApplicationCrypto(Configuration("json.encryption.key" -> "MTIzNDU2Nzg5MDEyMzQ1Ng==").underlying).JsonCrypto
   }
+  val mockGroupsService: GroupsService = mock[GroupsService]
 
   object CTServiceMocks {
     def createCTDataRecord(result: CorporationTaxRegistration): OngoingStubbing[Future[CorporationTaxRegistration]] = {

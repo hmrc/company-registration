@@ -16,9 +16,12 @@
 
 package models.validation
 import auth.CryptoSCRS
-import models.{AccountPrepDetails, AccountingDetails, ContactDetails, PPOBAddress}
+import models._
 import org.joda.time.DateTime
-import play.api.libs.json.{Format, OFormat, Reads, Writes}
+import play.api.Logger
+import play.api.libs.json._
+
+import scala.util.Try
 
 object MongoValidation extends BaseJsonFormatting {
   val defaultStringFormat = Format(Reads.StringReads, Writes.StringWrites)
@@ -56,4 +59,35 @@ object MongoValidation extends BaseJsonFormatting {
   def accountPrepDetailsFormatWithFilter(formatDef: OFormat[AccountPrepDetails]): Format[AccountPrepDetails] = formatDef
   val acctPrepStatusValidator: Format[String] = defaultStringFormat
   val dateFormat: Format[DateTime] = Format(Reads.DefaultJodaDateReads, Writes.jodaDateWrites(dateTimePattern))
+
+  //Groups
+  def formatsForGroupCompanyNameEnum(name: String): Format[GroupCompanyNameEnum.Value] = new Format[GroupCompanyNameEnum.Value] {
+    override def reads(json: JsValue): JsResult[GroupCompanyNameEnum.Value] = {
+      json.validate[String].flatMap(str =>
+        Try(GroupCompanyNameEnum.withName(str))
+          .toOption
+          .fold[JsResult[GroupCompanyNameEnum.Value]]{
+          Logger.warn(s"[Groups Mongo Reads] nameOfCompany.nameType was: $str, converted to ${GroupCompanyNameEnum.Other}")
+          JsSuccess(GroupCompanyNameEnum.Other)
+        }{success => JsSuccess(success)})
+    }
+
+    override def writes(o: GroupCompanyNameEnum.Value): JsValue = JsString(o.toString)
+  }
+  def formatsForGroupAddressType: Format[GroupAddressTypeEnum.Value] = new Format[GroupAddressTypeEnum.Value] {
+    override def reads(json: JsValue): JsResult[GroupAddressTypeEnum.Value] = {
+      json.validate[String].flatMap(str =>
+        Try(GroupAddressTypeEnum.withName(str))
+          .toOption
+          .fold[JsResult[GroupAddressTypeEnum.Value]]{
+          Logger.warn(s"[Groups Mongo Reads] addressType was: $str, converted to ${GroupAddressTypeEnum.ALF}")
+          JsSuccess(GroupAddressTypeEnum.ALF)
+        }{success => JsSuccess(success)})
+    }
+
+    override def writes(o: GroupAddressTypeEnum.Value): JsValue = JsString(o.toString)
+  }
+
+
+  def utrFormats(cryptoSCRS: CryptoSCRS): Format[String] = Format(cryptoSCRS.rds,cryptoSCRS.wts)
 }

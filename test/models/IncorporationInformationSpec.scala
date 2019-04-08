@@ -90,6 +90,5 @@ class IncorporationInformationSpec extends UnitSpec {
       rejjson.as[IncorpStatus](IncorpStatus.reads) shouldBe incorpUpdateReponseRej
 
     }
-
   }
 }

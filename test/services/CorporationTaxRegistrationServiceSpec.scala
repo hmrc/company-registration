@@ -16,12 +16,12 @@
 
 package services
 
-import auth.AuthClientConnector
 import connectors._
 import fixtures.CorporationTaxRegistrationFixture
 import mocks.{AuthorisationMocks, SCRSMocks}
 import models.RegistrationStatus._
 import models._
+import models.des.BusinessAddress
 import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers.{eq => eqTo}
 import org.mockito.Mockito._
@@ -431,6 +431,152 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
         )
 
         service.convertROToPPOBAddress(roAddress) shouldBe None
+      }
+    }
+  }
+  "convertROToBusinessAddress" should {
+    val premise = "pr"
+    val country = "Testland"
+    val local = "locality"
+    val pobox = Some("pobox")
+    val testPost = Some("ZZ1 1ZZ")
+    val region = Some("region")
+
+    val characterConverts = Map('æ' -> "ae", 'Æ' -> "AE", 'œ' -> "oe", 'Œ' -> "OE", 'ß' -> "ss", 'ø' -> "o", 'Ø' -> "O")
+    val concatenatedCharacters = characterConverts.keySet.mkString
+
+    "convert a RO address to a BusinessAddress address" when {
+
+      "the RO address is valid with no special characters" in new Setup {
+        val roAddress = CHROAddress(
+          premise, "-1 Test Road", Some("-1 Test Town"), country, local, pobox, testPost, region
+        )
+
+        service.convertRoToBusinessAddress(roAddress) shouldBe Some(BusinessAddress(
+          premise + " " + roAddress.address_line_1,
+          roAddress.address_line_2.get,
+          Some(local),
+          region,
+          roAddress.postal_code,
+          Some(roAddress.country)
+        ))
+      }
+
+      "the RO address line 1 contains an accented character" in new Setup {
+        val roAddress = CHROAddress(
+          premise, "-1 Tést Road", Some("-1 Test Town"), country, local, pobox, testPost, region
+        )
+
+        service.convertRoToBusinessAddress(roAddress) shouldBe Some(BusinessAddress(
+          premise + " " + "-1 Test Road",
+          roAddress.address_line_2.get,
+          Some(local),
+          region,
+          roAddress.postal_code,
+          Some(roAddress.country)
+        ))
+      }
+
+      "the RO address line 1 contains unexpected punctation" in new Setup {
+        val roAddress = CHROAddress(
+          premise, "-1 Test![][@:~:~ Road", Some("-1 Test Town"), country, local, pobox, testPost, region
+        )
+
+        service.convertRoToBusinessAddress(roAddress) shouldBe Some(BusinessAddress(
+          premise + " " + "-1 Test Road",
+          roAddress.address_line_2.get,
+          Some(local),
+          region,
+          roAddress.postal_code,
+          Some(roAddress.country)
+        ))
+      }
+
+      s"the RO address line 1 contains $concatenatedCharacters" in new Setup {
+        val roAddress = CHROAddress(
+          premise, s"-1 Test $concatenatedCharacters", Some("-1 Test Town"), country, local, pobox, testPost, region
+        )
+
+        val expectedConvertedConcat: String = concatenatedCharacters map characterConverts mkString
+
+        service.convertRoToBusinessAddress(roAddress) shouldBe Some(BusinessAddress(
+          premise + " " + s"-1 Test $expectedConvertedConcat",
+          roAddress.address_line_2.get,
+          Some(local),
+          region,
+          roAddress.postal_code,
+          Some(roAddress.country)
+        ))
+      }
+
+      "the RO address has more than 27 characters" in new Setup {
+        val stringOf27Chars = List.fill(25)("a").mkString
+
+        val roAddress = CHROAddress(
+          premise, stringOf27Chars, Some("-1 Test Town"), country, local, pobox, testPost, region
+        )
+
+        service.convertRoToBusinessAddress(roAddress) shouldBe Some(BusinessAddress(
+          premise + " " + stringOf27Chars.take(24),
+          roAddress.address_line_2.get,
+          Some(local),
+          region,
+          roAddress.postal_code,
+          Some(roAddress.country)
+        ))
+      }
+
+      "the RO address expands beyond after converting characters" in new Setup {
+        val twentyPlusConcat = List.fill(23 - concatenatedCharacters.length)("a").mkString + concatenatedCharacters
+        twentyPlusConcat.length shouldBe 23
+
+        val roAddress = CHROAddress(
+          premise, twentyPlusConcat, Some("-1 Test Town"), country, local, pobox, testPost, region
+        )
+
+        service.convertRoToBusinessAddress(roAddress) shouldBe Some(BusinessAddress(
+          (premise + " " + twentyPlusConcat.map(char => characterConverts.getOrElse(char, char)).mkString).take(27),
+          roAddress.address_line_2.get,
+          Some(local),
+          region,
+          roAddress.postal_code,
+          Some(roAddress.country)
+        ))
+      }
+
+      "the RO address contains no address line 2" in new Setup {
+        val roAddress = CHROAddress(
+          premise, "-1 Test Road", None, country, local, pobox, None, region
+        )
+
+        service.convertRoToBusinessAddress(roAddress) shouldBe Some(BusinessAddress(
+          (premise + " " + "-1 Test Road").take(27),
+          local,
+          region,
+          None,
+          roAddress.postal_code,
+          Some(roAddress.country)
+        ))
+      }
+
+    }
+    "fail to convert" when {
+      "the RO address contains only a pipe character in address line 1" in new Setup {
+        val roAddress = CHROAddress(
+          "", "|", Some("-1 Test Town"), country, local, pobox, testPost, region
+        )
+
+        service.convertRoToBusinessAddress(roAddress) shouldBe None
+      }
+    }
+
+    "fail to convert" when {
+      "the RO address contains a pipe in the post code" in new Setup {
+        val roAddress = CHROAddress(
+          ">", "Test Two", Some("-1 Test Town"), country, local, pobox, Some("|"), region
+        )
+
+        service.convertRoToBusinessAddress(roAddress) shouldBe None
       }
     }
   }

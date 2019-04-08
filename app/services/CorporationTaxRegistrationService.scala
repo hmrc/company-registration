@@ -21,7 +21,9 @@ import connectors._
 import helpers.DateHelper
 import javax.inject.Inject
 import jobs.{LockResponse, MongoLocked, ScheduledService, UnlockingFailed}
+import models.des.BusinessAddress
 import models.validation.APIValidation
+import models.validation.APIValidation._
 import models.{HttpResponse => _, _}
 import org.joda.time.{DateTime, DateTimeZone, Duration}
 import play.api.Logger
@@ -97,36 +99,62 @@ trait CorporationTaxRegistrationService extends ScheduledService[Either[String,L
     }
   }
 
-  def convertROToPPOBAddress(rOAddress: CHROAddress): Option[PPOBAddress] = {
-    import APIValidation._
+  private def returnSeqAddressLinesFromCHROAddress(rOAddress: CHROAddress): Seq[Option[String]] = {
+    val line1Result = Some(rOAddress.premises + " " + rOAddress.address_line_1)
+    val line2Result = Some(rOAddress.address_line_2.getOrElse(rOAddress.locality))
+    val line3Result = if (rOAddress.address_line_2.isDefined) Some(rOAddress.locality) else rOAddress.region
+    val line4Result = rOAddress.address_line_2 flatMap (_ => rOAddress.region)
 
-    Try {
-      val line1Result = Some(rOAddress.premises + " " + rOAddress.address_line_1)
-      val line2Result = Some(rOAddress.address_line_2.getOrElse(rOAddress.locality))
-      val line3Result = if (rOAddress.address_line_2.isDefined) Some(rOAddress.locality) else rOAddress.region
-      val line4Result = rOAddress.address_line_2 flatMap (_ => rOAddress.region)
-
-      val linesResults: Seq[Option[String]] = List(line1Result, line2Result, line3Result, line4Result)
-        .zipWithIndex
-        .map { linePair =>
-          val (optLine, index) = linePair
-          optLine map { line =>
-            val normalisedString = StringNormaliser.normaliseString(line, lineInvert).take(if (index == 3) 18 else 27)
-            val regex = (if (index == 3) line4Pattern else linePattern).regex
-            if (!normalisedString.matches(regex)) throw new Exception(s"Line $index did not match validation")
-            normalisedString
-          }
+    List(line1Result, line2Result, line3Result, line4Result)
+      .zipWithIndex
+      .map { linePair =>
+        val (optLine, index) = linePair
+        optLine map { line =>
+          val normalisedString = StringNormaliser.normaliseString(line, lineInvert).take(if (index == 3) 18 else 27)
+          val regex = (if (index == 3) line4Pattern else linePattern).regex
+          if (!normalisedString.matches(regex)) throw new Exception(s"Line $index did not match validation")
+          normalisedString
         }
-
-      val postCodeOpt = rOAddress.postal_code map (pc => StringNormaliser.normaliseString(pc, postCodeInvert).take(20))
-      val countryOpt = Some(StringNormaliser.normaliseString(rOAddress.country, countryInvert).take(20))
-
-      postCodeOpt foreach { postCode =>
-        if (!postCode.matches(postCodePattern.regex)) throw new Exception("Post code did not match validation")
       }
-      countryOpt foreach { country =>
-        if (!country.matches(countryPattern.regex)) throw new Exception("Country did not match validation")
-      }
+  }
+  private def returnOptPostcode(rOAddress: CHROAddress): Option[String] = {
+    val postCodeOpt:Option[String] = rOAddress.postal_code map (pc => StringNormaliser.normaliseString(pc, postCodeInvert).take(20))
+    postCodeOpt foreach { postCode =>
+      if (!postCode.matches(postCodePattern.regex)) throw new Exception("Post code did not match validation")
+    }
+    postCodeOpt
+  }
+
+  private def returnOptCountry(rOAddress: CHROAddress): Option[String] = {
+    val countryOpt = Some(StringNormaliser.normaliseString(rOAddress.country, countryInvert).take(20))
+
+    countryOpt foreach { country =>
+      if (!country.matches(countryPattern.regex)) throw new Exception("Country did not match validation")
+    }
+    countryOpt
+  }
+
+  def convertRoToBusinessAddress(rOAddress: CHROAddress): Option[BusinessAddress] = {
+    Try {
+      val linesResults: Seq[Option[String]] = returnSeqAddressLinesFromCHROAddress(rOAddress)
+      val postCodeOpt: Option[String] = returnOptPostcode(rOAddress)
+      val countryOpt: Option[String] = returnOptCountry(rOAddress)
+
+      BusinessAddress(linesResults.head.get, linesResults(1).get, linesResults(2), linesResults(3), postCodeOpt, countryOpt)
+    }.map { bAddress =>
+      Logger.info("[convertRoToBusinessAddress] successfully converted RO to Business Address")
+      Some(bAddress)
+    }.recoverWith{
+      case e => Logger.info(s"[convertRoToBusinessAddress] Could not convert RO address - ${e.getMessage}")
+        Success(Option.empty)
+    }.get
+  }
+
+  def convertROToPPOBAddress(rOAddress: CHROAddress): Option[PPOBAddress] = {
+    Try {
+      val linesResults:Seq[Option[String]] = returnSeqAddressLinesFromCHROAddress(rOAddress)
+       val postCodeOpt: Option[String] = returnOptPostcode(rOAddress)
+      val countryOpt: Option[String] = returnOptCountry(rOAddress)
 
       PPOBAddress(linesResults.head.get, linesResults(1).get, linesResults(2), linesResults(3), postCodeOpt, countryOpt, None, "")
     }.map { s =>
