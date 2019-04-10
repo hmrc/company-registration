@@ -456,7 +456,7 @@ class CorporationTaxRegistrationMongoRepository @Inject()(
 
     val modifier = BSONDocument(
       "$set" -> jsonobj,
-      "$unset" -> BSONDocument("tradingDetails" -> 1, "contactDetails" -> 1, "companyDetails" -> 1)
+      "$unset" -> BSONDocument("tradingDetails" -> 1, "contactDetails" -> 1, "companyDetails" -> 1, "groups" -> 1)
     )
 
     collection.findAndUpdate[BSONDocument, BSONDocument](registrationIDSelector(regId), modifier, fetchNewObject = true, upsert = false) map {

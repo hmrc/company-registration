@@ -196,24 +196,6 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
     }
   }
 
-  "retrieveCTData" should {
-
-    val corporationTaxRegistration = CorporationTaxRegistration(
-      internalId = "testID",
-      registrationID = regId,
-      formCreationTimestamp = "testTimeStamp",
-      language = "en"
-    )
-
-    "return a CorporationTaxRegistration" in new Setup {
-      when(mockCTDataRepository.retrieveCorporationTaxRegistration(eqTo(regId)))
-        .thenReturn(Future.successful(Some(corporationTaxRegistration)))
-
-      val result: CorporationTaxRegistration = await(service.retrieveCTData(regId))
-      result shouldBe corporationTaxRegistration
-    }
-  }
-
 
   "locateOldHeldSubmissions" should {
     val registrationId = "testRegId"

@@ -16,6 +16,7 @@
 
 package models.des
 
+import models.Groups
 import models.validation.{APIValidation, BaseJsonFormatting}
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
@@ -200,26 +201,42 @@ case class InterimCorporationTax(
                                   companyName: String,
                                   returnsOnCT61: Boolean,
                                   businessAddress: Option[BusinessAddress],
-                                  businessContactDetails: BusinessContactDetails
+                                  businessContactDetails: BusinessContactDetails,
+                                  groups: Option[Groups] = None
                                 )
 
 object InterimCorporationTax {
   implicit val writes = new Writes[InterimCorporationTax] {
     def writes(m: InterimCorporationTax) = {
-      val address = m.businessAddress map {Json.toJson(_).as[JsObject]}
+      val address = m.businessAddress map {
+        Json.toJson(_).as[JsObject]
+      }
       val contactDetails: JsObject = Json.toJson(m.businessContactDetails).as[JsObject]
-      Json.obj(
-        "companyOfficeNumber" -> "623",
-        "hasCompanyTakenOverBusiness" -> false,
-        "companyMemberOfGroup" -> false,
-        "companiesHouseCompanyName" -> APIValidation.cleanseCompanyName(m.companyName),
-        "returnsOnCT61" -> m.returnsOnCT61,
-        "companyACharity" -> false
-      ) ++
-        address.fold(Json.obj())(add => Json.obj("businessAddress" -> add)) ++
-        Json.obj("businessContactDetails" -> contactDetails)
+      val groups: JsObject = { m.groups.fold(
+          Json.obj("companyMemberOfGroup" -> false)) {
+          og => Json.obj(
+            "companyMemberOfGroup" -> true,
+           "groupDetails" ->
+             Json.obj(
+               "parentCompanyName" -> og.nameOfCompany.get.name,
+               "groupAddress" -> og.addressAndType.get.address)
+            .deepMerge(og.groupUTR.get.UTR.fold(Json.obj())(utr => Json.obj("parentUTR" -> utr)
+            )
+          ))
+        }
+      }
+            Json.obj(
+          "companyOfficeNumber" -> "623",
+          "hasCompanyTakenOverBusiness" -> false,
+          "companiesHouseCompanyName" -> APIValidation.cleanseCompanyName(m.companyName),
+          "returnsOnCT61" -> m.returnsOnCT61,
+          "companyACharity" -> false
+        ).deepMerge(groups) ++
+          address.fold(Json.obj())(add => Json.obj("businessAddress" -> add)) ++
+          Json.obj("businessContactDetails" -> contactDetails)
+      }
     }
-  }
+
 }
 
 

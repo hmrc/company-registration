@@ -21,6 +21,7 @@ import com.github.tomakehurst.wiremock.client.WireMock._
 import itutil.{IntegrationSpecBase, LoginStub, RequestFinder, WiremockHelper}
 import models.RegistrationStatus._
 import models._
+import models.des.BusinessAddress
 import play.api.Application
 import play.api.http.HeaderNames
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -472,6 +473,66 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
         val corp =  (s \ "registration" \ "corporationTax").as[JsObject]
         val res = s.as[JsObject]- "registration" ++ Json.obj("registration" -> Json.obj("metadata" -> registration, "corporationTax" -> corp))
         res shouldBe Json.parse("""{"acknowledgementReference":"BRCT00000000001","registration":{"metadata":{"businessType":"Limited company","submissionFromAgent":false,"declareAccurateAndComplete":true,"credentialId":"testAuthProviderId","language":"en","completionCapacity":"Director"},"corporationTax":{"companyOfficeNumber":"623","hasCompanyTakenOverBusiness":false,"companyMemberOfGroup":false,"companiesHouseCompanyName":"testCompanyName","returnsOnCT61":true,"companyACharity":false,"businessAddress":{"line1":"123 ABC  BDT & CFD /","line2":"A 1 ","line3":"Rts2","line4":"test country","postcode":"XX1 1OZ","country":"Dql"},"businessContactDetails":{"phoneNumber":"02072899066","mobileNumber":"07567293726","email":"test@email.co.uk"}}}}""")
+      }
+      "registration is in Draft status, at 5-1, sending groups block" in new Setup {
+        stubAuthorise(200, authorisedRetrievals)
+
+        val confRefsWithoutPayment = ConfirmationReferences(
+          acknowledgementReference = ackRef,
+          transactionId = transId,
+          paymentReference = None,
+          paymentAmount = None
+        )
+        val validGroups = Some(Groups(
+          groupRelief = true,
+          nameOfCompany = Some(GroupCompanyName("MISTAR%% FOO", GroupCompanyNameEnum.Other)),
+          addressAndType = Some(GroupsAddressAndType(GroupAddressTypeEnum.ALF,BusinessAddress(
+            "FOO 1",
+            "FOO 2",
+            Some("Telford"),
+            Some("Shropshire"),
+            Some("ZZ1 1ZZ"),
+            None
+          ))),
+          Some(GroupUTR(Some("1234567890")))
+        ))
+
+
+        await(ctRepository.insert(
+          draftRegistration.copy(
+            companyDetails =
+          Some(CompanyDetails(
+            companyName = "testCompanyName",
+            CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("ZZ1 1ZZ"), Some("Region")),
+            PPOB("RO", None),
+            jurisdiction = "testJurisdiction"
+          )),groups = validGroups
+        )))
+
+        stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
+        stubPost(s"/business-registration/corporation-tax", 200, """{"a": "b"}""")
+        stubFor(post(urlEqualTo("/incorporation-information/subscribe/trans-id-2345/regime/ctax/subscriber/SCRS?force=true"))
+          .willReturn(
+            aResponse().
+              withStatus(202).
+              withBody("""{"a": "b"}""")
+          )
+        )
+
+        val response = await(client(s"/$regId/confirmation-references").put(jsonConfirmationRefs()))
+        response.status shouldBe 200
+        response.json shouldBe Json.toJson(confRefsWithoutPayment)
+
+        val reg = await(ctRepository.findAll()).head
+        reg.confirmationReferences shouldBe Some(confRefsWithoutPayment)
+        reg.sessionIdentifiers shouldBe None
+        reg.status shouldBe HELD
+
+        val s = Json.parse(getRequestBody("post", "/business-registration/corporation-tax")).as[JsObject]
+        val registration = (s \ "registration" \ "metadata").as[JsObject] - "sessionId" - "formCreationTimestamp"
+        val corp =  (s \ "registration" \ "corporationTax").as[JsObject]
+        val res = s.as[JsObject]- "registration" ++ Json.obj("registration" -> Json.obj("metadata" -> registration, "corporationTax" -> corp))
+        res shouldBe Json.parse("""{"acknowledgementReference":"BRCT00000000001","registration":{"metadata":{"businessType":"Limited company","submissionFromAgent":false,"declareAccurateAndComplete":true,"credentialId":"testAuthProviderId","language":"en","completionCapacity":"Director"},"corporationTax":{"companyOfficeNumber":"623","hasCompanyTakenOverBusiness":false,"companiesHouseCompanyName":"testCompanyName","returnsOnCT61":true,"companyACharity":false,"companyMemberOfGroup":true,"groupDetails":{"parentCompanyName":"MISTAR FOO","groupAddress":{"line1":"FOO 1","line2":"FOO 2","line3":"Telford","line4":"Shropshire","postcode":"ZZ1 1ZZ"},"parentUTR":"1234567890"},"businessAddress":{"line1":"Premises Line 1","line2":"Line 2","line3":"Locality","line4":"Region","postcode":"ZZ1 1ZZ","country":"Country"},"businessContactDetails":{"phoneNumber":"02072899066","mobileNumber":"07567293726","email":"test@email.co.uk"}}}}""")
       }
 
       "registration is in Draft status and update Confirmation References with Ack Ref but DES submission FAILED 403 (new HO5-1)" in new Setup {

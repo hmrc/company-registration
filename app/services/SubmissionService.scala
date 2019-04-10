@@ -24,9 +24,10 @@ import javax.inject.Inject
 import models.RegistrationStatus.{ACKNOWLEDGED, DRAFT, LOCKED, SUBMITTED}
 import models._
 import models.des._
+import models.validation.APIValidation
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsObject, JsString, Json}
 import play.api.mvc.{AnyContent, Request}
 import repositories.{CorporationTaxRegistrationMongoRepository, CorporationTaxRegistrationRepository, Repositories, SequenceRepository}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
@@ -154,6 +155,7 @@ trait SubmissionService extends DateHelper {
     } yield success
   }
 
+
   private[services] def buildPartialDesSubmission(regId: String, ackRef: String, authProvId: String, brMetadata: BusinessRegistration, ctData: CorporationTaxRegistration)
                                                  (implicit hc: HeaderCarrier): InterimDesRegistration = {
     val (sessionID, credID): (String, String) = hc.headers.toMap.get("X-Session-ID") match {
@@ -183,6 +185,23 @@ trait SubmissionService extends DateHelper {
           country = address.country
         )
     }
+    def formatGroupsForSubmission: Option[Groups] = ctData.groups.map {
+      og =>
+        if(og.groupRelief) {
+          val nameOfComp = og.nameOfCompany
+            .getOrElse(throw new RuntimeException(s"formatGroupsForSubmission groups exists but name does not: $regId"))
+          val address = og.addressAndType
+            .getOrElse(throw new RuntimeException(s"formatGroupsForSubmission groups exists but address does not: $regId"))
+          val utr = og.groupUTR.getOrElse(throw new RuntimeException(s"formatGroupsForSubmission groups exists but utr block does not: $regId"))
+          val nameFormatted = APIValidation.parentGroupNameValidator.reads(JsString(nameOfComp.name))
+            .getOrElse(throw new RuntimeException(s"Parent group name saved does not pass des validation: $regId"))
+          Groups(
+            og.groupRelief,
+            Some(nameOfComp.copy(name = nameFormatted)),
+            Some(address),
+            Some(utr))
+        } else Groups(false,None,None,None)
+    }
 
     val businessContactDetails = BusinessContactDetails(contactDetails.phone, contactDetails.mobile, contactDetails.email)
 
@@ -199,7 +218,8 @@ trait SubmissionService extends DateHelper {
         companyName = companyDetails.companyName,
         returnsOnCT61 = tradingDetails.regularPayments.toBoolean,
         businessAddress = businessAddress,
-        businessContactDetails = businessContactDetails
+        businessContactDetails = businessContactDetails,
+        groups = formatGroupsForSubmission
       )
     )
   }

@@ -204,12 +204,6 @@ trait CorporationTaxRegistrationService extends ScheduledService[Either[String,L
     }
   }
 
-  def retrieveCTData(regId: String): Future[CorporationTaxRegistration] = {
-    cTRegistrationRepository.retrieveCorporationTaxRegistration(regId) flatMap {
-      case Some(ct) => Future.successful(ct)
-      case _ => Future.failed(new FailedToGetCTData)
-    }
-  }
 
   final class FailedToGetCTData extends NoStackTrace
 
