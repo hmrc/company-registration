@@ -176,9 +176,6 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
       when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
 
-      when(mockCorpTaxService.retrieveCTData(eqTo(regId)))
-        .thenReturn(Future.successful(corporationTaxRegistration(regId, DRAFT, Some(confRefs))))
-
       when(mockIIConnector.registerInterest(eqTo(regId), any(), any())(any(), any()))
         .thenReturn(Future.successful(true))
 
@@ -423,7 +420,6 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
       tradingDetails = Some(TradingDetails("false"))
     )
 
-    // TODO - refactor and tweak tests (focus this on the complete partial)
     "return a valid partial DES submission" in new Setup {
       implicit val hc = HeaderCarrier(sessionId = Some(SessionId("testSessionId")))
 
@@ -437,9 +433,6 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
           BusinessContactDetails(Some("0123456789"), Some("0123456789"), Some("test@email.co.uk"))
         )
       )
-
-      when(mockCorpTaxService.retrieveCTData(any()))
-        .thenReturn(Future.successful(corporationTaxRegistration))
       when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
       when(mockCorpTaxRepo.retrieveCorporationTaxRegistration(eqTo(registrationId)))
@@ -450,9 +443,6 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
     }
 
     "return a valid InterimDesRegistration with full contact details" in new Setup {
-
-      when(mockCorpTaxService.retrieveCTData(any()))
-        .thenReturn(Future.successful(corporationTaxRegistration))
       when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
       when(mockCorpTaxRepo.retrieveCorporationTaxRegistration(eqTo(registrationId)))
@@ -475,8 +465,6 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
 
     "return a valid InterimDesRegistration with minimal details" in new Setup {
 
-      when(mockCorpTaxService.retrieveCTData(any()))
-        .thenReturn(Future.successful(corporationTaxRegistration))
       when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
       when(mockCorpTaxRepo.retrieveCorporationTaxRegistration(eqTo(registrationId)))
@@ -492,15 +480,14 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
           "name",
           returnsOnCT61 = false,
           Some(BusinessAddress("1", "1", None, None, Some("ZZ1 1ZZ"), None)),
-          BusinessContactDetails(None, None, Some("a@b.c"))
+          BusinessContactDetails(None, None, Some("a@b.c")),
+          groups = None
         )
       )
     }
 
     "return a valid InterimDesRegistration with RO address as the PPOB" in new Setup {
 
-      when(mockCorpTaxService.retrieveCTData(any()))
-        .thenReturn(Future.successful(corporationTaxRegistration))
       when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
       when(mockCorpTaxRepo.retrieveCorporationTaxRegistration(eqTo(registrationId)))
@@ -547,6 +534,125 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
         regId, ackRef, authProviderId, businessRegistration, corporationTaxRegistration.copy(sessionIdentifiers = Some(SessionIds(sessionId, authProviderId)))
       )
       await(result).toString shouldBe interimDesRegistration.toString
+    }
+    "return a valid DES Submission if groups is provided but relief is false" in new Setup {
+      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+        .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
+      when(mockCorpTaxRepo.retrieveCorporationTaxRegistration(eqTo(registrationId)))
+        .thenReturn(Future.successful(Some(corporationTaxRegistration)))
+
+      val ctReg = getCTReg(regId, Some(companyDetails2), Some(contactDetails2)).copy(groups = Some(Groups(false,None,None,None)))
+      val result = service.buildPartialDesSubmission(regId, ackRef, credId, businessRegistration, ctReg)
+
+      await(result) shouldBe InterimDesRegistration(
+        ackRef,
+        Metadata(sessionId, credId, "en", DateTime.parse(service.formatTimestamp(dateTime)), Director),
+        InterimCorporationTax(
+          "name",
+          returnsOnCT61 = false,
+          Some(BusinessAddress("1", "1", None, None, Some("ZZ1 1ZZ"), None)),
+          BusinessContactDetails(None, None, Some("a@b.c")),
+          groups = Some(Groups(false,None,None,None))
+        )
+      )
+    }
+    "return a valid DES submission if groups is provided but relief is false and data is provided - setting this data to None" in new Setup {
+      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+        .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
+      when(mockCorpTaxRepo.retrieveCorporationTaxRegistration(eqTo(registrationId)))
+        .thenReturn(Future.successful(Some(corporationTaxRegistration)))
+
+      val ctReg = getCTReg(regId, Some(companyDetails2), Some(contactDetails2)).copy(groups = Some(Groups(false,Some(GroupCompanyName("foo",GroupCompanyNameEnum.Other)),None,None)))
+      val result = service.buildPartialDesSubmission(regId, ackRef, credId, businessRegistration, ctReg)
+
+      await(result) shouldBe InterimDesRegistration(
+        ackRef,
+        Metadata(sessionId, credId, "en", DateTime.parse(service.formatTimestamp(dateTime)), Director),
+        InterimCorporationTax(
+          "name",
+          returnsOnCT61 = false,
+          Some(BusinessAddress("1", "1", None, None, Some("ZZ1 1ZZ"), None)),
+          BusinessContactDetails(None, None, Some("a@b.c")),
+          groups = Some(Groups(false,None,None,None))
+        ))
+    }
+    "return a valid des submission if groups is provided but name needs normalising" in new Setup {
+
+      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+        .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
+      when(mockCorpTaxRepo.retrieveCorporationTaxRegistration(eqTo(registrationId)))
+        .thenReturn(Future.successful(Some(corporationTaxRegistration)))
+
+      val ctReg = getCTReg(regId, Some(companyDetails2), Some(contactDetails2)).copy(
+        groups = Some(Groups(true,Some(GroupCompanyName("%%% This is my compa$y over 20 chars and has special chars at the start",GroupCompanyNameEnum.Other)),Some(GroupsAddressAndType(GroupAddressTypeEnum.ALF,BusinessAddress("1", "1", None, None, Some("ZZ1 1ZZ"), None))),Some(GroupUTR(None)))))
+      val result = service.buildPartialDesSubmission(regId, ackRef, credId, businessRegistration, ctReg)
+
+      await(result) shouldBe InterimDesRegistration(
+        ackRef,
+        Metadata(sessionId, credId, "en", DateTime.parse(service.formatTimestamp(dateTime)), Director),
+        InterimCorporationTax(
+          "name",
+          returnsOnCT61 = false,
+          Some(BusinessAddress("1", "1", None, None, Some("ZZ1 1ZZ"), None)),
+          BusinessContactDetails(None, None, Some("a@b.c")),
+          groups = Some(
+            Groups(
+              true,
+              Some(GroupCompanyName(" This is my compay o",GroupCompanyNameEnum.Other)),
+              Some(GroupsAddressAndType(GroupAddressTypeEnum.ALF,BusinessAddress("1", "1", None, None, Some("ZZ1 1ZZ"), None))),Some(GroupUTR(None)))
+        )))
+    }
+    "throw a RuntimeException if there is no name in group block but relief is true" in new Setup {
+      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+        .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
+      when(mockCorpTaxRepo.retrieveCorporationTaxRegistration(eqTo(registrationId)))
+        .thenReturn(Future.successful(Some(corporationTaxRegistration)))
+
+      val ctReg = getCTReg(regId, Some(companyDetails2), Some(contactDetails2)).copy(
+        groups = Some(Groups(true,None,Some(GroupsAddressAndType(GroupAddressTypeEnum.ALF,BusinessAddress("1", "1", None, None, Some("ZZ1 1ZZ"), None))),Some(GroupUTR(None)))))
+
+      val res = intercept[RuntimeException](await(service.buildPartialDesSubmission(regId, ackRef, credId, businessRegistration, ctReg)))
+      res.getMessage shouldBe s"formatGroupsForSubmission groups exists but name does not: $regId"
+    }
+    "throw a RuntimeException if there is no address in group block but relief is true" in new Setup {
+      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+        .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
+      when(mockCorpTaxRepo.retrieveCorporationTaxRegistration(eqTo(registrationId)))
+        .thenReturn(Future.successful(Some(corporationTaxRegistration)))
+
+      val ctReg = getCTReg(regId, Some(companyDetails2), Some(contactDetails2)).copy(
+        groups = Some(Groups(true,Some(GroupCompanyName("foo",GroupCompanyNameEnum.Other)),None,Some(GroupUTR(None)))))
+
+      val res = intercept[RuntimeException](await(service.buildPartialDesSubmission(regId, ackRef, credId, businessRegistration, ctReg)))
+      res.getMessage shouldBe s"formatGroupsForSubmission groups exists but address does not: $regId"
+    }
+    "throw a RuntimeException if there is no utr block in group block but relief is true" in new Setup {
+      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+        .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
+      when(mockCorpTaxRepo.retrieveCorporationTaxRegistration(eqTo(registrationId)))
+        .thenReturn(Future.successful(Some(corporationTaxRegistration)))
+
+      val ctReg = getCTReg(regId, Some(companyDetails2), Some(contactDetails2)).copy(
+        groups = Some(Groups(true,Some(GroupCompanyName("foo",GroupCompanyNameEnum.Other)), Some(GroupsAddressAndType(GroupAddressTypeEnum.ALF,BusinessAddress("1", "1", None, None, Some("ZZ1 1ZZ"), None))), None)))
+
+      val res = intercept[RuntimeException](await(service.buildPartialDesSubmission(regId, ackRef, credId, businessRegistration, ctReg)))
+      res.getMessage shouldBe s"formatGroupsForSubmission groups exists but utr block does not: $regId"
+    }
+
+    "throw a RuntimeException if all blocks are there but name is invalid" in new Setup {
+      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+        .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
+      when(mockCorpTaxRepo.retrieveCorporationTaxRegistration(eqTo(registrationId)))
+        .thenReturn(Future.successful(Some(corporationTaxRegistration)))
+
+      val ctReg = getCTReg(regId, Some(companyDetails2), Some(contactDetails2)).copy(
+        groups = Some(Groups(
+          true,
+          Some(GroupCompanyName("%%&&&&&",GroupCompanyNameEnum.Other)),
+          Some(GroupsAddressAndType(GroupAddressTypeEnum.ALF,BusinessAddress("1", "1", None, None, Some("ZZ1 1ZZ"), None))),Some(GroupUTR(None)))))
+
+      val res = intercept[RuntimeException](await(service.buildPartialDesSubmission(regId, ackRef, credId, businessRegistration, ctReg)))
+      res.getMessage shouldBe s"Parent group name saved does not pass des validation: $regId"
     }
 
     "throw a RunTime exception if there is no sessionID in the header carrier or mongo" in new Setup {

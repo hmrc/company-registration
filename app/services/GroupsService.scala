@@ -18,7 +18,6 @@ package services
 
 import javax.inject.Inject
 import models.Groups
-import models.validation.APIValidation
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 
 import scala.concurrent.ExecutionContext.Implicits.global

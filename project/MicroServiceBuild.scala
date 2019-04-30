@@ -19,7 +19,7 @@ private object AppDependencies {
   import play.core.PlayVersion
   import play.sbt.PlayImport._
 
-  private val bootstrapPlayVersion = "4.9.0"
+  private val bootstrapPlayVersion = "4.10.0"
   private val domainVersion = "5.6.0-play-25"
   private val hmrcTestVersion = "3.6.0-play-25"
   private val reactiveMongoVersion = "7.16.0-play-25"

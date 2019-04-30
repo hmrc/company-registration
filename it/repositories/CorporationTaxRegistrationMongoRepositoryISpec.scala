@@ -945,7 +945,20 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       tradingDetails = Some(TradingDetails("true")),
       status = RegistrationStatus.DRAFT,
       createdTime = dateTime,
-      lastSignedIn = dateTime
+      lastSignedIn = dateTime,
+      groups =   Some(Groups(
+      groupRelief = true,
+      nameOfCompany = Some(GroupCompanyName("MISTAR FOO", GroupCompanyNameEnum.Other)),
+      addressAndType = Some(GroupsAddressAndType(GroupAddressTypeEnum.ALF,BusinessAddress(
+        "FOO 1",
+        "FOO 2",
+        Some("Telford"),
+        Some("Shropshire"),
+        Some("ZZ1 1ZZ"),
+        None
+      ))),
+      Some(GroupUTR(Some("1234567890")))
+    ))
     )
 
     "update registration status to held, set confirmation refs and remove trading details, contact details and company details" in new Setup {
@@ -968,7 +981,8 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         confirmationReferences = Some(validConfirmationReferences),
         createdTime = dateTime,
         lastSignedIn = dateTime.withZone(DateTimeZone.UTC),
-        heldTimestamp = heldTs
+        heldTimestamp = heldTs,
+        groups = None
       ))
 
       result shouldBe expected

@@ -16,6 +16,7 @@
 
 package models.des
 
+import models._
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.play.test.UnitSpec
@@ -186,7 +187,7 @@ class InterimDesRegistrationSpec extends UnitSpec {
 
   "The Interim Des Registration model" should {
 
-    "Be able to be parsed into JSON" in {
+    "Be able to be parsed into JSON when groups is NONE" in {
 
       val expectedJson : String = s"""{  "acknowledgementReference" : "ackRef1",
                                       |  "registration" : {
@@ -244,9 +245,190 @@ class InterimDesRegistrationSpec extends UnitSpec {
         "DG Limited",
         false,
         Some(desBusinessAddress),
-        desBusinessContactContactDetails
+        desBusinessContactContactDetails,
+        groups = None
       )
 
+      val testModel1 = InterimDesRegistration( "ackRef1", testMetadata, testInterimCorporationTax)
+
+      val result = Json.toJson[InterimDesRegistration](testModel1)
+      result.getClass shouldBe classOf[JsObject]
+      result shouldBe Json.parse(expectedJson)
+    }
+    "Be able to be parsed into JSON when groups is Some and full" in {
+      val expectedJson : String = s"""{  "acknowledgementReference" : "ackRef1",
+                                     |  "registration" : {
+                                     |  "metadata" : {
+                                     |  "businessType" : "Limited company",
+                                     |  "sessionId" : "session-123",
+                                     |  "credentialId" : "cred-123",
+                                     |  "formCreationTimestamp": "1970-01-01T00:00:00.000Z",
+                                     |  "submissionFromAgent": false,
+                                     |  "language" : "ENG",
+                                     |  "completionCapacity" : "Director",
+                                     |  "declareAccurateAndComplete": true
+                                     |  },
+                                     |  "corporationTax" : {
+                                     |  "companyOfficeNumber" : "623",
+                                     |  "hasCompanyTakenOverBusiness" : false,
+                                     |  "companyMemberOfGroup" : true,
+                                     |  "groupDetails" : {
+                                     |    "parentCompanyName" : "MISTAR FOO",
+                                     |    "groupAddress" : {
+                                     |                      "line1" : "FOO 1",
+                                     |                       "line2" : "FOO 2",
+                                     |                       "line3" : "Telford",
+                                     |                       "line4" : "Shropshire",
+                                     |                       "postcode" : "ZZ1 1ZZ"
+                                     |    },
+                                     |    "parentUTR" : "1234567890"
+                                     |  },
+                                     |  "companiesHouseCompanyName" : "DG Limited",
+                                     |  "returnsOnCT61" : false,
+                                     |  "companyACharity" : false,
+                                     |  "businessAddress" : {
+                                     |                       "line1" : "1 Acacia Avenue",
+                                     |                       "line2" : "Hollinswood",
+                                     |                       "line3" : "Telford",
+                                     |                       "line4" : "Shropshire",
+                                     |                       "postcode" : "TF3 4ER",
+                                     |                       "country" : "England"
+                                     |                           },
+                                     |  "businessContactDetails" : {
+                                     |                           "phoneNumber" : "0121 000 000",
+                                     |                           "mobileNumber" : "0700 000 000",
+                                     |                           "email" : "d@ddd.com"
+                                     |                             }
+                                     |                             }
+                                     |  }
+                                     |}""".stripMargin
+
+      val testMetadata = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), Director )
+      val desBusinessAddress = BusinessAddress(
+        "1 Acacia Avenue",
+        "Hollinswood",
+        Some("Telford"),
+        Some("Shropshire"),
+        Some("TF3 4ER"),
+        Some("England")
+      )
+
+      val desBusinessContactContactDetails = BusinessContactDetails(
+        Some("0121 000 000"),
+        Some("0700 000 000"),
+        Some("d@ddd.com")
+      )
+      val validGroups = Some(Groups(
+        groupRelief = true,
+        nameOfCompany = Some(GroupCompanyName("MISTAR FOO", GroupCompanyNameEnum.Other)),
+        addressAndType = Some(GroupsAddressAndType(GroupAddressTypeEnum.ALF,BusinessAddress(
+          "FOO 1",
+          "FOO 2",
+          Some("Telford"),
+          Some("Shropshire"),
+          Some("ZZ1 1ZZ"),
+          None
+        ))),
+        Some(GroupUTR(Some("1234567890")))
+      ))
+
+      val testInterimCorporationTax = InterimCorporationTax(
+        "DG Limited",
+        false,
+        Some(desBusinessAddress),
+        desBusinessContactContactDetails,
+        groups = validGroups
+      )
+      val testModel1 = InterimDesRegistration( "ackRef1", testMetadata, testInterimCorporationTax)
+
+      val result = Json.toJson[InterimDesRegistration](testModel1)
+      result.getClass shouldBe classOf[JsObject]
+      result shouldBe Json.parse(expectedJson)
+    }
+    "output valid json but group utr was empty" in {
+      val expectedJson : String = s"""{  "acknowledgementReference" : "ackRef1",
+                                     |  "registration" : {
+                                     |  "metadata" : {
+                                     |  "businessType" : "Limited company",
+                                     |  "sessionId" : "session-123",
+                                     |  "credentialId" : "cred-123",
+                                     |  "formCreationTimestamp": "1970-01-01T00:00:00.000Z",
+                                     |  "submissionFromAgent": false,
+                                     |  "language" : "ENG",
+                                     |  "completionCapacity" : "Director",
+                                     |  "declareAccurateAndComplete": true
+                                     |  },
+                                     |  "corporationTax" : {
+                                     |  "companyOfficeNumber" : "623",
+                                     |  "hasCompanyTakenOverBusiness" : false,
+                                     |  "companyMemberOfGroup" : true,
+                                     |  "groupDetails" : {
+                                     |    "parentCompanyName" : "MISTAR FOO",
+                                     |    "groupAddress" : {
+                                     |                      "line1" : "FOO 1",
+                                     |                       "line2" : "FOO 2",
+                                     |                       "line3" : "Telford",
+                                     |                       "line4" : "Shropshire",
+                                     |                       "postcode" : "ZZ1 1ZZ",
+                                     |                       "country" : "foo"
+                                     |    }
+                                     |  },
+                                     |  "companiesHouseCompanyName" : "DG Limited",
+                                     |  "returnsOnCT61" : false,
+                                     |  "companyACharity" : false,
+                                     |  "businessAddress" : {
+                                     |                       "line1" : "1 Acacia Avenue",
+                                     |                       "line2" : "Hollinswood",
+                                     |                       "line3" : "Telford",
+                                     |                       "line4" : "Shropshire",
+                                     |                       "postcode" : "TF3 4ER",
+                                     |                       "country" : "England"
+                                     |                           },
+                                     |  "businessContactDetails" : {
+                                     |                           "phoneNumber" : "0121 000 000",
+                                     |                           "mobileNumber" : "0700 000 000",
+                                     |                           "email" : "d@ddd.com"
+                                     |                             }
+                                     |                             }
+                                     |  }
+                                     |}""".stripMargin
+
+      val testMetadata = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), Director )
+      val desBusinessAddress = BusinessAddress(
+        "1 Acacia Avenue",
+        "Hollinswood",
+        Some("Telford"),
+        Some("Shropshire"),
+        Some("TF3 4ER"),
+        Some("England")
+      )
+
+      val desBusinessContactContactDetails = BusinessContactDetails(
+        Some("0121 000 000"),
+        Some("0700 000 000"),
+        Some("d@ddd.com")
+      )
+      val validGroups = Some(Groups(
+        groupRelief = true,
+        nameOfCompany = Some(GroupCompanyName("MISTAR FOO", GroupCompanyNameEnum.Other)),
+        addressAndType = Some(GroupsAddressAndType(GroupAddressTypeEnum.ALF,BusinessAddress(
+          "FOO 1",
+          "FOO 2",
+          Some("Telford"),
+          Some("Shropshire"),
+          Some("ZZ1 1ZZ"),
+          Some("foo")
+        ))),
+        Some(GroupUTR(None))
+      ))
+
+      val testInterimCorporationTax = InterimCorporationTax(
+        "DG Limited",
+        false,
+        Some(desBusinessAddress),
+        desBusinessContactContactDetails,
+        groups = validGroups
+      )
       val testModel1 = InterimDesRegistration( "ackRef1", testMetadata, testInterimCorporationTax)
 
       val result = Json.toJson[InterimDesRegistration](testModel1)
