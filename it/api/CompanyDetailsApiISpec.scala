@@ -179,7 +179,7 @@ class CompanyDetailsApiISpec extends IntegrationSpecBase with LoginStub {
      val res = await(ctRepository.getExistingRegistration(regId)).confirmationReferences.get
      res shouldBe ConfirmationReferences("BRCT00000000001", "foo", None, None)
     }
-    "return 200 with json body containing ackref already existing in the database, not updating anything on the ct record" in new Setup {
+    "return 200 with json body containing existing ackref in db but updated txid" in new Setup {
       stubAuthorise(internalId)
       setupCTRegistration(ctDoc.copy(confirmationReferences = Some(ConfirmationReferences("fooAckRef","barTxID",None,None))))
       await(ctRepository.count) shouldBe 1
@@ -190,7 +190,7 @@ class CompanyDetailsApiISpec extends IntegrationSpecBase with LoginStub {
       await(seqRepo.count) shouldBe 0
       response.json.as[JsObject] shouldBe Json.obj("acknowledgement-reference" -> "fooAckRef")
       val res = await(ctRepository.getExistingRegistration(regId)).confirmationReferences.get
-      res shouldBe ConfirmationReferences("fooAckRef", "barTxID", None, None)
+      res shouldBe ConfirmationReferences("fooAckRef", "foo", None, None)
     }
   }
 }

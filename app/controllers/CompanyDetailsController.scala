@@ -53,14 +53,11 @@ trait CompanyDetailsController extends BaseController with AuthorisedActions {
   }
 
   def saveHandOff2ReferenceAndGenerateAckRef(registrationID: String): Action[JsValue] = AuthorisedAction(registrationID).async[JsValue](parse.json){implicit request =>
-    withJsonBody[String]{ txId =>
-      companyDetailsService.saveTxIdAndAckRef(registrationID, txId).map {
-        case DidNotExistInCRNowSaved(ackRefJsObject) => Ok(ackRefJsObject)
-        case ExistedInCRAlready(ackRefJsObject) => Ok(ackRefJsObject)
-        case _ => InternalServerError
-      }
-    }(implicitly,implicitly, ElementsFromH02Reads.reads)
-  }
+    withJsonBody[String] { txId =>
+      companyDetailsService.saveTxIdAndAckRef(registrationID, txId).map{
+        ackRefJsObject => Ok(ackRefJsObject)}
+      }(implicitly,implicitly, ElementsFromH02Reads.reads)
+    }
 
   def retrieveCompanyDetails(registrationID: String): Action[AnyContent] = AuthorisedAction(registrationID).async{
     implicit request =>

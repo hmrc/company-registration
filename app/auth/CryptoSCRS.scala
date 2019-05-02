@@ -17,7 +17,7 @@
 package auth
 
 import javax.inject.Inject
-import play.api.Configuration
+import play.api.{Configuration, Logger}
 import play.api.libs.json.{JsString, Reads, Writes}
 import uk.gov.hmrc.crypto.{ApplicationCrypto, CompositeSymmetricCrypto, Crypted, PlainText}
 
@@ -30,7 +30,9 @@ trait CryptoSCRS {
 
   val rds: Reads[String] = Reads[String](js =>
     js.validate[String].map { encryptedUtr =>
-      crypto.decrypt(Crypted.fromBase64(encryptedUtr)).value
+      val str = crypto.decrypt(Crypted.fromBase64(encryptedUtr)).value
+      Logger.info(s"[CryptoSCRS] decrypted string to length - ${str.length}")
+      str
     }
   )
   val wts: Writes[String] = Writes[String] { utr =>

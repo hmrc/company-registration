@@ -24,6 +24,7 @@ import org.mockito.Mockito._
 import org.mockito.stubbing.OngoingStubbing
 import org.scalatest.mockito.MockitoSugar
 import play.api.Configuration
+import play.api.libs.json.JsObject
 import repositories.{CorporationTaxRegistrationMongoRepository, SequenceRepository}
 import services._
 import uk.gov.hmrc.crypto.ApplicationCrypto
@@ -112,7 +113,7 @@ trait SCRSMocks
         .thenReturn(Future.successful(result))
     }
 
-    def saveTxidAndGenerateAckRef(result: Future[SaveTxIdRes]): OngoingStubbing[Future[SaveTxIdRes]] = {
+    def saveTxidAndGenerateAckRef(result: Future[JsObject]): OngoingStubbing[Future[JsObject]] = {
       when(mockCompanyDetailsService.saveTxIdAndAckRef(ArgumentMatchers.anyString(),ArgumentMatchers.anyString()))
         .thenReturn(result)
     }
