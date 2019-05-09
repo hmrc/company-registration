@@ -212,30 +212,31 @@ object InterimCorporationTax {
         Json.toJson(_).as[JsObject]
       }
       val contactDetails: JsObject = Json.toJson(m.businessContactDetails).as[JsObject]
-      val groups: JsObject = { m.groups.fold(
-          Json.obj("companyMemberOfGroup" -> false)) {
-          og => Json.obj(
-            "companyMemberOfGroup" -> true,
-           "groupDetails" ->
-             Json.obj(
-               "parentCompanyName" -> og.nameOfCompany.get.name,
-               "groupAddress" -> og.addressAndType.get.address)
-            .deepMerge(og.groupUTR.get.UTR.fold(Json.obj())(utr => Json.obj("parentUTR" -> utr)
-            )
-          ))
-        }
-      }
+
+      val groups: JsObject = m.groups match {
+        case None => Json.obj("companyMemberOfGroup" -> false)
+        case Some(g) if !g.groupRelief => Json.obj("companyMemberOfGroup" -> false)
+        case Some(g) if g.groupRelief => Json.obj("companyMemberOfGroup" -> true,
+          "groupDetails" ->
             Json.obj(
-          "companyOfficeNumber" -> "623",
-          "hasCompanyTakenOverBusiness" -> false,
-          "companiesHouseCompanyName" -> APIValidation.cleanseCompanyName(m.companyName),
-          "returnsOnCT61" -> m.returnsOnCT61,
-          "companyACharity" -> false
-        ).deepMerge(groups) ++
-          address.fold(Json.obj())(add => Json.obj("businessAddress" -> add)) ++
-          Json.obj("businessContactDetails" -> contactDetails)
+              "parentCompanyName" -> g.nameOfCompany.get.name,
+              "groupAddress" -> g.addressAndType.get.address)
+              .deepMerge(g.groupUTR.get.UTR.fold(Json.obj())(utr => Json.obj("parentUTR" -> utr)
+              )
+              )
+        )
       }
+      Json.obj(
+        "companyOfficeNumber" -> "623",
+        "hasCompanyTakenOverBusiness" -> false,
+        "companiesHouseCompanyName" -> APIValidation.cleanseCompanyName(m.companyName),
+        "returnsOnCT61" -> m.returnsOnCT61,
+        "companyACharity" -> false
+      ).deepMerge(groups) ++
+        address.fold(Json.obj())(add => Json.obj("businessAddress" -> add)) ++
+        Json.obj("businessContactDetails" -> contactDetails)
     }
+  }
 
 }
 
