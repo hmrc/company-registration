@@ -78,37 +78,40 @@ class CompanyDetailsServiceSpec extends UnitSpec with MockitoSugar with SCRSMock
   "saveTxidAndGenerateAckRef" should {
     val ackRefJsObject = Json.obj("acknowledgement-reference" -> "fooBar")
     val conf =  ConfirmationReferences("fooBar","txId",None,None)
-    "return DidNotExistInCRNowSaved containing jsObject with ackref from repo" in new Setup {
+    "return jsObject with new ackref from repo" in new Setup {
       when(mockCTDataRepository.retrieveConfirmationReferences(any())).thenReturn(Future.successful(None))
       when(mockSubmissionService.generateAckRef).thenReturn(Future.successful("fooBar"))
       when(mockCTDataRepository.updateConfirmationReferences(any(),eqTo(conf)))
         .thenReturn(Future.successful(Some(conf)))
      val res = await(service.saveTxIdAndAckRef(registrationID, "txId"))
       verify(mockSubmissionService, times(1)).generateAckRef
-      res shouldBe DidNotExistInCRNowSaved(ackRefJsObject)
+      res shouldBe ackRefJsObject
     }
-    "return ExistedInCRAlready with jsObject with ackref when ConfirmationReferences Block already exists" in new Setup {
-      when(mockCTDataRepository.retrieveConfirmationReferences(any())).thenReturn(Future.successful(Some(conf)))
+    "return jsobject with updated txId, generate ackref not called if already exists" in new Setup {
+      when(mockCTDataRepository.retrieveConfirmationReferences(any())).thenReturn(Future.successful(Some(conf.copy(transactionId = "willnotbethis"))))
+      when(mockCTDataRepository.updateConfirmationReferences(any(),eqTo(conf)))
+        .thenReturn(Future.successful(Some(conf)))
       val res = await(service.saveTxIdAndAckRef(registrationID, "txId"))
       verify(mockSubmissionService, times(0)).generateAckRef
-      res shouldBe ExistedInCRAlready(ackRefJsObject)
+      verify(mockCTDataRepository, times(1)).updateConfirmationReferences(any(),any())
+      res shouldBe ackRefJsObject
     }
-    "return SomethingWentWrongWhenSaving when retrieve fails" in new Setup {
+    "return exception when retrieve fails" in new Setup {
       val ex = new Exception("foo")
       when(mockCTDataRepository.retrieveConfirmationReferences(any())).thenReturn(Future.failed(ex))
-      val res = await(service.saveTxIdAndAckRef(registrationID, "txId"))
+      intercept[Exception](await(service.saveTxIdAndAckRef(registrationID, "txId")))
       verify(mockSubmissionService, times(0)).generateAckRef
-      res shouldBe SomethingWentWrongWhenSaving(ex,registrationID,"txId")
+
     }
-    "return SomethingWentWrongWhenSaving when save fails" in new Setup {
+    "return exception when save fails" in new Setup {
       val ex = new Exception("bar")
       when(mockCTDataRepository.retrieveConfirmationReferences(any())).thenReturn(Future.successful(None))
       when(mockSubmissionService.generateAckRef).thenReturn(Future.successful("foo"))
       when(mockCTDataRepository.updateConfirmationReferences(any(),any())).thenReturn(Future.failed(ex))
 
-      val res = await(service.saveTxIdAndAckRef(registrationID, "txId"))
+      val res = intercept[Exception](await(service.saveTxIdAndAckRef(registrationID, "txId")))
       verify(mockSubmissionService, times(1)).generateAckRef
-      res shouldBe SomethingWentWrongWhenSaving(ex,registrationID,"txId")
+
     }
   }
 }

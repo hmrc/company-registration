@@ -37,19 +37,18 @@ trait CompanyDetailsService {
 
   private[services] def convertAckRefToJsObject(ref: String): JsObject = Json.obj("acknowledgement-reference" -> ref)
 
-  def saveTxIdAndAckRef(registrationId:String, txid:String): Future[SaveTxIdRes] = {
-    corporationTaxRegistrationRepository.retrieveConfirmationReferences(registrationId).flatMap {
-      optConfRefs => optConfRefs.fold[Future[SaveTxIdRes]] {
-        submissionService.generateAckRef.flatMap { ackRef =>
-          val confirmationRefsToBeAddedToCTRecord = ConfirmationReferences(ackRef, txid, None, None)
-          corporationTaxRegistrationRepository.updateConfirmationReferences(registrationId, confirmationRefsToBeAddedToCTRecord)
-            .map { _ =>
-              DidNotExistInCRNowSaved(convertAckRefToJsObject(ackRef))
-            }
-        }
-      }(confReferences => Future.successful(ExistedInCRAlready(convertAckRefToJsObject(confReferences.acknowledgementReference))))
-    }.recoverWith {
-      case e: Exception => Future.successful(SomethingWentWrongWhenSaving(e,registrationId,txid))
+  def saveTxIdAndAckRef(registrationId:String, txid:String): Future[JsObject] = {
+    ( for {
+    optConfRefs <- corporationTaxRegistrationRepository.retrieveConfirmationReferences(registrationId)
+     updated <- optConfRefs.fold(submissionService.generateAckRef
+       .map{ackRef => ConfirmationReferences(ackRef,txid,None,None)}){ alreadyHasConfRefs => Future.successful(alreadyHasConfRefs.copy(transactionId =  txid))
+     }
+    confRefs <- corporationTaxRegistrationRepository.updateConfirmationReferences(registrationId, updated)
+   } yield convertAckRefToJsObject(updated.acknowledgementReference) )
+      .recoverWith{
+      case e: Exception =>
+        Logger.error(s"[CompanyDetailsService] saveTxIdAndAckRef threw an exception ${e.getMessage}  for txid: $txid, regId: $registrationId")
+       throw e
     }
   }
 
@@ -60,13 +59,4 @@ trait CompanyDetailsService {
   def updateCompanyDetails(registrationID: String, companyDetails: CompanyDetails): Future[Option[CompanyDetails]] = {
     corporationTaxRegistrationRepository.updateCompanyDetails(registrationID, companyDetails)
   }
-}
-
-sealed trait SaveTxIdRes
-case class DidNotExistInCRNowSaved(js:JsObject) extends SaveTxIdRes {
-  Logger.info("Saved TxId after H02")
-}
-case class ExistedInCRAlready(js:JsObject) extends SaveTxIdRes
-case class SomethingWentWrongWhenSaving(ex:Exception, regId:String, txId:String) extends SaveTxIdRes {
-  Logger.warn(s"Something went wrong when calling the function that saves txid and gens ackreg with ex: ${ex.getMessage} for regId: $regId and txId: $txId")
 }
