@@ -87,7 +87,8 @@ trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with Accou
     companyDetails = Some(validCompanyDetails.copy(companyName = companyName)),
     accountingDetails = Some(AccountingDetails(AccountingDetails.FUTURE_DATE, Some("2019-12-31"))),
     tradingDetails = None,
-    contactDetails = None
+    contactDetails = None,
+    takeoverDetails = None
   )
 
   val validHeldCorporationTaxRegistration = validHeldCTRegWithData()
