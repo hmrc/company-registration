@@ -16,13 +16,14 @@
 
 package models
 
+import assets.TestConstants.CorporationTaxRegistration._
+import assets.TestConstants.TakeoverDetails.{testTakeoverDetails, testTakeoverDetailsModel}
 import fixtures.CorporationTaxRegistrationFixture
 import helpers.BaseSpec
 import models.validation.APIValidation
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.data.validation.ValidationError
-import play.api.libs.json.{JsPath, JsSuccess, Json}
-import uk.gov.hmrc.play.test.UnitSpec
+import play.api.libs.json._
 
 class CorporationTaxRegistrationSpec extends BaseSpec with JsonFormatValidation with CorporationTaxRegistrationFixture {
 
@@ -30,111 +31,96 @@ class CorporationTaxRegistrationSpec extends BaseSpec with JsonFormatValidation 
 
   "CorporationTaxRegistration" should {
 
-    val fullHeldJson = Json.parse(
-      """
-        |{
-        | "internalId":"tiid",
-        | "registrationID":"0123456789",
-        | "status":"held",
-        | "formCreationTimestamp":"2001-12-31T12:00:00Z",
-        | "language":"en",
-        | "confirmationReferences":{
-        |  "acknowledgement-reference":"BRCT12345678910",
-        |  "transaction-id":"TX1",
-        |  "payment-reference":"PY1",
-        |  "payment-amount":"12.00"
-        | },
-        | "accountingDetails":{
-        |  "accountingDateStatus":"FUTURE_DATE",
-        |  "startDateOfBusiness":"2019-12-31"
-        | },
-        | "createdTime":1485859623928
-        |}
-      """.stripMargin)
+
 
     "using a custom read on the held json document without a lastSignedIn value will default it to the current time" in {
       val before = now.getMillis
+      val fullHeldJson = fullCorpTaxRegJson(optAccountingDetails = Some(testAccountingDetails))
       val ct = Json.fromJson[CorporationTaxRegistration](fullHeldJson)(CorporationTaxRegistration.format(APIValidation, mockInstanceOfCrypto)).get
       val after = now.getMillis
 
+      println(s"\n\nlastSignedIn: ${ct.lastSignedIn.getMillis}\nBefore: $before\nAfter: $after")
+
       ct.lastSignedIn.getMillis >= before && ct.lastSignedIn.getMillis <= after shouldBe true
     }
-
     "using a custom read on the held json document without a lastSignedIn value will not change the rest of the document" in {
+      val fullHeldJson = fullCorpTaxRegJson(optAccountingDetails = Some(testAccountingDetails))
       val ct = Json.fromJson[CorporationTaxRegistration](fullHeldJson)(CorporationTaxRegistration.format(APIValidation, mockInstanceOfCrypto))
-      validHeldCorporationTaxRegistration.copy(createdTime = ct.get.createdTime, lastSignedIn = ct.get.lastSignedIn) shouldBe ct.get
+      validHeldCorporationTaxRegistration.copy(
+        createdTime = ct.get.createdTime,
+        lastSignedIn = ct.get.lastSignedIn
+      ) shouldBe ct.get
+    }
+    "parse the takeover details section" in {
+      val testDateTime = DateTime.now(DateTimeZone.UTC)
+      val ctrJson = fullCorpTaxRegJson(optAccountingDetails = Some(testAccountingDetails), optTakeoverDetails = Some(testTakeoverDetails))
+      val expected = validHeldCorporationTaxRegistration.copy(
+        createdTime = testDateTime,
+        lastSignedIn = testDateTime,
+        takeoverDetails = Some(testTakeoverDetailsModel)
+      )
     }
   }
 
   "CompanyDetails Model - names" should {
-        def tstJson(cName: String) = Json.parse(
-            s"""
-         |{
-         |  "companyName":"$cName",
-         |  "pPOBAddress": {
-         |    "addressType":"MANUAL",
-         |    "address": {
-          |      "addressLine1":"15 St Walk",
-         |      "addressLine2":"Testley",
-         |      "addressLine3":"Testford",
-         |      "addressLine4":"Testshire",
-         |      "postCode": "ZZ1 1ZZ",
-         |      "country":"UK",
-         |      "txid":"txid"
-         |    }
-         |  },
-         |   "cHROAddress": {
-         |   "premises":"p",
-         |    "address_line_1":"14 St Test Walk",
-         |    "address_line_2":"Test",
-         |    "country":"c",
-         |    "locality":"l",
-         |    "po_box":"pb",
-         |    "postal_code":"TE1 1ST",
-         |     "region" : "r"
-         |  },
-         |  "jurisdiction": "test"
-         |}
-        """.stripMargin)
+    def testJson(companyName: String): JsObject = Json.obj(
+      "companyName" -> companyName,
+      "pPOBAddress" -> testPPOBAddress,
+      "cHROAddress" -> testRegisteredOfficeAddress,
+      "jurisdiction" -> "test"
+    )
 
-          "fail on company name" when {
-            "it is too long" in {
-                val longName = List.fill(161)('a').mkString
-                val json = tstJson(longName)
+    "fail on company name" when {
+      "it is too long" in {
+        val longName = List.fill(161)('a').mkString
+        val json = testJson(longName)
+        val result = Json.fromJson[CompanyDetails](json)
+        shouldHaveErrors(result, JsPath() \ "companyName", Seq(ValidationError("Invalid company name")))
+      }
+      "it is too short" in {
+        val emptyCompanyName = ""
+        val json = testJson(emptyCompanyName)
+        val result = Json.fromJson[CompanyDetails](json)
+        shouldHaveErrors(result, JsPath() \ "companyName", Seq(ValidationError("Invalid company name")))
+      }
+      "it contains invalid character " in {
+        val invalidCompanyName = "étest|company"
+        val json = testJson(invalidCompanyName)
+        val result = Json.fromJson[CompanyDetails](json)
+        shouldHaveErrors(result, JsPath() \ "companyName", Seq(ValidationError("Invalid company name")))
+      }
+    }
 
-                  val result = Json.fromJson[CompanyDetails](json)
-                  shouldHaveErrors(result, JsPath() \ "companyName", Seq(ValidationError("Invalid company name")))
-              }
-            "it is too short" in {
-                val json = tstJson("")
+    "Be able to be parsed from JSON" when {
+      "with valid company name" in {
+        val chROAddress = CHROAddress(
+          premises = testPremises,
+          address_line_1 = testRegOffLine1,
+          address_line_2 = Some(testRegOffLine2),
+          country = testRegOffCountry,
+          locality = testRegOffLocality,
+          po_box = Some(testRegOffPoBox),
+          postal_code = Some(testRegOffPostcode),
+          region = Some(testRegOffRegion)
+        )
 
-                  val result = Json.fromJson[CompanyDetails](json)
+        val ppobAddress = PPOBAddress(
+          line1 = testPPOBLine1,
+          line2 = testPPOBLine2,
+          line3 = Some(testPPOBLine3),
+          line4 = Some(testPPOBLine4),
+          postcode = Some(testPPOBPostcode),
+          country = Some(testPPOBCountry),
+          uprn = None,
+          txid = testTransactionId
+        )
+        val json = testJson("ß Ǭscar ég ànt")
+        val expected = CompanyDetails("ß Ǭscar ég ànt", chROAddress, PPOB(PPOB.MANUAL, Some(ppobAddress)), "test")
+        val result = Json.fromJson[CompanyDetails](json)
 
-                  shouldHaveErrors(result, JsPath() \ "companyName", Seq(ValidationError("Invalid company name")))
-              }
-            "it contains invalid character " in {
-        val json = tstJson("étest|company")
+        result shouldBe JsSuccess(expected)
+      }
+    }
 
-                  val result = Json.fromJson[CompanyDetails](json)
-
-                  shouldHaveErrors(result, JsPath() \ "companyName", Seq(ValidationError("Invalid company name")))
-              }
-          }
-
-          "Be able to be parsed from JSON" when {
-
-              "with valid company name" in {
-                val chROAddress = CHROAddress("p","14 St Test Walk",Some("Test"),"c","l",Some("pb"),Some("TE1 1ST"),Some("r"))
-                val ppobAddress = PPOBAddress("15 St Walk", "Testley", Some("Testford"), Some("Testshire"), Some("ZZ1 1ZZ"), Some("UK"), None, "txid")
-
-                  val json = tstJson("ß Ǭscar ég ànt")
-                val expected = CompanyDetails("ß Ǭscar ég ànt", chROAddress, PPOB(PPOB.MANUAL, Some(ppobAddress)), "test")
-
-                  val result = Json.fromJson[CompanyDetails](json)
-
-                  result shouldBe JsSuccess(expected)
-              }
-          }
-
-       }
+  }
 }

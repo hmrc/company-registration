@@ -20,10 +20,8 @@ import auth.CryptoSCRS
 import models.validation.{APIValidation, BaseJsonFormatting, MongoValidation}
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.data.validation.ValidationError
-import play.api.libs.Crypto
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-import reactivemongo.play.json.BSONFormats.BSONDocumentFormat
 
 object RegistrationStatus {
   val DRAFT         = "draft"
@@ -54,7 +52,8 @@ case class CorporationTaxRegistration(internalId: String,
                                       lastSignedIn: DateTime = CorporationTaxRegistration.now,
                                       heldTimestamp: Option[DateTime] = None,
                                       sessionIdentifiers: Option[SessionIds] = None,
-                                      groups: Option[Groups] = None
+                                      groups: Option[Groups] = None,
+                                      takeoverDetails: Option[TakeoverDetails] = None
                                      )
 
 object CorporationTaxRegistration {
@@ -83,7 +82,8 @@ object CorporationTaxRegistration {
       (__ \ "lastSignedIn").read[DateTime].map(_.withZone(DateTimeZone.UTC)).orElse(Reads.pure(CorporationTaxRegistration.now)) and
       (__ \ "heldTimestamp").readNullable[DateTime] and
       (__ \ "sessionIdentifiers").readNullable[SessionIds](SessionIds.format(cryptoSCRS)) and
-      (__ \ "groups").readNullable[Groups](Groups.formats(formatter, cryptoSCRS))
+      (__ \ "groups").readNullable[Groups](Groups.formats(formatter, cryptoSCRS)) and
+      (__ \ "takeoverDetails").readNullable[TakeoverDetails]
     )(CorporationTaxRegistration.apply _)
 
     val writes = (
@@ -107,7 +107,8 @@ object CorporationTaxRegistration {
       (__ \ "lastSignedIn").write[DateTime] and
       (__ \ "heldTimestamp").writeNullable[DateTime] and
       (__ \ "sessionIdentifiers").writeNullable[SessionIds](SessionIds.format(cryptoSCRS)) and
-      (__ \ "groups").writeNullable[Groups](Groups.formats(formatter, cryptoSCRS))
+      (__ \ "groups").writeNullable[Groups](Groups.formats(formatter, cryptoSCRS)) and
+      (__ \ "takeoverDetails").writeNullable[TakeoverDetails]
     )(unlift(CorporationTaxRegistration.unapply))
 
     Format(reads, writes)
