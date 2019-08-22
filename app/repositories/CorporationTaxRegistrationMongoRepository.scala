@@ -19,89 +19,128 @@ package repositories
 import auth.{AuthorisationResource, CryptoSCRS}
 import cats.data.OptionT
 import cats.implicits._
-import javax.inject.{Inject, Singleton}
+import javax.inject.Inject
 import models._
-import models.validation.{APIValidation, MongoValidation}
+import models.validation.MongoValidation
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.commands.WriteResult
+import reactivemongo.api.Cursor
+import reactivemongo.api.commands.{UpdateWriteResult, WriteResult}
 import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.api.{Cursor, DB}
 import reactivemongo.bson.{BSONDocument, _}
 import reactivemongo.play.json.BSONFormats
-import reactivemongo.play.json.BSONFormats._
 import reactivemongo.play.json.ImplicitBSONHandlers._
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.mongo.ReactiveRepository
+import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.control.NoStackTrace
 
 trait CorporationTaxRegistrationRepository {
+
   def createCorporationTaxRegistration(metadata: CorporationTaxRegistration): Future[CorporationTaxRegistration]
+
   def retrieveCorporationTaxRegistration(regID: String): Future[Option[CorporationTaxRegistration]]
+
   def getExistingRegistration(registrationID: String): Future[CorporationTaxRegistration]
+
   def retrieveStaleDocuments(count: Int, storageThreshold: Int): Future[List[CorporationTaxRegistration]]
+
   def retrieveMultipleCorporationTaxRegistration(regID: String): Future[List[CorporationTaxRegistration]]
+
   def retrieveRegistrationByTransactionID(regID: String): Future[Option[CorporationTaxRegistration]]
+
   def retrieveCompanyDetails(registrationID: String): Future[Option[CompanyDetails]]
+
   def retrieveAccountingDetails(registrationID: String): Future[Option[AccountingDetails]]
+
   def updateCompanyDetails(registrationID: String, companyDetails: CompanyDetails): Future[Option[CompanyDetails]]
+
   def updateAccountingDetails(registrationID: String, accountingDetails: AccountingDetails): Future[Option[AccountingDetails]]
-  def retrieveTradingDetails(registrationID : String) : Future[Option[TradingDetails]]
-  def updateTradingDetails(registrationID : String, tradingDetails: TradingDetails) : Future[Option[TradingDetails]]
+
+  def retrieveTradingDetails(registrationID: String): Future[Option[TradingDetails]]
+
+  def updateTradingDetails(registrationID: String, tradingDetails: TradingDetails): Future[Option[TradingDetails]]
+
   def updateContactDetails(registrationID: String, contactDetails: ContactDetails): Future[Option[ContactDetails]]
-  def retrieveConfirmationReferences(registrationID: String) : Future[Option[ConfirmationReferences]]
-  def updateConfirmationReferences(registrationID: String, confirmationReferences: ConfirmationReferences) : Future[Option[ConfirmationReferences]]
-  def updateConfirmationReferencesAndUpdateStatus(registrationID: String, confirmationReferences: ConfirmationReferences, status: String) : Future[Option[ConfirmationReferences]]
+
+  def retrieveConfirmationReferences(registrationID: String): Future[Option[ConfirmationReferences]]
+
+  def updateConfirmationReferences(registrationID: String, confirmationReferences: ConfirmationReferences): Future[Option[ConfirmationReferences]]
+
+  def updateConfirmationReferencesAndUpdateStatus(registrationID: String, confirmationReferences: ConfirmationReferences, status: String): Future[Option[ConfirmationReferences]]
+
   def retrieveContactDetails(registrationID: String): Future[Option[ContactDetails]]
+
   def updateCompanyEndDate(registrationID: String, model: AccountPrepDetails): Future[Option[AccountPrepDetails]]
+
   def updateSubmissionStatus(registrationID: String, status: String): Future[String]
+
   def removeTaxRegistrationInformation(registrationId: String): Future[Boolean]
+
   def removeUnnecessaryRegistrationInformation(registrationId: String): Future[Boolean]
-  def updateCTRecordWithAcknowledgments(ackRef : String, ctRecord : CorporationTaxRegistration) : Future[WriteResult]
-  def retrieveByAckRef(ackRef : String) : Future[Option[CorporationTaxRegistration]]
+
+  def updateCTRecordWithAcknowledgments(ackRef: String, ctRecord: CorporationTaxRegistration): Future[WriteResult]
+
+  def retrieveByAckRef(ackRef: String): Future[Option[CorporationTaxRegistration]]
+
   def updateHeldToSubmitted(registrationId: String, crn: String, submissionTS: String): Future[Boolean]
+
   def removeTaxRegistrationById(registrationId: String): Future[Boolean]
+
   def updateEmail(registrationId: String, email: Email): Future[Option[Email]]
+
   def retrieveEmail(registrationId: String): Future[Option[Email]]
+
   def updateLastSignedIn(regId: String, dateTime: DateTime): Future[DateTime]
+
   def updateRegistrationProgress(regId: String, progress: String): Future[Option[String]]
+
   def getRegistrationStats(): Future[Map[String, Int]]
+
   def fetchHO6Information(regId: String): Future[Option[HO6RegistrationInformation]]
+
   def fetchDocumentStatus(regId: String): OptionT[Future, String]
+
   def updateRegistrationToHeld(regId: String, confRefs: ConfirmationReferences): Future[Option[CorporationTaxRegistration]]
-  def retrieveAllWeekOldHeldSubmissions() : Future[List[CorporationTaxRegistration]]
-  def retrieveLockedRegIDs() : Future[List[String]]
+
+  def retrieveAllWeekOldHeldSubmissions(): Future[List[CorporationTaxRegistration]]
+
+  def retrieveLockedRegIDs(): Future[List[String]]
+
   def retrieveStatusAndExistenceOfCTUTR(ackRef: String): Future[Option[(String, Boolean)]]
-  def updateRegistrationWithAdminCTReference(ackRef : String, ctUtr : String) : Future[Option[CorporationTaxRegistration]]
-  def storeSessionIdentifiers(regId: String, sessionId: String, credId: String) : Future[Boolean]
-  def retrieveSessionIdentifiers(regId: String) : Future[Option[SessionIds]]
+
+  def updateRegistrationWithAdminCTReference(ackRef: String, ctUtr: String): Future[Option[CorporationTaxRegistration]]
+
+  def storeSessionIdentifiers(regId: String, sessionId: String, credId: String): Future[Boolean]
+
+  def retrieveSessionIdentifiers(regId: String): Future[Option[SessionIds]]
+
   def updateTransactionId(updateFrom: String, updateTo: String): Future[String]
 
   def returnGroupsBlock(registrationID: String): Future[Option[Groups]]
+
   def deleteGroupsBlock(registrationID: String): Future[Boolean]
+
   def updateGroups(registrationID: String, groups: Groups): Future[Groups]
 }
 
 class MissingCTDocument(regId: String) extends NoStackTrace
 
-class CorporationTaxRegistrationMongoRepository @Inject()(
-                                                 mongo: ReactiveMongoComponent,
-                                                 crypto: CryptoSCRS
-                                                 )
+class CorporationTaxRegistrationMongoRepository @Inject()(mongo: ReactiveMongoComponent,
+                                                          crypto: CryptoSCRS
+                                                         )
   extends ReactiveRepository[CorporationTaxRegistration, BSONObjectID](
-    "corporation-tax-registration-information",
-    mongo.mongoConnector.db,
-    CorporationTaxRegistration.format(MongoValidation, crypto),
-    ReactiveMongoFormats.objectIdFormats)
-  with CorporationTaxRegistrationRepository
-  with AuthorisationResource[String] {
+    collectionName = "corporation-tax-registration-information",
+    mongo = mongo.mongoConnector.db,
+    domainFormat = CorporationTaxRegistration.format(MongoValidation, crypto),
+    idFormat = ReactiveMongoFormats.objectIdFormats)
+    with CorporationTaxRegistrationRepository with AuthorisationResource[String] {
 
-  implicit val formats = CorporationTaxRegistration.oFormat(CorporationTaxRegistration.format(MongoValidation, crypto))
+  implicit val formats: OFormat[CorporationTaxRegistration] = CorporationTaxRegistration.oFormat(CorporationTaxRegistration.format(MongoValidation, crypto))
   super.indexes
 
   override def indexes: Seq[Index] = Seq(
@@ -137,22 +176,37 @@ class CorporationTaxRegistrationMongoRepository @Inject()(
     )
   )
 
+  def update(regId: String, key: String, value: JsObject): Future[UpdateWriteResult] = {
+    collection.update.one(
+      q = registrationIDSelector(regId),
+      u = Json.obj(fields = "$set" -> Json.obj(key -> value)),
+      upsert = false
+    ) filter (_.n == 1)
+  }
+
+  def findByRegId(regId: String): Future[Option[CorporationTaxRegistration]] = {
+    collection.find[BSONDocument, CorporationTaxRegistration](
+      selector = registrationIDSelector(regId),
+      projection = None
+    ).one[CorporationTaxRegistration]
+  }
+
   override def returnGroupsBlock(registrationID: String): Future[Option[Groups]] = {
     val selector = registrationIDSelector(registrationID)
-      collection.find(selector).one[CorporationTaxRegistration]
-        .map(ctDoc => ctDoc.getOrElse {
-          throw new Exception("[returnGroupsBlock] ctDoc does not exist")
-        }.groups)
-    }
+    collection.find(selector).one[CorporationTaxRegistration]
+      .map(ctDoc => ctDoc.getOrElse {
+        throw new Exception("[returnGroupsBlock] ctDoc does not exist")
+      }.groups)
+  }
 
   override def deleteGroupsBlock(registrationID: String): Future[Boolean] = {
     val selector = registrationIDSelector(registrationID)
-    val  update = Json.obj("$unset" -> Json.obj("groups" -> 1))
-    collection.findAndUpdate(selector,update,upsert = false,fetchNewObject = true)
+    val update = Json.obj("$unset" -> Json.obj("groups" -> 1))
+    collection.findAndUpdate(selector, update, upsert = false, fetchNewObject = true)
       .map {
-        potentialctDoc =>
-          potentialctDoc.value
-            .getOrElse(throw new Exception("[deleteGroupsBlock] no Delete occurred Document was not found for regId: $registrationID"))
+        potentialCtDoc =>
+          potentialCtDoc.value
+            .getOrElse(throw new Exception(s"[deleteGroupsBlock] no Delete occurred Document was not found for regId: $registrationID"))
           true
       }
   }
@@ -161,15 +215,14 @@ class CorporationTaxRegistrationMongoRepository @Inject()(
     val selector = registrationIDSelector(registrationID)
     val update = Json.obj("$set" -> Json.obj("groups" -> Json.toJson(groups)(Groups.formats(MongoValidation, crypto))).as[JsObject])
     collection.update(selector, update, upsert = false).map {
-      uwr =>
-        if (uwr.n == 1) {
+      updateWriteResult =>
+        if (updateWriteResult.n == 1) {
           groups
         } else {
-          throw new Exception(s"Update Groups failed for regId: $registrationID because a record was not found")
+          throw new Exception(s"[updateGroups] failed for regId: $registrationID because a record was not found")
         }
     }
   }
-
 
   override def updateLastSignedIn(regId: String, dateTime: DateTime): Future[DateTime] = {
     val selector = registrationIDSelector(regId)
@@ -177,12 +230,12 @@ class CorporationTaxRegistrationMongoRepository @Inject()(
     collection.update(selector, update).map(_ => dateTime)
   }
 
-  override def updateCTRecordWithAcknowledgments(ackRef : String, ctRecord: CorporationTaxRegistration): Future[WriteResult] = {
+  override def updateCTRecordWithAcknowledgments(ackRef: String, ctRecord: CorporationTaxRegistration): Future[WriteResult] = {
     val updateSelector = BSONDocument("confirmationReferences.acknowledgement-reference" -> BSONString(ackRef))
     collection.update(updateSelector, ctRecord, upsert = false)
   }
 
-  override def retrieveByAckRef(ackRef: String) : Future[Option[CorporationTaxRegistration]] = {
+  override def retrieveByAckRef(ackRef: String): Future[Option[CorporationTaxRegistration]] = {
     val query = BSONDocument("confirmationReferences.acknowledgement-reference" -> BSONString(ackRef))
     collection.find(query).one[CorporationTaxRegistration]
   }
@@ -229,7 +282,7 @@ class CorporationTaxRegistrationMongoRepository @Inject()(
 
   override def getExistingRegistration(registrationID: String): Future[CorporationTaxRegistration] = {
     retrieveCorporationTaxRegistration(registrationID).map {
-      _.getOrElse{
+      _.getOrElse {
         Logger.warn(s"[getExistingRegistration] No Document Found for RegId: $registrationID")
         throw new MissingCTDocument(registrationID)
       }
@@ -243,8 +296,9 @@ class CorporationTaxRegistrationMongoRepository @Inject()(
 
   override def updateCompanyDetails(registrationID: String, companyDetails: CompanyDetails): Future[Option[CompanyDetails]] = {
     OptionT(retrieveCorporationTaxRegistration(registrationID)).semiflatMap {
-      data => collection.update(registrationIDSelector(registrationID), data.copy(companyDetails = Some(companyDetails)), upsert = false)
-        .map(_ => companyDetails)
+      data =>
+        collection.update(registrationIDSelector(registrationID), data.copy(companyDetails = Some(companyDetails)), upsert = false)
+          .map(_ => companyDetails)
     }.value
   }
 
@@ -262,8 +316,9 @@ class CorporationTaxRegistrationMongoRepository @Inject()(
 
   override def updateAccountingDetails(registrationID: String, accountingDetails: AccountingDetails): Future[Option[AccountingDetails]] = {
     OptionT(retrieveCorporationTaxRegistration(registrationID)).semiflatMap {
-      data => collection.update(registrationIDSelector(registrationID), data.copy(accountingDetails = Some(accountingDetails)), upsert = false)
-        .map(_ => accountingDetails)
+      data =>
+        collection.update(registrationIDSelector(registrationID), data.copy(accountingDetails = Some(accountingDetails)), upsert = false)
+          .map(_ => accountingDetails)
     }.value
   }
 
@@ -275,8 +330,9 @@ class CorporationTaxRegistrationMongoRepository @Inject()(
 
   override def updateTradingDetails(registrationID: String, tradingDetails: TradingDetails): Future[Option[TradingDetails]] = {
     OptionT(retrieveCorporationTaxRegistration(registrationID)).semiflatMap {
-      data => collection.update(registrationIDSelector(registrationID), data.copy(tradingDetails = Some(tradingDetails)), upsert = false)
-        .map(_ => tradingDetails)
+      data =>
+        collection.update(registrationIDSelector(registrationID), data.copy(tradingDetails = Some(tradingDetails)), upsert = false)
+          .map(_ => tradingDetails)
     }.value
   }
 
@@ -288,33 +344,42 @@ class CorporationTaxRegistrationMongoRepository @Inject()(
 
   override def updateContactDetails(registrationID: String, contactDetails: ContactDetails): Future[Option[ContactDetails]] = {
     OptionT(retrieveCorporationTaxRegistration(registrationID)).semiflatMap {
-      data => collection.update(registrationIDSelector(registrationID), data.copy(contactDetails = Some(contactDetails)), upsert = false)
-        .map(_ => contactDetails)
+      data =>
+        collection.update(registrationIDSelector(registrationID), data.copy(contactDetails = Some(contactDetails)), upsert = false)
+          .map(_ => contactDetails)
     }.value
   }
 
-  override def retrieveConfirmationReferences(registrationID: String) : Future[Option[ConfirmationReferences]] = {
-    retrieveCorporationTaxRegistration(registrationID) map { oreg => { oreg flatMap { _.confirmationReferences } } }
+  override def retrieveConfirmationReferences(registrationID: String): Future[Option[ConfirmationReferences]] = {
+    retrieveCorporationTaxRegistration(registrationID) map { oreg => {
+      oreg flatMap {
+        _.confirmationReferences
+      }
+    }
+    }
   }
 
-  override def updateConfirmationReferences(registrationID: String, confirmationReferences: ConfirmationReferences) : Future[Option[ConfirmationReferences]] = {
+  override def updateConfirmationReferences(registrationID: String, confirmationReferences: ConfirmationReferences): Future[Option[ConfirmationReferences]] = {
     OptionT(retrieveCorporationTaxRegistration(registrationID)).semiflatMap {
-      data => collection.update(registrationIDSelector(registrationID), data.copy(confirmationReferences = Some(confirmationReferences)), upsert = false)
-        .map(_ => confirmationReferences)
+      data =>
+        collection.update(registrationIDSelector(registrationID), data.copy(confirmationReferences = Some(confirmationReferences)), upsert = false)
+          .map(_ => confirmationReferences)
     }.value
   }
 
-  override def updateConfirmationReferencesAndUpdateStatus(registrationID: String, confirmationReferences: ConfirmationReferences, status: String) : Future[Option[ConfirmationReferences]] = {
+  override def updateConfirmationReferencesAndUpdateStatus(registrationID: String, confirmationReferences: ConfirmationReferences, status: String): Future[Option[ConfirmationReferences]] = {
     OptionT(retrieveCorporationTaxRegistration(registrationID)).semiflatMap {
-      data => collection.update(registrationIDSelector(registrationID), data.copy(confirmationReferences = Some(confirmationReferences), status = status), upsert = false)
-        .map(_ => confirmationReferences)
+      data =>
+        collection.update(registrationIDSelector(registrationID), data.copy(confirmationReferences = Some(confirmationReferences), status = status), upsert = false)
+          .map(_ => confirmationReferences)
     }.value
   }
 
   override def updateCompanyEndDate(registrationID: String, model: AccountPrepDetails): Future[Option[AccountPrepDetails]] = {
     OptionT(retrieveCorporationTaxRegistration(registrationID)).semiflatMap {
-      data => collection.update(registrationIDSelector(registrationID), data.copy(accountsPreparation = Some(model)), upsert = false)
-        .map(_ => model)
+      data =>
+        collection.update(registrationIDSelector(registrationID), data.copy(accountsPreparation = Some(model)), upsert = false)
+          .map(_ => model)
     }.value
   }
 
@@ -336,18 +401,20 @@ class CorporationTaxRegistrationMongoRepository @Inject()(
   override def removeUnnecessaryRegistrationInformation(registrationId: String): Future[Boolean] = {
     val modifier = BSONDocument("$unset" -> BSONDocument("confirmationReferences" -> 1, "accountingDetails" -> 1,
       "accountsPreparation" -> 1, "verifiedEmail" -> 1, "companyDetails" -> 1, "tradingDetails" -> 1, "contactDetails" -> 1))
-    collection.findAndUpdate(registrationIDSelector(registrationId), modifier, fetchNewObject = false, upsert= false) map{ res =>
-     res.lastError.flatMap { _.err.map { e =>
-       Logger.warn(s"[removeUnnecessaryInformation] - an error occurred for regId: $registrationId with error: ${e}")
-       false
+    collection.findAndUpdate(registrationIDSelector(registrationId), modifier, fetchNewObject = false, upsert = false) map { res =>
+      res.lastError.flatMap {
+        _.err.map { e =>
+          Logger.warn(s"[removeUnnecessaryInformation] - an error occurred for regId: $registrationId with error: ${e}")
+          false
+        }
+      }.getOrElse {
+        if (res.value.isDefined) {
+          true
+        } else {
+          Logger.warn(s"[removeUnnecessaryInformation] - attempted to remove keys but no doc was found for regId: $registrationId")
+          true
+        }
       }
-     }.getOrElse{
-      if(res.value.isDefined) { true
-      } else {
-        Logger.warn(s"[removeUnnecessaryInformation] - attempted to remove keys but no doc was found for regId: $registrationId")
-        true
-      }
-     }
 
     }
   }
@@ -367,17 +434,17 @@ class CorporationTaxRegistrationMongoRepository @Inject()(
           registrationIDSelector(registrationId),
           updatedDoc,
           upsert = false
-        ).map( _ => true )
+        ).map(_ => true)
     }
   }
 
   override def getInternalId(id: String): Future[(String, String)] =
-    getExistingRegistration(id).map{ c => c.registrationID -> c.internalId }
+    getExistingRegistration(id).map { c => c.registrationID -> c.internalId }
 
 
   override def removeTaxRegistrationById(registrationId: String): Future[Boolean] = {
     getExistingRegistration(registrationId) flatMap {
-      _ => collection.delete(true).one(registrationIDSelector(registrationId),None,None) map{_ => true}
+      _ => collection.delete(true).one(registrationIDSelector(registrationId), None, None) map { _ => true }
 
     }
   }
@@ -386,10 +453,10 @@ class CorporationTaxRegistrationMongoRepository @Inject()(
     OptionT(retrieveCorporationTaxRegistration(registrationId)).semiflatMap {
       registration =>
         collection.update(
-        registrationIDSelector(registrationId),
-        registration.copy(verifiedEmail = Some(email)),
-        upsert = false
-      ).map(_ => email)
+          registrationIDSelector(registrationId),
+          registration.copy(verifiedEmail = Some(email)),
+          upsert = false
+        ).map(_ => email)
     }.value
   }
 
@@ -415,26 +482,27 @@ class CorporationTaxRegistrationMongoRepository @Inject()(
     // needed to make it pick up the index
     val matchQuery: collection.PipelineOperator = collection.BatchCommands.AggregationFramework.Match(Json.obj())
     val project = collection.BatchCommands.AggregationFramework.Project(Json.obj(
-          "status" -> 1,
-          "_id" -> 0
-        ))
+      "status" -> 1,
+      "_id" -> 0
+    ))
     // calculate the regime counts
     val group = collection.BatchCommands.AggregationFramework.Group(JsString("$status"))("count" -> collection.BatchCommands.AggregationFramework.SumValue(1))
 
     val query = collection.aggregateWith[JsObject]()(_ => (matchQuery, List(project, group)))
-    val fList =  query.collect(Int.MaxValue, Cursor.FailOnError[List[JsObject]]())
-    fList.map{ _.map {
-      statusDoc => {
-        val regime = (statusDoc \ "_id").as[String]
-        val count = (statusDoc \ "count").as[Int]
-        regime -> count
-      }
-    }.toMap
+    val fList = query.collect(Int.MaxValue, Cursor.FailOnError[List[JsObject]]())
+    fList.map {
+      _.map {
+        statusDoc => {
+          val regime = (statusDoc \ "_id").as[String]
+          val count = (statusDoc \ "count").as[Int]
+          regime -> count
+        }
+      }.toMap
     }
   }
 
   override def fetchHO6Information(regId: String): Future[Option[HO6RegistrationInformation]] = {
-    retrieveCorporationTaxRegistration(regId) map (_.map{ reg =>
+    retrieveCorporationTaxRegistration(regId) map (_.map { reg =>
       HO6RegistrationInformation(reg.status, reg.companyDetails.map(_.companyName), reg.registrationProgress)
     })
   }
@@ -442,7 +510,7 @@ class CorporationTaxRegistrationMongoRepository @Inject()(
   override def fetchDocumentStatus(regId: String): OptionT[Future, String] = {
     for {
       status <- OptionT(retrieveCorporationTaxRegistration(regId)).map(_.status)
-      _ = Logger.info(s"[FetchDocumentStatus] status for reg id $regId is ${status} " )
+      _ = Logger.info(s"[FetchDocumentStatus] status for reg id $regId is ${status} ")
     } yield status
   }
 
@@ -470,7 +538,7 @@ class CorporationTaxRegistrationMongoRepository @Inject()(
     }
   }
 
-  def retrieveAllWeekOldHeldSubmissions() : Future[List[CorporationTaxRegistration]] = {
+  def retrieveAllWeekOldHeldSubmissions(): Future[List[CorporationTaxRegistration]] = {
     val selector = BSONDocument(
       "status" -> RegistrationStatus.HELD,
       "heldTimestamp" -> BSONDocument("$lte" -> DateTime.now(DateTimeZone.UTC).minusWeeks(1).getMillis)
@@ -478,10 +546,10 @@ class CorporationTaxRegistrationMongoRepository @Inject()(
     collection.find(selector).cursor[CorporationTaxRegistration]().collect[List](Int.MaxValue, Cursor.FailOnError())
   }
 
-  def retrieveLockedRegIDs() : Future[List[String]] = {
+  def retrieveLockedRegIDs(): Future[List[String]] = {
     val selector = BSONDocument("status" -> RegistrationStatus.LOCKED)
     val res = collection.find(selector).cursor[CorporationTaxRegistration]().collect[List](Int.MaxValue, Cursor.FailOnError())
-    res.map{ docs => docs.map(_.registrationID) }
+    res.map { docs => docs.map(_.registrationID) }
   }
 
   override def retrieveStatusAndExistenceOfCTUTR(ackRef: String): Future[Option[(String, Boolean)]] = {
@@ -512,7 +580,7 @@ class CorporationTaxRegistrationMongoRepository @Inject()(
     }
   }
 
-  override def storeSessionIdentifiers(regId: String, sessionId: String, credId: String) : Future[Boolean] = {
+  override def storeSessionIdentifiers(regId: String, sessionId: String, credId: String): Future[Boolean] = {
     val selector = registrationIDSelector(regId)
     val modifier = BSONDocument(
       "$set" -> BSONFormats.readAsBSONValue(
@@ -521,10 +589,12 @@ class CorporationTaxRegistrationMongoRepository @Inject()(
       ).get
     )
 
-    collection.update(selector, modifier) map { _.nModified == 1 }
+    collection.update(selector, modifier) map {
+      _.nModified == 1
+    }
   }
 
-  override def retrieveSessionIdentifiers(regId: String) : Future[Option[SessionIds]] = {
+  override def retrieveSessionIdentifiers(regId: String): Future[Option[SessionIds]] = {
     for {
       taxRegistration <- collection.find(registrationIDSelector(regId)).one[CorporationTaxRegistration]
     } yield taxRegistration flatMap (_.sessionIdentifiers)
