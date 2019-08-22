@@ -53,6 +53,7 @@ trait MicroService {
     .configs(IntegrationTest)
     .settings(integrationTestSettings())
     .settings(majorVersion := 1)
+    .settings(javaOptions in IntegrationTest += "-Dlogger.resource=logback-test.xml")
 }
 
 
