@@ -45,8 +45,6 @@ class TakeoverDetailsService @Inject()(repo: CorporationTaxRegistrationMongoRepo
       value = json
     ) map {
       _ => takeoverDetails
-    } recover {
-      case _ => throw new Exception(s"[updateTakeoverDetails] failed to update document with regId: '$registrationID' as it was not found")
     }
   }
 
