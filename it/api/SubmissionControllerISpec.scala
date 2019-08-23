@@ -535,6 +535,79 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
         res shouldBe Json.parse("""{"acknowledgementReference":"BRCT00000000001","registration":{"metadata":{"businessType":"Limited company","submissionFromAgent":false,"declareAccurateAndComplete":true,"credentialId":"testAuthProviderId","language":"en","completionCapacity":"Director"},"corporationTax":{"companyOfficeNumber":"623","hasCompanyTakenOverBusiness":false,"companiesHouseCompanyName":"testCompanyName","returnsOnCT61":true,"companyACharity":false,"companyMemberOfGroup":true,"groupDetails":{"parentCompanyName":"MISTAR FOO","groupAddress":{"line1":"FOO 1","line2":"FOO 2","line3":"Telford","line4":"Shropshire","postcode":"ZZ1 1ZZ"},"parentUTR":"1234567890"},"businessAddress":{"line1":"Premises Line 1","line2":"Line 2","line3":"Locality","line4":"Region","postcode":"ZZ1 1ZZ","country":"Country"},"businessContactDetails":{"phoneNumber":"02072899066","mobileNumber":"07567293726","email":"test@email.co.uk"}}}}""")
       }
 
+      "registration is in Draft status, at Handoff 5-1, sending takeovers block" in new Setup {
+        stubAuthorise(200, authorisedRetrievals)
+
+        val confRefsWithoutPayment = ConfirmationReferences(
+          acknowledgementReference = ackRef,
+          transactionId = transId,
+          paymentReference = None,
+          paymentAmount = None
+        )
+        val validTakeover = Some(TakeoverDetails(
+          businessName = "Takeover name",
+          businessTakeoverAddress = Some(Address(
+            "Takeover 1",
+            "Takeover 2",
+            Some("TTelford"),
+            Some("TShropshire"),
+            Some("TO1 1ZZ"),
+            Some("UK")
+          )),
+          prevOwnersName = Some("prev name"),
+          prevOwnersAddress = Some(Address(
+            "Prev 1",
+            "Prev 2",
+            Some("PTelford"),
+            Some("PShropshire"),
+            Some("PR1 1ZZ"),
+            Some("UK")
+          ))
+        ))
+
+
+        await(ctRepository.insert(
+          draftRegistration.copy(
+            companyDetails =
+              Some(CompanyDetails(
+                companyName = "testCompanyName",
+                CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("ZZ1 1ZZ"), Some("Region")),
+                PPOB("RO", None),
+                jurisdiction = "testJurisdiction"
+              )),takeoverDetails = validTakeover
+          )))
+
+
+        stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
+        stubPost(s"/business-registration/corporation-tax", 200, """{"a": "b"}""")
+        stubFor(post(urlEqualTo("/incorporation-information/subscribe/trans-id-2345/regime/ctax/subscriber/SCRS?force=true"))
+          .willReturn(
+            aResponse().
+              withStatus(202).
+              withBody("""{"a": "b"}""")
+          )
+        )
+
+        val response = await(client(s"/$regId/confirmation-references").put(jsonConfirmationRefs()))
+        response.status shouldBe 200
+        response.json shouldBe Json.toJson(confRefsWithoutPayment)
+
+        val reg = await(ctRepository.findAll()).head
+        reg.confirmationReferences shouldBe Some(confRefsWithoutPayment)
+        reg.sessionIdentifiers shouldBe None
+        reg.status shouldBe HELD
+
+        val s = Json.parse(getRequestBody("post", "/business-registration/corporation-tax")).as[JsObject]
+
+        val registration = (s \ "registration" \ "metadata").as[JsObject] - "sessionId" - "formCreationTimestamp"
+        val corp =  (s \ "registration" \ "corporationTax").as[JsObject]
+        val res = s.as[JsObject]- "registration" ++ Json.obj("registration" -> Json.obj("metadata" -> registration, "corporationTax" -> corp))
+        res shouldBe Json.parse("""{"acknowledgementReference":"BRCT00000000001","registration":{"metadata":{"businessType":"Limited company","submissionFromAgent":false,"declareAccurateAndComplete":true,"credentialId":"testAuthProviderId","language":"en","completionCapacity":"Director"},"corporationTax":{"companyOfficeNumber":"623","hasCompanyTakenOverBusiness":true,"businessTakeOverDetails" : {"businessNameLine1" : "Takeover name", "businessTakeoverAddress" : {"line1" : "Takeover 1" , "line2" : "Takeover 2" , "line3" : "TTelford","line4" : "TShropshire","postcode" : "TO1 1ZZ","country" : "UK"},"prevOwnersName" : "prev name","prevOwnerAddress" : {"line1" : "Prev 1","line2" : "Prev 2","line3" : "PTelford","line4" : "PShropshire","postcode" : "PR1 1ZZ","country" : "UK"}},"companiesHouseCompanyName":"testCompanyName","returnsOnCT61":true,"companyACharity":false,"companyMemberOfGroup":false,"businessAddress":{"line1":"Premises Line 1","line2":"Line 2","line3":"Locality","line4":"Region","postcode":"ZZ1 1ZZ","country":"Country"},"businessContactDetails":{"phoneNumber":"02072899066","mobileNumber":"07567293726","email":"test@email.co.uk"}}}}""")
+      }
+
+
+
+
       "registration is in Draft status and update Confirmation References with Ack Ref but DES submission FAILED 403 (new HO5-1)" in new Setup {
         stubAuthorise(200, authorisedRetrievals)
 

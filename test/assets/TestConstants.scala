@@ -143,7 +143,7 @@ object TestConstants {
   object TakeoverDetails {
 
     case class TestAddress(line1: String,
-                           optLine2: Option[JsValue],
+                           line2: String,
                            optLine3: Option[JsValue],
                            optLine4: Option[JsValue],
                            optPostcode: Option[JsValue],
@@ -152,10 +152,9 @@ object TestConstants {
 
       def toJson: JsObject =
         Json.obj(fields =
-          "line1" -> line1
+          "line1" -> line1,
+          "line2" -> line2
         ) plusOptional (
-          "line2" -> optLine2
-          ) plusOptional (
           "line3" -> optLine3
           ) plusOptional (
           "line4" -> optLine4
@@ -177,7 +176,7 @@ object TestConstants {
 
     val testTakeoverAddress = TestAddress(
       line1 = testTakeoverAddrLine1,
-      optLine2 = Some(JsString(testTakeoverAddrLine2)),
+      line2 = testTakeoverAddrLine2,
       optLine3 = Some(JsString(testTakeoverAddrLine3)),
       optLine4 = Some(JsString(testTakeoverAddrLine4)),
       optPostcode = Some(JsString(testTakeoverPostcode)),
@@ -186,7 +185,7 @@ object TestConstants {
 
     val testTakeoverAddressModel = Address(
       line1 = testTakeoverAddrLine1,
-      line2 = Some(testTakeoverAddrLine2),
+      line2 = testTakeoverAddrLine2,
       line3 = Some(testTakeoverAddrLine3),
       line4 = Some(testTakeoverAddrLine4),
       postcode = Some(testTakeoverPostcode),
@@ -204,7 +203,7 @@ object TestConstants {
 
     val testPrevOwnerAddress = TestAddress(
       line1 = testPrevOwnerAddrLine1,
-      optLine2 = Some(JsString(testPrevOwnerAddrLine2)),
+      line2 = testPrevOwnerAddrLine2,
       optLine3 = Some(JsString(testPrevOwnerAddrLine3)),
       optLine4 = Some(JsString(testPrevOwnerAddrLine4)),
       optPostcode = Some(JsString(testPrevOwnerPostcode)),
@@ -213,7 +212,7 @@ object TestConstants {
 
     val testPrevOwnerAddressModel = Address(
       line1 = testPrevOwnerAddrLine1,
-      line2 = Some(testPrevOwnerAddrLine2),
+      line2 = testPrevOwnerAddrLine2,
       line3 = Some(testPrevOwnerAddrLine3),
       line4 = Some(testPrevOwnerAddrLine4),
       postcode = Some(testPrevOwnerPostcode),

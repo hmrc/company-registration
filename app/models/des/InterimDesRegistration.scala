@@ -16,7 +16,7 @@
 
 package models.des
 
-import models.Groups
+import models.{Groups, TakeoverDetails}
 import models.validation.{APIValidation, BaseJsonFormatting}
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
@@ -202,7 +202,8 @@ case class InterimCorporationTax(
                                   returnsOnCT61: Boolean,
                                   businessAddress: Option[BusinessAddress],
                                   businessContactDetails: BusinessContactDetails,
-                                  groups: Option[Groups] = None
+                                  groups: Option[Groups] = None,
+                                  takeOver: Option[TakeoverDetails] = None
                                 )
 
 object InterimCorporationTax {
@@ -226,9 +227,21 @@ object InterimCorporationTax {
               )
         )
       }
+      val takeOver: JsObject = m.takeOver match {
+        case None => Json.obj("hasCompanyTakenOverBusiness" -> false)
+        case Some(t) => Json.obj("hasCompanyTakenOverBusiness" -> true,
+          "businessTakeOverDetails" ->
+        Json.obj(
+          "businessNameLine1" -> t.businessName,
+            "businessTakeoverAddress" -> t.businessTakeoverAddress,
+            "prevOwnersName" -> t.prevOwnersName,
+            "prevOwnerAddress" -> t.prevOwnersAddress
+        ))
+      }
+
       Json.obj(
-        "companyOfficeNumber" -> "623",
-        "hasCompanyTakenOverBusiness" -> false,
+        "companyOfficeNumber" -> "623").deepMerge(takeOver) ++
+      Json.obj(
         "companiesHouseCompanyName" -> APIValidation.cleanseCompanyName(m.companyName),
         "returnsOnCT61" -> m.returnsOnCT61,
         "companyACharity" -> false

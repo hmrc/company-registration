@@ -31,9 +31,9 @@ class AddressSpec extends UnitSpec {
 
         actual shouldBe expected
       }
-      "lines 2, 3 and 4 of the  address are not provided" in {
-        val addressJson = testTakeoverAddress.copy(optLine2 = None, optLine3 = None, optLine4 = None).toJson
-        val expected = JsSuccess(testTakeoverAddressModel.copy(line2 = None, line3 = None, line4 = None))
+      "lines 3 and 4 of the address are not provided" in {
+        val addressJson = testTakeoverAddress.copy(optLine3 = None, optLine4 = None).toJson
+        val expected = JsSuccess(testTakeoverAddressModel.copy(line3 = None, line4 = None))
         val actual = Json.fromJson[Address](addressJson)
 
         actual shouldBe expected
