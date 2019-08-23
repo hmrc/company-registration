@@ -21,7 +21,7 @@ import play.api.libs.functional.syntax._
 import play.api.libs.json.{JsPath, Reads, Writes}
 
 case class Address(line1: String,
-                   line2: Option[String],
+                   line2: String,
                    line3: Option[String],
                    line4: Option[String],
                    postcode: Option[String],
@@ -30,7 +30,7 @@ case class Address(line1: String,
 object Address {
   implicit val reads: Reads[Address] = (
     (JsPath \ "line1").read[String] and
-      (JsPath \ "line2").readNullable[String] and
+      (JsPath \ "line2").read[String] and
       (JsPath \ "line3").readNullable[String] and
       (JsPath \ "line4").readNullable[String] and
       (JsPath \ "postcode").readNullable[String] and
@@ -40,7 +40,7 @@ object Address {
 
   implicit val writes: Writes[Address] = (
     (JsPath \ "line1").write[String] and
-      (JsPath \ "line2").writeNullable[String] and
+      (JsPath \ "line2").write[String] and
       (JsPath \ "line3").writeNullable[String] and
       (JsPath \ "line4").writeNullable[String] and
       (JsPath \ "postcode").writeNullable[String] and

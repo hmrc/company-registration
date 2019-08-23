@@ -219,7 +219,8 @@ trait SubmissionService extends DateHelper {
         returnsOnCT61 = tradingDetails.regularPayments.toBoolean,
         businessAddress = businessAddress,
         businessContactDetails = businessContactDetails,
-        groups = formatGroupsForSubmission
+        groups = formatGroupsForSubmission,
+        takeOver = ctData.takeoverDetails
       )
     )
   }

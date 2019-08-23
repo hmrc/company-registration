@@ -170,7 +170,7 @@ object ItTestConstants {
 
     val testTakeoverAddressModel = Address(
       line1 = testTakeoverAddrLine1,
-      line2 = Some(testTakeoverAddrLine2),
+      line2 = testTakeoverAddrLine2,
       line3 = Some(testTakeoverAddrLine3),
       line4 = Some(testTakeoverAddrLine4),
       postcode = Some(testTakeoverPostcode),
@@ -197,7 +197,7 @@ object ItTestConstants {
 
     val testPrevOwnerAddressModel = Address(
       line1 = testPrevOwnerAddrLine1,
-      line2 = Some(testPrevOwnerAddrLine2),
+      line2 = testPrevOwnerAddrLine2,
       line3 = Some(testPrevOwnerAddrLine3),
       line4 = Some(testPrevOwnerAddrLine4),
       postcode = Some(testPrevOwnerPostcode),
