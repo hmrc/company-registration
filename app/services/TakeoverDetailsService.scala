@@ -16,13 +16,15 @@
 
 package services
 
-import javax.inject.Inject
+
+import javax.inject.{Inject, Singleton}
 import models.TakeoverDetails
 import play.api.libs.json.{JsObject, Json}
 import repositories.CorporationTaxRegistrationMongoRepository
 
 import scala.concurrent.{ExecutionContext, Future}
 
+@Singleton
 class TakeoverDetailsService @Inject()(repo: CorporationTaxRegistrationMongoRepository)(implicit ec: ExecutionContext) {
 
 
