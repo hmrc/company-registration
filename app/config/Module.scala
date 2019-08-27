@@ -73,6 +73,8 @@ class Module extends AbstractModule {
     bind(classOf[SubmissionController]).to(classOf[SubmissionControllerImpl]).asEagerSingleton()
     bind(classOf[FeatureSwitchController]).to(classOf[FeatureSwitchControllerImpl]).asEagerSingleton()
     bind(classOf[GroupsController]).to(classOf[GroupsControllerImpl]).asEagerSingleton()
+    bind(classOf[TakeoverDetailsController]).to(classOf[TakeoverDetailsControllerImpl]).asEagerSingleton()
+
   }
 
   private def bindServices() {
@@ -94,6 +96,7 @@ class Module extends AbstractModule {
     bind(classOf[UserAccessService]).to(classOf[UserAccessServiceImpl]).asEagerSingleton()
     bind(classOf[ProcessIncorporationService]).to(classOf[ProcessIncorporationServiceImpl]).asEagerSingleton()
     bind(classOf[SubmissionService]).to(classOf[SubmissionServiceImpl]).asEagerSingleton()
+
   }
 
   private def bindConnectors() = {
