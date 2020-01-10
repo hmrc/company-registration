@@ -69,7 +69,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
 
   private def client(path: String) = WS.url(s"http://localhost:$port/company-registration/corporation-tax-registration$path")
     .withFollowRedirects(false)
-    .withHeaders("Content-Type"->"application/json")
+    .withHeaders("Content-Type" -> "application/json")
     .withHeaders(HeaderNames.SET_COOKIE -> getSessionCookie())
     .withHeaders(GovHeaderNames.xSessionId -> SessionId)
 
@@ -77,7 +77,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
     val rmComp = app.injector.instanceOf[ReactiveMongoComponent]
     val crypto = app.injector.instanceOf[CryptoSCRS]
     val ctRepository = new CorporationTaxRegistrationMongoRepository(
-      rmComp,crypto)
+      rmComp, crypto)
     val seqRepo = app.injector.instanceOf[SequenceMongoRepo].repo
 
     await(ctRepository.drop)
@@ -114,7 +114,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
     formCreationTimestamp = "2001-12-31T12:00:00Z",
     language = "en",
     confirmationReferences = None,
-    companyDetails =  Some(CompanyDetails(
+    companyDetails = Some(CompanyDetails(
       companyName = "testCompanyName",
       CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
       PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"), None, "txid"))),
@@ -155,7 +155,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
       paymentReference = None,
       paymentAmount = None
     )),
-    companyDetails =  None,
+    companyDetails = None,
     accountingDetails = Some(AccountingDetails(
       status = AccountingDetails.FUTURE_DATE,
       activeDate = Some(activeDate))),
@@ -201,16 +201,17 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
   )
 
   def jsonConfirmationRefs(ackReference: String = "", paymentRef: Option[String] = None, paymentAmount: Option[String] = None): String = {
-    val confRefs = Json.parse(s"""
-       |{
-       |  "acknowledgement-reference": "$ackReference",
-       |  "transaction-id": "$transId"
-       |}
+    val confRefs = Json.parse(
+      s"""
+         |{
+         |  "acknowledgement-reference": "$ackReference",
+         |  "transaction-id": "$transId"
+         |}
      """.stripMargin).as[JsObject]
 
     val json = confRefs ++
-               paymentRef.fold(Json.obj())(ref => Json.obj("payment-reference" -> ref)) ++
-               paymentAmount.fold(Json.obj())(tot => Json.obj("payment-amount" -> tot))
+      paymentRef.fold(Json.obj())(ref => Json.obj("payment-reference" -> ref)) ++
+      paymentAmount.fold(Json.obj())(tot => Json.obj("payment-amount" -> tot))
 
     json.toString
   }
@@ -245,7 +246,8 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
     }
 
     "submit to DES" when {
-      val businessRegistrationResponse = s"""
+      val businessRegistrationResponse =
+        s"""
            |{
            |  "registrationID":"$regId",
            |  "formCreationTimestamp":"2017-08-09T11:48:20+01:00",
@@ -443,7 +445,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
         await(ctRepository.insert(draftRegistration.copy(companyDetails =
           Some(CompanyDetails(
             companyName = "testCompanyName",
-            CHROAddress("<123> {ABC} !*^%$£","BDT & CFD /|@", Some("A¥€ 1 «»"), "D£q|l", ":~#Rts!2", Some("B~ ¬` 2^ -+=_:;"),Some("XX1 1ØZ"),Some("test coûntry")),
+            CHROAddress("<123> {ABC} !*^%$£", "BDT & CFD /|@", Some("A¥€ 1 «»;:"), "D£q|l", ":~#Rts!2", Some("B~ ¬` 2^ -+=_:;"), Some("XX1 1ØZ"), Some("test coûntry")),
             PPOB("RO", None),
             jurisdiction = "testJurisdiction"
           ))
@@ -470,11 +472,12 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
 
         val s = Json.parse(getRequestBody("post", "/business-registration/corporation-tax")).as[JsObject]
         val registration = (s \ "registration" \ "metadata").as[JsObject] - "sessionId" - "formCreationTimestamp"
-        val corp =  (s \ "registration" \ "corporationTax").as[JsObject]
-        val res = s.as[JsObject]- "registration" ++ Json.obj("registration" -> Json.obj("metadata" -> registration, "corporationTax" -> corp))
+        val corp = (s \ "registration" \ "corporationTax").as[JsObject]
+        val res = s.as[JsObject] - "registration" ++ Json.obj("registration" -> Json.obj("metadata" -> registration, "corporationTax" -> corp))
         res shouldBe Json.parse("""{"acknowledgementReference":"BRCT00000000001","registration":{"metadata":{"businessType":"Limited company","submissionFromAgent":false,"declareAccurateAndComplete":true,"credentialId":"testAuthProviderId","language":"en","completionCapacity":"Director"},"corporationTax":{"companyOfficeNumber":"623","hasCompanyTakenOverBusiness":false,"companyMemberOfGroup":false,"companiesHouseCompanyName":"testCompanyName","returnsOnCT61":true,"companyACharity":false,"businessAddress":{"line1":"123 ABC  BDT & CFD /","line2":"A 1 ","line3":"Rts2","line4":"test country","postcode":"XX1 1OZ","country":"Dql"},"businessContactDetails":{"phoneNumber":"02072899066","mobileNumber":"07567293726","email":"test@email.co.uk"}}}}""")
       }
-      "registration is in Draft status, at 5-1, sending groups block" in new Setup {
+
+      "registration is in Draft status, at 5-1, sending the PPOB address as the PPOB and PPOB has unormalised characters" in new Setup {
         stubAuthorise(200, authorisedRetrievals)
 
         val confRefsWithoutPayment = ConfirmationReferences(
@@ -483,30 +486,14 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
           paymentReference = None,
           paymentAmount = None
         )
-        val validGroups = Some(Groups(
-          groupRelief = true,
-          nameOfCompany = Some(GroupCompanyName("MISTAR%% FOO", GroupCompanyNameEnum.Other)),
-          addressAndType = Some(GroupsAddressAndType(GroupAddressTypeEnum.ALF,BusinessAddress(
-            "FOO 1",
-            "FOO 2",
-            Some("Telford"),
-            Some("Shropshire"),
-            Some("ZZ1 1ZZ"),
-            None
-          ))),
-          Some(GroupUTR(Some("1234567890")))
-        ))
 
-
-        await(ctRepository.insert(
-          draftRegistration.copy(
-            companyDetails =
+        await(ctRepository.insert(draftRegistration.copy(companyDetails =
           Some(CompanyDetails(
             companyName = "testCompanyName",
-            CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("ZZ1 1ZZ"), Some("Region")),
-            PPOB("RO", None),
+            CHROAddress("<123> {ABC} !*^%$£", "BDT & CFD /|@", Some("A¥€ 1 «»;:"), "D£q|l", ":~#Rts!2", Some("B~ ¬` 2^ -+=_:;"), Some("XX1 1ØZ"), Some("test coûntry")),
+            PPOB("PPOB", Some(PPOBAddress("line1:", "line2;", Some("line3:;"), Some("line4\\"), Some("ZZ1 1ZZ"), Some("Country"), None, "txid"))),
             jurisdiction = "testJurisdiction"
-          )),groups = validGroups
+          ))
         )))
 
         stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
@@ -530,8 +517,69 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
 
         val s = Json.parse(getRequestBody("post", "/business-registration/corporation-tax")).as[JsObject]
         val registration = (s \ "registration" \ "metadata").as[JsObject] - "sessionId" - "formCreationTimestamp"
-        val corp =  (s \ "registration" \ "corporationTax").as[JsObject]
-        val res = s.as[JsObject]- "registration" ++ Json.obj("registration" -> Json.obj("metadata" -> registration, "corporationTax" -> corp))
+        val corp = (s \ "registration" \ "corporationTax").as[JsObject]
+        val res = s.as[JsObject] - "registration" ++ Json.obj("registration" -> Json.obj("metadata" -> registration, "corporationTax" -> corp))
+        res shouldBe Json.parse("""{"acknowledgementReference":"BRCT00000000001","registration":{"metadata":{"businessType":"Limited company","submissionFromAgent":false,"declareAccurateAndComplete":true,"credentialId":"testAuthProviderId","language":"en","completionCapacity":"Director"},"corporationTax":{"companyOfficeNumber":"623","hasCompanyTakenOverBusiness":false,"companyMemberOfGroup":false,"companiesHouseCompanyName":"testCompanyName","returnsOnCT61":true,"companyACharity":false,"businessAddress":{"line1":"line1-","line2":"line2-","line3":"line3--","line4":"line4/","postcode":"ZZ1 1ZZ","country":"Country"},"businessContactDetails":{"phoneNumber":"02072899066","mobileNumber":"07567293726","email":"test@email.co.uk"}}}}""")
+      }
+
+      "registration is in Draft status, at 5-1, sending groups block" in new Setup {
+        stubAuthorise(200, authorisedRetrievals)
+
+        val confRefsWithoutPayment = ConfirmationReferences(
+          acknowledgementReference = ackRef,
+          transactionId = transId,
+          paymentReference = None,
+          paymentAmount = None
+        )
+        val validGroups = Some(Groups(
+          groupRelief = true,
+          nameOfCompany = Some(GroupCompanyName("MISTAR%% FOO", GroupCompanyNameEnum.Other)),
+          addressAndType = Some(GroupsAddressAndType(GroupAddressTypeEnum.ALF, BusinessAddress(
+            "FOO 1",
+            "FOO 2",
+            Some("Telford"),
+            Some("Shropshire"),
+            Some("ZZ1 1ZZ"),
+            None
+          ))),
+          Some(GroupUTR(Some("1234567890")))
+        ))
+
+
+        await(ctRepository.insert(
+          draftRegistration.copy(
+            companyDetails =
+              Some(CompanyDetails(
+                companyName = "testCompanyName",
+                CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("ZZ1 1ZZ"), Some("Region")),
+                PPOB("RO", None),
+                jurisdiction = "testJurisdiction"
+              )), groups = validGroups
+          )))
+
+        stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
+        stubPost(s"/business-registration/corporation-tax", 200, """{"a": "b"}""")
+        stubFor(post(urlEqualTo("/incorporation-information/subscribe/trans-id-2345/regime/ctax/subscriber/SCRS?force=true"))
+          .willReturn(
+            aResponse().
+              withStatus(202).
+              withBody("""{"a": "b"}""")
+          )
+        )
+
+        val response = await(client(s"/$regId/confirmation-references").put(jsonConfirmationRefs()))
+        response.status shouldBe 200
+        response.json shouldBe Json.toJson(confRefsWithoutPayment)
+
+        val reg = await(ctRepository.findAll()).head
+        reg.confirmationReferences shouldBe Some(confRefsWithoutPayment)
+        reg.sessionIdentifiers shouldBe None
+        reg.status shouldBe HELD
+
+        val s = Json.parse(getRequestBody("post", "/business-registration/corporation-tax")).as[JsObject]
+        val registration = (s \ "registration" \ "metadata").as[JsObject] - "sessionId" - "formCreationTimestamp"
+        val corp = (s \ "registration" \ "corporationTax").as[JsObject]
+        val res = s.as[JsObject] - "registration" ++ Json.obj("registration" -> Json.obj("metadata" -> registration, "corporationTax" -> corp))
         res shouldBe Json.parse("""{"acknowledgementReference":"BRCT00000000001","registration":{"metadata":{"businessType":"Limited company","submissionFromAgent":false,"declareAccurateAndComplete":true,"credentialId":"testAuthProviderId","language":"en","completionCapacity":"Director"},"corporationTax":{"companyOfficeNumber":"623","hasCompanyTakenOverBusiness":false,"companiesHouseCompanyName":"testCompanyName","returnsOnCT61":true,"companyACharity":false,"companyMemberOfGroup":true,"groupDetails":{"parentCompanyName":"MISTAR FOO","groupAddress":{"line1":"FOO 1","line2":"FOO 2","line3":"Telford","line4":"Shropshire","postcode":"ZZ1 1ZZ"},"parentUTR":"1234567890"},"businessAddress":{"line1":"Premises Line 1","line2":"Line 2","line3":"Locality","line4":"Region","postcode":"ZZ1 1ZZ","country":"Country"},"businessContactDetails":{"phoneNumber":"02072899066","mobileNumber":"07567293726","email":"test@email.co.uk"}}}}""")
       }
 
@@ -574,7 +622,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
                 CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("ZZ1 1ZZ"), Some("Region")),
                 PPOB("RO", None),
                 jurisdiction = "testJurisdiction"
-              )),takeoverDetails = validTakeover
+              )), takeoverDetails = validTakeover
           )))
 
 
@@ -600,12 +648,10 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
         val s = Json.parse(getRequestBody("post", "/business-registration/corporation-tax")).as[JsObject]
 
         val registration = (s \ "registration" \ "metadata").as[JsObject] - "sessionId" - "formCreationTimestamp"
-        val corp =  (s \ "registration" \ "corporationTax").as[JsObject]
-        val res = s.as[JsObject]- "registration" ++ Json.obj("registration" -> Json.obj("metadata" -> registration, "corporationTax" -> corp))
+        val corp = (s \ "registration" \ "corporationTax").as[JsObject]
+        val res = s.as[JsObject] - "registration" ++ Json.obj("registration" -> Json.obj("metadata" -> registration, "corporationTax" -> corp))
         res shouldBe Json.parse("""{"acknowledgementReference":"BRCT00000000001","registration":{"metadata":{"businessType":"Limited company","submissionFromAgent":false,"declareAccurateAndComplete":true,"credentialId":"testAuthProviderId","language":"en","completionCapacity":"Director"},"corporationTax":{"companyOfficeNumber":"623","hasCompanyTakenOverBusiness":true,"businessTakeOverDetails" : {"businessNameLine1" : "Takeover name", "businessTakeoverAddress" : {"line1" : "Takeover 1" , "line2" : "Takeover 2" , "line3" : "TTelford","line4" : "TShropshire","postcode" : "TO1 1ZZ","country" : "UK"},"prevOwnersName" : "prev name","prevOwnerAddress" : {"line1" : "Prev 1","line2" : "Prev 2","line3" : "PTelford","line4" : "PShropshire","postcode" : "PR1 1ZZ","country" : "UK"}},"companiesHouseCompanyName":"testCompanyName","returnsOnCT61":true,"companyACharity":false,"companyMemberOfGroup":false,"businessAddress":{"line1":"Premises Line 1","line2":"Line 2","line3":"Locality","line4":"Region","postcode":"ZZ1 1ZZ","country":"Country"},"businessContactDetails":{"phoneNumber":"02072899066","mobileNumber":"07567293726","email":"test@email.co.uk"}}}}""")
       }
-
-
 
 
       "registration is in Draft status and update Confirmation References with Ack Ref but DES submission FAILED 403 (new HO5-1)" in new Setup {
