@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -125,27 +125,27 @@ class IncorporationInformationConnectorSpec extends UnitSpec with MockitoSugar w
   }
 
   "cancelSubscription" should {
-    "make a http DELETE request to Incorporation Information micro-service to register an interest and return 202" in new Setup {
+    "make a http DELETE request to Incorporation Information micro-service to register an interest and return 200" in new Setup {
       val expectedURL = s"${connector.iiUrl}/incorporation-information/subscribe/$txId/regime/$tRegime/subscriber/$tSubscriber?force=true"
-      when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.eq(expectedURL))(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.eq(expectedURL), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(HttpResponse(200)))
 
       await(connector.cancelSubscription(regId, txId)) shouldBe true
     }
     "make a http DELETE request to Incorporation Information micro-service to register an interest and return a 404" in new Setup {
-      when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.anyString())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.anyString(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.failed(new NotFoundException("404")))
 
       intercept[NotFoundException](await(connector.cancelSubscription(regId, txId)))
     }
     "not make a http DELETE request to Incorporation Information micro-service to register an interest and return any other 2xx" in new Setup {
-      when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.anyString())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.anyString(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(HttpResponse(202))
 
       intercept[RuntimeException](await(connector.cancelSubscription(regId, txId)))
     }
     "not make a http DELETE request to Incorporation Information micro-service to register an interest and return any 5xx" in new Setup {
-      when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.anyString())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.anyString(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.failed(Upstream5xxResponse("500", 502, 500)))
 
       intercept[RuntimeException](await(connector.cancelSubscription(regId, txId)))
@@ -154,7 +154,7 @@ class IncorporationInformationConnectorSpec extends UnitSpec with MockitoSugar w
     "use the old regime" in new Setup {
       val oldRegime = "ct"
       val expectedURL = s"${connector.iiUrl}/incorporation-information/subscribe/$txId/regime/$oldRegime/subscriber/$tSubscriber?force=true"
-      when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.eq(expectedURL))(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.eq(expectedURL), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(HttpResponse(200)))
 
       await(connector.cancelSubscription(regId, txId, useOldRegime = true)) shouldBe true
