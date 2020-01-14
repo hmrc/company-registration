@@ -35,24 +35,9 @@ class StringNormaliserSpec extends UnitSpec {
       ("Ted & Bob's Farm", APIValidation.lineInvert.toString(), "Ted & Bob's Farm"),
       ("Ted #& Bob;'~s @Farm", APIValidation.lineInvert.toString(), "Ted & Bob's Farm")
 
-    ).foreach {
+    ).foreach{
       case (string, filter, result) => s"return '$result' when '$string' is passed in using regex '$filter'" in {
         StringNormaliser.normaliseString(string, filter.r) shouldBe result
-      }
-    }
-  }
-
-  "removeIllegalCharacters" should {
-    Seq(
-      ("line 1", "line 1"),
-      ("line 2", "line 2"),
-      ("line 2\\", "line 2/"),
-      ("line 2:", "line 2-"),
-      ("line 2:;;:", "line 2----"),
-      ("line 2;", "line 2-")
-    ).foreach {
-      case (string, result) => s"return '$result' when '$string' is passed in " in {
-        StringNormaliser.removeIllegalCharacters(string) shouldBe result
       }
     }
   }

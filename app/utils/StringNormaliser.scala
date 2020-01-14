@@ -17,36 +17,21 @@
 package utils
 
 
-import java.text.Normalizer
-import java.text.Normalizer.{Form, _}
+import java.text.Normalizer.Form
+import java.text.Normalizer._
 
 import scala.util.matching.Regex
 
 object StringNormaliser {
-  val specialCharacterConverts: Map[Char, String] = Map('æ' -> "ae", 'Æ' -> "AE", 'œ' -> "oe", 'Œ' -> "OE", 'ß' -> "ss", 'ø' -> "o", 'Ø' -> "O")
-  val illegalCharacterTransformations: Map[Char, String] = Map(';' -> "-", ':' -> "-", '\\' -> "/")
-
-  def normaliseString(string: String, charFilter: Regex): String = {
-    val ourString = normalize(string, Form.NFKD)
+  val specialCharacterConverts = Map('æ' -> "ae", 'Æ' -> "AE", 'œ' -> "oe", 'Œ' -> "OE", 'ß' -> "ss", 'ø' -> "o", 'Ø' -> "O")
+  def normaliseString(string : String, charFilter : Regex) : String = {
+   val ourString =  normalize(string, Form.NFKD)
       .replaceAll("\\p{M}", "")
       .trim
-      .map((char: Char) => specialCharacterConverts.getOrElse(char, char))
+      .map((char:Char) => specialCharacterConverts.getOrElse(char, char))
       .mkString
 
     charFilter.findAllMatchIn(ourString).mkString
 
-  }
-
-  def removeIllegalCharacters(string: String): String = {
-    Normalizer.normalize(
-      string.map {
-        originalCharacter =>
-          illegalCharacterTransformations.getOrElse(
-            key = originalCharacter,
-            default = originalCharacter
-          )
-      }.mkString,
-      Form.NFD
-    )
   }
 }
