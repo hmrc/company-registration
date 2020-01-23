@@ -41,4 +41,19 @@ class StringNormaliserSpec extends UnitSpec {
       }
     }
   }
+
+  "removeIllegalCharacters" should {
+    Seq(
+      ("line 1", "line 1"),
+      ("line 2", "line 2"),
+      ("line 2\\", "line 2/"),
+      ("line 2:", "line 2."),
+      ("line 2:;;:", "line 2.,,."),
+      ("line 2;", "line 2,")
+    ).foreach {
+      case (string, result) => s"return '$result' when '$string' is passed in " in {
+        StringNormaliser.removeIllegalCharacters(string) shouldBe result
+      }
+    }
+  }
 }

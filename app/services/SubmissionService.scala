@@ -32,7 +32,7 @@ import play.api.mvc.{AnyContent, Request}
 import repositories.{CorporationTaxRegistrationMongoRepository, CorporationTaxRegistrationRepository, Repositories, SequenceRepository}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
-import utils.PagerDutyKeys
+import utils.{PagerDutyKeys, StringNormaliser}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -90,14 +90,16 @@ trait SubmissionService extends DateHelper {
       case None => throw new RuntimeException(s"[handleSubmission] Registration Document not found for regId: $rID")
     }
   }
+
   private[services] def throwPagerDutyIfTxIDInDBDoesntMatchHandOffTxID(crConfRefs: Option[ConfirmationReferences], hOffTxID: String): Boolean = {
     crConfRefs.fold(false) {
-      confRef => if(confRef.transactionId != hOffTxID) {
-        Logger.error(s"${PagerDutyKeys.TXID_IN_CR_DOESNT_MATCH_HANDOFF_TXID} - CR txId: ${confRef.transactionId} hand off txId: $hOffTxID ")
-        true
-      } else {
-        false
-      }
+      confRef =>
+        if (confRef.transactionId != hOffTxID) {
+          Logger.error(s"${PagerDutyKeys.TXID_IN_CR_DOESNT_MATCH_HANDOFF_TXID} - CR txId: ${confRef.transactionId} hand off txId: $hOffTxID ")
+          true
+        } else {
+          false
+        }
     }
   }
 
@@ -121,7 +123,7 @@ trait SubmissionService extends DateHelper {
       case None =>
         for {
           newlyGeneratedAckRef <- generateAckRef
-          updatedRefs          <- storeConfirmationReferencesAndUpdateStatus(rID, refs.copy(acknowledgementReference = newlyGeneratedAckRef), Some(LOCKED))
+          updatedRefs <- storeConfirmationReferencesAndUpdateStatus(rID, refs.copy(acknowledgementReference = newlyGeneratedAckRef), Some(LOCKED))
         } yield updatedRefs
 
       case Some(cr) if confirmationRefsAndPaymentRefsAreEmpty(cr) =>
@@ -144,14 +146,14 @@ trait SubmissionService extends DateHelper {
 
   private[services] def processPartialSubmission(regId: String, authProvId: String, confRefs: ConfirmationReferences, doc: CorporationTaxRegistration, isAdmin: Boolean)
                                                 (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[Boolean] = {
-    for{
-      brMetadata                <- retrieveBRMetadata(regId, isAdmin)
-      partialSubmission         =  buildPartialDesSubmission(regId, confRefs.acknowledgementReference, authProvId, brMetadata, doc)
-      partialSubmissionAsJson   =  Json.toJson(partialSubmission).as[JsObject]
-      _                         <- incorpInfoConnector.registerInterest(regId, confRefs.transactionId)
-      _                         <- submitPartialToDES(regId, confRefs.acknowledgementReference, partialSubmissionAsJson, authProvId)
-      _                         =  auditUserPartialSubmission(regId, authProvId, partialSubmissionAsJson, doc)
-      success                   <- cTRegistrationRepository.updateRegistrationToHeld(regId, confRefs) map (_.isDefined)
+    for {
+      brMetadata <- retrieveBRMetadata(regId, isAdmin)
+      partialSubmission = buildPartialDesSubmission(regId, confRefs.acknowledgementReference, authProvId, brMetadata, doc)
+      partialSubmissionAsJson = Json.toJson(partialSubmission).as[JsObject]
+      _ <- incorpInfoConnector.registerInterest(regId, confRefs.transactionId)
+      _ <- submitPartialToDES(regId, confRefs.acknowledgementReference, partialSubmissionAsJson, authProvId)
+      _ = auditUserPartialSubmission(regId, authProvId, partialSubmissionAsJson, doc)
+      success <- cTRegistrationRepository.updateRegistrationToHeld(regId, confRefs) map (_.isDefined)
     } yield success
   }
 
@@ -159,12 +161,12 @@ trait SubmissionService extends DateHelper {
   private[services] def buildPartialDesSubmission(regId: String, ackRef: String, authProvId: String, brMetadata: BusinessRegistration, ctData: CorporationTaxRegistration)
                                                  (implicit hc: HeaderCarrier): InterimDesRegistration = {
     val (sessionID, credID): (String, String) = hc.headers.toMap.get("X-Session-ID") match {
-          case Some(sesID) => (sesID, authProvId)
-          case None => ctData.sessionIdentifiers match {
-            case Some(sessionIdentifiers) => (sessionIdentifiers.sessionId, sessionIdentifiers.credId)
-            case None => throw new RuntimeException(s"[buildPartialDesSubmission] No session identifiers available for DES submission")
-          }
-        }
+      case Some(sesID) => (sesID, authProvId)
+      case None => ctData.sessionIdentifiers match {
+        case Some(sessionIdentifiers) => (sessionIdentifiers.sessionId, sessionIdentifiers.credId)
+        case None => throw new RuntimeException(s"[buildPartialDesSubmission] No session identifiers available for DES submission")
+      }
+    }
 
     val companyDetails = ctData.companyDetails.getOrElse(throw new RuntimeException("[buildPartialDesSubmission] no company details found in ct doc when building partial des submission"))
     val contactDetails = ctData.contactDetails.getOrElse(throw new RuntimeException("[buildPartialDesSubmission] no contact details found in ct doc when building partial des submission"))
@@ -179,15 +181,20 @@ trait SubmissionService extends DateHelper {
     }
 
     val businessAddress: Option[BusinessAddress] = optPPOBAddress map {
-      address => BusinessAddress(
-          line1 = address.line1, line2 = address.line2, line3 = address.line3, line4 = address.line4,
+      address =>
+        BusinessAddress(
+          line1 = StringNormaliser.removeIllegalCharacters(address.line1),
+          line2 = StringNormaliser.removeIllegalCharacters(address.line2),
+          line3 = address.line3.map{ line3 => StringNormaliser.removeIllegalCharacters(line3) },
+          line4 = address.line4.map{ line4 => StringNormaliser.removeIllegalCharacters(line4) },
           postcode = address.postcode,
           country = address.country
         )
     }
+
     def formatGroupsForSubmission: Option[Groups] = ctData.groups.map {
       og =>
-        if(og.groupRelief) {
+        if (og.groupRelief) {
           val nameOfComp = og.nameOfCompany
             .getOrElse(throw new RuntimeException(s"formatGroupsForSubmission groups exists but name does not: $regId"))
           val address = og.addressAndType
@@ -200,7 +207,7 @@ trait SubmissionService extends DateHelper {
             Some(nameOfComp.copy(name = nameFormatted)),
             Some(address),
             Some(utr))
-        } else Groups(false,None,None,None)
+        } else Groups(groupRelief = false, None, None, None)
     }
 
     val businessContactDetails = BusinessContactDetails(contactDetails.phone, contactDetails.mobile, contactDetails.email)
@@ -225,7 +232,7 @@ trait SubmissionService extends DateHelper {
     )
   }
 
-  private[services] def submitPartialToDES(regId: String, ackRef: String, partialSubmission: JsObject, authProvId : String)
+  private[services] def submitPartialToDES(regId: String, ackRef: String, partialSubmission: JsObject, authProvId: String)
                                           (implicit hc: HeaderCarrier): Future[HttpResponse] = {
     desConnector.ctSubmission(ackRef, partialSubmission, regId) recoverWith {
       case e =>
@@ -233,7 +240,7 @@ trait SubmissionService extends DateHelper {
           case Some(xSesID) =>
             Logger.warn(s"[storePartialSubmission] Saved session identifiers for regId: $regId")
             cTRegistrationRepository.storeSessionIdentifiers(regId, xSesID, authProvId) map (throw e)
-          case _            =>
+          case _ =>
             Logger.warn(s"[storePartialSubmission] No session identifiers to save for regID: $regId")
             throw e
         }
@@ -246,7 +253,7 @@ trait SubmissionService extends DateHelper {
 
     val ppob = doc.companyDetails.getOrElse(throw new RuntimeException(s"Could not retrieve Company Registration after DES Submission for $regId")).ppob
     val (txID, uprn) = (ppob.addressType, ppob.address) match {
-      case (RO, _)            => (None, None)
+      case (RO, _) => (None, None)
       case (_, Some(address)) => (Some(address.txid), address.uprn)
       case (_, None) => (None, None)
     }
@@ -256,9 +263,9 @@ trait SubmissionService extends DateHelper {
   }
 
   private[services] def retrieveBRMetadata(regId: String, isAdmin: Boolean = false)(implicit hc: HeaderCarrier): Future[BusinessRegistration] = {
-    (if(isAdmin) brConnector.adminRetrieveMetadata(regId) else brConnector.retrieveMetadata(regId)) flatMap {
+    (if (isAdmin) brConnector.adminRetrieveMetadata(regId) else brConnector.retrieveMetadata(regId)) flatMap {
       case BusinessRegistrationSuccessResponse(metadata) if metadata.registrationID == regId => Future.successful(metadata)
-      case  BusinessRegistrationSuccessResponse(metadata) if metadata.registrationID != regId =>
+      case BusinessRegistrationSuccessResponse(metadata) if metadata.registrationID != regId =>
         Future.failed(new RuntimeException(s"[retrieveBRMetadata] ${metadata.registrationID} does not match $regId with isAdmin $isAdmin"))
       case _ => Future.failed(new RuntimeException("[retrieveBRMetadata] Could not find BR Metadata"))
     }
@@ -266,7 +273,7 @@ trait SubmissionService extends DateHelper {
 
   private def confirmationRefsAndPaymentRefsAreEmpty(refs: ConfirmationReferences): Boolean = refs.paymentReference.isEmpty && refs.paymentAmount.isEmpty
 
-  def setupPartialForTopupOnLocked(transID : String)(implicit hc : HeaderCarrier, req: Request[AnyContent]): Future[Boolean] = {
+  def setupPartialForTopupOnLocked(transID: String)(implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[Boolean] = {
     Logger.info(s"[setupPartialForTopup] Trying to update locked document of txId: $transID to held for topup with incorp update")
 
     cTRegistrationRepository.retrieveRegistrationByTransactionID(transID) flatMap {
@@ -278,7 +285,7 @@ trait SubmissionService extends DateHelper {
           case _ if reg.status != RegistrationStatus.LOCKED =>
             throw new RuntimeException(s"[setupPartialForTopup] Document status of txID: $transID was not locked, was ${reg.status}")
           case (Some(sIds), Some(confRefs)) =>
-            processPartialSubmission(reg.registrationID, sIds.credId, confRefs, reg, true)
+            processPartialSubmission(reg.registrationID, sIds.credId, confRefs, reg, isAdmin = true)
           case _ =>
             Logger.warn(s"[setupPartialForTopup] No session identifiers or conf refs for registration with txID: $transID")
             throw NoSessionIdentifiersInDocument
