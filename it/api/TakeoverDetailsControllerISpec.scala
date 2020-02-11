@@ -73,13 +73,15 @@ class TakeoverDetailsControllerISpec extends IntegrationSpecBase with LoginStub 
     takeoverDetails = details)
 
   val validTakeoverDetailsModel: TakeoverDetails = TakeoverDetails(
-    businessName = "business",
+    replacingAnotherBusiness = true,
+    businessName = Some("business"),
     businessTakeoverAddress = Some(Address("1 abc", "2 abc", Some("3 abc"), Some("4 abc"), Some("ZZ1 1ZZ"), Some("country A"))),
     prevOwnersName = Some("human"),
     prevOwnersAddress = Some(Address("1 xyz", "2 xyz", Some("3 xyz"), Some("4 xyz"), Some("ZZ2 2ZZ"), Some("country B")))
   )
 
   val validTakeoverDetailsJson = Json.obj(
+    "replacingAnotherBusiness" -> true,
     "businessName" -> "business",
     "businessTakeoverAddress" -> Json.obj(
       "line1" -> "1 abc",
@@ -101,7 +103,8 @@ class TakeoverDetailsControllerISpec extends IntegrationSpecBase with LoginStub 
   )
 
   val invalidTakeoverDetailsJson = Json.obj(
-    "businessName" -> true,
+    "repladingAnotherBusiness" -> true,
+    "businessName" -> 123,
     "businessTakeoverAddress" -> Json.obj(
       "line1" -> "1 abc",
       "line2" -> "2 abc",

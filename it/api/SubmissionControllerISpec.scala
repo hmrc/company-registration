@@ -591,7 +591,8 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
           paymentAmount = None
         )
         val validTakeover = Some(TakeoverDetails(
-          businessName = "Takeover name",
+          replacingAnotherBusiness = true,
+          businessName = Some("Takeover name"),
           businessTakeoverAddress = Some(Address(
             "Takeover 1",
             "Takeover 2",

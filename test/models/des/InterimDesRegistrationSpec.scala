@@ -604,7 +604,8 @@ class InterimDesRegistrationSpec extends UnitSpec {
       ))
 
       val validTakeover = Some(TakeoverDetails(
-        businessName = "Takeover name",
+        replacingAnotherBusiness = true,
+        businessName = Some("Takeover name"),
         businessTakeoverAddress = Some(Address(
           "Takeover 1",
           "Takeover 2",

@@ -219,15 +219,17 @@ object TestConstants {
       country = Some(testPrevOwnerCountry)
     )
 
-    val testTakeoverDetails = Json.obj(fields =
+    val testTakeoverDetails: JsObject = Json.obj(fields =
+      "replacingAnotherBusiness" -> true,
       "businessName" -> testBusinessName,
       "businessTakeoverAddress" -> testTakeoverAddress.toJson,
       "prevOwnersName" -> testPrevOwnerName,
       "prevOwnersAddress" -> testPrevOwnerAddress.toJson
     )
 
-    val testTakeoverDetailsModel = models.TakeoverDetails(
-      businessName = testBusinessName,
+    val testTakeoverDetailsModel: TakeoverDetails = models.TakeoverDetails(
+      replacingAnotherBusiness = true,
+      businessName = Some(testBusinessName),
       businessTakeoverAddress = Some(testTakeoverAddressModel),
       prevOwnersName = Some(testPrevOwnerName),
       prevOwnersAddress = Some(testPrevOwnerAddressModel)

@@ -16,9 +16,9 @@
 
 package models
 
+import assets.TestConstants.TakeoverDetails._
 import play.api.libs.json.{JsError, JsPath, JsSuccess, Json}
 import uk.gov.hmrc.play.test.UnitSpec
-import assets.TestConstants.TakeoverDetails._
 
 class TakeoverDetailsSpec extends UnitSpec {
 
@@ -26,6 +26,7 @@ class TakeoverDetailsSpec extends UnitSpec {
     "return JsSuccess" when {
       "all fields are provided" in {
         val takeoverDetailsJson = Json.obj(fields =
+          "replacingAnotherBusiness" -> true,
           "businessName" -> testBusinessName,
           "businessTakeoverAddress" -> testTakeoverAddress.toJson,
           "prevOwnersName" -> testPrevOwnerName,
@@ -33,7 +34,8 @@ class TakeoverDetailsSpec extends UnitSpec {
         )
 
         val expected = JsSuccess(TakeoverDetails(
-          businessName = testBusinessName,
+          replacingAnotherBusiness = true,
+          businessName = Some(testBusinessName),
           businessTakeoverAddress = Some(testTakeoverAddressModel),
           prevOwnersName = Some(testPrevOwnerName),
           prevOwnersAddress = Some(testPrevOwnerAddressModel)
@@ -43,15 +45,18 @@ class TakeoverDetailsSpec extends UnitSpec {
 
         actual shouldBe expected
       }
+
       "previous owner name is not provided" in {
         val takeoverDetailsJson = Json.obj(fields =
+          "replacingAnotherBusiness" -> true,
           "businessName" -> testBusinessName,
           "businessTakeoverAddress" -> testTakeoverAddress.toJson,
           "prevOwnersAddress" -> testPrevOwnerAddress.toJson
         )
 
         val expected = JsSuccess(TakeoverDetails(
-          businessName = testBusinessName,
+          replacingAnotherBusiness = true,
+          businessName = Some(testBusinessName),
           businessTakeoverAddress = Some(testTakeoverAddressModel),
           prevOwnersName = None,
           prevOwnersAddress = Some(testPrevOwnerAddressModel)
@@ -61,15 +66,18 @@ class TakeoverDetailsSpec extends UnitSpec {
 
         actual shouldBe expected
       }
+
       "previous owner address is not provided" in {
         val takeoverDetailsJson = Json.obj(fields =
+          "replacingAnotherBusiness" -> true,
           "businessName" -> testBusinessName,
           "businessTakeoverAddress" -> testTakeoverAddress.toJson,
           "prevOwnersName" -> testPrevOwnerName
         )
 
         val expected = JsSuccess(TakeoverDetails(
-          businessName = testBusinessName,
+          replacingAnotherBusiness = true,
+          businessName = Some(testBusinessName),
           businessTakeoverAddress = Some(testTakeoverAddressModel),
           prevOwnersName = Some(testPrevOwnerName),
           prevOwnersAddress = None
@@ -79,19 +87,43 @@ class TakeoverDetailsSpec extends UnitSpec {
 
         actual shouldBe expected
       }
-    }
-    "return a validation error" when {
+
       "the business name has not been provided" in {
         val takeoverDetailsJson = Json.obj(fields =
+          "replacingAnotherBusiness" -> true,
           "businessTakeoverAddress" -> testTakeoverAddress.toJson,
           "prevOwnersName" -> testPrevOwnerName,
           "prevOwnersAddress" -> testPrevOwnerAddress.toJson
         )
 
-        val expected = JsError(JsPath \ "businessName", "error.path.missing")
+        val expected = JsSuccess(TakeoverDetails(
+          replacingAnotherBusiness = true,
+          businessName = None,
+          businessTakeoverAddress = Some(testTakeoverAddressModel),
+          prevOwnersName = Some(testPrevOwnerName),
+          prevOwnersAddress = Some(testPrevOwnerAddressModel)
+        ))
         val actual = Json.fromJson[TakeoverDetails](takeoverDetailsJson)
 
         actual shouldBe expected
+      }
+    }
+
+    "return a validation error" when {
+      "replacingAnotherBusiness is not provided" in {
+        val takeoverDetailsJson = Json.obj(fields =
+          "businessName" -> testBusinessName,
+          "businessTakeoverAddress" -> testTakeoverAddress.toJson,
+          "prevOwnersName" -> testPrevOwnerName,
+          "prevOwnersAddress" -> testPrevOwnerAddress.toJson
+        )
+
+        val expected = JsError(JsPath \ "replacingAnotherBusiness", "error.path.missing")
+
+        val actual = Json.fromJson[TakeoverDetails](takeoverDetailsJson)
+
+        actual shouldBe expected
+
       }
     }
   }
