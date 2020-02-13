@@ -25,11 +25,11 @@ import repositories.CorporationTaxRegistrationMongoRepository
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class TakeoverDetailsService @Inject()(repo: CorporationTaxRegistrationMongoRepository)(implicit ec: ExecutionContext) {
+class TakeoverDetailsService @Inject()(corporationTaxRegistrationMongoRepository: CorporationTaxRegistrationMongoRepository)(implicit ec: ExecutionContext) {
 
 
   def retrieveTakeoverDetailsBlock(registrationID: String): Future[Option[TakeoverDetails]] = {
-    repo.findByRegId(registrationID) map {
+    corporationTaxRegistrationMongoRepository.findByRegId(registrationID).map {
       document =>
         document.getOrElse(
           throw new Exception(s"[retrieveTakeoverDetails] failed to retrieve document with regId: '$registrationID' as it was not found")
@@ -41,11 +41,11 @@ class TakeoverDetailsService @Inject()(repo: CorporationTaxRegistrationMongoRepo
     val json = Json.toJson(takeoverDetails).as[JsObject]
     val key = "takeoverDetails"
 
-    repo.update(
+    corporationTaxRegistrationMongoRepository.update(
       regId = registrationID,
       key = key,
       value = json
-    ) map {
+    ).map {
       _ => takeoverDetails
     }
   }

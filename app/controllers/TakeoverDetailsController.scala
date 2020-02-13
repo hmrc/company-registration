@@ -41,23 +41,25 @@ trait TakeoverDetailsController extends BaseController with AuthorisedActions {
   implicit val ec: ExecutionContext
   val takeoverDetailsService: TakeoverDetailsService
 
-  def getBlock(registrationID: String): Action[AnyContent] = AuthorisedAction(registrationID).async {
-    implicit request =>
-      takeoverDetailsService.retrieveTakeoverDetailsBlock(registrationID).map {
-        case Some(takeoverDetails) =>
-          Ok(Json.toJson(takeoverDetails)(TakeoverDetails.format))
-        case None =>
-          NoContent
-      }
-  }
+  def getBlock(registrationID: String): Action[AnyContent] =
+    AuthorisedAction(registrationID).async {
+      implicit request =>
+        takeoverDetailsService.retrieveTakeoverDetailsBlock(registrationID).map {
+          case Some(takeoverDetails) =>
+            Ok(Json.toJson(takeoverDetails)(TakeoverDetails.format))
+          case None =>
+            NoContent
+        }
+    }
 
-  def saveBlock(registrationID: String): Action[JsValue] = AuthorisedAction(registrationID).async[JsValue](parse.json) {
-    implicit request =>
-      withJsonBody[TakeoverDetails] {
-        takeoverDetails =>
-          takeoverDetailsService.updateTakeoverDetailsBlock(registrationID, takeoverDetails).map {
-            takeoverDetails => Ok(Json.toJson(takeoverDetails)(TakeoverDetails.format))
-          }
-      }
-  }
+  def saveBlock(registrationID: String): Action[JsValue] =
+    AuthorisedAction(registrationID).async[JsValue](parse.json) {
+      implicit request =>
+        withJsonBody[TakeoverDetails] {
+          takeoverDetails =>
+            takeoverDetailsService.updateTakeoverDetailsBlock(registrationID, takeoverDetails).map {
+              takeoverDetails => Ok(Json.toJson(takeoverDetails)(TakeoverDetails.format))
+            }
+        }
+    }
 }

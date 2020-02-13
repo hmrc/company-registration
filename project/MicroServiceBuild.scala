@@ -22,7 +22,7 @@ private object AppDependencies {
   private val bootstrapPlayVersion = "5.1.0"
   private val domainVersion = "5.6.0-play-25"
   private val hmrcTestVersion = "3.9.0-play-25"
-  private val reactiveMongoVersion = "7.22.0-play-25"
+  private val reactiveMongoVersion = "7.23.0-play-25"
   private val mockitoVersion = "3.2.4"
   private val scalatestPlusPlayVersion = "2.0.0"
   private val mongoLockVersion = "6.18.0-play-25"
@@ -69,11 +69,11 @@ private object AppDependencies {
 
       override lazy val test = Seq(
         "uk.gov.hmrc" %% "hmrctest" % hmrcTestVersion % scope,
-        "org.scalatest" %% "scalatest" % "2.2.6" % scope,
-        "org.pegdown" % "pegdown" % "1.5.0" % scope,
+        "org.scalatest" %% "scalatest" % "3.0.0" % scope,
+        "org.pegdown" % "pegdown" % "1.6.0" % scope,
         "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
         "org.scalatestplus.play" %% "scalatestplus-play" % scalatestPlusPlayVersion % scope,
-        "com.github.tomakehurst" % "wiremock" % "2.6.0" % scope
+        "com.github.tomakehurst" % "wiremock-jre8" % "2.26.0" % scope
       )
     }.test
   }

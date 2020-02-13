@@ -221,6 +221,7 @@ object ItTestConstants {
     )
 
     val testTakeoverDetails = Json.obj(fields =
+      "replacingAnotherBusiness" -> true,
       "businessName" -> testBusinessName,
       "businessTakeoverAddress" -> testTakeoverAddress.toJson,
       "prevOwnersName" -> testPrevOwnerName,
@@ -228,7 +229,8 @@ object ItTestConstants {
     )
 
     val testTakeoverDetailsModel = models.TakeoverDetails(
-      businessName = testBusinessName,
+      replacingAnotherBusiness = true,
+      businessName = Some(testBusinessName),
       businessTakeoverAddress = Some(testTakeoverAddressModel),
       prevOwnersName = Some(testPrevOwnerName),
       prevOwnersAddress = Some(testPrevOwnerAddressModel)

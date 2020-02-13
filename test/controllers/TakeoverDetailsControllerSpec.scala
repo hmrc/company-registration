@@ -37,7 +37,8 @@ import scala.concurrent.{ExecutionContext, Future}
 class TakeoverDetailsControllerSpec extends BaseSpec with AuthorisationMocks {
 
   val validTakeoverDetailsModel: TakeoverDetails = TakeoverDetails(
-    businessName = "business",
+    replacingAnotherBusiness = true,
+    businessName = Some("business"),
     businessTakeoverAddress = Some(Address("1 abc", "2 abc", Some("3 abc"), Some("4 abc"), Some("ZZ1 1ZZ"), Some("country A"))),
     prevOwnersName = Some("human"),
     prevOwnersAddress = Some(Address("1 xyz", "2 xyz", Some("3 xyz"), Some("4 xyz"), Some("ZZ2 2ZZ"), Some("country B")))
@@ -71,6 +72,7 @@ class TakeoverDetailsControllerSpec extends BaseSpec with AuthorisationMocks {
       val result: Result = await(controller.getBlock(registrationId)(FakeRequest()))
       status(result) shouldBe OK
       jsonBodyOf(result) shouldBe Json.obj(
+        "replacingAnotherBusiness" -> true,
         "businessName" -> "business",
         "businessTakeoverAddress" -> Json.obj(
           "line1" -> "1 abc",
@@ -107,6 +109,7 @@ class TakeoverDetailsControllerSpec extends BaseSpec with AuthorisationMocks {
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.successful(internalId))
       val request = FakeRequest().withBody(Json.obj(
+        "replacingAnotherBusiness" -> true,
         "businessName" -> "business",
         "businessTakeoverAddress" -> Json.obj(
           "line1" -> "1 abc",
@@ -137,7 +140,8 @@ class TakeoverDetailsControllerSpec extends BaseSpec with AuthorisationMocks {
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.successful(internalId))
       val request = FakeRequest().withBody(Json.obj(
-        "businessName" -> true,
+        "replacingAnotherBusiness" -> true,
+        "businessName" -> 123,
         "businessTakeoverAddress" -> Json.obj(
           "line1" -> "1 abc",
           "line2" -> "2 abc",
@@ -164,6 +168,7 @@ class TakeoverDetailsControllerSpec extends BaseSpec with AuthorisationMocks {
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.successful(internalId))
       val request = FakeRequest().withBody(Json.obj(
+        "replacingAnotherBusiness" -> true,
         "businessName" -> "business",
         "prevOwnersName" -> "human",
         "prevOwnersAddress" -> Json.obj(
