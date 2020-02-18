@@ -16,24 +16,24 @@
 
 package models.des
 
+import models.validation.APIValidation
 import models.{Groups, TakeoverDetails}
-import models.validation.{APIValidation, BaseJsonFormatting}
 import org.joda.time.DateTime
-import org.joda.time.format.ISODateTimeFormat
-import play.api.libs.json._
-import play.api.libs.json.Writes._
+import org.joda.time.format.{DateTimeFormatter, ISODateTimeFormat}
 import play.api.libs.functional.syntax._
+import play.api.libs.json.Writes._
+import play.api.libs.json._
 
 object DesFormats {
 
-  private val datetime = ISODateTimeFormat.dateTime()
+  private val datetime: DateTimeFormatter = ISODateTimeFormat.dateTime()
 
   def formatTimestamp(ts: DateTime): String = datetime.print(ts)
 
 }
 
 object BusinessType {
-  val LimitedCompany = "Limited company"
+  val LimitedCompany: String = "Limited company"
 }
 
 sealed trait CompletionCapacity {
@@ -41,8 +41,8 @@ sealed trait CompletionCapacity {
 }
 
 object CompletionCapacity {
-  implicit val writes = new Writes[CompletionCapacity] {
-    def writes(cc: CompletionCapacity) = JsString(cc.text)
+  implicit val writes: Writes[CompletionCapacity] = new Writes[CompletionCapacity] {
+    def writes(cc: CompletionCapacity): JsString = JsString(cc.text)
   }
 
   def apply(text: String): CompletionCapacity = text.toLowerCase match {
@@ -54,29 +54,27 @@ object CompletionCapacity {
 }
 
 case object Director extends CompletionCapacity {
-  val text = "Director"
+  val text: String = "Director"
 }
 
 case object Secretary extends CompletionCapacity {
-  val text = "Company secretary"
+  val text: String = "Company secretary"
 }
 
 case object Agent extends CompletionCapacity {
-  val text = "Agent"
+  val text: String = "Agent"
 }
 
 case class Other(txt: String) extends CompletionCapacity {
-  val text = txt
+  val text: String = txt
 }
 
-case class BusinessAddress(
-                            line1: String,
-                            line2: String,
-                            line3: Option[String],
-                            line4: Option[String],
-                            postcode: Option[String],
-                            country: Option[String]
-                          )
+case class BusinessAddress(line1: String,
+                           line2: String,
+                           line3: Option[String],
+                           line4: Option[String],
+                           postcode: Option[String],
+                           country: Option[String])
 
 object BusinessAddress {
 
@@ -109,7 +107,7 @@ object BusinessAddress {
       ) (unlift(BusinessAddress.unapply))
 
     new Writes[BusinessAddress] {
-      def writes(m: BusinessAddress) = {
+      def writes(businessAddress: BusinessAddress): JsObject = {
         Json.obj(
           "addressEntryMethod" -> entryMethod
         ).++(
@@ -124,11 +122,9 @@ object BusinessAddress {
   }
 }
 
-case class BusinessContactDetails(
-                                   phoneNumber: Option[String],
-                                   mobileNumber: Option[String],
-                                   email: Option[String]
-                                 )
+case class BusinessContactDetails(phoneNumber: Option[String],
+                                  mobileNumber: Option[String],
+                                  email: Option[String])
 
 object BusinessContactDetails {
   implicit val writes: Writes[BusinessContactDetails] = (
@@ -152,109 +148,109 @@ object BusinessContactDetails {
       ) (unlift(BusinessContactDetails.unapply))
 
     new Writes[BusinessContactDetails] {
-      def writes(m: BusinessContactDetails) = {
-        Json.toJson(m)(aWrites).as[JsObject]
+      def writes(businessContactDetails: BusinessContactDetails): JsObject = {
+        Json.toJson(businessContactDetails)(aWrites).as[JsObject]
       }
     }
   }
 }
 
-
-case class Metadata(
-                     sessionId: String,
-                     credId: String,
-                     language: String,
-                     submissionTs: DateTime,
-                     completionCapacity: CompletionCapacity
-                   )
+case class Metadata(sessionId: String,
+                    credId: String,
+                    language: String,
+                    submissionTs: DateTime,
+                    completionCapacity: CompletionCapacity)
 
 object Metadata {
 
   import DesFormats._
 
-  implicit val writes = new Writes[Metadata] {
-    def writes(m: Metadata) = {
+  implicit val writes: Writes[Metadata] = new Writes[Metadata] {
+    def writes(metadata: Metadata): JsObject = {
       Json.obj(
         "businessType" -> BusinessType.LimitedCompany,
         "submissionFromAgent" -> false,
         "declareAccurateAndComplete" -> true,
-        "sessionId" -> m.sessionId,
-        "credentialId" -> m.credId,
-        "language" -> m.language,
-        "formCreationTimestamp" -> formatTimestamp(m.submissionTs)
+        "sessionId" -> metadata.sessionId,
+        "credentialId" -> metadata.credId,
+        "language" -> metadata.language,
+        "formCreationTimestamp" -> formatTimestamp(metadata.submissionTs)
       ) ++ (
-        m.completionCapacity match {
-          case Other(cc) => {
+        metadata.completionCapacity match {
+          case Other(cc) =>
             Json.obj(
               "completionCapacity" -> "Other",
               "completionCapacityOther" -> cc
             )
-          }
-          case _ => Json.obj("completionCapacity" -> m.completionCapacity)
+          case _ => Json.obj("completionCapacity" -> metadata.completionCapacity)
         }
         )
     }
   }
 }
 
-case class InterimCorporationTax(
-                                  companyName: String,
-                                  returnsOnCT61: Boolean,
-                                  businessAddress: Option[BusinessAddress],
-                                  businessContactDetails: BusinessContactDetails,
-                                  groups: Option[Groups] = None,
-                                  takeOver: Option[TakeoverDetails] = None
-                                )
+case class InterimCorporationTax(companyName: String,
+                                 returnsOnCT61: Boolean,
+                                 businessAddress: Option[BusinessAddress],
+                                 businessContactDetails: BusinessContactDetails,
+                                 groups: Option[Groups] = None,
+                                 takeOver: Option[TakeoverDetails] = None)
 
 object InterimCorporationTax {
-  implicit val writes = new Writes[InterimCorporationTax] {
-    def writes(m: InterimCorporationTax) = {
-      val address = m.businessAddress map {
+
+  implicit val writes: Writes[InterimCorporationTax] = new Writes[InterimCorporationTax] {
+
+    def writes(interimCorporationTax: InterimCorporationTax): JsObject = {
+      val address = interimCorporationTax.businessAddress map {
         Json.toJson(_).as[JsObject]
       }
-      val contactDetails: JsObject = Json.toJson(m.businessContactDetails).as[JsObject]
 
-      val groups: JsObject = m.groups match {
-        case None => Json.obj("companyMemberOfGroup" -> false)
-        case Some(g) if !g.groupRelief => Json.obj("companyMemberOfGroup" -> false)
-        case Some(g) if g.groupRelief => Json.obj("companyMemberOfGroup" -> true,
+      val contactDetails: JsObject = Json.toJson(interimCorporationTax.businessContactDetails).as[JsObject]
+
+      val groupsBlock: JsObject = interimCorporationTax.groups match {
+        case Some(groups) if groups.groupRelief => Json.obj("companyMemberOfGroup" -> true,
           "groupDetails" ->
             Json.obj(
-              "parentCompanyName" -> g.nameOfCompany.get.name,
-              "groupAddress" -> g.addressAndType.get.address)
-              .deepMerge(g.groupUTR.get.UTR.fold(Json.obj())(utr => Json.obj("parentUTR" -> utr)
+              "parentCompanyName" -> groups.nameOfCompany.get.name,
+              "groupAddress" -> groups.addressAndType.get.address)
+              .deepMerge(groups.groupUTR.get.UTR.fold(Json.obj())(utr => Json.obj("parentUTR" -> utr)
               )
               )
         )
+        case _ => Json.obj("companyMemberOfGroup" -> false)
+
       }
-      val takeOver: JsObject = m.takeOver match {
-        case None => Json.obj("hasCompanyTakenOverBusiness" -> false)
-        case Some(t) => Json.obj("hasCompanyTakenOverBusiness" -> true,
+
+      val takeOverBlock: JsObject = interimCorporationTax.takeOver match {
+        case Some(takeOver) if takeOver.replacingAnotherBusiness => Json.obj("hasCompanyTakenOverBusiness" -> true,
           "businessTakeOverDetails" ->
-        Json.obj(
-          "businessNameLine1" -> t.businessName,
-            "businessTakeoverAddress" -> t.businessTakeoverAddress,
-            "prevOwnersName" -> t.prevOwnersName,
-            "prevOwnerAddress" -> t.prevOwnersAddress
-        ))
+            Json.obj(
+              "businessNameLine1" -> takeOver.businessName,
+              "businessTakeoverAddress" -> takeOver.businessTakeoverAddress,
+              "prevOwnersName" -> takeOver.prevOwnersName,
+              "prevOwnerAddress" -> takeOver.prevOwnersAddress
+            ))
+        case _ => Json.obj("hasCompanyTakenOverBusiness" -> false)
       }
 
       Json.obj(
-        "companyOfficeNumber" -> "623").deepMerge(takeOver) ++
-      Json.obj(
-        "companiesHouseCompanyName" -> APIValidation.cleanseCompanyName(m.companyName),
-        "returnsOnCT61" -> m.returnsOnCT61,
-        "companyACharity" -> false
-      ).deepMerge(groups) ++
+        "companyOfficeNumber" -> "623").deepMerge(takeOverBlock) ++
+        Json.obj(
+          "companiesHouseCompanyName" -> APIValidation.cleanseCompanyName(interimCorporationTax.companyName),
+          "returnsOnCT61" -> interimCorporationTax.returnsOnCT61,
+          "companyACharity" -> false
+        ).deepMerge(groupsBlock) ++
         address.fold(Json.obj())(add => Json.obj("businessAddress" -> add)) ++
         Json.obj("businessContactDetails" -> contactDetails)
     }
+
   }
 
 }
 
-
-case class InterimDesRegistration(ackRef: String, metadata: Metadata, interimCorporationTax: InterimCorporationTax)
+case class InterimDesRegistration(ackRef: String,
+                                  metadata: Metadata,
+                                  interimCorporationTax: InterimCorporationTax)
 
 object InterimDesRegistration {
   implicit val writes: Writes[InterimDesRegistration] = (
