@@ -18,14 +18,15 @@ package services
 
 import models.Email
 import org.mockito.ArgumentMatchers
-import org.scalatest.mockito.MockitoSugar
-import repositories.CorporationTaxRegistrationMongoRepository
-import uk.gov.hmrc.play.test.UnitSpec
 import org.mockito.Mockito._
+import org.scalatest.mockito.MockitoSugar
+import org.scalatest.{Matchers, WordSpec}
+import play.api.test.Helpers._
+import repositories.CorporationTaxRegistrationMongoRepository
 
 import scala.concurrent.Future
 
-class EmailServiceSpec extends UnitSpec with MockitoSugar {
+class EmailServiceSpec extends WordSpec with Matchers with MockitoSugar {
 
   val mockCTRepository = mock[CorporationTaxRegistrationMongoRepository]
 

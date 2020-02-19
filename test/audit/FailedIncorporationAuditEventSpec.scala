@@ -16,12 +16,12 @@
 
 package audit
 
+import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{JsObject, Json}
-import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
 
-class FailedIncorporationAuditEventSpec extends UnitSpec {
+class FailedIncorporationAuditEventSpec extends WordSpec with Matchers {
 
   implicit val hc = HeaderCarrier()
   implicit val format = Json.format[ExtendedDataEvent]

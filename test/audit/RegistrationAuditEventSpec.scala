@@ -16,13 +16,13 @@
 
 package audit
 
+import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{JsObject, Json}
-import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
-import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.http.logging.{ Authorization, ForwardedFor, RequestId, SessionId }
+import uk.gov.hmrc.http.logging.{Authorization, ForwardedFor, RequestId, SessionId}
+import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
 
-class RegistrationAuditEventSpec extends UnitSpec {
+class RegistrationAuditEventSpec extends WordSpec with Matchers {
 
   "RegistrationEvent" should {
     val clientIP: String = "localhost"

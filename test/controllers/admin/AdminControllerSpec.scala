@@ -22,19 +22,18 @@ import models._
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
-import play.api.http.Status._
+import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{JsObject, JsResultException, Json}
-import play.api.mvc.Result
 import play.api.test.FakeRequest
+import play.api.test.Helpers._
 import repositories.CorporationTaxRegistrationRepository
 import services.SubmissionService
 import services.admin.AdminService
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 
-class AdminControllerSpec extends UnitSpec with MockitoSugar {
+class AdminControllerSpec extends WordSpec with Matchers with MockitoSugar {
 
   implicit val act = ActorSystem()
   implicit val mat = ActorMaterializer()
@@ -73,17 +72,17 @@ class AdminControllerSpec extends UnitSpec with MockitoSugar {
       when(mockAdminService.fetchHO6RegistrationInformation(eqTo(regId)))
         .thenReturn(Future.successful(Some(regInfo)))
 
-      val result = await(controller.fetchHO6RegistrationInformation(regId)(FakeRequest()))
+      val result = controller.fetchHO6RegistrationInformation(regId)(FakeRequest())
 
       status(result) shouldBe 200
-      jsonBodyOf(result) shouldBe expectedJson
+      contentAsJson(result) shouldBe expectedJson
     }
 
     "return a 404 if a company registration document can't be found for the supplied reg id" in new Setup {
       when(mockAdminService.fetchHO6RegistrationInformation(eqTo(regId)))
         .thenReturn(Future.successful(None))
 
-      val result = await(controller.fetchHO6RegistrationInformation(regId)(FakeRequest()))
+      val result = controller.fetchHO6RegistrationInformation(regId)(FakeRequest())
 
       status(result) shouldBe 404
     }
@@ -112,17 +111,17 @@ class AdminControllerSpec extends UnitSpec with MockitoSugar {
       when(mockAdminService.fetchSessionIdData(eqTo(regId)))
         .thenReturn(Future.successful(Some(regInfo)))
 
-      val result = await(controller.fetchSessionIDData(regId)(FakeRequest()))
+      val result = controller.fetchSessionIDData(regId)(FakeRequest())
 
       status(result) shouldBe 200
-      jsonBodyOf(result) shouldBe expectedJson
+      contentAsJson(result) shouldBe expectedJson
     }
 
     "return a 204 if a company registration document can't be found for the supplied reg id" in new Setup {
       when(mockAdminService.fetchSessionIdData(eqTo(regId)))
         .thenReturn(Future.successful(None))
 
-      val result = await(controller.fetchSessionIDData(regId)(FakeRequest()))
+      val result = controller.fetchSessionIDData(regId)(FakeRequest())
 
       status(result) shouldBe 204
     }
@@ -142,10 +141,10 @@ class AdminControllerSpec extends UnitSpec with MockitoSugar {
         .thenReturn(mocks.head, mocks(1), mocks(2))
 
       outputs foreach { expected =>
-        val result: Result = await(controller.ctutrCheck(ackRef)(FakeRequest()))
+        val result = controller.ctutrCheck(ackRef)(FakeRequest())
 
         status(result) shouldBe 200
-        jsonBodyOf(result) shouldBe expected
+        contentAsJson(result) shouldBe expected
       }
     }
   }
@@ -193,17 +192,17 @@ class AdminControllerSpec extends UnitSpec with MockitoSugar {
       when(mockAdminService.updateRegistrationWithCTReference(any(), any(), any())(any()))
         .thenReturn(emptyMock)
 
-      val result: Result = await(controller.ctutrUpdate(ackRef)(jsrequest))
+      val result = controller.ctutrUpdate(ackRef)(jsrequest)
 
       status(result) shouldBe OK
-      jsonBodyOf(result) shouldBe Json.parse(json).as[JsObject]
+      contentAsJson(result) shouldBe Json.parse(json).as[JsObject]
     }
 
     "return no content if nothing was updated" in new Setup {
       when(mockAdminService.updateRegistrationWithCTReference(any(), any(), any())(any()))
         .thenReturn(Future.successful(None))
 
-      val result: Result = await(controller.ctutrUpdate(ackRef)(jsrequest))
+      val result = controller.ctutrUpdate(ackRef)(jsrequest)
 
       status(result) shouldBe NO_CONTENT
     }
@@ -226,12 +225,12 @@ class AdminControllerSpec extends UnitSpec with MockitoSugar {
       val sessionIdData = SessionIdData(Some("new-session-id"), Some("new-cred-id"), None, None)
 
       when(mockAdminService.updateDocSessionID(any(), any(), any(), any())(any()))
-        .thenReturn(sessionIdData)
+        .thenReturn(Future.successful(sessionIdData))
 
-      val result: Result = await(controller.updateSessionId(regId)(jsrequest))
+      val result = controller.updateSessionId(regId)(jsrequest)
 
       status(result) shouldBe OK
-      jsonBodyOf(result) shouldBe Json.toJson(sessionIdData)(SessionIdData.writes)
+      contentAsJson(result) shouldBe Json.toJson(sessionIdData)(SessionIdData.writes)
     }
 
     "fail if passed in invalid json" in new Setup {

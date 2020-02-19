@@ -21,7 +21,7 @@ import models.des.BusinessAddress
 import models.validation.{APIValidation, MongoValidation}
 import play.api.Logger
 import play.api.libs.json.Json
-import uk.gov.hmrc.play.test.LogCapturing
+import utils.LogCapturing
 
 class GroupsSpec extends BaseSpec with LogCapturing {
 

@@ -20,18 +20,18 @@ import java.util.UUID
 
 import auth.CryptoSCRS
 import com.google.inject.name.Names
-import itutil.{IntegrationSpecBase, WiremockHelper}
+import itutil.{IntegrationSpecBase, LogCapturing, WiremockHelper}
 import models._
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.inject.{BindingKey, QualifierInstance}
 import play.api.libs.json.{JsObject, Json, OWrites}
 import play.api.{Application, Logger}
+import play.api.test.Helpers._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.Cursor
 import reactivemongo.api.commands.WriteResult
 import repositories.CorporationTaxRegistrationMongoRepository
-import uk.gov.hmrc.play.test.LogCapturing
 
 import scala.concurrent.ExecutionContext.Implicits.global
 

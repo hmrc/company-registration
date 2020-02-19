@@ -18,11 +18,11 @@ package models.des
 
 import models._
 import org.joda.time.{DateTime, DateTimeZone}
+import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{JsObject, Json}
-import uk.gov.hmrc.play.test.UnitSpec
 
 
-class InterimDesRegistrationSpec extends UnitSpec {
+class InterimDesRegistrationSpec extends WordSpec with Matchers {
 
   "CompletionCapacity" should {
     "Construct a director" in { CompletionCapacity("Director") shouldBe Director }

@@ -17,18 +17,18 @@
 package models
 
 import models.validation.MongoValidation
+import org.scalatest.{Matchers, WordSpec}
 import play.api.data.validation.ValidationError
 import play.api.libs.json._
-import uk.gov.hmrc.play.test.UnitSpec
 
-class ContactDetailsSpec extends UnitSpec with JsonFormatValidation {
+class ContactDetailsSpec extends WordSpec with Matchers with JsonFormatValidation {
 
   type OS = Option[String]
   type S = String
 
   def lineEnd(comma: Boolean) = if (comma) "," else ""
 
-  def jsonLine(key: S, value: OS, comma: Boolean = true): OS = value.map(v =>s""""${key}" : "${v}"${lineEnd(comma)}""")
+  def jsonLine(key: S, value: OS, comma: Boolean = true): OS = value.map(v => s""""${key}" : "${v}"${lineEnd(comma)}""")
 
   def j(p: OS = None, m: OS = None, e: OS = Some("a@b.c")): S = {
     val extra: S = Seq(

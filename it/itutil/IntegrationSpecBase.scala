@@ -19,9 +19,8 @@ package itutil
 import org.scalatest._
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatestplus.play.OneServerPerSuite
-import uk.gov.hmrc.play.test.UnitSpec
 
-trait IntegrationSpecBase extends UnitSpec
+trait IntegrationSpecBase extends WordSpec
   with OneServerPerSuite with ScalaFutures with IntegrationPatience with Matchers
   with WiremockHelper with BeforeAndAfterEach with BeforeAndAfterAll with FakeAppConfig {
 

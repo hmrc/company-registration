@@ -17,10 +17,10 @@
 package utils
 
 import models.validation.APIValidation
-import uk.gov.hmrc.play.test.UnitSpec
+import org.scalatest.{Matchers, WordSpec}
 
 
-class APIValidationSpec extends UnitSpec {
+class APIValidationSpec extends WordSpec with Matchers {
 
   "APIValidation" should {
 

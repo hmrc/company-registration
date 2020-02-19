@@ -23,19 +23,18 @@ import models.{Email, UserAccessLimitReachedResponse, UserAccessSuccessResponse}
 import org.joda.time.{DateTime, DateTimeZone}
 import org.mockito.ArgumentMatchers.{any, anyString, eq => eqTo}
 import org.mockito.Mockito._
-import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
+import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
 import play.api.libs.json.Json
+import play.api.test.Helpers._
 import repositories.CorporationTaxRegistrationMongoRepository
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class UserAccessServiceSpec
-  extends UnitSpec with MockitoSugar with BusinessRegistrationFixture with CorporationTaxRegistrationFixture
-  with BeforeAndAfterEach with MockHelper {
+class UserAccessServiceSpec extends WordSpec with Matchers with MockitoSugar with BusinessRegistrationFixture
+  with CorporationTaxRegistrationFixture with BeforeAndAfterEach with MockHelper {
 
   val mockBRConnector = mock[BusinessRegistrationConnector]
   val mockCTRepo = mock[CorporationTaxRegistrationMongoRepository]
@@ -74,35 +73,35 @@ class UserAccessServiceSpec
 
     "return a UserAccessSuccessResponse with the created and confirmation ref flags set to false" in new Setup {
       when(mockBRConnector.retrieveMetadata(any(), any()))
-        .thenReturn(BusinessRegistrationSuccessResponse(businessRegistrationResponse(regId)))
+        .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistrationResponse(regId))))
       when(mockBRConnector.updateLastSignedIn(any(), any())(any()))
         .thenReturn(Future.successful(dateTime.toString))
       when(mockCTService.retrieveCorporationTaxRegistrationRecord(eqTo(regId), any[Option[DateTime]]()))
-        .thenReturn(Some(draftCorporationTaxRegistration(regId)))
+        .thenReturn(Future.successful(Some(draftCorporationTaxRegistration(regId))))
 
       await(service.checkUserAccess(internalId)) shouldBe Right(UserAccessSuccessResponse(regId, false, false, false))
     }
 
     "return a UserAccessLimitReachedResponse when the throttle service returns a false" in new Setup {
       when(mockBRConnector.retrieveMetadata(any(), any()))
-        .thenReturn(BusinessRegistrationNotFoundResponse)
+        .thenReturn(Future.successful(BusinessRegistrationNotFoundResponse))
       when(mockThrottleService.checkUserAccess)
         .thenReturn(Future(false))
       when(mockBRConnector.createMetadataEntry(any()))
-        .thenReturn(validBusinessRegistrationResponse)
+        .thenReturn(Future.successful(validBusinessRegistrationResponse))
       when(mockCTService.createCorporationTaxRegistrationRecord(anyString(), anyString(), anyString()))
-        .thenReturn(validDraftCorporationTaxRegistration)
+        .thenReturn(Future.successful(validDraftCorporationTaxRegistration))
 
       await(service.checkUserAccess("321")) shouldBe Left(Json.toJson(UserAccessLimitReachedResponse(true)))
     }
 
     "fail if the registration is missing" in new Setup {
       when(mockBRConnector.retrieveMetadata(any(), any()))
-        .thenReturn(BusinessRegistrationSuccessResponse(businessRegistrationResponse(regId)))
+        .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistrationResponse(regId))))
       when(mockBRConnector.updateLastSignedIn(any(), any())(any()))
         .thenReturn(Future.successful(dateTime.toString))
       when(mockCTService.retrieveCorporationTaxRegistrationRecord(eqTo(regId), any[Option[DateTime]]()))
-        .thenReturn(None)
+        .thenReturn(Future.successful(None))
 
       intercept[MissingRegistration] {
         await(service.checkUserAccess(internalId))
@@ -110,17 +109,17 @@ class UserAccessServiceSpec
     }
 
     "be successful with no conf refs but with email info" in new Setup {
-      val expectedEmail = Email("a@a.a", "GG",true, false, false)
+      val expectedEmail = Email("a@a.a", "GG", true, false, false)
       val draftCTReg = draftCorporationTaxRegistration(regId).copy(verifiedEmail = Some(expectedEmail))
 
       when(mockBRConnector.retrieveMetadata(any(), any()))
-        .thenReturn(BusinessRegistrationNotFoundResponse)
+        .thenReturn(Future.successful(BusinessRegistrationNotFoundResponse))
       when(mockThrottleService.checkUserAccess)
         .thenReturn(Future(true))
       when(mockBRConnector.createMetadataEntry(any()))
-        .thenReturn(businessRegistrationResponse(regId))
+        .thenReturn(Future.successful(businessRegistrationResponse(regId)))
       when(mockCTService.createCorporationTaxRegistrationRecord(anyString(), anyString(), anyString()))
-        .thenReturn(draftCTReg)
+        .thenReturn(Future.successful(draftCTReg))
 
       await(service.checkUserAccess(internalId)) shouldBe
         Right(UserAccessSuccessResponse(regId, true, false, false, Some(expectedEmail)))
@@ -128,31 +127,31 @@ class UserAccessServiceSpec
 
     "return a UserAccessSuccessResponse with the created flag set to true" in new Setup {
       when(mockBRConnector.retrieveMetadata(any(), any()))
-        .thenReturn(BusinessRegistrationNotFoundResponse)
+        .thenReturn(Future.successful(BusinessRegistrationNotFoundResponse))
       when(mockThrottleService.checkUserAccess)
         .thenReturn(Future(true))
       when(mockBRConnector.createMetadataEntry(any()))
-        .thenReturn(businessRegistrationResponse(regId))
+        .thenReturn(Future.successful(businessRegistrationResponse(regId)))
       when(mockCTService.createCorporationTaxRegistrationRecord(anyString(), anyString(), anyString()))
-        .thenReturn(draftCorporationTaxRegistration(regId))
+        .thenReturn(Future.successful(draftCorporationTaxRegistration(regId)))
 
       await(service.checkUserAccess("321")) shouldBe Right(UserAccessSuccessResponse("12345", true, false, false))
     }
 
     "return a UserAccessSuccessResponse with the confirmation refs flag set to true" in new Setup {
       when(mockBRConnector.retrieveMetadata(any(), any()))
-        .thenReturn(BusinessRegistrationSuccessResponse(businessRegistrationResponse(regId)))
+        .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistrationResponse(regId))))
       when(mockBRConnector.updateLastSignedIn(any(), any())(any()))
         .thenReturn(Future.successful(dateTime.toString))
       when(mockCTService.retrieveCorporationTaxRegistrationRecord(eqTo(regId), any()))
-        .thenReturn(Some(validHeldCTRegWithData(regId)))
+        .thenReturn(Future.successful(Some(validHeldCTRegWithData(regId))))
 
       await(service.checkUserAccess(internalId)) shouldBe Right(UserAccessSuccessResponse(regId, false, true, true))
     }
 
     "return an error when retrieving metadata returns a forbidden response" in new Setup {
       when(mockBRConnector.retrieveMetadata(any(), any()))
-        .thenReturn(BusinessRegistrationForbiddenResponse)
+        .thenReturn(Future.successful(BusinessRegistrationForbiddenResponse))
 
       val ex = intercept[Exception](await(service.checkUserAccess(internalId)))
       ex.getMessage shouldBe "Something went wrong"

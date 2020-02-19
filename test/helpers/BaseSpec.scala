@@ -17,8 +17,7 @@
 package helpers
 
 import mocks.SCRSMocks
-import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
-import uk.gov.hmrc.play.test.UnitSpec
+import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
 
-trait BaseSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEach with SCRSMocks
+trait BaseSpec extends WordSpec with Matchers with MockitoSugar with BeforeAndAfterEach with SCRSMocks

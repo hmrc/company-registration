@@ -22,6 +22,7 @@ import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws.WS
+import play.api.test.Helpers._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.play.json._
 import repositories.CorporationTaxRegistrationMongoRepository

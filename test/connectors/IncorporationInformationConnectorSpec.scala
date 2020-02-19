@@ -17,22 +17,22 @@
 package connectors
 
 import fixtures.BusinessRegistrationFixture
-import mocks.SCRSMocks
+import helpers.BaseSpec
 import models.IncorpStatus
 import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
-import org.scalatest.mockito.MockitoSugar
 import play.api.Logger
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{AnyContent, Request}
 import play.api.test.FakeRequest
+import play.api.test.Helpers._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, NotFoundException, Upstream5xxResponse}
-import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
+import utils.LogCapturing
 
 import scala.concurrent.Future
 
-class IncorporationInformationConnectorSpec extends UnitSpec with MockitoSugar with SCRSMocks with BusinessRegistrationFixture with LogCapturing {
+class IncorporationInformationConnectorSpec extends BaseSpec with BusinessRegistrationFixture with LogCapturing {
 
   val tRegime = "testRegime"
   val tSubscriber = "testSubscriber"
@@ -97,28 +97,28 @@ class IncorporationInformationConnectorSpec extends UnitSpec with MockitoSugar w
     "make a http POST request to Incorporation Information micro-service to register an interest and return 202" in new Setup {
       when(mockWSHttp.POST[JsValue, HttpResponse](ArgumentMatchers.anyString(), ArgumentMatchers.any[JsValue](), ArgumentMatchers.any())
         (ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any()))
-        .thenReturn(HttpResponse(202))
+        .thenReturn(Future.successful(HttpResponse(202)))
 
       await(connector.registerInterest(regId, txId)) shouldBe true
     }
     "not make a http POST request to Incorporation Information micro-service to register an interest and return any other 2xx" in new Setup {
       when(mockWSHttp.POST[JsValue, HttpResponse](ArgumentMatchers.anyString(), ArgumentMatchers.any[JsValue](), ArgumentMatchers.any())
         (ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any()))
-        .thenReturn(HttpResponse(200))
+        .thenReturn(Future.successful(HttpResponse(200)))
 
       intercept[RuntimeException](await(connector.registerInterest(regId, txId)))
     }
     "not make a http POST request to Incorporation Information micro-service to register an interest and return any 4xx" in new Setup {
       when(mockWSHttp.POST[JsValue, HttpResponse](ArgumentMatchers.anyString(), ArgumentMatchers.any[JsValue](), ArgumentMatchers.any())
         (ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any()))
-        .thenReturn(HttpResponse(400))
+        .thenReturn(Future.successful(HttpResponse(400)))
 
       intercept[RuntimeException](await(connector.registerInterest(regId, txId)))
     }
     "not make a http POST request to Incorporation Information micro-service to register an interest and return any 5xx" in new Setup {
       when(mockWSHttp.POST[JsValue, HttpResponse](ArgumentMatchers.anyString(), ArgumentMatchers.any[JsValue](), ArgumentMatchers.any())
         (ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any()))
-        .thenReturn(HttpResponse(500))
+        .thenReturn(Future.successful(HttpResponse(500)))
 
       intercept[RuntimeException](await(connector.registerInterest(regId, txId)))
     }
@@ -140,7 +140,7 @@ class IncorporationInformationConnectorSpec extends UnitSpec with MockitoSugar w
     }
     "not make a http DELETE request to Incorporation Information micro-service to register an interest and return any other 2xx" in new Setup {
       when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.anyString(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
-        .thenReturn(HttpResponse(202))
+        .thenReturn(Future.successful(HttpResponse(202)))
 
       intercept[RuntimeException](await(connector.cancelSubscription(regId, txId)))
     }
@@ -166,7 +166,7 @@ class IncorporationInformationConnectorSpec extends UnitSpec with MockitoSugar w
       "the CRN is not there" in new Setup {
         val expectedURL = s"${connector.iiUrl}/incorporation-information/$txId/incorporation-update"
         when(mockWSHttp.GET[HttpResponse](ArgumentMatchers.eq(expectedURL))(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
-          .thenReturn(HttpResponse(200))
+          .thenReturn(Future.successful(HttpResponse(200)))
 
         await(connector.checkCompanyIncorporated(txId)) shouldBe None
       }
@@ -174,7 +174,7 @@ class IncorporationInformationConnectorSpec extends UnitSpec with MockitoSugar w
       "on a no content response" in new Setup {
         val expectedURL = s"${connector.iiUrl}/incorporation-information/$txId/incorporation-update"
         when(mockWSHttp.GET[HttpResponse](ArgumentMatchers.eq(expectedURL))(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
-          .thenReturn(HttpResponse(204))
+          .thenReturn(Future.successful(HttpResponse(204)))
 
         await(connector.checkCompanyIncorporated(txId)) shouldBe None
       }
@@ -184,7 +184,7 @@ class IncorporationInformationConnectorSpec extends UnitSpec with MockitoSugar w
       "the CRN is there" in new Setup {
         val expectedURL = s"${connector.iiUrl}/incorporation-information/$txId/incorporation-update"
         when(mockWSHttp.GET[HttpResponse](ArgumentMatchers.eq(expectedURL))(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
-          .thenReturn(HttpResponse(200, Some(Json.obj("crn" -> "crn"))))
+          .thenReturn(Future.successful(HttpResponse(200, Some(Json.obj("crn" -> "crn")))))
 
         withCaptureOfLoggingFrom(Logger) { logs =>
           await(connector.checkCompanyIncorporated(txId)) shouldBe Some("crn")

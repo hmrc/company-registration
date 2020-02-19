@@ -20,6 +20,7 @@ import helpers.BaseSpec
 import mocks.AuthorisationMocks
 import play.api.test.FakeRequest
 import play.api.mvc.Results.Ok
+import play.api.test.Helpers._
 import repositories.MissingCTDocument
 import uk.gov.hmrc.auth.core.{BearerTokenExpired, InvalidBearerToken, MissingBearerToken, SessionRecordNotFound}
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
@@ -48,7 +49,7 @@ class AuthorisedActionsSpec extends BaseSpec with AuthorisationMocks {
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.successful(internalId))
 
-      val result = await(authorisedActions.AuthorisedAction(registrationID).async(block)(request))
+      val result = authorisedActions.AuthorisedAction(registrationID).async(block)(request)
       status(result) shouldBe 200
     }
 
@@ -56,7 +57,7 @@ class AuthorisedActionsSpec extends BaseSpec with AuthorisationMocks {
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.failed(new MissingCTDocument("hfbhdbf")))
 
-      val result = await(authorisedActions.AuthorisedAction(registrationID).async(block)(request))
+      val result = authorisedActions.AuthorisedAction(registrationID).async(block)(request)
       status(result) shouldBe 404
     }
 
@@ -64,7 +65,7 @@ class AuthorisedActionsSpec extends BaseSpec with AuthorisationMocks {
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.successful(otherInternalID))
 
-      val result = await(authorisedActions.AuthorisedAction(registrationID).async(block)(request))
+      val result = authorisedActions.AuthorisedAction(registrationID).async(block)(request)
       status(result) shouldBe 403
     }
 
@@ -78,7 +79,7 @@ class AuthorisedActionsSpec extends BaseSpec with AuthorisationMocks {
       ) foreach { ex =>
         mockAuthorise(Future.failed(ex))
 
-        val result = await(authorisedActions.AuthorisedAction(registrationID).async(block)(request))
+        val result = authorisedActions.AuthorisedAction(registrationID).async(block)(request)
         status(result) shouldBe 401
       }
     }

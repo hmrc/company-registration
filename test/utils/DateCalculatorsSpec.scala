@@ -20,10 +20,9 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 import org.joda.time.DateTime
-import org.scalatest.BeforeAndAfterEach
-import uk.gov.hmrc.play.test.UnitSpec
+import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
 
-class DateCalculatorsSpec extends UnitSpec with BeforeAndAfterEach {
+class DateCalculatorsSpec extends WordSpec with Matchers with BeforeAndAfterEach {
 
   "getTheDay" should {
     "return todays day" in {

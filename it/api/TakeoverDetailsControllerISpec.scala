@@ -20,10 +20,10 @@ import auth.CryptoSCRS
 import itutil.{IntegrationSpecBase, LoginStub, WiremockHelper}
 import models.{Address, CorporationTaxRegistration, RegistrationStatus, TakeoverDetails}
 import play.api.Application
-import play.api.http.Status._
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.libs.ws.WS
+import play.api.test.Helpers._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.WriteResult
 import repositories.CorporationTaxRegistrationMongoRepository
@@ -61,7 +61,7 @@ class TakeoverDetailsControllerISpec extends IntegrationSpecBase with LoginStub 
     await(repository.drop)
     await(repository.ensureIndexes)
 
-    def setupCTRegistration(reg: CorporationTaxRegistration): WriteResult = repository.insert(reg)
+    def setupCTRegistration(reg: CorporationTaxRegistration): WriteResult = await(repository.insert(reg))
   }
 
   private def ctDoc(details: Option[TakeoverDetails] = None): CorporationTaxRegistration = CorporationTaxRegistration(

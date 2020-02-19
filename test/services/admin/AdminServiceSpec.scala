@@ -23,23 +23,24 @@ import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{when, _}
 import org.mockito.{ArgumentCaptor, ArgumentMatchers}
-import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.Eventually
 import org.scalatest.mockito.MockitoSugar
+import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
 import play.api.libs.json.Json
 import play.api.mvc.{AnyContent, Request}
 import play.api.test.FakeRequest
+import play.api.test.Helpers._
 import repositories.CorporationTaxRegistrationMongoRepository
 import services.FailedToDeleteSubmissionData
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, NotFoundException, Upstream4xxResponse}
 import uk.gov.hmrc.lock.LockKeeper
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
-import uk.gov.hmrc.play.test.UnitSpec
 
+import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
 
-class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEach with Eventually {
+class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with BeforeAndAfterEach with Eventually {
 
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
   val mockIncorpInfoConnector: IncorporationInformationConnector = mock[IncorporationInformationConnector]
@@ -82,7 +83,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
 
   val sessionIdData = SessionIdData(Some("session-id"), Some("credId"), Some("fakeCompanyName"), Some(ackRef))
 
-  def makeSessionReg(sessionIds : Option[SessionIdData]) = CorporationTaxRegistration(
+  def makeSessionReg(sessionIds: Option[SessionIdData]) = CorporationTaxRegistration(
     internalId = "testID",
     registrationID = "registrationId",
     formCreationTimestamp = "dd-mm-yyyy",
@@ -124,23 +125,23 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
 
   "adminCTUTRCheck" should {
     "return the Status and presence of CTUTR as valid JSON" when {
-       "using a valid AckRef" in new Setup {
-         val id = "BRCT09876543210"
-         val expected = Json.parse(
-           """
-             |{
-             | "status": "04",
-             | "ctutr": true
-             |}
+      "using a valid AckRef" in new Setup {
+        val id = "BRCT09876543210"
+        val expected = Json.parse(
+          """
+            |{
+            | "status": "04",
+            | "ctutr": true
+            |}
            """.stripMargin
-         )
+        )
 
-         when(mockCorpTaxRegistrationRepo.retrieveStatusAndExistenceOfCTUTR(any()))
-           .thenReturn(Future.successful(Option("04" -> true)))
+        when(mockCorpTaxRegistrationRepo.retrieveStatusAndExistenceOfCTUTR(any()))
+          .thenReturn(Future.successful(Option("04" -> true)))
 
-         val result = await(service.ctutrCheck(id))
+        val result = await(service.ctutrCheck(id))
 
-         result shouldBe expected
+        result shouldBe expected
       }
       "the valid AckRef retrieves no stored document" in new Setup {
         val id = "BRCT09876543210"
@@ -155,7 +156,8 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
 
   "updateRegistrationWithAdminCTReference" should {
     val timestamp = "timestamp"
-    def makeReg(utr : Option[String]) = CorporationTaxRegistration(
+
+    def makeReg(utr: Option[String]) = CorporationTaxRegistration(
       internalId = "testID",
       registrationID = "registrationId",
       formCreationTimestamp = "dd-mm-yyyy",
@@ -208,11 +210,11 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
       eventually {
         verify(mockAuditConnector, times(1)).sendExtendedEvent(captor.capture())(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any[ExecutionContext]())
       }
-      val audit = captor.getAllValues
+      val audit: List[AdminCTReferenceEvent] = captor.getAllValues.asScala.toList
 
-      audit.get(0).auditType shouldBe "adminCtReference"
-      (audit.get(0).detail \ "utrChanges" \ "previousUtr").as[String] shouldBe ctUtr
-      (audit.get(0).detail \ "utrChanges" \ "newUtr"     ).as[String] shouldBe newUtr
+      audit.head.auditType shouldBe "adminCtReference"
+      (audit.head.detail \ "utrChanges" \ "previousUtr").as[String] shouldBe ctUtr
+      (audit.head.detail \ "utrChanges" \ "newUtr").as[String] shouldBe newUtr
     }
 
     "update a previously rejected registration with the new admin ct reference" in new Setup {
@@ -238,11 +240,11 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
       eventually {
         verify(mockAuditConnector, times(1)).sendExtendedEvent(captor.capture())(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any[ExecutionContext]())
       }
-      val audit = captor.getAllValues
+      val audit: List[AdminCTReferenceEvent] = captor.getAllValues.asScala.toList
 
-      audit.get(0).auditType shouldBe "adminCtReference"
-      (audit.get(0).detail \ "utrChanges" \ "previousUtr").as[String] shouldBe "NO-UTR"
-      (audit.get(0).detail \ "utrChanges" \ "newUtr"     ).as[String] shouldBe newUtr
+      audit.head.auditType shouldBe "adminCtReference"
+      (audit.head.detail \ "utrChanges" \ "previousUtr").as[String] shouldBe "NO-UTR"
+      (audit.head.detail \ "utrChanges" \ "newUtr").as[String] shouldBe newUtr
     }
 
     "do not update a registration with the new admin ct reference that does not exist" in new Setup {
@@ -271,7 +273,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
       "it does not exist any of the databases" in new Setup {
         val inputs = List((true, false), (false, true), (false, false))
 
-        for((brResult, crResult) <- inputs) {
+        for ((brResult, crResult) <- inputs) {
           when(mockBusRegConnector.adminRemoveMetadata(any()))
             .thenReturn(
               Future.successful(brResult)
@@ -395,7 +397,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
       }
       "three are older than 90 days, and one has a status of submitted" in new Setup {
         when(mockCorpTaxRegistrationRepo.retrieveStaleDocuments(any(), any()))
-          .thenReturn(Future.successful(List.fill(2)(exampleDoc).::(exampleDoc.copy(status="submitted"))))
+          .thenReturn(Future.successful(List.fill(2)(exampleDoc).::(exampleDoc.copy(status = "submitted"))))
         when(mockBusRegConnector.adminRemoveMetadata(any()))
           .thenReturn(Future.successful(true))
         when(mockCorpTaxRegistrationRepo.removeTaxRegistrationById(any()))
@@ -404,7 +406,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
       }
       "three are older than 90 days, and one is on the whitelist" in new Setup {
         when(mockCorpTaxRegistrationRepo.retrieveStaleDocuments(any(), any()))
-          .thenReturn(Future.successful(List.fill(2)(exampleDoc).::(exampleDoc.copy(registrationID="2"))))
+          .thenReturn(Future.successful(List.fill(2)(exampleDoc).::(exampleDoc.copy(registrationID = "2"))))
         when(mockBusRegConnector.adminRemoveMetadata(any()))
           .thenReturn(Future.successful(true))
         when(mockCorpTaxRegistrationRepo.removeTaxRegistrationById(any()))
@@ -487,7 +489,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
       }
 
       "the document is held or locked, has confirmation references and successfully deletes BR and CR document" in new Setup {
-        val confRefExampleDoc = exampleDoc.copy(status= "held", confirmationReferences = Some(ConfirmationReferences("", "", None, None)))
+        val confRefExampleDoc = exampleDoc.copy(status = "held", confirmationReferences = Some(ConfirmationReferences("", "", None, None)))
 
         when(mockIncorpInfoConnector.checkCompanyIncorporated(any())(any()))
           .thenReturn(Future.successful(None))
@@ -500,7 +502,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
         when(mockCorpTaxRegistrationRepo.removeTaxRegistrationById(any()))
           .thenReturn(Future.successful(true))
         when(mockAuditConnector.sendExtendedEvent(any())(any(), any()))
-            .thenReturn(Future.successful(AuditResult.Success))
+          .thenReturn(Future.successful(AuditResult.Success))
 
         await(service.processStaleDocument(confRefExampleDoc)) shouldBe true
 
@@ -510,7 +512,7 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
 
     "return false" when {
       "the document is held or locked with a CRN" in new Setup {
-        val confRefWithCRNExampleDoc = exampleDoc.copy(status= "held", confirmationReferences = Some(ConfirmationReferences("", "transID", None, None)))
+        val confRefWithCRNExampleDoc = exampleDoc.copy(status = "held", confirmationReferences = Some(ConfirmationReferences("", "transID", None, None)))
 
         when(mockIncorpInfoConnector.checkCompanyIncorporated(any())(any()))
           .thenReturn(Future.successful(Some("CRN found")))
@@ -519,21 +521,21 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
       }
 
       "the document is held or locked with failure to send a rejection topup" in new Setup {
-        val confRefWithCRNExampleDoc = exampleDoc.copy(status= "locked", confirmationReferences = Some(ConfirmationReferences("", "transID", None, None)))
+        val confRefWithCRNExampleDoc = exampleDoc.copy(status = "locked", confirmationReferences = Some(ConfirmationReferences("", "transID", None, None)))
 
         when(mockIncorpInfoConnector.checkCompanyIncorporated(any())(any()))
           .thenReturn(Future.successful(None))
-        when(mockDesConnector.topUpCTSubmission(any(),any(),any(),any())(any()))
+        when(mockDesConnector.topUpCTSubmission(any(), any(), any(), any())(any()))
           .thenReturn(Future.failed(new Upstream4xxResponse("test", 400, 400, Map())))
 
         await(service.processStaleDocument(confRefWithCRNExampleDoc)) shouldBe false
       }
       "the document is held or locked with failure to delete the BR document" in new Setup {
-        val confRefWithCRNExampleDoc = exampleDoc.copy(status= "held", confirmationReferences = Some(ConfirmationReferences("", "transID", None, None)))
+        val confRefWithCRNExampleDoc = exampleDoc.copy(status = "held", confirmationReferences = Some(ConfirmationReferences("", "transID", None, None)))
 
         when(mockIncorpInfoConnector.checkCompanyIncorporated(any())(any()))
           .thenReturn(Future.successful(None))
-        when(mockDesConnector.topUpCTSubmission(any(),any(),any(),any())(any()))
+        when(mockDesConnector.topUpCTSubmission(any(), any(), any(), any())(any()))
           .thenReturn(Future.successful(HttpResponse(200)))
         when(mockBusRegConnector.adminRemoveMetadata(any()))
           .thenReturn(Future.failed(new RuntimeException("failed to delete BR doc")))
@@ -541,11 +543,11 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
         await(service.processStaleDocument(confRefWithCRNExampleDoc)) shouldBe false
       }
       "the document is held or locked with failure to delete the CR document" in new Setup {
-        val confRefWithCRNExampleDoc = exampleDoc.copy(status= "held", confirmationReferences = Some(ConfirmationReferences("", "transID", None, None)))
+        val confRefWithCRNExampleDoc = exampleDoc.copy(status = "held", confirmationReferences = Some(ConfirmationReferences("", "transID", None, None)))
 
         when(mockIncorpInfoConnector.checkCompanyIncorporated(any())(any()))
           .thenReturn(Future.successful(None))
-        when(mockDesConnector.topUpCTSubmission(any(),any(),any(),any())(any()))
+        when(mockDesConnector.topUpCTSubmission(any(), any(), any(), any())(any()))
           .thenReturn(Future.successful(HttpResponse(200)))
         when(mockBusRegConnector.adminRemoveMetadata(any()))
           .thenReturn(Future.successful(true))
@@ -582,11 +584,11 @@ class AdminServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
         eventually {
           verify(mockAuditConnector, times(1)).sendExtendedEvent(captor.capture())(any[HeaderCarrier](), any[ExecutionContext]())
         }
-        val audit = captor.getAllValues
+        val audit: List[AdminSessionIDEvent] = captor.getAllValues.asScala.toList
 
-        audit.get(0).auditType shouldBe "adminSessionID"
-        (audit.get(0).detail \ "oldSessionId").as[String] shouldBe sessionIdData.sessionId.get
-        (audit.get(0).detail \ "sessionId").as[String] shouldBe newSessionId
+        audit.head.auditType shouldBe "adminSessionID"
+        (audit.head.detail \ "oldSessionId").as[String] shouldBe sessionIdData.sessionId.get
+        (audit.head.detail \ "sessionId").as[String] shouldBe newSessionId
       }
       "audit event fails" in new Setup {
         val data = Some(sessionIdData.copy(sessionId = Some(newSessionId), credId = Some(newCredId)))

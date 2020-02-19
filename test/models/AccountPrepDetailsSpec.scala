@@ -17,11 +17,11 @@
 package models
 
 import helpers.DateHelper
+import org.scalatest.{Matchers, WordSpec}
 import play.api.data.validation.ValidationError
 import play.api.libs.json._
-import uk.gov.hmrc.play.test.UnitSpec
 
-class AccountPrepDetailsSpec extends UnitSpec with JsonFormatValidation with DateHelper {
+class AccountPrepDetailsSpec extends WordSpec with Matchers with JsonFormatValidation with DateHelper {
 
   import AccountPrepDetails.COMPANY_DEFINED
 

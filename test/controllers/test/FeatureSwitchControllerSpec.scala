@@ -21,12 +21,12 @@ import akka.stream.ActorMaterializer
 import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
+import org.scalatest.{Matchers, WordSpec}
 import org.scalatest.mockito.MockitoSugar
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.play.test.UnitSpec
 
-class FeatureSwitchControllerSpec extends UnitSpec with MockitoSugar {
+class FeatureSwitchControllerSpec extends WordSpec with Matchers with MockitoSugar {
 
   implicit val system = ActorSystem("CR")
   implicit val materializer = ActorMaterializer()
@@ -45,7 +45,7 @@ class FeatureSwitchControllerSpec extends UnitSpec with MockitoSugar {
     "return a 200 and display all feature flags and their status " in new Setup {
       val result = controller.show(FakeRequest())
       status(result) shouldBe 200
-      bodyOf(await(result)) shouldBe ""
+      contentAsString(result) shouldBe ""
     }
   }
 

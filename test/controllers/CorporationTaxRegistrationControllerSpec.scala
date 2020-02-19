@@ -65,7 +65,7 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
         .thenReturn(Future.successful(draftCorporationTaxRegistration(regId)))
       val response = buildCTRegistrationResponse(regId)
 
-      val result = await(controller.createCorporationTaxRegistration(regId)(request))
+      val result = controller.createCorporationTaxRegistration(regId)(request)
       status(result) shouldBe CREATED
       contentAsJson(result) shouldBe Json.toJson(response)
     }
@@ -89,7 +89,7 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
       when(mockCTDataService.retrieveCorporationTaxRegistrationRecord(eqTo(regId), any()))
         .thenReturn(Future.successful(Some(draftCorporationTaxRegistration(regId))))
 
-      val result = await(controller.retrieveCorporationTaxRegistration(regId)(FakeRequest()))
+      val result = controller.retrieveCorporationTaxRegistration(regId)(FakeRequest())
       status(result) shouldBe OK
       contentAsJson(result) shouldBe Json.toJson(ctRegistrationResponse)
     }
@@ -100,7 +100,7 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
 
       CTServiceMocks.retrieveCTDataRecord(regId, None)
 
-      val result = await(controller.retrieveCorporationTaxRegistration(regId)(FakeRequest()))
+      val result = controller.retrieveCorporationTaxRegistration(regId)(FakeRequest())
       status(result) shouldBe NOT_FOUND
     }
 
@@ -120,7 +120,7 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
 
       CTServiceMocks.retrieveCTDataRecord(regId, Some(validDraftCorporationTaxRegistration))
 
-      val result = await(controller.retrieveFullCorporationTaxRegistration(regId)(FakeRequest()))
+      val result = controller.retrieveFullCorporationTaxRegistration(regId)(FakeRequest())
       status(result) shouldBe OK
       contentAsJson(result) shouldBe Json.toJson(validDraftCorporationTaxRegistration)(CorporationTaxRegistration.format(MongoValidation, mockInstanceOfCrypto))
     }
@@ -131,7 +131,7 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
 
       CTServiceMocks.retrieveCTDataRecord(regId, None)
 
-      val result = await(controller.retrieveFullCorporationTaxRegistration(regId)(FakeRequest()))
+      val result = controller.retrieveFullCorporationTaxRegistration(regId)(FakeRequest())
       status(result) shouldBe NOT_FOUND
     }
 
@@ -153,7 +153,7 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
       when(mockCTDataService.retrieveConfirmationReferences(ArgumentMatchers.eq(regId)))
         .thenReturn(Future.successful(Some(expected)))
 
-      val result = await(controller.retrieveConfirmationReference(regId)(FakeRequest()))
+      val result = controller.retrieveConfirmationReference(regId)(FakeRequest())
       status(result) shouldBe OK
       contentAsJson(result) shouldBe Json.toJson(expected)
     }
@@ -189,7 +189,7 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
       val request = FakeRequest().withBody(progressRequest(progress))
       when(mockCTDataService.updateRegistrationProgress(ArgumentMatchers.eq(regId), ArgumentMatchers.any[String]())).
         thenReturn(Future.successful(Some("")))
-      val response = await(controller.updateRegistrationProgress(regId)(request))
+      val response = controller.updateRegistrationProgress(regId)(request)
 
       status(response) shouldBe OK
 
@@ -208,7 +208,7 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
       when(mockCTDataService.updateRegistrationProgress(eqTo(regId), any())).
         thenReturn(Future.successful(None))
 
-      val result = await(controller.updateRegistrationProgress(regId)(request))
+      val result = controller.updateRegistrationProgress(regId)(request)
       status(result) shouldBe NOT_FOUND
     }
   }
@@ -219,20 +219,20 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
 
     "return an OK if the RO address can be converted to a PPOB address" in new Setup {
       when(mockCTDataService.convertROToPPOBAddress(ArgumentMatchers.any()))
-        .thenReturn(Future.successful(Some(PPOBAddress("test", "test", None, None, None, None, None, "test"))))
+        .thenReturn(Some(PPOBAddress("test", "test", None, None, None, None, None, "test")))
 
       val request = FakeRequest().withBody(cHROAddress)
-      val response = await(controller.convertAndReturnRoAddressIfValidInPPOBFormat()(request))
+      val response = controller.convertAndReturnRoAddressIfValidInPPOBFormat()(request)
 
       status(response) shouldBe OK
     }
 
     "return a Bad Request if the RO address cannot be converted to a PPOB address" in new Setup {
       when(mockCTDataService.convertROToPPOBAddress(ArgumentMatchers.any()))
-        .thenReturn(Future.successful(None))
+        .thenReturn(None)
 
       val request = FakeRequest().withBody(cHROAddress)
-      val response = await(controller.convertAndReturnRoAddressIfValidInPPOBFormat()(request))
+      val response = controller.convertAndReturnRoAddressIfValidInPPOBFormat()(request)
 
       status(response) shouldBe BAD_REQUEST
     }
@@ -242,7 +242,7 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
     val anyCHROAddress = Json.toJson(CHROAddress("p","14 St Test Walk",Some("Test"),"c","l",Some("pb"),Some("TE1 1ST"),Some("r")))
     "return an ok if the Ro can be converted to a Business Address" in new Setup {
       when(mockCTDataService.convertRoToBusinessAddress(ArgumentMatchers.any())).thenReturn(
-        Future.successful(Some(BusinessAddress("1 abc","2 abc",Some("3 abc"),Some("4 abc"),Some("ZZ1 1ZZ"),Some("foo")))))
+        Some(BusinessAddress("1 abc","2 abc",Some("3 abc"),Some("4 abc"),Some("ZZ1 1ZZ"),Some("foo"))))
 
       val request = FakeRequest().withBody(anyCHROAddress)
       val response = controller.convertAndReturnRoAddressIfValidInBusinessAddressFormat(request)
@@ -262,7 +262,7 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
     }
     "return bad request is ro address is invalid and cant be converted into a business address" in new Setup {
       when(mockCTDataService.convertRoToBusinessAddress(ArgumentMatchers.any())).thenReturn(
-        Future.successful(None))
+        None)
 
       val request = FakeRequest().withBody(anyCHROAddress)
       val response = controller.convertAndReturnRoAddressIfValidInBusinessAddressFormat(request)

@@ -1,4 +1,4 @@
-import sbt.Keys._
+
 import sbt._
 import uk.gov.hmrc.SbtAutoBuildPlugin
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
@@ -24,9 +24,9 @@ private object AppDependencies {
   private val hmrcTestVersion = "3.9.0-play-25"
   private val reactiveMongoVersion = "7.23.0-play-25"
   private val mockitoVersion = "3.2.4"
-  private val scalatestPlusPlayVersion = "2.0.0"
+  private val scalatestPlusPlayVersion = "2.0.1"
   private val mongoLockVersion = "6.18.0-play-25"
-  private val authClientVersion = "2.32.1-play-25"
+  private val authClientVersion = "2.33.0-play-25"
 
   val compile = Seq(
     ws,
@@ -51,13 +51,11 @@ private object AppDependencies {
   object Test {
     def apply() = new TestDependencies {
       override lazy val test = Seq(
-        "uk.gov.hmrc" %% "hmrctest" % hmrcTestVersion % scope,
-        "org.scalatest" %% "scalatest" % "3.0.0" % scope,
         "org.scalatestplus.play" %% "scalatestplus-play" % scalatestPlusPlayVersion % scope,
         "org.pegdown" % "pegdown" % "1.6.0" % scope,
         "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
         "org.mockito" % "mockito-core" % mockitoVersion % scope,
-        "uk.gov.hmrc" %% "reactivemongo-test" % "4.15.0-play-25" % scope
+        "uk.gov.hmrc" %% "reactivemongo-test" % "4.16.0-play-25" % scope
       )
     }.test
   }
@@ -68,8 +66,6 @@ private object AppDependencies {
       override lazy val scope: String = "it"
 
       override lazy val test = Seq(
-        "uk.gov.hmrc" %% "hmrctest" % hmrcTestVersion % scope,
-        "org.scalatest" %% "scalatest" % "3.0.0" % scope,
         "org.pegdown" % "pegdown" % "1.6.0" % scope,
         "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
         "org.scalatestplus.play" %% "scalatestplus-play" % scalatestPlusPlayVersion % scope,

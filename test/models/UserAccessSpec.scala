@@ -16,16 +16,16 @@
 
 package models
 
+import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{JsObject, Json}
-import uk.gov.hmrc.play.test.UnitSpec
 
 
-class UserAccessSpec extends UnitSpec {
+class UserAccessSpec extends WordSpec with Matchers {
 
   "UserAccessModel" should {
     "With no email, be able to be parsed into JSON" in {
 
-      val json : String =
+      val json: String =
         s"""
            |{
            |  "registration-id" : "regID",
@@ -38,7 +38,7 @@ class UserAccessSpec extends UnitSpec {
       val testModel =
         UserAccessSuccessResponse(
           "regID",
-          created= true,
+          created = true,
           confRefs = false,
           paymentRefs = false
         )
@@ -50,7 +50,7 @@ class UserAccessSpec extends UnitSpec {
 
     "With email, be able to be parsed into JSON" in {
 
-      val json : String =
+      val json: String =
         s"""
            |{
            |  "registration-id" : "regID",
@@ -64,7 +64,7 @@ class UserAccessSpec extends UnitSpec {
       val testModel =
         UserAccessSuccessResponse(
           "regID",
-          created= true,
+          created = true,
           confRefs = false,
           paymentRefs = false,
           verifiedEmail = Some(Email("a@a.a", "GG", true, false, false))

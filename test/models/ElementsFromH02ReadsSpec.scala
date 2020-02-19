@@ -16,10 +16,10 @@
 
 package models
 
+import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.Json
-import uk.gov.hmrc.play.test.UnitSpec
 
-class ElementsFromH02ReadsSpec extends UnitSpec{
+class ElementsFromH02ReadsSpec extends WordSpec with Matchers {
 
   val jsonParsedTxidInObj = Json.parse(
     """{

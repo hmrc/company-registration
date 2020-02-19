@@ -24,14 +24,16 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
 import org.scalatest.concurrent.Eventually
 import org.scalatest.mockito.MockitoSugar
+import org.scalatest.{Matchers, WordSpec}
 import play.api.{Configuration, Logger}
+import play.api.test.Helpers._
 import repositories._
 import services.admin.{AdminService, AdminServiceImpl}
-import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
+import utils.LogCapturing
 
 import scala.concurrent.Future
 
-class AppStartupJobsSpec extends UnitSpec with MockitoSugar with LogCapturing
+class AppStartupJobsSpec extends WordSpec with Matchers with MockitoSugar with LogCapturing
   with CorporationTaxRegistrationFixture with Eventually {
 
   val mockConfig: Configuration = Configuration.empty
