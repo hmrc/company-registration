@@ -22,6 +22,8 @@ import fixtures.CorporationTaxRegistrationFixture
 import helpers.BaseSpec
 import models.validation.APIValidation
 import org.joda.time.{DateTime, DateTimeZone}
+import org.scalacheck.Prop.forAll
+import org.scalacheck.{Gen, Prop, Test}
 import play.api.data.validation.ValidationError
 import play.api.libs.json._
 
@@ -32,14 +34,11 @@ class CorporationTaxRegistrationSpec extends BaseSpec with JsonFormatValidation 
   "CorporationTaxRegistration" should {
 
 
-
     "using a custom read on the held json document without a lastSignedIn value will default it to the current time" in {
       val before = now.getMillis
       val fullHeldJson = fullCorpTaxRegJson(optAccountingDetails = Some(testAccountingDetails))
       val ct = Json.fromJson[CorporationTaxRegistration](fullHeldJson)(CorporationTaxRegistration.format(APIValidation, mockInstanceOfCrypto)).get
       val after = now.getMillis
-
-      println(s"\n\nlastSignedIn: ${ct.lastSignedIn.getMillis}\nBefore: $before\nAfter: $after")
 
       ct.lastSignedIn.getMillis >= before && ct.lastSignedIn.getMillis <= after shouldBe true
     }
@@ -70,6 +69,28 @@ class CorporationTaxRegistrationSpec extends BaseSpec with JsonFormatValidation 
       "jurisdiction" -> "test"
     )
 
+    val chROAddress = CHROAddress(
+      premises = testPremises,
+      address_line_1 = testRegOffLine1,
+      address_line_2 = Some(testRegOffLine2),
+      country = testRegOffCountry,
+      locality = testRegOffLocality,
+      po_box = Some(testRegOffPoBox),
+      postal_code = Some(testRegOffPostcode),
+      region = Some(testRegOffRegion)
+    )
+
+    val ppobAddress = PPOBAddress(
+      line1 = testPPOBLine1,
+      line2 = testPPOBLine2,
+      line3 = Some(testPPOBLine3),
+      line4 = Some(testPPOBLine4),
+      postcode = Some(testPPOBPostcode),
+      country = Some(testPPOBCountry),
+      uprn = None,
+      txid = testTransactionId
+    )
+
     "fail on company name" when {
       "it is too long" in {
         val longName = List.fill(161)('a').mkString
@@ -77,12 +98,14 @@ class CorporationTaxRegistrationSpec extends BaseSpec with JsonFormatValidation 
         val result = Json.fromJson[CompanyDetails](json)
         shouldHaveErrors(result, JsPath() \ "companyName", Seq(ValidationError("Invalid company name")))
       }
+
       "it is too short" in {
         val emptyCompanyName = ""
         val json = testJson(emptyCompanyName)
         val result = Json.fromJson[CompanyDetails](json)
         shouldHaveErrors(result, JsPath() \ "companyName", Seq(ValidationError("Invalid company name")))
       }
+
       "it contains invalid character " in {
         val invalidCompanyName = "étest|company"
         val json = testJson(invalidCompanyName)
@@ -92,35 +115,28 @@ class CorporationTaxRegistrationSpec extends BaseSpec with JsonFormatValidation 
     }
 
     "Be able to be parsed from JSON" when {
-      "with valid company name" in {
-        val chROAddress = CHROAddress(
-          premises = testPremises,
-          address_line_1 = testRegOffLine1,
-          address_line_2 = Some(testRegOffLine2),
-          country = testRegOffCountry,
-          locality = testRegOffLocality,
-          po_box = Some(testRegOffPoBox),
-          postal_code = Some(testRegOffPostcode),
-          region = Some(testRegOffRegion)
-        )
+      "the company name is valid" in {
+        val illegalCharacters: String = """[\u0000-\u001F\u007F~^``|]""" // The validator removes non ASCII chars but fails on these
+        val arbitraryLegalUnfilteredChar: Gen[Char] = Gen.choose('\u001F', Char.MaxValue).filter(Character.isDefined)
+        val validStrings = for {
+          length <- Gen.choose(1, 156)
+          collection <- Gen.containerOfN[Array, Char](length, arbitraryLegalUnfilteredChar)
+        } yield collection.mkString
 
-        val ppobAddress = PPOBAddress(
-          line1 = testPPOBLine1,
-          line2 = testPPOBLine2,
-          line3 = Some(testPPOBLine3),
-          line4 = Some(testPPOBLine4),
-          postcode = Some(testPPOBPostcode),
-          country = Some(testPPOBCountry),
-          uprn = None,
-          txid = testTransactionId
-        )
-        val json = testJson("ß Ǭscar ég ànt")
-        val expected = CompanyDetails("ß Ǭscar ég ànt", chROAddress, PPOB(PPOB.MANUAL, Some(ppobAddress)), "test")
-        val result = Json.fromJson[CompanyDetails](json)
+        val testRuns: Prop = forAll(validStrings) { name: String =>
+          val filteredName: String = name.filterNot(illegalCharacters.contains(_)) // Scalacheck does not allow regex filtering so it is filtered after generation
+          val json = testJson(s"test$filteredName")
+          val result = Json.fromJson[CompanyDetails](json)
 
-        result shouldBe JsSuccess(expected)
+          val expected = CompanyDetails(s"test$filteredName", chROAddress, PPOB(PPOB.MANUAL, Some(ppobAddress)), "test")
+
+          result == JsSuccess(expected)
+        }
+
+        Test.check(testRuns) {
+          _.withMinSuccessfulTests(100000)
+        }.succeeded shouldBe 100000
       }
     }
-
   }
 }
