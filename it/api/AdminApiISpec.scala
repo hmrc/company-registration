@@ -27,6 +27,7 @@ import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json._
 import play.api.libs.ws.{WSClient, WSRequest, WSResponse}
+import play.api.test.Helpers._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.WriteResult
 import repositories.{CorporationTaxRegistrationMongoRepository, SequenceMongoRepo}
@@ -130,7 +131,7 @@ class AdminApiISpec extends IntegrationSpecBase with LoginStub {
   val lockedRegistration = CorporationTaxRegistration(
     internalId = internalId,
     registrationID = regId,
-    status = LOCKED,
+    status = RegistrationStatus.LOCKED,
     formCreationTimestamp = "2001-12-31T12:00:00Z",
     language = "en",
     confirmationReferences = Some(ConfirmationReferences(

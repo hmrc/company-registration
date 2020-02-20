@@ -16,12 +16,12 @@
 
 package models
 
+import org.scalatest.{Matchers, WordSpec}
 import play.api.data.validation.ValidationError
 import play.api.libs.json._
-import uk.gov.hmrc.play.test.UnitSpec
 
 
-class CHROAddressSpec extends UnitSpec with JsonFormatValidation {
+class CHROAddressSpec extends WordSpec with Matchers with JsonFormatValidation {
 
   def lineEnd(comma: Boolean) = if( comma ) "," else ""
   def jsonLine(key: String, value: String): String = jsonLine(key, value, true)

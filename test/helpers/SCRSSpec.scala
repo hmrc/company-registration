@@ -17,12 +17,12 @@
 package helpers
 
 import mocks.SCRSMocks
-import org.scalatest.BeforeAndAfterEach
-import org.scalatest.mockito.MockitoSugar
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 import org.mockito.Mockito.reset
+import org.scalatest.mockito.MockitoSugar
+import org.scalatest.{BeforeAndAfterEach, WordSpec}
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 
-trait SCRSSpec extends UnitSpec with MockitoSugar with WithFakeApplication with SCRSMocks with BeforeAndAfterEach {
+trait SCRSSpec extends WordSpec with MockitoSugar with GuiceOneAppPerSuite with SCRSMocks with BeforeAndAfterEach {
 
 	override def beforeEach() {
 		reset(mockCTDataService)

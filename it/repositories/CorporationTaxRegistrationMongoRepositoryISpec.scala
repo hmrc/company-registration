@@ -22,8 +22,8 @@ import auth.CryptoSCRS
 import fixtures.CorporationTaxRegistrationFixture
 import fixtures.CorporationTaxRegistrationFixture.ctRegistrationJson
 import itutil.IntegrationSpecBase
-import itutil.ItTestConstants.TakeoverDetails.{testTakeoverDetails, testTakeoverDetailsModel}
 import itutil.ItTestConstants.CorporationTaxRegistration.corpTaxRegModel
+import itutil.ItTestConstants.TakeoverDetails.{testTakeoverDetails, testTakeoverDetailsModel}
 import models.RegistrationStatus._
 import models._
 import models.des.BusinessAddress
@@ -31,8 +31,9 @@ import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, Json, OWrites}
+import play.api.test.Helpers._
 import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.commands.{UpdateWriteResult, WriteResult}
+import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONString}
 import reactivemongo.play.json.ImplicitBSONHandlers._
@@ -67,7 +68,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       count shouldBe currentCount + 1
     }
 
-    def insertRaw(reg: JsObject) = await(repository.collection.insert(reg))
+    def insertRaw(reg: JsObject) = repository.collection.insert(reg)
 
     def count = await(repository.count)
 
@@ -1471,7 +1472,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
           lastSignedIn = registration91DaysOldDraft.lastSignedIn.getMillis,
           malform = Some(Json.obj("registrationID" -> true))
         )
-        insertRaw(incorrectRegistration)
+        await(insertRaw(incorrectRegistration))
         insert(registration91DaysOldDraft)
 
         await(repository.retrieveStaleDocuments(2, 90)) shouldBe List(registration91DaysOldDraft)
@@ -1513,14 +1514,14 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         regId = "123",
         malform = Some(fullGroupJsonEncryptedUTR.as[JsObject])
       )
-      insertRaw(regWithGroups)
+      await(insertRaw(regWithGroups))
       count shouldBe 1
       val res = await(repository.returnGroupsBlock("123"))
       res.get shouldBe validGroupsModel
 
     }
     "return nothing when no groups block exists in ct doc" in new Setup {
-      insertRaw(ctRegistrationJson(regId = "123"))
+      await(insertRaw(ctRegistrationJson(regId = "123")))
       count shouldBe 1
       val res = await(repository.returnGroupsBlock("123"))
       res shouldBe None
@@ -1565,7 +1566,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         malform = Some(fullGroupJsonEncryptedUTR.as[JsObject])
       )
 
-      insertRaw(regWithGroups)
+      await(insertRaw(regWithGroups))
       count shouldBe 1
       val res = await(repository.deleteGroupsBlock("123"))
       res shouldBe true
@@ -1576,7 +1577,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       val regWithoutGroups = ctRegistrationJson(
         regId = "123"
       )
-      insertRaw(regWithoutGroups)
+      await(insertRaw(regWithoutGroups))
       count shouldBe 1
       val res = await(repository.deleteGroupsBlock("123"))
       res shouldBe true
@@ -1621,7 +1622,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         regId = "123",
         malform = Some(fullGroupJsonEncryptedUTR.as[JsObject])
       )
-      insertRaw(regWithGroups)
+      await(insertRaw(regWithGroups))
       count shouldBe 1
       val res = await(repository.returnGroupsBlock("123"))
       res shouldBe Some(validGroupsModel)
@@ -1660,8 +1661,8 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       await(repository.returnGroupsBlock("123")) shouldBe None
       val resOfUpdate = await(repository.updateGroups("123", validGroupsModel))
       resOfUpdate shouldBe validGroupsModel
-      val res = await(repository.collection.find(repository.registrationIDSelector("123"), BSONDocument("groups" -> 1)))
-      (res.one[JsObject].get \ "groups").as[JsObject] shouldBe fullGroupJsonEncryptedUTR.as[JsObject]
+      val res = repository.collection.find(repository.registrationIDSelector("123"), BSONDocument("groups" -> 1))
+      (await(res.one[JsObject]).get \ "groups").as[JsObject] shouldBe fullGroupJsonEncryptedUTR.as[JsObject]
     }
     "return groups when same data is inserted twice" in new Setup {
       val encryptedUTR = CorporationTaxRegistrationFixture.instanceOfCrypto.wts.writes("1234567890")
@@ -1695,7 +1696,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         regId = "123",
         malform = Some(fullGroupJsonEncryptedUTR.as[JsObject])
       )
-      insertRaw(regWithGroups)
+      await(insertRaw(regWithGroups))
       count shouldBe 1
       val resOfUpdate = await(repository.updateGroups("123", validGroupsModel))
       resOfUpdate shouldBe validGroupsModel

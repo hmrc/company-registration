@@ -18,10 +18,10 @@ package audit
 
 import models.des._
 import org.joda.time.DateTime
-import play.api.libs.json.{JsObject, JsString, Json}
-import uk.gov.hmrc.play.test.UnitSpec
+import org.scalatest.{Matchers, WordSpec}
+import play.api.libs.json.{JsObject, Json}
 
-class UserRegistrationSubmissionEventSpec extends UnitSpec {
+class UserRegistrationSubmissionEventSpec extends WordSpec with Matchers {
 
   "UserRegistrationSubmissionEventDetail" should {
 
@@ -36,44 +36,44 @@ class UserRegistrationSubmissionEventSpec extends UnitSpec {
 
       val expected = Json.parse(
         s"""
-          |{
-          |   "journeyId": "$regId",
-          |   "acknowledgementReference": "$ackRef",
-          |   "desSubmissionState": "partial",
-          |   "registrationMetadata": {
-          |      "businessType": "Limited company",
-          |      "authProviderId": "$authProviderId",
-          |      "formCreationTimestamp": "$timestamp",
-          |      "submissionFromAgent": false,
-          |      "language": "eng",
-          |      "completionCapacity": "Director",
-          |      "declareAccurateAndComplete": true
-          |   },
-          |   "corporationTax": {
-          |      "companyOfficeNumber": "623",
-          |      "hasCompanyTakenOverBusiness": false,
-          |      "companyMemberOfGroup": false,
-          |      "companiesHouseCompanyName": "Company Co",
-          |      "returnsOnCT61": false,
-          |      "companyACharity": false,
-          |      "businessAddress": {
-          |         "transactionId": "$transactionId",
-          |         "addressEntryMethod": "LOOKUP",
-          |         "addressLine1": "14 Matheson House",
-          |         "addressLine2": "Grange Central",
-          |         "addressLine3": "Town Centre",
-          |         "addressLine4": "Telford",
-          |         "postCode": "TF3 4ER",
-          |         "country": "United Kingdom",
-          |         "uprn": "$uprn"
-          |      },
-          |      "businessContactDetails": {
-          |         "telephoneNumber": "0123456789",
-          |         "mobileNumber": "0123456789",
-          |         "emailAddress": "test@email.co.uk"
-          |      }
-          |   }
-          |}
+           |{
+           |   "journeyId": "$regId",
+           |   "acknowledgementReference": "$ackRef",
+           |   "desSubmissionState": "partial",
+           |   "registrationMetadata": {
+           |      "businessType": "Limited company",
+           |      "authProviderId": "$authProviderId",
+           |      "formCreationTimestamp": "$timestamp",
+           |      "submissionFromAgent": false,
+           |      "language": "eng",
+           |      "completionCapacity": "Director",
+           |      "declareAccurateAndComplete": true
+           |   },
+           |   "corporationTax": {
+           |      "companyOfficeNumber": "623",
+           |      "hasCompanyTakenOverBusiness": false,
+           |      "companyMemberOfGroup": false,
+           |      "companiesHouseCompanyName": "Company Co",
+           |      "returnsOnCT61": false,
+           |      "companyACharity": false,
+           |      "businessAddress": {
+           |         "transactionId": "$transactionId",
+           |         "addressEntryMethod": "LOOKUP",
+           |         "addressLine1": "14 Matheson House",
+           |         "addressLine2": "Grange Central",
+           |         "addressLine3": "Town Centre",
+           |         "addressLine4": "Telford",
+           |         "postCode": "TF3 4ER",
+           |         "country": "United Kingdom",
+           |         "uprn": "$uprn"
+           |      },
+           |      "businessContactDetails": {
+           |         "telephoneNumber": "0123456789",
+           |         "mobileNumber": "0123456789",
+           |         "emailAddress": "test@email.co.uk"
+           |      }
+           |   }
+           |}
         """.stripMargin)
 
       val testModel = SubmissionEventDetail(
@@ -90,7 +90,7 @@ class UserRegistrationSubmissionEventSpec extends UnitSpec {
           InterimCorporationTax(
             "Company Co",
             returnsOnCT61 = false,
-            Some(BusinessAddress("14 Matheson House", "Grange Central", Some("Town Centre"),Some("Telford"), Some("TF3 4ER"), Some("United Kingdom"))),
+            Some(BusinessAddress("14 Matheson House", "Grange Central", Some("Town Centre"), Some("Telford"), Some("TF3 4ER"), Some("United Kingdom"))),
             BusinessContactDetails(
               Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
             )
@@ -104,33 +104,33 @@ class UserRegistrationSubmissionEventSpec extends UnitSpec {
 
       val expected = Json.parse(
         s"""
-          |{
-          |   "journeyId": "$regId",
-          |   "acknowledgementReference": "$ackRef",
-          |   "desSubmissionState": "partial",
-          |   "registrationMetadata": {
-          |      "businessType": "Limited company",
-          |      "authProviderId": "$authProviderId",
-          |      "formCreationTimestamp": "$timestamp",
-          |      "submissionFromAgent": false,
-          |      "language": "eng",
-          |      "completionCapacity": "Director",
-          |      "declareAccurateAndComplete": true
-          |   },
-          |   "corporationTax": {
-          |      "companyOfficeNumber": "623",
-          |      "hasCompanyTakenOverBusiness": false,
-          |      "companyMemberOfGroup": false,
-          |      "companiesHouseCompanyName": "Company Co",
-          |      "returnsOnCT61": false,
-          |      "companyACharity": false,
-          |      "businessContactDetails": {
-          |         "telephoneNumber": "0123456789",
-          |         "mobileNumber": "0123456789",
-          |         "emailAddress": "test@email.co.uk"
-          |      }
-          |   }
-          |}
+           |{
+           |   "journeyId": "$regId",
+           |   "acknowledgementReference": "$ackRef",
+           |   "desSubmissionState": "partial",
+           |   "registrationMetadata": {
+           |      "businessType": "Limited company",
+           |      "authProviderId": "$authProviderId",
+           |      "formCreationTimestamp": "$timestamp",
+           |      "submissionFromAgent": false,
+           |      "language": "eng",
+           |      "completionCapacity": "Director",
+           |      "declareAccurateAndComplete": true
+           |   },
+           |   "corporationTax": {
+           |      "companyOfficeNumber": "623",
+           |      "hasCompanyTakenOverBusiness": false,
+           |      "companyMemberOfGroup": false,
+           |      "companiesHouseCompanyName": "Company Co",
+           |      "returnsOnCT61": false,
+           |      "companyACharity": false,
+           |      "businessContactDetails": {
+           |         "telephoneNumber": "0123456789",
+           |         "mobileNumber": "0123456789",
+           |         "emailAddress": "test@email.co.uk"
+           |      }
+           |   }
+           |}
         """.stripMargin)
 
       val testModel = SubmissionEventDetail(
@@ -147,7 +147,7 @@ class UserRegistrationSubmissionEventSpec extends UnitSpec {
           InterimCorporationTax(
             "Company Co",
             returnsOnCT61 = false,
-            Some(BusinessAddress("14 Matheson House", "Grange Central", Some("Town Centre"),Some("Telford"), Some("TF3 4ER"), Some("United Kingdom"))),
+            Some(BusinessAddress("14 Matheson House", "Grange Central", Some("Town Centre"), Some("Telford"), Some("TF3 4ER"), Some("United Kingdom"))),
             BusinessContactDetails(
               Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
             )

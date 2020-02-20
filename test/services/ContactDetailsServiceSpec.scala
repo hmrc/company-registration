@@ -17,13 +17,10 @@
 package services
 
 import fixtures.ContactDetailsFixture
-import helpers.SCRSSpec
-import mocks.SCRSMocks
-import org.scalatest.mockito.MockitoSugar
-import repositories.Repositories
-import uk.gov.hmrc.play.test.UnitSpec
+import helpers.BaseSpec
+import play.api.test.Helpers._
 
-class ContactDetailsServiceSpec extends UnitSpec with SCRSMocks with MockitoSugar with ContactDetailsFixture {
+class ContactDetailsServiceSpec extends BaseSpec with ContactDetailsFixture {
 
   trait Setup {
     val service = new ContactDetailsService {

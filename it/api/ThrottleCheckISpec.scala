@@ -24,6 +24,7 @@ import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsBoolean, JsObject, JsString, Json}
 import play.api.libs.ws.WS
+import play.api.test.Helpers._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import repositories.{CorporationTaxRegistrationMongoRepository, ThrottleMongoRepo}
 import uk.gov.hmrc.time.DateTimeUtils

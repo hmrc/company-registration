@@ -19,6 +19,7 @@ package repositories
 import itutil.IntegrationSpecBase
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.test.Helpers._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import services.ThrottleService
 import uk.gov.hmrc.time.DateTimeUtils

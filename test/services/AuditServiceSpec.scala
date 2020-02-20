@@ -16,24 +16,25 @@
 
 package services
 
-import audit.{CTRegistrationSubmissionAuditEventDetails, DesResponse}
-import org.mockito.Mockito._
+import audit.CTRegistrationSubmissionAuditEventDetails
 import org.scalatest.mockito.MockitoSugar
+import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
-class AuditServiceSpec extends UnitSpec with MockitoSugar {
+class AuditServiceSpec extends WordSpec with Matchers with MockitoSugar {
 
   val mockAuditConnector = mock[AuditConnector]
 
   implicit val hc = HeaderCarrier()
 
   class Setup {
+
     object TestService extends AuditService {
       val auditConnector = mockAuditConnector
     }
+
   }
 
   "buildCTRegSubmissionEvent" should {

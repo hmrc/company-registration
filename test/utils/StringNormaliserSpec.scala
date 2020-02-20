@@ -17,9 +17,9 @@
 package utils
 
 import models.validation.APIValidation
-import uk.gov.hmrc.play.test.UnitSpec
+import org.scalatest.{Matchers, WordSpec}
 
-class StringNormaliserSpec extends UnitSpec {
+class StringNormaliserSpec extends WordSpec with Matchers {
 
   "normaliseString" should {
     Seq(
@@ -35,7 +35,7 @@ class StringNormaliserSpec extends UnitSpec {
       ("Ted & Bob's Farm", APIValidation.lineInvert.toString(), "Ted & Bob's Farm"),
       ("Ted #& Bob;'~s @Farm", APIValidation.lineInvert.toString(), "Ted & Bob's Farm")
 
-    ).foreach{
+    ).foreach {
       case (string, filter, result) => s"return '$result' when '$string' is passed in using regex '$filter'" in {
         StringNormaliser.normaliseString(string, filter.r) shouldBe result
       }

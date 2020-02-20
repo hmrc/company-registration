@@ -16,15 +16,16 @@
 
 package itutil
 
+import org.scalatest.WordSpec
+import play.api.test.Helpers._
 import uk.gov.hmrc.mongo.ReactiveRepository
-import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext
 
 trait MongoIntegrationSpec {
-  expects: UnitSpec =>
+  expects: WordSpec =>
 
   implicit class RichReactiveRepository[T](repo: ReactiveRepository[T, _])(implicit ex: ExecutionContext) {
-    def awaitCount: Int = repo.count
+    def awaitCount: Int = await(repo.count)
   }
 }

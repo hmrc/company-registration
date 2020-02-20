@@ -22,6 +22,7 @@ import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.test.Helpers._
 import uk.gov.hmrc.http.HeaderCarrier
 
 class IncorporationCheckAPIConnectorISpec extends IntegrationSpecBase {

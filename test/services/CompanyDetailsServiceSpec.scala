@@ -17,17 +17,16 @@
 package services
 
 import fixtures.CompanyDetailsFixture
-import mocks.SCRSMocks
+import helpers.BaseSpec
 import models.ConfirmationReferences
-import org.scalatest.mockito.MockitoSugar
-import play.api.libs.json.Json
-import uk.gov.hmrc.play.test.UnitSpec
-import org.mockito.Mockito._
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
+import org.mockito.Mockito._
+import play.api.libs.json.Json
+import play.api.test.Helpers._
 
 import scala.concurrent.Future
 
-class CompanyDetailsServiceSpec extends UnitSpec with MockitoSugar with SCRSMocks with CompanyDetailsFixture {
+class CompanyDetailsServiceSpec extends BaseSpec with CompanyDetailsFixture {
 
   trait Setup {
     reset(mockCTDataRepository)
@@ -40,7 +39,7 @@ class CompanyDetailsServiceSpec extends UnitSpec with MockitoSugar with SCRSMock
   }
 
   val registrationID = "12345"
-  
+
 
   "retrieveCompanyDetails" should {
     "return the CompanyDetails when a company details record is found" in new Setup {
@@ -77,23 +76,23 @@ class CompanyDetailsServiceSpec extends UnitSpec with MockitoSugar with SCRSMock
 
   "saveTxidAndGenerateAckRef" should {
     val ackRefJsObject = Json.obj("acknowledgement-reference" -> "fooBar")
-    val conf =  ConfirmationReferences("fooBar","txId",None,None)
+    val conf = ConfirmationReferences("fooBar", "txId", None, None)
     "return jsObject with new ackref from repo" in new Setup {
       when(mockCTDataRepository.retrieveConfirmationReferences(any())).thenReturn(Future.successful(None))
       when(mockSubmissionService.generateAckRef).thenReturn(Future.successful("fooBar"))
-      when(mockCTDataRepository.updateConfirmationReferences(any(),eqTo(conf)))
+      when(mockCTDataRepository.updateConfirmationReferences(any(), eqTo(conf)))
         .thenReturn(Future.successful(Some(conf)))
-     val res = await(service.saveTxIdAndAckRef(registrationID, "txId"))
+      val res = await(service.saveTxIdAndAckRef(registrationID, "txId"))
       verify(mockSubmissionService, times(1)).generateAckRef
       res shouldBe ackRefJsObject
     }
     "return jsobject with updated txId, generate ackref not called if already exists" in new Setup {
       when(mockCTDataRepository.retrieveConfirmationReferences(any())).thenReturn(Future.successful(Some(conf.copy(transactionId = "willnotbethis"))))
-      when(mockCTDataRepository.updateConfirmationReferences(any(),eqTo(conf)))
+      when(mockCTDataRepository.updateConfirmationReferences(any(), eqTo(conf)))
         .thenReturn(Future.successful(Some(conf)))
       val res = await(service.saveTxIdAndAckRef(registrationID, "txId"))
       verify(mockSubmissionService, times(0)).generateAckRef
-      verify(mockCTDataRepository, times(1)).updateConfirmationReferences(any(),any())
+      verify(mockCTDataRepository, times(1)).updateConfirmationReferences(any(), any())
       res shouldBe ackRefJsObject
     }
     "return exception when retrieve fails" in new Setup {
@@ -107,7 +106,7 @@ class CompanyDetailsServiceSpec extends UnitSpec with MockitoSugar with SCRSMock
       val ex = new Exception("bar")
       when(mockCTDataRepository.retrieveConfirmationReferences(any())).thenReturn(Future.successful(None))
       when(mockSubmissionService.generateAckRef).thenReturn(Future.successful("foo"))
-      when(mockCTDataRepository.updateConfirmationReferences(any(),any())).thenReturn(Future.failed(ex))
+      when(mockCTDataRepository.updateConfirmationReferences(any(), any())).thenReturn(Future.failed(ex))
 
       val res = intercept[Exception](await(service.saveTxIdAndAckRef(registrationID, "txId")))
       verify(mockSubmissionService, times(1)).generateAckRef

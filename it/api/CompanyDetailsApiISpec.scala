@@ -25,12 +25,14 @@ import play.api.http.HeaderNames
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws.WS
+import play.api.test.Helpers._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.WriteResult
 import repositories.{CorporationTaxRegistrationMongoRepository, SequenceMongoRepo}
 import uk.gov.hmrc.http.{HeaderNames => GovHeaderNames}
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 class CompanyDetailsApiISpec extends IntegrationSpecBase with LoginStub {
   val mockHost = WiremockHelper.wiremockHost
@@ -103,7 +105,7 @@ class CompanyDetailsApiISpec extends IntegrationSpecBase with LoginStub {
     val rmComp = app.injector.instanceOf[ReactiveMongoComponent]
     val crypto = app.injector.instanceOf[CryptoSCRS]
     val ctRepository = new CorporationTaxRegistrationMongoRepository(
-      rmComp,crypto)
+      rmComp, crypto)
     val seqRepo = app.injector.instanceOf[SequenceMongoRepo].repo
 
     await(ctRepository.drop)
@@ -114,7 +116,7 @@ class CompanyDetailsApiISpec extends IntegrationSpecBase with LoginStub {
 
     System.clearProperty("feature.registerInterest")
 
-    def setupCTRegistration(reg: CorporationTaxRegistration): WriteResult = ctRepository.insert(reg)
+    def setupCTRegistration(reg: CorporationTaxRegistration): WriteResult = await(ctRepository.insert(reg))
 
   }
 
@@ -191,12 +193,12 @@ class CompanyDetailsApiISpec extends IntegrationSpecBase with LoginStub {
       response.status shouldBe 200
       response.json.as[JsObject] shouldBe Json.obj("acknowledgement-reference" -> "BRCT00000000001")
       await(seqRepo.count) shouldBe 1
-     val res = await(ctRepository.getExistingRegistration(regId)).confirmationReferences.get
-     res shouldBe ConfirmationReferences("BRCT00000000001", "foo", None, None)
+      val res = await(ctRepository.getExistingRegistration(regId)).confirmationReferences.get
+      res shouldBe ConfirmationReferences("BRCT00000000001", "foo", None, None)
     }
     "return 200 with json body containing existing ackref in db but updated txid" in new Setup {
       stubAuthorise(internalId)
-      setupCTRegistration(ctDoc.copy(confirmationReferences = Some(ConfirmationReferences("fooAckRef","barTxID",None,None))))
+      setupCTRegistration(ctDoc.copy(confirmationReferences = Some(ConfirmationReferences("fooAckRef", "barTxID", None, None))))
       await(ctRepository.count) shouldBe 1
       await(seqRepo.count) shouldBe 0
       val response = await(client(s"/$regId/handOff2Reference-ackRef-save")

@@ -21,22 +21,24 @@ import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 import jobs.SchedulingActor.MissingIncorporation
 import org.mockito.Mockito.reset
 import org.quartz.CronExpression
+import org.scalatest.{Matchers, WordSpec}
 import org.scalatest.mockito.MockitoSugar
 import play.api.Configuration
 import services.CorporationTaxRegistrationService
-import uk.gov.hmrc.play.test.UnitSpec
 
-class ScheduledJobSpec extends UnitSpec with MockitoSugar {
+class ScheduledJobSpec extends WordSpec with Matchers with MockitoSugar {
   val jobNameTest = "fooBarAndWizzWithABang"
   val mockActorSystem = mock[ActorSystem]
   val mockService = mock[CorporationTaxRegistrationService]
   val mockQuartzSchedulerExtension = mock[QuartzSchedulerExtension]
   class Setup(cronString:String, enabled: Boolean = false) {
     val stringBecauseBooleansAreWeird:String = if(enabled) "true" else "false"
+
     reset(
       mockQuartzSchedulerExtension,
       mockService,
       mockActorSystem)
+
     val job = new ScheduledJob {
       override lazy val scheduledMessage: SchedulingActor.ScheduledMessage[_] = MissingIncorporation(mockService)
       override  val config: Configuration = Configuration(

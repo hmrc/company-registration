@@ -17,10 +17,9 @@
 package utils
 
 import org.joda.time.DateTime
-import org.scalatest.BeforeAndAfterEach
-import uk.gov.hmrc.play.test.UnitSpec
+import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
 
-class FeatureSwitchSpec extends UnitSpec with BeforeAndAfterEach {
+class FeatureSwitchSpec extends WordSpec with Matchers with BeforeAndAfterEach {
 
   override def beforeEach() {
     System.clearProperty("feature.test")

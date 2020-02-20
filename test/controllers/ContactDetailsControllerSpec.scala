@@ -54,7 +54,7 @@ class ContactDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
 
       ContactDetailsServiceMocks.retrieveContactDetails(registrationID, Some(contactDetails))
 
-      val result: Result = await(controller.retrieveContactDetails(registrationID)(FakeRequest()))
+      val result = controller.retrieveContactDetails(registrationID)(FakeRequest())
       status(result) shouldBe OK
       contentAsJson(result) shouldBe contactDetailsJsonResponse
     }
@@ -65,7 +65,7 @@ class ContactDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
 
       ContactDetailsServiceMocks.retrieveContactDetails(registrationID, None)
 
-      val result = await(controller.retrieveContactDetails(registrationID)(FakeRequest()))
+      val result = controller.retrieveContactDetails(registrationID)(FakeRequest())
       status(result) shouldBe NOT_FOUND
       contentAsJson(result) shouldBe ErrorResponse.contactDetailsNotFound
     }
@@ -89,7 +89,7 @@ class ContactDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
     "return a 401 when the user is not logged in" in new Setup {
       mockAuthorise(Future.failed(MissingBearerToken()))
 
-      val result = await(controller.retrieveContactDetails(registrationID)(FakeRequest()))
+      val result = controller.retrieveContactDetails(registrationID)(FakeRequest())
       status(result) shouldBe UNAUTHORIZED
     }
   }
@@ -104,7 +104,7 @@ class ContactDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
 
       ContactDetailsServiceMocks.updateContactDetails(registrationID, Some(contactDetails))
 
-      val result = await(controller.updateContactDetails(registrationID)(request))
+      val result = controller.updateContactDetails(registrationID)(request)
       status(result) shouldBe OK
       contentAsJson(result) shouldBe Json.toJson(contactDetailsJsonResponse)
     }

@@ -17,21 +17,22 @@
 package services
 
 import fixtures.CorporationTaxRegistrationFixture
-import mocks.SCRSMocks
+import helpers.BaseSpec
 import models.TradingDetails
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
-import org.scalatest.mockito.MockitoSugar
-import uk.gov.hmrc.play.test.UnitSpec
+import play.api.test.Helpers._
 
 import scala.concurrent.Future
 
-class TradingDetailsServiceSpec extends UnitSpec with MockitoSugar with SCRSMocks with CorporationTaxRegistrationFixture {
+class TradingDetailsServiceSpec extends BaseSpec with CorporationTaxRegistrationFixture {
 
   class Setup {
+
     object TestService extends TradingDetailsService {
       val corporationTaxRegistrationRepository = mockCTDataRepository
     }
+
   }
 
   "retrieveTradingDetails" should {

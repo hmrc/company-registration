@@ -18,10 +18,10 @@ package audit
 
 
 import org.joda.time.DateTime
-import play.api.libs.json.{JsObject, JsString, Json}
-import uk.gov.hmrc.play.test.UnitSpec
+import org.scalatest.{Matchers, WordSpec}
+import play.api.libs.json.Json
 
-class DesTopUpEventSpec extends UnitSpec {
+class DesTopUpEventSpec extends WordSpec with Matchers {
 
   "DesTopUpEventDetail" should {
 
@@ -60,26 +60,26 @@ class DesTopUpEventSpec extends UnitSpec {
     }
 
 
-  "construct full rejected json as per definition" in {
-    val expected = Json.parse(
-      s"""
-         |{
-         |   "journeyId": "$regId",
-         |   "acknowledgementReference": "$ackRef",
-         |   "incorporationStatus" : "$rejected"
-         |   }
+    "construct full rejected json as per definition" in {
+      val expected = Json.parse(
+        s"""
+           |{
+           |   "journeyId": "$regId",
+           |   "acknowledgementReference": "$ackRef",
+           |   "incorporationStatus" : "$rejected"
+           |   }
         """.stripMargin)
 
-    val testModel = DesTopUpSubmissionEventDetail(
-      regId,
-      ackRef,
-      rejected,
-      None,
-      None,
-      None,
-      None
-    )
-    Json.toJson(testModel)(DesTopUpSubmissionEventDetail.writes) shouldBe expected
+      val testModel = DesTopUpSubmissionEventDetail(
+        regId,
+        ackRef,
+        rejected,
+        None,
+        None,
+        None,
+        None
+      )
+      Json.toJson(testModel)(DesTopUpSubmissionEventDetail.writes) shouldBe expected
     }
   }
- }
+}

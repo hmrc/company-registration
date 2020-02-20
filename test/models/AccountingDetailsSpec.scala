@@ -16,13 +16,13 @@
 
 package models
 
+import org.scalatest.{Matchers, WordSpec}
 import play.api.data.validation.ValidationError
 import play.api.libs.json._
-import uk.gov.hmrc.play.test.UnitSpec
 
-class AccountingDetailsSpec extends UnitSpec with JsonFormatValidation {
+class AccountingDetailsSpec extends WordSpec with Matchers with JsonFormatValidation {
 
-  import AccountingDetails.{WHEN_REGISTERED,FUTURE_DATE,NOT_PLANNING_TO_YET}
+  import AccountingDetails.FUTURE_DATE
 
   "AccountingDetails Model" should {
     "Be able to be parsed from JSON" in {

@@ -22,6 +22,7 @@ import helpers.BaseSpec
 import org.mockito.ArgumentMatchers.{eq => eqTo}
 import org.mockito.Mockito.{reset, when}
 import play.api.libs.json.{JsObject, Json}
+import play.api.test.Helpers._
 import reactivemongo.api.commands.UpdateWriteResult
 
 import scala.concurrent.ExecutionContext.Implicits.global

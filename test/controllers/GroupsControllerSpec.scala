@@ -41,9 +41,8 @@ class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
   val validGroupsModel = Groups(
     groupRelief = true,
     nameOfCompany = Some(GroupCompanyName("foo", GroupCompanyNameEnum.Other)),
-    addressAndType = Some(GroupsAddressAndType(GroupAddressTypeEnum.ALF,BusinessAddress("1 abc","2 abc",Some("3 abc"),Some("4 abc"),Some("ZZ1 1ZZ"),Some("country A")))),
+    addressAndType = Some(GroupsAddressAndType(GroupAddressTypeEnum.ALF, BusinessAddress("1 abc", "2 abc", Some("3 abc"), Some("4 abc"), Some("ZZ1 1ZZ"), Some("country A")))),
     groupUTR = Some(GroupUTR(Some("1234567890"))))
-
 
 
   class Setup {
@@ -56,6 +55,7 @@ class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
       val cryptoSCRS: CryptoSCRS = mockInstanceOfCrypto
     }
   }
+
   "private method groupsBlockValidation" should {
 
     "return Left groups when group block is in the correct state to be inserted (everything exists)" in new Setup {
@@ -92,21 +92,21 @@ class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.successful(internalId))
       when(mockGroupsService.deleteGroups(eqTo(regId))).thenReturn(Future.successful(true))
-      val res = await(controller.deleteBlock(regId)(FakeRequest()))
+      val res = controller.deleteBlock(regId)(FakeRequest())
       status(res) shouldBe NO_CONTENT
     }
     "return 500 if false is returned from deleteGroups" in new Setup {
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.successful(internalId))
       when(mockGroupsService.deleteGroups(eqTo(regId))).thenReturn(Future.successful(false))
-      val res = await(controller.deleteBlock(regId)(FakeRequest()))
+      val res = controller.deleteBlock(regId)(FakeRequest())
       status(res) shouldBe INTERNAL_SERVER_ERROR
     }
     "return exception if groups returns future failed" in new Setup {
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.successful(internalId))
       when(mockGroupsService.deleteGroups(eqTo(regId))).thenReturn(Future.failed(new Exception("foo bar wizz AND bang")))
- intercept[Exception](await(controller.deleteBlock(regId)(FakeRequest())))
+      intercept[Exception](await(controller.deleteBlock(regId)(FakeRequest())))
     }
   }
   "getBlock" should {
@@ -115,9 +115,9 @@ class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.successful(internalId))
       when(mockGroupsService.returnGroups(eqTo(regId))).thenReturn(Future.successful(Some(validGroupsModel)))
-      val res = await(controller.getBlock(regId)(FakeRequest()))
+      val res = controller.getBlock(regId)(FakeRequest())
       status(res) shouldBe OK
-      jsonBodyOf(res) shouldBe Json.parse(
+      contentAsJson(res) shouldBe Json.parse(
         """
           |{
           |   "groupRelief": true,
@@ -145,10 +145,10 @@ class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
     "return 200 if the user has selected No previously to the page group relief" in new Setup {
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.successful(internalId))
-      when(mockGroupsService.returnGroups(eqTo(regId))).thenReturn(Future.successful(Some(Groups(false,None,None,None))))
-      val res = await(controller.getBlock(regId)(FakeRequest()))
+      when(mockGroupsService.returnGroups(eqTo(regId))).thenReturn(Future.successful(Some(Groups(false, None, None, None))))
+      val res = controller.getBlock(regId)(FakeRequest())
       status(res) shouldBe OK
-      jsonBodyOf(res) shouldBe Json.parse(
+      contentAsJson(res) shouldBe Json.parse(
         """
           |{
           |   "groupRelief": false
@@ -159,7 +159,7 @@ class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.successful(internalId))
       when(mockGroupsService.returnGroups(eqTo(regId))).thenReturn(Future.successful(None))
-      val res = await(controller.getBlock(regId)(FakeRequest()))
+      val res = controller.getBlock(regId)(FakeRequest())
       status(res) shouldBe NO_CONTENT
     }
     "return exception if returnGroups returns an exception" in new Setup {
@@ -222,7 +222,7 @@ class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
         """.stripMargin)
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.successful(internalId))
-      when(mockGroupsService.updateGroups(eqTo(regId),any())).thenReturn(Future.successful(validGroupsModel.copy(groupRelief = false)))
+      when(mockGroupsService.updateGroups(eqTo(regId), any())).thenReturn(Future.successful(validGroupsModel.copy(groupRelief = false)))
       val res = controller.saveBlock(regId)(request)
       status(res) shouldBe 200
       contentAsJson(res) shouldBe expected
@@ -282,7 +282,7 @@ class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.successful(internalId))
 
-      val res = await(controller.saveBlock(regId)(request))
+      val res = controller.saveBlock(regId)(request)
       status(res) shouldBe 400
     }
   }

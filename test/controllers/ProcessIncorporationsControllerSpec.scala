@@ -24,17 +24,18 @@ import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.concurrent.Eventually
 import org.scalatest.mockito.MockitoSugar
+import org.scalatest.{Matchers, WordSpec}
 import play.api.Logger
 import play.api.libs.json.Reads._
 import play.api.libs.json.{JsObject, Json}
 import play.api.test.FakeRequest
-import play.api.test.Helpers.call
+import play.api.test.Helpers._
 import services._
-import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
+import utils.LogCapturing
 
 import scala.concurrent.Future
 
-class ProcessIncorporationsControllerSpec extends UnitSpec with MockitoSugar with LogCapturing with Eventually {
+class ProcessIncorporationsControllerSpec extends WordSpec with Matchers with MockitoSugar with LogCapturing with Eventually {
 
   implicit val as = ActorSystem()
   implicit val mat = ActorMaterializer()
@@ -123,7 +124,7 @@ class ProcessIncorporationsControllerSpec extends UnitSpec with MockitoSugar wit
 
       val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
 
-      val result = await(call(controller.processAdminIncorporation, request))
+      val result = call(controller.processAdminIncorporation, request)
 
       status(result) shouldBe 200
 
@@ -140,7 +141,7 @@ class ProcessIncorporationsControllerSpec extends UnitSpec with MockitoSugar wit
       when(mockProcessIncorporationService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.successful(true))
 
       val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
-      val result = await(call(controller.processIncorporationNotification, request))
+      val result = call(controller.processIncorporationNotification, request)
 
       status(result) shouldBe 200
     }
@@ -169,7 +170,7 @@ class ProcessIncorporationsControllerSpec extends UnitSpec with MockitoSugar wit
       when(mockProcessIncorporationService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.successful(false))
       when(mockSubmissionService.setupPartialForTopupOnLocked(any())(any(), any())).thenReturn(Future.successful(false))
       val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
-      val result = await(call(controller.processIncorporationNotification, request))
+      val result = call(controller.processIncorporationNotification, request)
 
       status(result) shouldBe 202
     }
@@ -178,7 +179,7 @@ class ProcessIncorporationsControllerSpec extends UnitSpec with MockitoSugar wit
     "return a 500 response for admin flow" in new Setup {
       when(mockProcessIncorporationService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.successful(false))
       val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
-      val result = await(call(controller.processAdminIncorporation, request))
+      val result = call(controller.processAdminIncorporation, request)
 
       status(result) shouldBe 400
 

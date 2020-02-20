@@ -16,22 +16,17 @@
 
 package connectors
 
-import helpers.SCRSSpec
-import mocks.SCRSMocks
+import helpers.BaseSpec
 import models.SendEmailRequest
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
-import org.scalatest.BeforeAndAfter
-import org.scalatest.mockito.MockitoSugar
-import play.api.http.Status._
 import play.api.libs.json.JsValue
-import uk.gov.hmrc.play.http._
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
+import play.api.test.Helpers._
+import uk.gov.hmrc.http._
 
 import scala.concurrent.Future
-import uk.gov.hmrc.http.{ BadGatewayException, BadRequestException, HeaderCarrier, HttpResponse, InternalServerException, NotFoundException, Upstream4xxResponse }
 
-class SendEmailConnectorSpec  extends UnitSpec with MockitoSugar with SCRSMocks with BeforeAndAfter {
+class SendEmailConnectorSpec extends BaseSpec {
 
   trait Setup {
     val connector = new SendEmailConnector {

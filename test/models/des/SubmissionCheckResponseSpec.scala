@@ -18,10 +18,10 @@ package models.des
 
 import models.{IncorpUpdate, SubmissionCheckResponse}
 import org.joda.time.DateTime
+import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.Json
-import uk.gov.hmrc.play.test.UnitSpec
 
-class SubmissionCheckResponseSpec extends UnitSpec {
+class SubmissionCheckResponseSpec extends WordSpec with Matchers  {
 
   "SubmissionCheckResponse" should {
 

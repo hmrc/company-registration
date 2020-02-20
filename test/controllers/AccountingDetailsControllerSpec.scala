@@ -60,7 +60,7 @@ class AccountingDetailsControllerSpec extends BaseSpec with AccountingDetailsFix
       when(mockPrepareAccountService.updateEndDate(ArgumentMatchers.any()))
         .thenReturn(Future.successful(Some(AccountPrepDetails())))
 
-      val result = await(controller.retrieveAccountingDetails(registrationID)(FakeRequest()))
+      val result = controller.retrieveAccountingDetails(registrationID)(FakeRequest())
       status(result) shouldBe OK
       contentAsJson(result) shouldBe accountingDetailsResponseJson
     }
@@ -75,7 +75,7 @@ class AccountingDetailsControllerSpec extends BaseSpec with AccountingDetailsFix
       when(mockPrepareAccountService.updateEndDate(ArgumentMatchers.any()))
         .thenReturn(Future.successful(Some(AccountPrepDetails())))
 
-      val result = await(controller.retrieveAccountingDetails(registrationID)(FakeRequest()))
+      val result = controller.retrieveAccountingDetails(registrationID)(FakeRequest())
       status(result) shouldBe NOT_FOUND
       contentAsJson(result) shouldBe ErrorResponse.accountingDetailsNotFound
     }
@@ -91,7 +91,7 @@ class AccountingDetailsControllerSpec extends BaseSpec with AccountingDetailsFix
 
       AccountingDetailsServiceMocks.updateAccountingDetails(registrationID, Some(validAccountingDetails))
 
-      val result = await(controller.updateAccountingDetails(registrationID)(request))
+      val result = controller.updateAccountingDetails(registrationID)(request)
       status(result) shouldBe OK
       contentAsJson(result) shouldBe accountingDetailsResponseJson
     }
@@ -102,7 +102,7 @@ class AccountingDetailsControllerSpec extends BaseSpec with AccountingDetailsFix
 
       AccountingDetailsServiceMocks.updateAccountingDetails(registrationID, None)
 
-      val result = await(controller.updateAccountingDetails(registrationID)(request))
+      val result = controller.updateAccountingDetails(registrationID)(request)
       status(result) shouldBe NOT_FOUND
     }
   }

@@ -24,10 +24,9 @@ import mocks.AuthorisationMocks
 import models.{Address, TakeoverDetails}
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
-import play.api.http.Status._
 import play.api.libs.json.Json
-import play.api.mvc.Result
 import play.api.test.FakeRequest
+import play.api.test.Helpers._
 import services.TakeoverDetailsService
 import uk.gov.hmrc.auth.core.AuthConnector
 
@@ -69,9 +68,9 @@ class TakeoverDetailsControllerSpec extends BaseSpec with AuthorisationMocks {
 
       when(mockTakeoverDetailsService.retrieveTakeoverDetailsBlock(registrationId)).thenReturn(Future.successful(Some(validTakeoverDetailsModel)))
 
-      val result: Result = await(controller.getBlock(registrationId)(FakeRequest()))
+      val result = controller.getBlock(registrationId)(FakeRequest())
       status(result) shouldBe OK
-      jsonBodyOf(result) shouldBe Json.obj(
+      contentAsJson(result) shouldBe Json.obj(
         "replacingAnotherBusiness" -> true,
         "businessName" -> "business",
         "businessTakeoverAddress" -> Json.obj(
@@ -99,7 +98,7 @@ class TakeoverDetailsControllerSpec extends BaseSpec with AuthorisationMocks {
 
       when(mockTakeoverDetailsService.retrieveTakeoverDetailsBlock(registrationId)).thenReturn(Future.successful(None))
 
-      val result: Result = await(controller.getBlock(registrationId)(FakeRequest()))
+      val result = controller.getBlock(registrationId)(FakeRequest())
       status(result) shouldBe NO_CONTENT
     }
   }
@@ -132,7 +131,7 @@ class TakeoverDetailsControllerSpec extends BaseSpec with AuthorisationMocks {
 
       when(mockTakeoverDetailsService.updateTakeoverDetailsBlock(eqTo(registrationId), any())).thenReturn(Future.successful(validTakeoverDetailsModel))
 
-      val result: Result = await(controller.saveBlock(registrationId)(request))
+      val result = controller.saveBlock(registrationId)(request)
       status(result) shouldBe OK
     }
 
@@ -161,7 +160,7 @@ class TakeoverDetailsControllerSpec extends BaseSpec with AuthorisationMocks {
         )
       ))
 
-      val result: Result = await(controller.saveBlock(registrationId)(request))
+      val result = controller.saveBlock(registrationId)(request)
       status(result) shouldBe BAD_REQUEST
     }
     "return an exception if the request is missing fields" in new Setup {

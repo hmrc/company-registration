@@ -20,7 +20,8 @@ import audit.UserRegistrationSubmissionEvent
 import cats.data.OptionT
 import connectors._
 import fixtures.CorporationTaxRegistrationFixture
-import mocks.{AuthorisationMocks, SCRSMocks}
+import helpers.BaseSpec
+import mocks.AuthorisationMocks
 import models.RegistrationStatus._
 import models._
 import models.des._
@@ -28,26 +29,23 @@ import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
-import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.Eventually
-import org.scalatest.mockito.MockitoSugar
 import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.AnyContentAsEmpty
 import play.api.test.FakeRequest
+import play.api.test.Helpers._
 import reactivemongo.api.commands.DefaultWriteResult
 import repositories._
 import uk.gov.hmrc.http.logging.SessionId
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, Upstream4xxResponse, Upstream5xxResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
-import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
-import utils.PagerDutyKeys
+import utils.{LogCapturing, PagerDutyKeys}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMocks with CorporationTaxRegistrationFixture
-  with MockitoSugar with LogCapturing with Eventually with BeforeAndAfterEach {
+class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with CorporationTaxRegistrationFixture with LogCapturing with Eventually {
 
 
   implicit val hc: HeaderCarrier = HeaderCarrier(sessionId = Some(SessionId("testSessionId")))
@@ -449,7 +447,7 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
         .thenReturn(Future.successful(Some(corporationTaxRegistration)))
 
       val result: InterimDesRegistration = service.buildPartialDesSubmission(regId, ackRef, authProviderId, businessRegistration, corporationTaxRegistration)
-      await(result).toString shouldBe interimDesRegistration.toString
+      result.toString shouldBe interimDesRegistration.toString
     }
 
     "return a valid InterimDesRegistration with full contact details" in new Setup {
@@ -461,7 +459,7 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
       val ctReg: CorporationTaxRegistration = getCTReg(regId, Some(companyDetails1), Some(contactDetails1))
       val result: InterimDesRegistration = service.buildPartialDesSubmission(regId, ackRef, credId, businessRegistration, ctReg)
 
-      await(result) shouldBe InterimDesRegistration(
+      result shouldBe InterimDesRegistration(
         ackRef,
         Metadata(sessionId, credId, "en", DateTime.parse(service.formatTimestamp(dateTime)), Director),
         InterimCorporationTax(
@@ -483,7 +481,7 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
       val ctReg: CorporationTaxRegistration = getCTReg(regId, Some(companyDetails2), Some(contactDetails2))
       val result: InterimDesRegistration = service.buildPartialDesSubmission(regId, ackRef, credId, businessRegistration, ctReg)
 
-      await(result) shouldBe InterimDesRegistration(
+      result shouldBe InterimDesRegistration(
         ackRef,
         Metadata(sessionId, credId, "en", DateTime.parse(service.formatTimestamp(dateTime)), Director),
         InterimCorporationTax(
@@ -509,7 +507,7 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
       val ctReg: CorporationTaxRegistration = getCTReg(regId, Some(companyDetails3), Some(contactDetails2))
       val result: InterimDesRegistration = service.buildPartialDesSubmission(regId, ackRef, credId, businessRegistration, ctReg)
 
-      await(result) shouldBe InterimDesRegistration(
+      result shouldBe InterimDesRegistration(
         ackRef,
         Metadata(sessionId, credId, "en", DateTime.parse(service.formatTimestamp(dateTime)), Director),
         InterimCorporationTax(
@@ -534,7 +532,7 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
       val ctReg: CorporationTaxRegistration = getCTReg(regId, Some(companyDetailsWithIllegalChars), Some(contactDetails2))
       val result: InterimDesRegistration = service.buildPartialDesSubmission(regId, ackRef, credId, businessRegistration, ctReg)
 
-      await(result) shouldBe InterimDesRegistration(
+      result shouldBe InterimDesRegistration(
         ackRef,
         Metadata(sessionId, credId, "en", DateTime.parse(service.formatTimestamp(dateTime)), Director),
         InterimCorporationTax(
@@ -568,7 +566,7 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
       val result: InterimDesRegistration = service.buildPartialDesSubmission(
         regId, ackRef, authProviderId, businessRegistration, corporationTaxRegistration.copy(sessionIdentifiers = Some(SessionIds(sessionId, authProviderId)))
       )
-      await(result).toString shouldBe interimDesRegistration.toString
+      result.toString shouldBe interimDesRegistration.toString
     }
 
     "return a valid DES Submission if groups is provided but relief is false" in new Setup {
@@ -580,7 +578,7 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
       val ctReg: CorporationTaxRegistration = getCTReg(regId, Some(companyDetails2), Some(contactDetails2)).copy(groups = Some(Groups(groupRelief = false, None, None, None)))
       val result: InterimDesRegistration = service.buildPartialDesSubmission(regId, ackRef, credId, businessRegistration, ctReg)
 
-      await(result) shouldBe InterimDesRegistration(
+      result shouldBe InterimDesRegistration(
         ackRef,
         Metadata(sessionId, credId, "en", DateTime.parse(service.formatTimestamp(dateTime)), Director),
         InterimCorporationTax(
@@ -609,7 +607,7 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
 
       val result: InterimDesRegistration = service.buildPartialDesSubmission(regId, ackRef, credId, businessRegistration, ctReg)
 
-      await(result) shouldBe InterimDesRegistration(
+      result shouldBe InterimDesRegistration(
         ackRef,
         Metadata(sessionId, credId, "en", DateTime.parse(service.formatTimestamp(dateTime)), Director),
         InterimCorporationTax(
@@ -642,7 +640,7 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
         )
       val result: InterimDesRegistration = service.buildPartialDesSubmission(regId, ackRef, credId, businessRegistration, ctReg)
 
-      await(result) shouldBe InterimDesRegistration(
+      result shouldBe InterimDesRegistration(
         ackRef,
         Metadata(sessionId, credId, "en", DateTime.parse(service.formatTimestamp(dateTime)), Director),
         InterimCorporationTax(
@@ -699,7 +697,7 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
 
       val result: InterimDesRegistration = service.buildPartialDesSubmission(regId, ackRef, credId, businessRegistration, ctReg)
 
-      await(result) shouldBe InterimDesRegistration(
+      result shouldBe InterimDesRegistration(
         ackRef,
         Metadata(sessionId, credId, "en", DateTime.parse(service.formatTimestamp(dateTime)), Director),
         InterimCorporationTax(
@@ -733,7 +731,7 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
           takeoverDetails = Some(TakeoverDetails(replacingAnotherBusiness = false, None, None, None, None)))
       val result: InterimDesRegistration = service.buildPartialDesSubmission(regId, ackRef, credId, businessRegistration, ctReg)
 
-      await(result) shouldBe InterimDesRegistration(
+      result shouldBe InterimDesRegistration(
         ackRef,
         Metadata(sessionId, credId, "en", DateTime.parse(service.formatTimestamp(dateTime)), Director),
         InterimCorporationTax(
@@ -756,7 +754,7 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
       val ctReg: CorporationTaxRegistration = getCTReg(regId, Some(companyDetails2), Some(contactDetails2)).copy(
         groups = Some(Groups(groupRelief = true, None, Some(GroupsAddressAndType(GroupAddressTypeEnum.ALF, BusinessAddress("1", "1", None, None, Some("ZZ1 1ZZ"), None))), Some(GroupUTR(None)))))
 
-      val res: RuntimeException = intercept[RuntimeException](await(service.buildPartialDesSubmission(regId, ackRef, credId, businessRegistration, ctReg)))
+      val res: RuntimeException = intercept[RuntimeException](service.buildPartialDesSubmission(regId, ackRef, credId, businessRegistration, ctReg))
       res.getMessage shouldBe s"formatGroupsForSubmission groups exists but name does not: $regId"
     }
 
@@ -769,7 +767,7 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
       val ctReg: CorporationTaxRegistration = getCTReg(regId, Some(companyDetails2), Some(contactDetails2)).copy(
         groups = Some(Groups(groupRelief = true, Some(GroupCompanyName("foo", GroupCompanyNameEnum.Other)), None, Some(GroupUTR(None)))))
 
-      val res: RuntimeException = intercept[RuntimeException](await(service.buildPartialDesSubmission(regId, ackRef, credId, businessRegistration, ctReg)))
+      val res: RuntimeException = intercept[RuntimeException](service.buildPartialDesSubmission(regId, ackRef, credId, businessRegistration, ctReg))
       res.getMessage shouldBe s"formatGroupsForSubmission groups exists but address does not: $regId"
     }
 
@@ -791,7 +789,7 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
         ))
       )
 
-      val res: RuntimeException = intercept[RuntimeException](await(service.buildPartialDesSubmission(regId, ackRef, credId, businessRegistration, ctReg)))
+      val res: RuntimeException = intercept[RuntimeException](service.buildPartialDesSubmission(regId, ackRef, credId, businessRegistration, ctReg))
       res.getMessage shouldBe s"formatGroupsForSubmission groups exists but utr block does not: $regId"
     }
 
@@ -811,7 +809,7 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
             Some(GroupCompanyName("%%&&&&&", GroupCompanyNameEnum.Other)),
             Some(GroupsAddressAndType(GroupAddressTypeEnum.ALF, BusinessAddress("1", "1", None, None, Some("ZZ1 1ZZ"), None))), Some(GroupUTR(None)))))
 
-      val res: RuntimeException = intercept[RuntimeException](await(service.buildPartialDesSubmission(regId, ackRef, credId, businessRegistration, ctReg)))
+      val res: RuntimeException = intercept[RuntimeException](service.buildPartialDesSubmission(regId, ackRef, credId, businessRegistration, ctReg))
       res.getMessage shouldBe s"Parent group name saved does not pass des validation: $regId"
     }
 
@@ -835,7 +833,7 @@ class SubmissionServiceSpec extends SCRSMocks with UnitSpec with AuthorisationMo
         .thenReturn(Future.successful(Some(corporationTaxRegistration)))
 
       val ctReg: CorporationTaxRegistration = getCTReg(regId, Some(companyDetails1), Some(contactDetails1))
-      intercept[RuntimeException](await(service.buildPartialDesSubmission(regId, ackRef, authProviderId, businessRegistration, ctReg)))
+      intercept[RuntimeException](service.buildPartialDesSubmission(regId, ackRef, authProviderId, businessRegistration, ctReg))
     }
   }
 

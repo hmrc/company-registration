@@ -53,7 +53,7 @@ class CompanyDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
 
       CompanyDetailsServiceMocks.retrieveCompanyDetails(registrationID, Some(validCompanyDetails))
 
-      val result = await(controller.retrieveCompanyDetails(registrationID)(FakeRequest()))
+      val result = controller.retrieveCompanyDetails(registrationID)(FakeRequest())
       status(result) shouldBe OK
       contentAsJson(result) shouldBe companyDetailsResponseJson
 
@@ -65,7 +65,7 @@ class CompanyDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
 
       CompanyDetailsServiceMocks.retrieveCompanyDetails(registrationID, None)
 
-      val result = await(controller.retrieveCompanyDetails(registrationID)(FakeRequest()))
+      val result = controller.retrieveCompanyDetails(registrationID)(FakeRequest())
       status(result) shouldBe NOT_FOUND
       contentAsJson(result) shouldBe ErrorResponse.companyDetailsNotFound
     }
@@ -104,7 +104,7 @@ class CompanyDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
 
       CompanyDetailsServiceMocks.updateCompanyDetails(registrationID, Some(validCompanyDetails))
 
-      val result = await(controller.updateCompanyDetails(registrationID)(request))
+      val result = controller.updateCompanyDetails(registrationID)(request)
       status(result) shouldBe OK
       contentAsJson(result) shouldBe companyDetailsResponseJson
     }
@@ -115,7 +115,7 @@ class CompanyDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
 
       CompanyDetailsServiceMocks.updateCompanyDetails(registrationID, None)
 
-      val result = await(controller.updateCompanyDetails(registrationID)(request))
+      val result = controller.updateCompanyDetails(registrationID)(request)
       status(result) shouldBe NOT_FOUND
       contentAsJson(result) shouldBe ErrorResponse.companyDetailsNotFound
     }
@@ -124,14 +124,14 @@ class CompanyDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.failed(new MissingCTDocument("hfbhdbf")))
 
-      val result = await(controller.updateCompanyDetails(registrationID)(request))
+      val result = controller.updateCompanyDetails(registrationID)(request)
       status(result) shouldBe NOT_FOUND
     }
 
     "return a 401 when the user is not logged in" in new Setup {
       mockAuthorise(Future.failed(MissingBearerToken()))
 
-      val result = await(controller.updateCompanyDetails(registrationID)(request))
+      val result = controller.updateCompanyDetails(registrationID)(request)
       status(result) shouldBe UNAUTHORIZED
     }
 
@@ -139,7 +139,7 @@ class CompanyDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.successful(otherInternalID))
 
-      val result = await(controller.updateCompanyDetails(registrationID)(request))
+      val result = controller.updateCompanyDetails(registrationID)(request)
       status(result) shouldBe FORBIDDEN
     }
 
@@ -149,7 +149,7 @@ class CompanyDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
 
       CompanyDetailsServiceMocks.updateCompanyDetails(registrationID, Some(validCompanyDetails))
 
-      val result = await(controller.updateCompanyDetails(registrationID)(request))
+      val result = controller.updateCompanyDetails(registrationID)(request)
       status(result) shouldBe OK
     }
   }
@@ -179,7 +179,7 @@ class CompanyDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
       val requestNOTContainingTxId = FakeRequest().withBody(Json.obj("transaction_foo_bar" -> "foo"))
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.successful(internalId))
-      val result = await(controller.saveHandOff2ReferenceAndGenerateAckRef("fooBarRegId")(requestNOTContainingTxId))
+      val result = controller.saveHandOff2ReferenceAndGenerateAckRef("fooBarRegId")(requestNOTContainingTxId)
       status(result) shouldBe 400
     }
   }

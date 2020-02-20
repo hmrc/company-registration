@@ -21,8 +21,9 @@ import models._
 import models.des.BusinessAddress
 import org.mockito.ArgumentMatchers.{eq => eqTo}
 import org.mockito.Mockito._
+import play.api.test.Helpers._
 import repositories.CorporationTaxRegistrationMongoRepository
-import uk.gov.hmrc.play.test.LogCapturing
+import utils.LogCapturing
 
 import scala.concurrent.Future
 
@@ -35,7 +36,7 @@ class GroupsServiceSpec extends BaseSpec with LogCapturing {
     nameOfCompany = Some(GroupCompanyName("foo", GroupCompanyNameEnum.Other)),
     addressAndType = Some(GroupsAddressAndType(
       GroupAddressTypeEnum.ALF,
-      BusinessAddress("1 abc","2 abc",Some("3 abc"),Some("4 abc"),Some("ZZ1 1ZZ"),Some("country A")))
+      BusinessAddress("1 abc", "2 abc", Some("3 abc"), Some("4 abc"), Some("ZZ1 1ZZ"), Some("country A")))
     ),
     groupUTR = Some(GroupUTR(Some("1234567890"))))
 
@@ -81,7 +82,7 @@ class GroupsServiceSpec extends BaseSpec with LogCapturing {
     }
     "return a future failed if db returns an exception" in new Setup {
       when(mockCTDataRepository.updateGroups(eqTo(regId), eqTo(validGroupsModel))).thenReturn(Future.failed(new Exception("")))
-        intercept[Exception](await(service.updateGroups(regId,validGroupsModel)))
+      intercept[Exception](await(service.updateGroups(regId, validGroupsModel)))
     }
   }
 }

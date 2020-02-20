@@ -16,11 +16,11 @@
 
 package models
 
+import org.scalatest.{Matchers, WordSpec}
 import play.api.data.validation.ValidationError
 import play.api.libs.json.{JsPath, Json}
-import uk.gov.hmrc.play.test.UnitSpec
 
-class TradingDetailsSpec extends UnitSpec {
+class TradingDetailsSpec extends WordSpec with Matchers {
 
   "Reading from Json with regular payments string" should {
 
@@ -45,7 +45,7 @@ class TradingDetailsSpec extends UnitSpec {
       val result = json.validate[TradingDetails]
 
       result.isSuccess shouldBe false
-      result.asEither.left.get shouldBe Seq((JsPath \ "regularPayments",List(ValidationError("expected either 'true' or 'false' but neither was found"))))
+      result.asEither.left.get shouldBe Seq((JsPath \ "regularPayments", List(ValidationError("expected either 'true' or 'false' but neither was found"))))
     }
   }
 

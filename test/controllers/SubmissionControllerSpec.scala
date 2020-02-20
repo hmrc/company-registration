@@ -73,7 +73,7 @@ class SubmissionControllerSpec extends BaseSpec with AuthorisationMocks with Cor
       when(mockCTDataService.retrieveConfirmationReferences(eqTo(regId)))
         .thenReturn(Future.successful(Some(expectedRefs)))
 
-      val result = await(controller.handleUserSubmission(regId)(request))
+      val result = controller.handleUserSubmission(regId)(request)
       status(result) shouldBe OK
       contentAsJson(result) shouldBe Json.toJson(expectedRefs)
     }
@@ -81,7 +81,7 @@ class SubmissionControllerSpec extends BaseSpec with AuthorisationMocks with Cor
     "return a 403 when the user is not authenticated" in new Setup {
       mockAuthorise(Future.failed(InsufficientConfidenceLevel()))
 
-      val result = await(controller.handleUserSubmission(regId)(request))
+      val result = controller.handleUserSubmission(regId)(request)
       status(result) shouldBe FORBIDDEN
     }
   }
@@ -95,14 +95,14 @@ class SubmissionControllerSpec extends BaseSpec with AuthorisationMocks with Cor
     "return a bad request" when {
       "given invalid json" in new Setup {
         val request = FakeRequest().withBody(Json.toJson(""))
-        val result = await(controller.acknowledgementConfirmation("TestAckRef")(request))
+        val result = controller.acknowledgementConfirmation("TestAckRef")(request)
         status(result) shouldBe BAD_REQUEST
       }
       "given an Accepted response without a CTUTR" in new Setup {
         val json = Json.toJson(AcknowledgementReferences(None, "bbb", "04"))(AcknowledgementReferences.format(MongoValidation, mockInstanceOfCrypto))
 
         val request = FakeRequest().withBody(Json.toJson(json))
-        val result = await(controller.acknowledgementConfirmation("TestAckRef")(request))
+        val result = controller.acknowledgementConfirmation("TestAckRef")(request)
         status(result) shouldBe BAD_REQUEST
       }
     }

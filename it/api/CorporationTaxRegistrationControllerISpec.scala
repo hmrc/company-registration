@@ -22,6 +22,7 @@ import play.api.http.HeaderNames
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.libs.ws.WS
+import play.api.test.Helpers._
 import uk.gov.hmrc.http.{HeaderNames => GovHeaderNames}
 
 

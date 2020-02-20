@@ -59,7 +59,7 @@ class EmailControllerSpec extends BaseSpec with AuthorisationMocks {
       when(mockEmailService.retrieveEmail(eqTo(registrationID)))
         .thenReturn(Future.successful(Some(email)))
 
-      val result = await(emailController.retrieveEmail(registrationID)(FakeRequest()))
+      val result = emailController.retrieveEmail(registrationID)(FakeRequest())
       status(result) shouldBe OK
       contentAsJson(result) shouldBe Json.toJson(email)
     }
@@ -67,7 +67,7 @@ class EmailControllerSpec extends BaseSpec with AuthorisationMocks {
     "return a 401 when the user is not logged in" in new Setup {
       mockAuthorise(Future.failed(MissingBearerToken()))
 
-      val result = await(emailController.retrieveEmail(registrationID)(FakeRequest()))
+      val result = emailController.retrieveEmail(registrationID)(FakeRequest())
       status(result) shouldBe UNAUTHORIZED
     }
 
@@ -75,7 +75,7 @@ class EmailControllerSpec extends BaseSpec with AuthorisationMocks {
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.successful(otherInternalID))
 
-      val result = await(emailController.retrieveEmail(registrationID)(FakeRequest()))
+      val result = emailController.retrieveEmail(registrationID)(FakeRequest())
       status(result) shouldBe FORBIDDEN
     }
 
@@ -83,7 +83,7 @@ class EmailControllerSpec extends BaseSpec with AuthorisationMocks {
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.failed(new MissingCTDocument("hfbhdbf")))
 
-      val result = await(emailController.retrieveEmail(registrationID)(FakeRequest()))
+      val result = emailController.retrieveEmail(registrationID)(FakeRequest())
       status(result) shouldBe NOT_FOUND
     }
   }
@@ -99,7 +99,7 @@ class EmailControllerSpec extends BaseSpec with AuthorisationMocks {
       when(mockEmailService.updateEmail(eqTo(registrationID), eqTo(email)))
         .thenReturn(Future.successful(Some(email)))
 
-      val result = await(emailController.updateEmail(registrationID)(request))
+      val result = emailController.updateEmail(registrationID)(request)
       status(result) shouldBe OK
       contentAsJson(result) shouldBe emailJson
     }

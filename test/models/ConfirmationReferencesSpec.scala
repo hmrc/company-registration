@@ -16,12 +16,12 @@
 
 package models
 
+import org.scalatest.{Matchers, WordSpec}
 import play.api.data.validation.ValidationError
 import play.api.libs.json._
-import uk.gov.hmrc.play.test.UnitSpec
 
 
-class ConfirmationReferencesSpec extends UnitSpec with JsonFormatValidation {
+class ConfirmationReferencesSpec extends WordSpec with Matchers with JsonFormatValidation {
 
   def j(ackRef: String) = {
     s"""

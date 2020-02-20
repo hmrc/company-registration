@@ -68,7 +68,7 @@ class UserAccessControllerSpec extends BaseSpec with AuthorisationMocks {
 
       val result = controller.checkUserAccess(FakeRequest())
       status(result) shouldBe OK
-      await(jsonBodyOf(result)) shouldBe Json.toJson(UserAccessSuccessResponse("123", false, false, false))
+      contentAsJson(result) shouldBe Json.toJson(UserAccessSuccessResponse("123", false, false, false))
     }
 
     "return a 429" in new Setup {

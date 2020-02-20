@@ -82,7 +82,7 @@ class HeldControllerSpec extends BaseSpec with AuthorisationMocks {
       when(mockResource.getExistingRegistration(ArgumentMatchers.any()))
         .thenReturn(Future.successful(doc(Some(now))))
 
-      val result = await(controller.fetchHeldSubmissionTime(regId)(FakeRequest()))
+      val result = controller.fetchHeldSubmissionTime(regId)(FakeRequest())
       status(result) shouldBe OK
       contentAsString(result) shouldBe s"${now.getMillis}"
     }
@@ -92,7 +92,7 @@ class HeldControllerSpec extends BaseSpec with AuthorisationMocks {
       when(mockResource.getExistingRegistration(ArgumentMatchers.any()))
         .thenReturn(Future.successful(doc(None)))
 
-      val result = await(controller.fetchHeldSubmissionTime(regId)(FakeRequest()))
+      val result = controller.fetchHeldSubmissionTime(regId)(FakeRequest())
       status(result) shouldBe 404
       contentAsString(result) shouldBe ""
     }
@@ -115,7 +115,7 @@ class HeldControllerSpec extends BaseSpec with AuthorisationMocks {
 
       when(controller.service.deleteRejectedSubmissionData(ArgumentMatchers.any())(ArgumentMatchers.any())).thenReturn(Future.successful(true))
 
-      val result = await(controller.deleteSubmissionData(regId)(FakeRequest()))
+      val result = controller.deleteSubmissionData(regId)(FakeRequest())
       status(result) shouldBe OK
     }
 
@@ -125,7 +125,7 @@ class HeldControllerSpec extends BaseSpec with AuthorisationMocks {
 
       when(controller.service.deleteRejectedSubmissionData(ArgumentMatchers.any())(ArgumentMatchers.any())).thenReturn(Future.successful(false))
 
-      val result = await(controller.deleteSubmissionData(regId)(FakeRequest()))
+      val result = controller.deleteSubmissionData(regId)(FakeRequest())
       status(result) shouldBe NOT_FOUND
     }
   }

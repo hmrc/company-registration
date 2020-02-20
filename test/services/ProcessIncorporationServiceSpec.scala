@@ -18,28 +18,28 @@ package services
 
 import java.util.UUID
 
-import auth.AuthClientConnector
 import connectors._
 import fixtures.CorporationTaxRegistrationFixture
 import models._
 import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
-import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.Eventually
 import org.scalatest.mockito.MockitoSugar
+import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
 import play.api.Logger
 import play.api.libs.json.{JsObject, JsString, Json}
+import play.api.test.Helpers._
 import repositories.CorporationTaxRegistrationRepository
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, InternalServerException}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
-import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
+import utils.LogCapturing
 
 import scala.concurrent.Future
 
-class ProcessIncorporationServiceSpec extends UnitSpec with MockitoSugar with CorporationTaxRegistrationFixture with BeforeAndAfterEach with Eventually with LogCapturing {
+class ProcessIncorporationServiceSpec extends WordSpec with Matchers with MockitoSugar with CorporationTaxRegistrationFixture with BeforeAndAfterEach with Eventually with LogCapturing {
 
   val mockIncorporationCheckAPIConnector = mock[IncorporationCheckAPIConnector]
   val mockCTRepository = mock[CorporationTaxRegistrationRepository]
@@ -55,15 +55,15 @@ class ProcessIncorporationServiceSpec extends UnitSpec with MockitoSugar with Co
   }
 
   def resetMocks() = reset(
-      mockAuthConnector,
-      mockAuditConnector,
-      mockIncorporationCheckAPIConnector,
-      mockCTRepository,
-      mockDesConnector,
-      mockBRConnector,
-      mockSendEmailService,
-      mockAccountService
-    )
+    mockAuthConnector,
+    mockAuditConnector,
+    mockIncorporationCheckAPIConnector,
+    mockCTRepository,
+    mockDesConnector,
+    mockBRConnector,
+    mockSendEmailService,
+    mockAccountService
+  )
 
 
   trait mockService extends ProcessIncorporationService {
@@ -77,8 +77,8 @@ class ProcessIncorporationServiceSpec extends UnitSpec with MockitoSugar with Co
     val sendEmailService = mockSendEmailService
     override val addressLine4FixRegID: String = "false"
     override val amendedAddressLine4: String = ""
-    override val blockageLoggingDay : String = "MON,TUE,WED,THU,FRI"
-    override val blockageLoggingTime : String = "08:00:00_17:00:00"
+    override val blockageLoggingDay: String = "MON,TUE,WED,THU,FRI"
+    override val blockageLoggingTime: String = "08:00:00_17:00:00"
 
     override def inWorkingHours: Boolean = true
   }
@@ -94,7 +94,7 @@ class ProcessIncorporationServiceSpec extends UnitSpec with MockitoSugar with Co
     }
   }
 
-  def date(yyyyMMdd:String) = DateTime.parse(yyyyMMdd)
+  def date(yyyyMMdd: String) = DateTime.parse(yyyyMMdd)
 
   implicit val hc = HeaderCarrier()
 
@@ -102,18 +102,19 @@ class ProcessIncorporationServiceSpec extends UnitSpec with MockitoSugar with Co
   val testAckRef = UUID.randomUUID.toString
   val testRegId = UUID.randomUUID.toString
   val transId = UUID.randomUUID().toString
-  val validCR = validHeldCTRegWithData(ackRef=Some(testAckRef)).copy(
-    accountsPreparation = Some(AccountPrepDetails(AccountPrepDetails.COMPANY_DEFINED,Some(date("2017-01-01")))), verifiedEmail = Some(Email("testemail.com","",true,true,true))
+  val validCR = validHeldCTRegWithData(ackRef = Some(testAckRef)).copy(
+    accountsPreparation = Some(AccountPrepDetails(AccountPrepDetails.COMPANY_DEFINED, Some(date("2017-01-01")))), verifiedEmail = Some(Email("testemail.com", "", true, true, true))
   )
 
   import models.RegistrationStatus._
+
   val submittedCR = validCR.copy(status = SUBMITTED)
   val acknowledgedCR = validCR.copy(status = ACKNOWLEDGED)
   val failCaseCR = validCR.copy(status = DRAFT)
   val incorpSuccess = IncorpUpdate(transId, "accepted", Some("012345"), Some(new DateTime(2016, 8, 10, 0, 0)), timepoint)
   val incorpRejected = IncorpUpdate(transId, "rejected", None, None, timepoint, Some("testReason"))
   val submissionCheckResponseSingle = SubmissionCheckResponse(Seq(incorpSuccess), "testNextLink")
-  val submissionCheckResponseDouble = SubmissionCheckResponse(Seq(incorpSuccess,incorpSuccess), "testNextLink")
+  val submissionCheckResponseDouble = SubmissionCheckResponse(Seq(incorpSuccess, incorpSuccess), "testNextLink")
   val submissionCheckResponseNone = SubmissionCheckResponse(Seq(), "testNextLink")
 
   def sub(a: String, others: Option[(String, String, String, String)] = None) = {
@@ -130,53 +131,53 @@ class ProcessIncorporationServiceSpec extends UnitSpec with MockitoSugar with Co
     }
 
     s"""{  "acknowledgementReference" : "$a",
-        |  "registration" : {
-        |  "metadata" : {
-        |  "businessType" : "Limited company",
-        |  "sessionId" : "session-123",
-        |  "credentialId" : "cred-123",
-        |  "formCreationTimestamp": "1970-01-01T00:00:00.000Z",
-        |  "submissionFromAgent": false,
-        |  "language" : "ENG",
-        |  "completionCapacity" : "Director",
-        |  "declareAccurateAndComplete": true
-        |  },
-        |  "corporationTax" : {
-        |  "companyOfficeNumber" : "001",
-        |  "hasCompanyTakenOverBusiness" : false,
-        |  "companyMemberOfGroup" : false,
-        |  "companiesHouseCompanyName" : "FooBar",
-        |  "returnsOnCT61" : false,
-        |  "companyACharity" : false,
-        |  "businessAddress" : {"line1" : "1 FooBar Avenue", "line2" : "Bar", "line3" : "Foo Town",
-        |  "line4" : "Fooshire", "postcode" : "ZZ1 1ZZ", "country" : "United Kingdom"},
-        |  "businessContactDetails" : {"phoneNumber" : "0123457889","mobileNumber" : "07654321000","email" : "foo@bar.com"}
-        |  $extra
-        |  }
-        |  }
-        |}""".stripMargin
+       |  "registration" : {
+       |  "metadata" : {
+       |  "businessType" : "Limited company",
+       |  "sessionId" : "session-123",
+       |  "credentialId" : "cred-123",
+       |  "formCreationTimestamp": "1970-01-01T00:00:00.000Z",
+       |  "submissionFromAgent": false,
+       |  "language" : "ENG",
+       |  "completionCapacity" : "Director",
+       |  "declareAccurateAndComplete": true
+       |  },
+       |  "corporationTax" : {
+       |  "companyOfficeNumber" : "001",
+       |  "hasCompanyTakenOverBusiness" : false,
+       |  "companyMemberOfGroup" : false,
+       |  "companiesHouseCompanyName" : "FooBar",
+       |  "returnsOnCT61" : false,
+       |  "companyACharity" : false,
+       |  "businessAddress" : {"line1" : "1 FooBar Avenue", "line2" : "Bar", "line3" : "Foo Town",
+       |  "line4" : "Fooshire", "postcode" : "ZZ1 1ZZ", "country" : "United Kingdom"},
+       |  "businessContactDetails" : {"phoneNumber" : "0123457889","mobileNumber" : "07654321000","email" : "foo@bar.com"}
+       |  $extra
+       |  }
+       |  }
+       |}""".stripMargin
   }
 
-  def topUpSub(s: String, a:String, crn:String, active:String, firstPrep:String, intended:String) =
-        s"""{
-           |  "status" : "$s",
-           |  "acknowledgementReference" : "$a",
-           |  "corporationTax" : {
-           |  "crn" : "$crn",
-           |  "companyActiveDate": "$active",
-           |  "startDateOfFirstAccountingPeriod": "$firstPrep",
-           |  "intendedAccountsPreparationDate": "$intended"
-           |  }
-           |  }
-           |""".stripMargin
-
-
-  def topUpRejSub(s: String, a:String) =
+  def topUpSub(s: String, a: String, crn: String, active: String, firstPrep: String, intended: String) =
     s"""{
-        |  "status" : "$s",
-        |  "acknowledgementReference" : "$a"
-        |  }
-        |""".stripMargin
+       |  "status" : "$s",
+       |  "acknowledgementReference" : "$a",
+       |  "corporationTax" : {
+       |  "crn" : "$crn",
+       |  "companyActiveDate": "$active",
+       |  "startDateOfFirstAccountingPeriod": "$firstPrep",
+       |  "intendedAccountsPreparationDate": "$intended"
+       |  }
+       |  }
+       |""".stripMargin
+
+
+  def topUpRejSub(s: String, a: String) =
+    s"""{
+       |  "status" : "$s",
+       |  "acknowledgementReference" : "$a"
+       |  }
+       |""".stripMargin
 
 
   val crn = "012345"
@@ -187,9 +188,9 @@ class ProcessIncorporationServiceSpec extends UnitSpec with MockitoSugar with Co
   val acceptedStatus = "Accepted"
   val rejectedStatus = "Rejected"
   val interimSubmission = Json.parse(sub(testAckRef)).as[JsObject]
-  val validDesSubmission = Json.parse(sub(testAckRef,Some((crn,exampleDate,exampleDate1,exampleDate2)))).as[JsObject]
-  val validTopUpDesSubmission = Json.parse(topUpSub(acceptedStatus,testAckRef,crn,exampleDate,exampleDate1,exampleDate2)).as[JsObject]
-  val validRejectedTopUpDesSubmission = Json.parse(topUpRejSub(rejectedStatus,testAckRef)).as[JsObject]
+  val validDesSubmission = Json.parse(sub(testAckRef, Some((crn, exampleDate, exampleDate1, exampleDate2)))).as[JsObject]
+  val validTopUpDesSubmission = Json.parse(topUpSub(acceptedStatus, testAckRef, crn, exampleDate, exampleDate1, exampleDate2)).as[JsObject]
+  val validRejectedTopUpDesSubmission = Json.parse(topUpRejSub(rejectedStatus, testAckRef)).as[JsObject]
 
   "formatDate" should {
     "format a DateTime timestamp into the format yyyy-mm-dd" in new Setup {
@@ -248,20 +249,28 @@ class ProcessIncorporationServiceSpec extends UnitSpec with MockitoSugar with Co
 
   "activeDates" should {
     "return DoNotIntendToTrade if that was selected" in new Setup {
+
       import AccountingDetails.NOT_PLANNING_TO_YET
+
       service.activeDate(AccountingDetails(NOT_PLANNING_TO_YET, None), incorpSuccess.incorpDate.get) shouldBe DoNotIntendToTrade
     }
     "return ActiveOnIncorporation if that was selected" in new Setup {
+
       import AccountingDetails.WHEN_REGISTERED
+
       service.activeDate(AccountingDetails(WHEN_REGISTERED, None), incorpSuccess.incorpDate.get) shouldBe ActiveOnIncorporation
     }
     "return ActiveOnIncorporation if the active date is before the incorporation date" in new Setup {
+
       import AccountingDetails.FUTURE_DATE
+
       val tradeDate = "2016-08-09"
       service.activeDate(AccountingDetails(FUTURE_DATE, Some(tradeDate)), incorpSuccess.incorpDate.get) shouldBe ActiveOnIncorporation
     }
     "return ActiveInFuture with a date if that was selected" in new Setup {
+
       import AccountingDetails.FUTURE_DATE
+
       val tradeDate = "2017-01-01"
       service.activeDate(AccountingDetails(FUTURE_DATE, Some(tradeDate)), incorpSuccess.incorpDate.get) shouldBe ActiveInFuture(date(tradeDate))
     }
@@ -284,7 +293,7 @@ class ProcessIncorporationServiceSpec extends UnitSpec with MockitoSugar with Co
       val service = new mockService {
         implicit val hc = new HeaderCarrier()
 
-        override def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration, journeyId : String, isAdmin: Boolean = false)(implicit hc : HeaderCarrier) = Future.successful(true)
+        override def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration, journeyId: String, isAdmin: Boolean = false)(implicit hc: HeaderCarrier) = Future.successful(true)
       }
     }
     "return true for a DES ready submission" in new SetupNoProcess {
@@ -316,7 +325,9 @@ class ProcessIncorporationServiceSpec extends UnitSpec with MockitoSugar with Co
       when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
         .thenReturn(Future.successful(Some(failCaseCR)))
 
-      intercept[UnexpectedStatus]{await(service.updateSubmissionWithIncorporation(incorpSuccess, failCaseCR))}
+      intercept[UnexpectedStatus] {
+        await(service.updateSubmissionWithIncorporation(incorpSuccess, failCaseCR))
+      }
     }
 
   }
@@ -325,7 +336,7 @@ class ProcessIncorporationServiceSpec extends UnitSpec with MockitoSugar with Co
 
     class SetupBoolean(boole: Boolean) {
       val service = new mockService {
-        override def updateSubmissionWithIncorporation(item: IncorpUpdate, ctReg: CorporationTaxRegistration, isAdmin: Boolean = false)(implicit hc : HeaderCarrier) = Future.successful(boole)
+        override def updateSubmissionWithIncorporation(item: IncorpUpdate, ctReg: CorporationTaxRegistration, isAdmin: Boolean = false)(implicit hc: HeaderCarrier) = Future.successful(boole)
       }
     }
 
@@ -351,7 +362,7 @@ class ProcessIncorporationServiceSpec extends UnitSpec with MockitoSugar with Co
       await(service.processIncorporationUpdate(incorpSuccess)) shouldBe false
     }
 
-    "return a future true when processing a rejected incorporation" in new Setup{
+    "return a future true when processing a rejected incorporation" in new Setup {
       when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
         .thenReturn(Future.successful(Some(validCR)))
 
@@ -385,7 +396,7 @@ class ProcessIncorporationServiceSpec extends UnitSpec with MockitoSugar with Co
       await(service.processIncorporationUpdate(incorpRejected)) shouldBe false
     }
 
-    "return an exception when processing a rejected incorporation and Des returns a 500" in new Setup{
+    "return an exception when processing a rejected incorporation and Des returns a 500" in new Setup {
       when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
         .thenReturn(Future.successful(Some(validCR)))
       when(mockCTRepository.updateSubmissionStatus(ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(Future.successful("rejected"))
@@ -403,7 +414,7 @@ class ProcessIncorporationServiceSpec extends UnitSpec with MockitoSugar with Co
       }
     }
 
-    "log a pagerduty if no reg document is found" in new Setup{
+    "log a pagerduty if no reg document is found" in new Setup {
 
       when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
         .thenReturn(Future.successful(None))
@@ -440,12 +451,12 @@ class ProcessIncorporationServiceSpec extends UnitSpec with MockitoSugar with Co
     val addressLine4Json = JsString(addressLine4)
 
     "amend a held submissions' address line 4 with the one provided through config if the reg id's match" in new SetupWithAddressLine4Fix(regId, encodedAddressLine4) {
-      val result = await(service.addressLine4Fix(regId, heldJson))
+      val result = service.addressLine4Fix(regId, heldJson)
       (result \ "registration" \ "corporationTax" \ "businessAddress" \ "line4").toOption shouldBe Some(addressLine4Json)
     }
 
     "do not amend a held submissions' address line 4 if the reg id's do not match" in new SetupWithAddressLine4Fix("otherRegID", encodedAddressLine4) {
-      val result = await(service.addressLine4Fix(regId, heldJson))
+      val result = service.addressLine4Fix(regId, heldJson)
       result shouldBe heldJson
     }
   }

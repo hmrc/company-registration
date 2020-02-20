@@ -16,16 +16,16 @@
 
 package services
 
+import helpers.BaseSpec
 import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers
-import org.scalatest.mockito.MockitoSugar
-import repositories.{Repositories, ThrottleMongoRepository}
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 import org.mockito.Mockito._
+import play.api.test.Helpers._
+import repositories.ThrottleMongoRepository
 
 import scala.concurrent.Future
 
-class ThrottleServiceSpec extends UnitSpec with MockitoSugar {
+class ThrottleServiceSpec extends BaseSpec {
 
   val mockThrottleMongoRepository = mock[ThrottleMongoRepository]
 

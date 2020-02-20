@@ -17,14 +17,14 @@
 package services
 
 import fixtures.AccountingDetailsFixture
-import helpers.SCRSSpec
 import mocks.SCRSMocks
 import models.SubmissionDates
 import org.joda.time.DateTime
 import org.scalatest.mockito.MockitoSugar
-import uk.gov.hmrc.play.test.UnitSpec
+import org.scalatest.{Matchers, WordSpec}
+import play.api.test.Helpers._
 
-class AccountingDetailsServiceSpec extends UnitSpec with MockitoSugar with SCRSMocks with AccountingDetailsFixture {
+class AccountingDetailsServiceSpec extends WordSpec with Matchers with MockitoSugar with SCRSMocks with AccountingDetailsFixture {
 
   trait Setup {
     val service = new AccountingDetailsService {
@@ -86,11 +86,11 @@ class AccountingDetailsServiceSpec extends UnitSpec with MockitoSugar with SCRSM
       "return a 5 years from the Incorporation date for 'companyActiveDate' and 'startDateOfFirstAccountingPeriod' " +
         "dates and plus 1 year (end of month for Intended date)" in new Setup {
         val targetDate: DateTime = date(service.doNotIndendToTradeDefaultDate)
-        val result:SubmissionDates = service.calculateSubmissionDates(targetDate, DoNotIntendToTrade, None)
+        val result: SubmissionDates = service.calculateSubmissionDates(targetDate, DoNotIntendToTrade, None)
 
-        result.companyActiveDate                 shouldBe targetDate
-        result.startDateOfFirstAccountingPeriod  shouldBe targetDate
-        result.intendedAccountsPreparationDate   shouldBe targetDate
+        result.companyActiveDate shouldBe targetDate
+        result.startDateOfFirstAccountingPeriod shouldBe targetDate
+        result.intendedAccountsPreparationDate shouldBe targetDate
       }
     }
 
@@ -100,22 +100,22 @@ class AccountingDetailsServiceSpec extends UnitSpec with MockitoSugar with SCRSM
         val dateOfIncorp = date("2020-1-1")
         val providedDate = date("2020-1-1")
 
-        val result:SubmissionDates = service.calculateSubmissionDates(dateOfIncorp, ActiveOnIncorporation, Some(providedDate))
+        val result: SubmissionDates = service.calculateSubmissionDates(dateOfIncorp, ActiveOnIncorporation, Some(providedDate))
 
-        result.companyActiveDate                  shouldBe dateOfIncorp
-        result.startDateOfFirstAccountingPeriod   shouldBe dateOfIncorp
-        result.intendedAccountsPreparationDate    shouldBe providedDate
+        result.companyActiveDate shouldBe dateOfIncorp
+        result.startDateOfFirstAccountingPeriod shouldBe dateOfIncorp
+        result.intendedAccountsPreparationDate shouldBe providedDate
       }
 
       "return the date of Incorporation and Accounting preparation date calculated as the end of the month 1 year from the Incorporation date" in new Setup {
         val dateOfIncorp = date("2020-1-1")
         val targetPrepDate = date("2021-1-31")
 
-        val result:SubmissionDates = service.calculateSubmissionDates(dateOfIncorp, ActiveOnIncorporation, None)
+        val result: SubmissionDates = service.calculateSubmissionDates(dateOfIncorp, ActiveOnIncorporation, None)
 
-        result.companyActiveDate                  shouldBe dateOfIncorp
-        result.startDateOfFirstAccountingPeriod   shouldBe dateOfIncorp
-        result.intendedAccountsPreparationDate    shouldBe targetPrepDate
+        result.companyActiveDate shouldBe dateOfIncorp
+        result.startDateOfFirstAccountingPeriod shouldBe dateOfIncorp
+        result.intendedAccountsPreparationDate shouldBe targetPrepDate
       }
 
     }
@@ -127,11 +127,11 @@ class AccountingDetailsServiceSpec extends UnitSpec with MockitoSugar with SCRSM
         val providedDate = date("2021-1-1")
         val dateOfIncorp = date("2020-1-1")
 
-        val result:SubmissionDates = service.calculateSubmissionDates(dateOfIncorp, ActiveInFuture(futureDate), Some(providedDate))
+        val result: SubmissionDates = service.calculateSubmissionDates(dateOfIncorp, ActiveInFuture(futureDate), Some(providedDate))
 
-        result.companyActiveDate                  shouldBe futureDate
-        result.startDateOfFirstAccountingPeriod   shouldBe futureDate
-        result.intendedAccountsPreparationDate    shouldBe providedDate
+        result.companyActiveDate shouldBe futureDate
+        result.startDateOfFirstAccountingPeriod shouldBe futureDate
+        result.intendedAccountsPreparationDate shouldBe providedDate
       }
 
       "return the date of Incorporation and Accounting preparation date calculated as the end of the month 1 year from the Future date" in new Setup {
@@ -139,11 +139,11 @@ class AccountingDetailsServiceSpec extends UnitSpec with MockitoSugar with SCRSM
         val dateOfIncorp: DateTime = date("2019-6-8")
         val targetPrepDate = date("2021-1-31")
 
-        val result:SubmissionDates = service.calculateSubmissionDates(dateOfIncorp, ActiveInFuture(futureDate), None)
+        val result: SubmissionDates = service.calculateSubmissionDates(dateOfIncorp, ActiveInFuture(futureDate), None)
 
-        result.companyActiveDate                  shouldBe futureDate
-        result.startDateOfFirstAccountingPeriod   shouldBe futureDate
-        result.intendedAccountsPreparationDate    shouldBe targetPrepDate
+        result.companyActiveDate shouldBe futureDate
+        result.startDateOfFirstAccountingPeriod shouldBe futureDate
+        result.intendedAccountsPreparationDate shouldBe targetPrepDate
       }
 
     }

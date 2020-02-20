@@ -26,6 +26,7 @@ import play.api.Application
 import play.api.http.HeaderNames
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json._
+import play.api.test.Helpers._
 import play.api.libs.ws.{WS, WSRequest, WSResponse}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.WriteResult
@@ -85,7 +86,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
     await(seqRepo.drop)
     await(seqRepo.ensureIndexes)
 
-    def setupCTRegistration(reg: CorporationTaxRegistration): WriteResult = ctRepository.insert(reg)
+    def setupCTRegistration(reg: CorporationTaxRegistration): WriteResult = await(ctRepository.insert(reg))
 
     stubAuthorise(internalId)
   }
@@ -295,7 +296,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
         val reg: CorporationTaxRegistration = await(ctRepository.findAll()).head
         reg.confirmationReferences shouldBe Some(confRefsWithPayment)
         reg.sessionIdentifiers shouldBe Some(SessionIds(SessionId, authProviderId))
-        reg.status shouldBe LOCKED
+        reg.status shouldBe RegistrationStatus.LOCKED
       }
 
       "registration is in Draft status and update Confirmation References but DES submission failed 429 (old HO6)" in new Setup {
@@ -319,7 +320,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
         val reg: CorporationTaxRegistration = await(ctRepository.findAll()).head
         reg.confirmationReferences shouldBe Some(confRefsWithPayment)
         reg.sessionIdentifiers shouldBe Some(SessionIds(SessionId, authProviderId))
-        reg.status shouldBe LOCKED
+        reg.status shouldBe RegistrationStatus.LOCKED
       }
 
       "registration is in Locked status (old HO6)" in new Setup {
@@ -331,7 +332,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
           paymentReference = Some(payRef),
           paymentAmount = Some(payAmount)
         )
-        val lockedRegistration: CorporationTaxRegistration = draftRegistration.copy(status = LOCKED, confirmationReferences = Some(confRefsWithPayment))
+        val lockedRegistration: CorporationTaxRegistration = draftRegistration.copy(status = RegistrationStatus.LOCKED, confirmationReferences = Some(confRefsWithPayment))
 
         stubFor(post(urlEqualTo("/incorporation-information/subscribe/trans-id-2345/regime/ctax/subscriber/SCRS?force=true"))
           .willReturn(
@@ -947,7 +948,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
         val reg: CorporationTaxRegistration = await(ctRepository.findAll()).head
         reg.confirmationReferences shouldBe Some(confRefsWithoutPayment)
         reg.sessionIdentifiers shouldBe Some(SessionIds(SessionId, authProviderId))
-        reg.status shouldBe LOCKED
+        reg.status shouldBe RegistrationStatus.LOCKED
       }
 
       "registration is in Draft status and update Confirmation References with Ack Ref but DES submission FAILED 429 (new HO5-1)" in new Setup {
@@ -978,7 +979,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
         val reg: CorporationTaxRegistration = await(ctRepository.findAll()).head
         reg.confirmationReferences shouldBe Some(confRefsWithoutPayment)
         reg.sessionIdentifiers shouldBe Some(SessionIds(SessionId, authProviderId))
-        reg.status shouldBe LOCKED
+        reg.status shouldBe RegistrationStatus.LOCKED
       }
 
       "registration is in Locked status and update Confirmation References with Payment infos (new HO6)" in new Setup {
@@ -990,7 +991,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
           paymentReference = None,
           paymentAmount = None
         )
-        val lockedRegistration: CorporationTaxRegistration = draftRegistration.copy(status = LOCKED, confirmationReferences = Some(confRefsWithoutPayment))
+        val lockedRegistration: CorporationTaxRegistration = draftRegistration.copy(status = RegistrationStatus.LOCKED, confirmationReferences = Some(confRefsWithoutPayment))
 
         await(ctRepository.insert(lockedRegistration))
 

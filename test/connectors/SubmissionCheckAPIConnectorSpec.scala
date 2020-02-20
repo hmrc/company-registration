@@ -23,14 +23,15 @@ import org.joda.time.DateTime
 import org.mockito.Mockito._
 import org.mockito.{ArgumentCaptor, ArgumentMatchers}
 import org.scalatest.mockito.MockitoSugar
+import org.scalatest.{Matchers, WordSpec}
+import play.api.test.Helpers._
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
-import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 
 
-class SubmissionCheckAPIConnectorSpec extends UnitSpec with MockitoSugar  {
+class SubmissionCheckAPIConnectorSpec extends WordSpec with Matchers with MockitoSugar {
 
   val testProxyUrl = "testBusinessRegUrl"
   implicit val hc = HeaderCarrier()
@@ -45,15 +46,15 @@ class SubmissionCheckAPIConnectorSpec extends UnitSpec with MockitoSugar  {
   }
 
   val validSubmissionResponse = SubmissionCheckResponse(
-                                  Seq(
-                                    IncorpUpdate(
-                                      "transactionId",
-                                      "status",
-                                      Some("crn"),
-                                      Some(new DateTime(2016, 8, 10, 0, 0)),
-                                      "100000011")
-                                  ),
-                                  "testNextLink")
+    Seq(
+      IncorpUpdate(
+        "transactionId",
+        "status",
+        Some("crn"),
+        Some(new DateTime(2016, 8, 10, 0, 0)),
+        "100000011")
+    ),
+    "testNextLink")
 
 
   "checkSubmission" should {
@@ -64,7 +65,7 @@ class SubmissionCheckAPIConnectorSpec extends UnitSpec with MockitoSugar  {
       val testTimepoint = UUID.randomUUID().toString
 
       when(mockWSHttp.GET[SubmissionCheckResponse](ArgumentMatchers.anyString())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
-          .thenReturn(Future.successful(validSubmissionResponse))
+        .thenReturn(Future.successful(validSubmissionResponse))
 
       await(connector.checkSubmission()) shouldBe validSubmissionResponse
     }
@@ -73,7 +74,7 @@ class SubmissionCheckAPIConnectorSpec extends UnitSpec with MockitoSugar  {
       val testTimepoint = UUID.randomUUID().toString
 
       when(mockWSHttp.GET[SubmissionCheckResponse](ArgumentMatchers.anyString())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
-          .thenReturn(Future.successful(validSubmissionResponse))
+        .thenReturn(Future.successful(validSubmissionResponse))
 
       await(connector.checkSubmission(Some(testTimepoint))) shouldBe validSubmissionResponse
     }
@@ -81,7 +82,7 @@ class SubmissionCheckAPIConnectorSpec extends UnitSpec with MockitoSugar  {
     "verify a timepoint is appended as a query string to the url when one is supplied" in new Setup {
       val url = s"$testProxyUrl/internal/check-submission?timepoint=$testTimepoint&items_per_page=1"
 
-      val urlCaptor = ArgumentCaptor.forClass(classOf[String])
+      val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
 
       when(mockWSHttp.GET[SubmissionCheckResponse](urlCaptor.capture())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(validSubmissionResponse))
@@ -94,7 +95,7 @@ class SubmissionCheckAPIConnectorSpec extends UnitSpec with MockitoSugar  {
     "verify nothing is appended as a query string if a timepoint is not supplied" in new Setup {
       val url = s"$testProxyUrl/internal/check-submission?items_per_page=1"
 
-      val urlCaptor = ArgumentCaptor.forClass(classOf[String])
+      val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
 
       when(mockWSHttp.GET[SubmissionCheckResponse](urlCaptor.capture())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(validSubmissionResponse))
@@ -107,7 +108,7 @@ class SubmissionCheckAPIConnectorSpec extends UnitSpec with MockitoSugar  {
     "report an error when receiving a 400" in new Setup {
       val url = s"$testProxyUrl/internal/check-submission?items_per_page=1"
 
-      val urlCaptor = ArgumentCaptor.forClass(classOf[String])
+      val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
 
       when(mockWSHttp.GET[SubmissionCheckResponse](urlCaptor.capture())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.failed(new BadRequestException("400")))
@@ -120,7 +121,7 @@ class SubmissionCheckAPIConnectorSpec extends UnitSpec with MockitoSugar  {
     "report an error when receiving a 404" in new Setup {
       val url = s"$testProxyUrl/internal/check-submission?items_per_page=1"
 
-      val urlCaptor = ArgumentCaptor.forClass(classOf[String])
+      val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
 
       when(mockWSHttp.GET[SubmissionCheckResponse](urlCaptor.capture())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.failed(new NotFoundException("404")))
@@ -133,7 +134,7 @@ class SubmissionCheckAPIConnectorSpec extends UnitSpec with MockitoSugar  {
     "report an error when receiving an Upstream4xx" in new Setup {
       val url = s"$testProxyUrl/internal/check-submission?items_per_page=1"
 
-      val urlCaptor = ArgumentCaptor.forClass(classOf[String])
+      val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
 
       when(mockWSHttp.GET[SubmissionCheckResponse](urlCaptor.capture())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.failed(Upstream4xxResponse("429", 429, 429)))
@@ -146,7 +147,7 @@ class SubmissionCheckAPIConnectorSpec extends UnitSpec with MockitoSugar  {
     "report an error when receiving an Upstream5xx" in new Setup {
       val url = s"$testProxyUrl/internal/check-submission?items_per_page=1"
 
-      val urlCaptor = ArgumentCaptor.forClass(classOf[String])
+      val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
 
       when(mockWSHttp.GET[SubmissionCheckResponse](urlCaptor.capture())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.failed(Upstream5xxResponse("502", 502, 502)))
@@ -159,7 +160,7 @@ class SubmissionCheckAPIConnectorSpec extends UnitSpec with MockitoSugar  {
     "report an error when receiving an unexpected error" in new Setup {
       val url = s"$testProxyUrl/internal/check-submission?items_per_page=1"
 
-      val urlCaptor = ArgumentCaptor.forClass(classOf[String])
+      val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
 
       when(mockWSHttp.GET[SubmissionCheckResponse](urlCaptor.capture())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.failed(new NoSuchElementException))

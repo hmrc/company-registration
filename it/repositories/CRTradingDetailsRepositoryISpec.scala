@@ -22,6 +22,7 @@ import models._
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, Json}
+import play.api.test.Helpers._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.WriteResult
 
@@ -78,9 +79,9 @@ class CRTradingDetailsRepositoryISpec
       val tradingDetails = """ "tradingDetails":{"regularPayments":"true"}, """
       await(repository.collection.insert(json(tradingDetails)))
 
-      val response = repository.retrieveCorporationTaxRegistration(registrationId)
+      val response = await(repository.retrieveCorporationTaxRegistration(registrationId))
 
-      await(response.get.tradingDetails.get.regularPayments) shouldBe "true"
+      response.get.tradingDetails.get.regularPayments shouldBe "true"
     }
 
     "process with a regular payments boolean properly" in new Setup {
@@ -89,9 +90,9 @@ class CRTradingDetailsRepositoryISpec
       val tradingDetails = """ "tradingDetails":{"regularPayments":true}, """
       await(repository.collection.insert(json(tradingDetails)))
 
-      val response = repository.retrieveCorporationTaxRegistration(registrationId)
+      val response = await(repository.retrieveCorporationTaxRegistration(registrationId))
 
-      await(response.get.tradingDetails.get.regularPayments) shouldBe "true"
+      response.get.tradingDetails.get.regularPayments shouldBe "true"
     }
   }
 }

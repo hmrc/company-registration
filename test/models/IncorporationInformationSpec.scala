@@ -17,12 +17,11 @@
 package models
 
 import org.joda.time.{DateTime, DateTimeZone}
-import play.api.libs.json.{JsObject, Json}
-import uk.gov.hmrc.play.test.UnitSpec
+import org.scalatest.{Matchers, WordSpec}
+import play.api.libs.json.Json
 
 
-
-class IncorporationInformationSpec extends UnitSpec {
+class IncorporationInformationSpec extends WordSpec with Matchers {
 
   "IIreads" should {
 

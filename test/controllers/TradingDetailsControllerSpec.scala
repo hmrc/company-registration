@@ -76,7 +76,7 @@ class TradingDetailsControllerSpec extends BaseSpec with MockitoSugar with SCRSM
         .thenReturn(Future.successful(Some(TradingDetails("true"))))
 
 
-      val result: Result = await(controller.retrieveTradingDetails(regID)(FakeRequest()))
+      val result = controller.retrieveTradingDetails(regID)(FakeRequest())
 
       status(result) shouldBe OK
       contentAsJson(result) shouldBe Json.toJson(TradingDetails("true"))
@@ -128,7 +128,7 @@ class TradingDetailsControllerSpec extends BaseSpec with MockitoSugar with SCRSM
         .thenReturn(Future.successful(Some(TradingDetails("true"))))
 
       val request = FakeRequest().withBody(Json.toJson(TradingDetails("true")))
-      val result : Result = controller.updateTradingDetails("testRegID")(request)
+      val result = controller.updateTradingDetails("testRegID")(request)
 
       status(result) shouldBe OK
       contentAsJson(result) shouldBe Json.toJson(TradingDetails("true"))

@@ -17,12 +17,12 @@
 package audit
 
 import org.joda.time.DateTime
+import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{JsObject, Json}
-import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
 
-class SuccessfulIncorporationAuditEventSpec extends UnitSpec {
+class SuccessfulIncorporationAuditEventSpec extends WordSpec with Matchers {
 
   implicit val hc = HeaderCarrier()
   implicit val format = Json.format[ExtendedDataEvent]

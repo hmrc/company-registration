@@ -21,10 +21,10 @@ import java.time.LocalTime
 import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.spi.ILoggingEvent
 import org.scalatest.concurrent.Eventually
+import org.scalatest.{Matchers, WordSpec}
 import play.api.Logger
-import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
 
-class AlertLoggingSpec extends UnitSpec with LogCapturing with Eventually {
+class AlertLoggingSpec extends WordSpec with Matchers with LogCapturing with Eventually {
 
   val defaultLoggingDays = "MON,TUE,WED,THU,FRI"
   val defaultLoggingTime = "08:00:00_17:00:00"
@@ -51,11 +51,13 @@ class AlertLoggingSpec extends UnitSpec with LogCapturing with Eventually {
       override protected val loggingDays: String = logDays
 
       override private[utils] def today = todayForTest
+
       override private[utils] def now = nowForTest
     }
   }
 
   class SetupInWorkingHours extends Setup(monday, _2pm)
+
   class SetupNotInWorkingHours extends Setup(saturday, _9pm)
 
   "isLoggingDay" should {
@@ -134,7 +136,7 @@ class AlertLoggingSpec extends UnitSpec with LogCapturing with Eventually {
       logs.head.getLevel shouldBe level
     }
 
-    "accept any Pager Duty key" in new Setup(monday, _8am){
+    "accept any Pager Duty key" in new Setup(monday, _8am) {
       val validKeys = List(
         PagerDutyKeys.CT_REJECTED,
         PagerDutyKeys.CT_ACCEPTED_MISSING_UTR

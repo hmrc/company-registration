@@ -17,10 +17,10 @@
 package models
 
 import assets.TestConstants.TakeoverDetails._
+import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{JsError, JsSuccess, Json}
-import uk.gov.hmrc.play.test.UnitSpec
 
-class AddressSpec extends UnitSpec {
+class AddressSpec extends WordSpec with Matchers {
 
   "address" should {
     "return JsSuccess" when {

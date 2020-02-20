@@ -18,31 +18,30 @@ package services
 
 import connectors._
 import fixtures.CorporationTaxRegistrationFixture
-import mocks.{AuthorisationMocks, SCRSMocks}
+import helpers.BaseSpec
+import mocks.AuthorisationMocks
 import models.RegistrationStatus._
 import models._
 import models.des.BusinessAddress
 import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers.{eq => eqTo}
 import org.mockito.Mockito._
-import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.Eventually
-import org.scalatest.mockito.MockitoSugar
 import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import play.api.test.FakeRequest
+import play.api.test.Helpers._
 import repositories._
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.logging.SessionId
 import uk.gov.hmrc.lock.LockKeeper
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
+import utils.LogCapturing
 
 import scala.concurrent.Future
 
-class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with AuthorisationMocks with MockitoSugar
-   with LogCapturing with Eventually with BeforeAndAfterEach {
+class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationMocks with LogCapturing with Eventually {
 
   implicit val hc = HeaderCarrier(sessionId = Some(SessionId("testSessionId")))
   implicit val req = FakeRequest("GET", "/test-path")
@@ -60,6 +59,7 @@ class CorporationTaxRegistrationServiceSpec extends UnitSpec with SCRSMocks with
   val authProviderId = "auth-prov-id-12345"
 
   implicit val isAdmin: Boolean = false
+
   override protected def beforeEach(): Unit = {
     reset(
       mockCTDataRepository, mockSequenceRepository, mockAuthConnector, mockBRConnector,

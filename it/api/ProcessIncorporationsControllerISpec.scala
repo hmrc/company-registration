@@ -27,11 +27,13 @@ import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws.{WS, WSResponse}
+import play.api.test.Helpers._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.WriteResult
 import repositories.CorporationTaxRegistrationMongoRepository
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with MongoIntegrationSpec with LoginStub {
   val mockHost = WiremockHelper.wiremockHost
@@ -78,7 +80,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
     await(ctRepository.drop)
     await(ctRepository.ensureIndexes)
 
-    def setupCTRegistration(reg: CorporationTaxRegistration): WriteResult = ctRepository.insert(reg)
+    def setupCTRegistration(reg: CorporationTaxRegistration): WriteResult = await(ctRepository.insert(reg))
   }
 
   val regId = "reg-id-12345"
@@ -560,9 +562,9 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
         stubDesTopUpPost(200, """{"test":"json"}""")
         stubEmailPost(202)
 
-        val response: WSResponse = client(processIncorpPath).post(jsonIncorpStatusRejected)
+        val response: Future[WSResponse] = client(processIncorpPath).post(jsonIncorpStatusRejected)
 
-        response.status shouldBe 200
+        await(response).status shouldBe 200
 
         val reg :: _ = await(ctRepository.findAll())
 
@@ -580,9 +582,9 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
       "submission has already been deleted" in new Setup {
         setupSimpleAuthMocks()
 
-        val response: WSResponse = client(processIncorpPath).post(jsonIncorpStatusRejected)
+        val response: Future[WSResponse] = client(processIncorpPath).post(jsonIncorpStatusRejected)
 
-        response.status shouldBe 200
+        await(response).status shouldBe 200
         ctRepository.awaitCount shouldBe 0
       }
 
@@ -600,9 +602,9 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
         stubDesTopUpPost(200, """{"test":"json"}""")
         stubEmailPost(202)
 
-        val response: WSResponse = client(processIncorpPath).post(jsonIncorpStatusRejected)
+        val response: Future[WSResponse] = client(processIncorpPath).post(jsonIncorpStatusRejected)
 
-        response.status shouldBe 200
+        await(response).status shouldBe 200
 
         val reg :: _ = await(ctRepository.findAll())
 
@@ -628,9 +630,9 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
       stubDesTopUpPost(200, """{"test":"json"}""")
       stubEmailPost(202)
 
-      val response: WSResponse = client(processIncorpPath).post(jsonBodyFromII)
+      val response: Future[WSResponse] = client(processIncorpPath).post(jsonBodyFromII)
 
-      response.status shouldBe 200
+      await(response).status shouldBe 200
 
       val reg :: _ = await(ctRepository.findAll())
 
@@ -647,8 +649,8 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
       stubEmailPost(202)
       stubPost("/write/audit", 200, """{"x":2}""")
 
-      val response: WSResponse = client(processIncorpPath).post(jsonBodyFromII)
-      response.status shouldBe 500
+      val response: Future[WSResponse] = client(processIncorpPath).post(jsonBodyFromII)
+      await(response).status shouldBe 500
     }
 
     "return a 502 if the top-up submission to DES fails, then return a 200 when retried and the submission to DES is successful" in new Setup {
@@ -661,18 +663,18 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
       stubDesTopUpPost(502, """{"test":"json for 502"}""")
       stubEmailPost(202)
 
-      val response1: WSResponse = client(processIncorpPath).post(jsonBodyFromII)
+      val response1: Future[WSResponse] = client(processIncorpPath).post(jsonBodyFromII)
 
-      response1.status shouldBe 502
+     await(response1).status shouldBe 502
 
       val reg1 :: _ = await(ctRepository.findAll())
       reg1.status shouldBe "held"
 
       stubDesTopUpPost(200, """{"test":"json for 200"}""")
 
-      val response2: WSResponse = client(processIncorpPath).post(jsonBodyFromII)
+      val response2: Future[WSResponse] = client(processIncorpPath).post(jsonBodyFromII)
 
-      response2.status shouldBe 200
+      await(response2).status shouldBe 200
 
       val reg2 :: _ = await(ctRepository.findAll())
       reg2.status shouldBe "submitted"
@@ -685,9 +687,9 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
       setupSimpleAuthMocks()
       setupCTRegistration(heldRegistration.copy(status = RegistrationStatus.ACKNOWLEDGED))
 
-      val response1: WSResponse = client(processIncorpPath).post(jsonBodyFromII)
+      val response1: Future[WSResponse] = client(processIncorpPath).post(jsonBodyFromII)
 
-      response1.status shouldBe 200
+      await(response1).status shouldBe 200
 
       val reg1 :: _ = await(ctRepository.findAll())
       reg1.status shouldBe "acknowledged"
@@ -699,9 +701,9 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
 
       setupSimpleAuthMocks()
 
-      val response1: WSResponse = client(processIncorpPath).post(jsonBodyFromII)
+      val response1: Future[WSResponse] = client(processIncorpPath).post(jsonBodyFromII)
 
-      response1.status shouldBe 200
+      await(response1).status shouldBe 200
    }
   }
 }
