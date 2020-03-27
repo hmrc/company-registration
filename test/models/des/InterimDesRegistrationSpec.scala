@@ -605,7 +605,7 @@ class InterimDesRegistrationSpec extends WordSpec with Matchers {
 
       val validTakeover = Some(TakeoverDetails(
         replacingAnotherBusiness = true,
-        businessName = Some("Takeover name"),
+        businessName = Some("Takeover name@?><;:+/=(),.!¥#_•€&%£$[]{}~*«»"),
         businessTakeoverAddress = Some(Address(
           "Takeover 1",
           "Takeover 2",

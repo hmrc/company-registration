@@ -31,6 +31,7 @@ trait BaseJsonFormatting {
   private val companyNameRegex = """^[A-Za-z 0-9\-,.()/'&\"!%*_+:@<>?=;]{1,160}$"""
   private val forbiddenPunctuation = Set('[', ']', '{', '}', '#', '«', '»', '$', '\\')
   private val illegalCharacters = Map('æ' -> "ae", 'Æ' -> "AE", 'œ' -> "oe", 'Œ' -> "OE", 'ß' -> "ss", 'ø' -> "o", 'Ø' -> "O")
+  val takeoverCompanyNameInverseRegex = """[^A-Za-z 0-9\\'-]"""
 
   val dateTimePattern = "yyyy-MM-dd"
 
