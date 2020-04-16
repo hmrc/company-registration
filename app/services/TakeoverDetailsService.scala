@@ -16,10 +16,9 @@
 
 package services
 
-
 import javax.inject.{Inject, Singleton}
 import models.TakeoverDetails
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.Json
 import repositories.CorporationTaxRegistrationMongoRepository
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -29,7 +28,8 @@ class TakeoverDetailsService @Inject()(corporationTaxRegistrationMongoRepository
 
 
   def retrieveTakeoverDetailsBlock(registrationID: String): Future[Option[TakeoverDetails]] = {
-    corporationTaxRegistrationMongoRepository.findByRegId(registrationID).map {
+    corporationTaxRegistrationMongoRepository
+      .findBySelector(corporationTaxRegistrationMongoRepository.regIDSelector(registrationID)).map {
       document =>
         document.getOrElse(
           throw new Exception(s"[retrieveTakeoverDetails] failed to retrieve document with regId: '$registrationID' as it was not found")
@@ -38,11 +38,11 @@ class TakeoverDetailsService @Inject()(corporationTaxRegistrationMongoRepository
   }
 
   def updateTakeoverDetailsBlock(registrationID: String, takeoverDetails: TakeoverDetails): Future[TakeoverDetails] = {
-    val json = Json.toJson(takeoverDetails).as[JsObject]
+    val json = Json.toJson(takeoverDetails)
     val key = "takeoverDetails"
 
     corporationTaxRegistrationMongoRepository.update(
-      regId = registrationID,
+      selector = corporationTaxRegistrationMongoRepository.regIDSelector(registrationID),
       key = key,
       value = json
     ).map {

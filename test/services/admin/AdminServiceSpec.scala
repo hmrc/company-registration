@@ -116,7 +116,7 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
       val data = Some(sessionIdData)
       val reg = makeSessionReg(data)
 
-      when(mockCorpTaxRegistrationRepo.retrieveCorporationTaxRegistration(any()))
+      when(mockCorpTaxRegistrationRepo.findBySelector(any()))
         .thenReturn(Future.successful(Some(reg)))
 
       await(service.fetchSessionIdData(regId)) shouldBe data
@@ -569,7 +569,7 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
         val data = Some(sessionIdData.copy(sessionId = Some(newSessionId)))
         val reg = makeSessionReg(data)
 
-        when(mockCorpTaxRegistrationRepo.retrieveCorporationTaxRegistration(any()))
+        when(mockCorpTaxRegistrationRepo.findBySelector(any()))
           .thenReturn(Future.successful(Some(reg)))
         when(mockCorpTaxRegistrationRepo.retrieveSessionIdentifiers(any()))
           .thenReturn(Future.successful(Some(SessionIds(sessionIdData.sessionId.get, "credId"))))
@@ -598,7 +598,7 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
           .thenReturn(Future.successful(Some(SessionIds(sessionIdData.sessionId.get, sessionIdData.credId.get))))
         when(mockCorpTaxRegistrationRepo.storeSessionIdentifiers(any(), any(), any()))
           .thenReturn(Future.successful(true))
-        when(mockCorpTaxRegistrationRepo.retrieveCorporationTaxRegistration(any()))
+        when(mockCorpTaxRegistrationRepo.findBySelector(any()))
           .thenReturn(Future.successful(Some(reg)))
 
         await(service.updateDocSessionID(regId, newSessionId, newCredId, userName)) shouldBe sessionIdData.copy(sessionId = Some(newSessionId), credId = Some(newCredId))
@@ -621,7 +621,7 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
         intercept[RuntimeException](await(service.updateDocSessionID(regId, newSessionId, newCredId, userName)))
       }
       "retrieveCorporationTaxRegistration fails" in new Setup {
-        when(mockCorpTaxRegistrationRepo.retrieveCorporationTaxRegistration(any()))
+        when(mockCorpTaxRegistrationRepo.findBySelector(any()))
           .thenReturn(Future.failed(new RuntimeException("Failed to retrieve")))
         when(mockCorpTaxRegistrationRepo.retrieveSessionIdentifiers(any()))
           .thenReturn(Future.successful(Some(SessionIds(sessionIdData.sessionId.get, "credId"))))

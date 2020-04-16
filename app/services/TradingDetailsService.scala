@@ -26,21 +26,21 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class TradingDetailsServiceImpl @Inject()(val repositories: Repositories) extends TradingDetailsService {
-  lazy val corporationTaxRegistrationRepository = repositories.cTRepository
+  lazy val corporationTaxRegistrationMongoRepository = repositories.cTRepository
 }
 
 trait TradingDetailsService extends BaseController {
 
-  val corporationTaxRegistrationRepository : CorporationTaxRegistrationMongoRepository
+  val corporationTaxRegistrationMongoRepository : CorporationTaxRegistrationMongoRepository
 
   def retrieveTradingDetails(registrationID : String) : Future[Option[TradingDetails]] = {
-    corporationTaxRegistrationRepository.retrieveTradingDetails(registrationID).map {
+    corporationTaxRegistrationMongoRepository.retrieveTradingDetails(registrationID).map {
       tradingDetails => tradingDetails
     }
   }
 
   def updateTradingDetails(registrationID : String, tradingDetails: TradingDetails) : Future[Option[TradingDetails]] = {
-    corporationTaxRegistrationRepository.updateTradingDetails(registrationID, tradingDetails).map {
+    corporationTaxRegistrationMongoRepository.updateTradingDetails(registrationID, tradingDetails).map {
       tradingDetails => tradingDetails
     }
   }

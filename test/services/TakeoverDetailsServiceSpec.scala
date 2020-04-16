@@ -41,7 +41,7 @@ class TakeoverDetailsServiceSpec extends BaseSpec {
     "return a TakeoverDetails model" when {
       "one is found in the database" in {
         val testData = corpTaxRegModel(optTakeoverDetails = Some(testTakeoverDetailsModel))
-        when(mockCTDataRepository.findByRegId(eqTo(testRegistrationId))).thenReturn(Future.successful(Some(testData)))
+        when(mockCTDataRepository.findBySelector(mockCTDataRepository.regIDSelector(eqTo(testRegistrationId)))).thenReturn(Future.successful(Some(testData)))
 
         val res = await(TestService.retrieveTakeoverDetailsBlock(testRegistrationId))
 
@@ -51,7 +51,7 @@ class TakeoverDetailsServiceSpec extends BaseSpec {
 
     "throw an exception" when {
       "no document is found in the database" in {
-        when(mockCTDataRepository.findByRegId(eqTo(testRegistrationId))).thenReturn(Future.successful(None))
+        when(mockCTDataRepository.findBySelector(mockCTDataRepository.regIDSelector(eqTo(testRegistrationId)))).thenReturn(Future.successful(None))
 
         intercept[Exception](await(TestService.retrieveTakeoverDetailsBlock(testRegistrationId)))
       }
@@ -63,7 +63,11 @@ class TakeoverDetailsServiceSpec extends BaseSpec {
       "the database is successfully updated" in {
         val testJson = Json.toJson(testTakeoverDetailsModel).as[JsObject]
         val key = "takeoverDetails"
-        when(mockCTDataRepository.update(eqTo(testRegistrationId), eqTo(key), eqTo(testJson))).thenReturn(Future.successful(mock[UpdateWriteResult]))
+        when(mockCTDataRepository.update(
+          eqTo(mockCTDataRepository.regIDSelector(eqTo(testRegistrationId))),
+          eqTo(key),
+          eqTo(testJson))
+        ).thenReturn(Future.successful(mock[UpdateWriteResult]))
 
         val res = await(TestService.updateTakeoverDetailsBlock(testRegistrationId, testTakeoverDetailsModel))
 
@@ -75,7 +79,11 @@ class TakeoverDetailsServiceSpec extends BaseSpec {
       "no document is found in the database" in {
         val testJson = Json.toJson(testTakeoverDetailsModel).as[JsObject]
         val key = "takeoverDetails"
-        when(mockCTDataRepository.update(eqTo(testRegistrationId), eqTo(key), eqTo(testJson))).thenReturn(Future.failed(new NoSuchElementException))
+        when(mockCTDataRepository.update(
+          eqTo(mockCTDataRepository.regIDSelector(eqTo(testRegistrationId))),
+          eqTo(key),
+          eqTo(testJson))
+        ).thenReturn(Future.failed(new NoSuchElementException))
 
         intercept[Exception](await(TestService.updateTakeoverDetailsBlock(testRegistrationId, testTakeoverDetailsModel)))
       }

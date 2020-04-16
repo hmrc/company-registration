@@ -67,7 +67,7 @@ trait ProcessIncorporationService extends DateHelper with HttpErrorFunctions wit
 
   val desConnector: DesConnector
   val incorporationCheckAPIConnector: IncorporationCheckAPIConnector
-  val ctRepository: CorporationTaxRegistrationRepository
+  val ctRepository: CorporationTaxRegistrationMongoRepository
   val accountingService: AccountingDetailsService
   val brConnector: BusinessRegistrationConnector
   val auditConnector: AuditConnector
@@ -105,7 +105,7 @@ trait ProcessIncorporationService extends DateHelper with HttpErrorFunctions wit
     }
 
   def processIncorporationUpdate(item: IncorpUpdate, isAdmin: Boolean = false)(implicit hc: HeaderCarrier): Future[Boolean] = {
-    ctRepository.retrieveRegistrationByTransactionID(item.transactionId) flatMap { oCTReg =>
+    ctRepository.findBySelector(ctRepository.transIdSelector(item.transactionId)) flatMap { oCTReg =>
       item.status match {
         case "accepted" =>
           oCTReg.fold {

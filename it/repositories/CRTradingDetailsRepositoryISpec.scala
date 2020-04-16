@@ -79,7 +79,7 @@ class CRTradingDetailsRepositoryISpec
       val tradingDetails = """ "tradingDetails":{"regularPayments":"true"}, """
       await(repository.collection.insert(json(tradingDetails)))
 
-      val response = await(repository.retrieveCorporationTaxRegistration(registrationId))
+      val response = await(repository.findBySelector(repository.regIDSelector(registrationId)))
 
       response.get.tradingDetails.get.regularPayments shouldBe "true"
     }
@@ -90,7 +90,7 @@ class CRTradingDetailsRepositoryISpec
       val tradingDetails = """ "tradingDetails":{"regularPayments":true}, """
       await(repository.collection.insert(json(tradingDetails)))
 
-      val response = await(repository.retrieveCorporationTaxRegistration(registrationId))
+      val response = await(repository.findBySelector(repository.regIDSelector(registrationId)))
 
       response.get.tradingDetails.get.regularPayments shouldBe "true"
     }

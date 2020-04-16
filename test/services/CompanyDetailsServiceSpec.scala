@@ -33,7 +33,7 @@ class CompanyDetailsServiceSpec extends BaseSpec with CompanyDetailsFixture {
     reset(mockSubmissionService)
 
     val service = new CompanyDetailsService {
-      override val corporationTaxRegistrationRepository = mockCTDataRepository
+      override val corporationTaxRegistrationMongoRepository = mockCTDataRepository
       override val submissionService: SubmissionService = mockSubmissionService
     }
   }

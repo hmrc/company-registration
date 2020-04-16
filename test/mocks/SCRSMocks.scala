@@ -25,6 +25,7 @@ import org.mockito.stubbing.OngoingStubbing
 import org.scalatest.mockito.MockitoSugar
 import play.api.Configuration
 import play.api.libs.json.JsObject
+import reactivemongo.bson.BSONDocument
 import repositories.{CorporationTaxRegistrationMongoRepository, SequenceRepository}
 import services._
 import uk.gov.hmrc.crypto.ApplicationCrypto
@@ -72,7 +73,7 @@ trait SCRSMocks
     }
 
     def retrieveCorporationTaxRegistration(ctData: Option[CorporationTaxRegistration]): OngoingStubbing[Future[Option[CorporationTaxRegistration]]] = {
-      when(mockCTDataRepository.retrieveCorporationTaxRegistration(ArgumentMatchers.any[String]))
+      when(mockCTDataRepository.findBySelector(ArgumentMatchers.any[BSONDocument]))
         .thenReturn(Future.successful(ctData))
     }
 
