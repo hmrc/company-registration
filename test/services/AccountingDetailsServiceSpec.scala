@@ -28,7 +28,7 @@ class AccountingDetailsServiceSpec extends WordSpec with Matchers with MockitoSu
 
   trait Setup {
     val service = new AccountingDetailsService {
-      override val corporationTaxRegistrationRepository = mockCTDataRepository
+      override val CorporationTaxRegistrationMongoRepository = mockCTDataRepository
       override val doNotIndendToTradeDefaultDate = "1900-01-01"
     }
   }

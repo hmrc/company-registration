@@ -24,7 +24,7 @@ class ContactDetailsServiceSpec extends BaseSpec with ContactDetailsFixture {
 
   trait Setup {
     val service = new ContactDetailsService {
-      override val corporationTaxRegistrationRepository = mockCTDataRepository
+      override val CorporationTaxRegistrationMongoRepository = mockCTDataRepository
     }
   }
 

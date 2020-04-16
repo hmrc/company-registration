@@ -27,23 +27,23 @@ import scala.concurrent.Future
 
 class CompanyDetailsServiceImpl @Inject()(val repositories: Repositories,
                                           val submissionService: SubmissionService) extends CompanyDetailsService {
-  lazy val corporationTaxRegistrationRepository = repositories.cTRepository
+  lazy val CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 }
 trait CompanyDetailsService {
 
   val submissionService: SubmissionService
 
-  val corporationTaxRegistrationRepository : CorporationTaxRegistrationMongoRepository
+  val CorporationTaxRegistrationMongoRepository : CorporationTaxRegistrationMongoRepository
 
   private[services] def convertAckRefToJsObject(ref: String): JsObject = Json.obj("acknowledgement-reference" -> ref)
 
   def saveTxIdAndAckRef(registrationId:String, txid:String): Future[JsObject] = {
     ( for {
-    optConfRefs <- corporationTaxRegistrationRepository.retrieveConfirmationReferences(registrationId)
+    optConfRefs <- CorporationTaxRegistrationMongoRepository.retrieveConfirmationReferences(registrationId)
      updated <- optConfRefs.fold(submissionService.generateAckRef
        .map{ackRef => ConfirmationReferences(ackRef,txid,None,None)}){ alreadyHasConfRefs => Future.successful(alreadyHasConfRefs.copy(transactionId =  txid))
      }
-    confRefs <- corporationTaxRegistrationRepository.updateConfirmationReferences(registrationId, updated)
+    confRefs <- CorporationTaxRegistrationMongoRepository.updateConfirmationReferences(registrationId, updated)
    } yield convertAckRefToJsObject(updated.acknowledgementReference) )
       .recoverWith{
       case e: Exception =>
@@ -53,10 +53,10 @@ trait CompanyDetailsService {
   }
 
   def retrieveCompanyDetails(registrationID: String): Future[Option[CompanyDetails]] = {
-    corporationTaxRegistrationRepository.retrieveCompanyDetails(registrationID)
+    CorporationTaxRegistrationMongoRepository.retrieveCompanyDetails(registrationID)
   }
 
   def updateCompanyDetails(registrationID: String, companyDetails: CompanyDetails): Future[Option[CompanyDetails]] = {
-    corporationTaxRegistrationRepository.updateCompanyDetails(registrationID, companyDetails)
+    CorporationTaxRegistrationMongoRepository.updateCompanyDetails(registrationID, companyDetails)
   }
 }

@@ -66,7 +66,7 @@ case object NoSessionIdentifiersInDocument extends FailedPartialForLockedTopup
 
 trait CorporationTaxRegistrationService extends ScheduledService[Either[String,LockResponse]] with DateHelper {
 
-  val cTRegistrationRepository: CorporationTaxRegistrationRepository
+  val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository
   val sequenceRepository: SequenceRepository
   val brConnector: BusinessRegistrationConnector
   val auditConnector: AuditConnector
@@ -92,7 +92,7 @@ trait CorporationTaxRegistrationService extends ScheduledService[Either[String,L
 
   def retrieveCorporationTaxRegistrationRecord(rID: String, lastSignedIn: Option[DateTime] = None): Future[Option[CorporationTaxRegistration]] = {
     val repo = cTRegistrationRepository
-    repo.retrieveCorporationTaxRegistration(rID) map {
+    repo.findBySelector(repo.regIDSelector(rID)) map {
       doc =>
         lastSignedIn map (repo.updateLastSignedIn(rID, _))
         doc

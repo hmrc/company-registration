@@ -29,7 +29,7 @@ import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import play.api.libs.json.{JsObject, JsString, Json}
 import play.api.mvc.{AnyContent, Request}
-import repositories.{CorporationTaxRegistrationMongoRepository, CorporationTaxRegistrationRepository, Repositories, SequenceRepository}
+import repositories.{CorporationTaxRegistrationMongoRepository, Repositories, SequenceRepository}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import utils.{PagerDutyKeys, StringNormaliser}
@@ -51,7 +51,7 @@ class SubmissionServiceImpl @Inject()(val repositories: Repositories,
 
 trait SubmissionService extends DateHelper {
 
-  val cTRegistrationRepository: CorporationTaxRegistrationRepository
+  val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository
   val sequenceRepository: SequenceRepository
   val incorpInfoConnector: IncorporationInformationConnector
   val desConnector: DesConnector
@@ -63,7 +63,7 @@ trait SubmissionService extends DateHelper {
 
   def handleSubmission(rID: String, authProvId: String, handOffRefs: ConfirmationReferences, isAdmin: Boolean)
                       (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[ConfirmationReferences] = {
-    cTRegistrationRepository.retrieveCorporationTaxRegistration(rID) flatMap {
+    cTRegistrationRepository.findBySelector(cTRegistrationRepository.regIDSelector(rID)) flatMap {
       case Some(doc) =>
         throwPagerDutyIfTxIDInDBDoesntMatchHandOffTxID(doc.confirmationReferences, handOffRefs.transactionId)
         if (doc.status == DRAFT || doc.status == LOCKED) {
@@ -104,7 +104,7 @@ trait SubmissionService extends DateHelper {
   }
 
   def updateCTRecordWithAckRefs(ackRef: String, etmpNotification: AcknowledgementReferences): Future[Option[CorporationTaxRegistration]] = {
-    cTRegistrationRepository.retrieveByAckRef(ackRef) flatMap {
+    cTRegistrationRepository.findBySelector(cTRegistrationRepository.ackRefSelector(ackRef)) flatMap {
       case Some(record) =>
         cTRegistrationRepository.updateCTRecordWithAcknowledgments(ackRef, record.copy(acknowledgementReferences = Some(etmpNotification), status = RegistrationStatus.ACKNOWLEDGED)) map {
           _ => Some(record)
@@ -276,7 +276,7 @@ trait SubmissionService extends DateHelper {
   def setupPartialForTopupOnLocked(transID: String)(implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[Boolean] = {
     Logger.info(s"[setupPartialForTopup] Trying to update locked document of txId: $transID to held for topup with incorp update")
 
-    cTRegistrationRepository.retrieveRegistrationByTransactionID(transID) flatMap {
+    cTRegistrationRepository.findBySelector(cTRegistrationRepository.transIdSelector(transID)) flatMap {
       case Some(reg) =>
         (reg.sessionIdentifiers, reg.confirmationReferences) match {
           case _ if reg.status == SUBMITTED || reg.status == ACKNOWLEDGED =>

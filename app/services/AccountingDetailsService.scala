@@ -29,7 +29,7 @@ import scala.concurrent.Future
 
 class AccountingDetailsServiceImpl @Inject()(val repositories: Repositories,
                                              val microserviceAppConfig: MicroserviceAppConfig) extends AccountingDetailsService {
-  lazy val corporationTaxRegistrationRepository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
+  lazy val CorporationTaxRegistrationMongoRepository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
   lazy val doNotIntendToTradeConf: String = microserviceAppConfig.getConfString("doNotIndendToTradeDefaultDate", throw new RuntimeException("Unable to retrieve doNotIndendToTradeDefaultDate from config"))
   override val doNotIndendToTradeDefaultDate = new String(Base64.getDecoder.decode(doNotIntendToTradeConf.getBytes()), "UTF-8")
 }
@@ -41,15 +41,15 @@ case class ActiveInFuture(date: DateTime) extends ActiveDate
 
 trait AccountingDetailsService {
 
-  val corporationTaxRegistrationRepository : CorporationTaxRegistrationMongoRepository
+  val CorporationTaxRegistrationMongoRepository : CorporationTaxRegistrationMongoRepository
   val doNotIndendToTradeDefaultDate: String
 
   def retrieveAccountingDetails(registrationID: String): Future[Option[AccountingDetails]] = {
-    corporationTaxRegistrationRepository.retrieveAccountingDetails(registrationID)
+    CorporationTaxRegistrationMongoRepository.retrieveAccountingDetails(registrationID)
   }
 
   def updateAccountingDetails(registrationID: String, accountingDetails: AccountingDetails): Future[Option[AccountingDetails]] = {
-    corporationTaxRegistrationRepository.updateAccountingDetails(registrationID, accountingDetails)
+    CorporationTaxRegistrationMongoRepository.updateAccountingDetails(registrationID, accountingDetails)
   }
 
   def calculateSubmissionDates(incorporationDate: DateTime, activeDate: ActiveDate, accountingDate: Option[DateTime]) : SubmissionDates = {

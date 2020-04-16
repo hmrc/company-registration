@@ -30,7 +30,7 @@ class TradingDetailsServiceSpec extends BaseSpec with CorporationTaxRegistration
   class Setup {
 
     object TestService extends TradingDetailsService {
-      val corporationTaxRegistrationRepository = mockCTDataRepository
+      val CorporationTaxRegistrationMongoRepository = mockCTDataRepository
     }
 
   }
