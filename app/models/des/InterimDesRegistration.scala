@@ -225,7 +225,9 @@ object InterimCorporationTax {
         case Some(takeOver) if takeOver.replacingAnotherBusiness => Json.obj("hasCompanyTakenOverBusiness" -> true,
           "businessTakeOverDetails" ->
             Json.obj(
-              "businessNameLine1" -> takeOver.businessName,
+              "businessNameLine1" -> takeOver.businessName.map(str =>
+                APIValidation.takeoverCompanyNameInverseRegex.r.replaceAllIn(str, "")
+              ),
               "businessTakeoverAddress" -> takeOver.businessTakeoverAddress,
               "prevOwnersName" -> takeOver.prevOwnersName,
               "prevOwnerAddress" -> takeOver.prevOwnersAddress
