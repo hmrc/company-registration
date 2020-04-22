@@ -19,7 +19,7 @@ package mocks
 import com.codahale.metrics.{Counter, Timer}
 import com.kenshoo.play.metrics.Metrics
 import org.scalatest.mockito.MockitoSugar
-import repositories.{CorporationTaxRegistrationMongoRepository, CorporationTaxRegistrationRepository}
+import repositories.CorporationTaxRegistrationMongoRepository
 import services._
 import uk.gov.hmrc.lock.LockKeeper
 
@@ -33,29 +33,29 @@ object MockMetricsService extends MetricsService with MockitoSugar {
 
   override val ctutrConfirmationCounter: Counter = fakeCounter
 
-  val retrieveAccountingDetailsCRTimer : Timer = mockTimer
-  val updateAccountingDetailsCRTimer : Timer = mockTimer
+  val retrieveAccountingDetailsCRTimer: Timer = mockTimer
+  val updateAccountingDetailsCRTimer: Timer = mockTimer
 
-  val retrieveCompanyDetailsCRTimer : Timer = mockTimer
-  val updateCompanyDetailsCRTimer : Timer = mockTimer
+  val retrieveCompanyDetailsCRTimer: Timer = mockTimer
+  val updateCompanyDetailsCRTimer: Timer = mockTimer
 
-  val retrieveContactDetailsCRTimer : Timer = mockTimer
-  val updateContactDetailsCRTimer : Timer = mockTimer
+  val retrieveContactDetailsCRTimer: Timer = mockTimer
+  val updateContactDetailsCRTimer: Timer = mockTimer
 
-  val createCorporationTaxRegistrationCRTimer : Timer = mockTimer
-  val retrieveCorporationTaxRegistrationCRTimer : Timer = mockTimer
-  val retrieveFullCorporationTaxRegistrationCRTimer : Timer = mockTimer
-  val updateReferencesCRTimer : Timer = mockTimer
-  val retrieveConfirmationReferenceCRTimer : Timer = mockTimer
-  val acknowledgementConfirmationCRTimer : Timer = mockTimer
+  val createCorporationTaxRegistrationCRTimer: Timer = mockTimer
+  val retrieveCorporationTaxRegistrationCRTimer: Timer = mockTimer
+  val retrieveFullCorporationTaxRegistrationCRTimer: Timer = mockTimer
+  val updateReferencesCRTimer: Timer = mockTimer
+  val retrieveConfirmationReferenceCRTimer: Timer = mockTimer
+  val acknowledgementConfirmationCRTimer: Timer = mockTimer
 
-  val updateCompanyEndDateCRTimer : Timer = mockTimer
+  val updateCompanyEndDateCRTimer: Timer = mockTimer
 
-  val retrieveTradingDetailsCRTimer : Timer = mockTimer
-  val updateTradingDetailsCRTimer : Timer = mockTimer
+  val retrieveTradingDetailsCRTimer: Timer = mockTimer
+  val updateTradingDetailsCRTimer: Timer = mockTimer
 
-  val userAccessCRTimer : Timer = mockTimer
+  val userAccessCRTimer: Timer = mockTimer
 
-  val desSubmissionCRTimer : Timer = mockTimer
+  val desSubmissionCRTimer: Timer = mockTimer
   override val lockKeeper: LockKeeper = mock[LockKeeper]
 }

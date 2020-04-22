@@ -30,7 +30,7 @@ import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
 import play.api.Logger
 import play.api.libs.json.{JsObject, JsString, Json}
 import play.api.test.Helpers._
-import repositories.CorporationTaxRegistrationRepository
+import repositories.CorporationTaxRegistrationMongoRepository
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, InternalServerException}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -42,7 +42,7 @@ import scala.concurrent.Future
 class ProcessIncorporationServiceSpec extends WordSpec with Matchers with MockitoSugar with CorporationTaxRegistrationFixture with BeforeAndAfterEach with Eventually with LogCapturing {
 
   val mockIncorporationCheckAPIConnector = mock[IncorporationCheckAPIConnector]
-  val mockCTRepository = mock[CorporationTaxRegistrationRepository]
+  val mockCTRepository = mock[CorporationTaxRegistrationMongoRepository]
   val mockAccountService = mock[AccountingDetailsService]
   val mockDesConnector = mock[DesConnector]
   val mockBRConnector = mock[BusinessRegistrationConnector]
@@ -297,32 +297,32 @@ class ProcessIncorporationServiceSpec extends WordSpec with Matchers with Mockit
       }
     }
     "return true for a DES ready submission" in new SetupNoProcess {
-      when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
+      when(mockCTRepository.findBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
         .thenReturn(Future.successful(Some(validCR)))
 
       await(service.updateSubmissionWithIncorporation(incorpSuccess, validCR)) shouldBe true
     }
     "return false for a Locked registration" in new SetupNoProcess {
       val lockedReg = validCR.copy(status = LOCKED)
-      when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
+      when(mockCTRepository.findBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
         .thenReturn(Future.successful(Some(lockedReg)))
 
       await(service.updateSubmissionWithIncorporation(incorpSuccess, lockedReg)) shouldBe false
     }
     "return true for a submission that is already Submitted" in new SetupNoProcess {
-      when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
+      when(mockCTRepository.findBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
         .thenReturn(Future.successful(Some(submittedCR)))
 
       await(service.updateSubmissionWithIncorporation(incorpSuccess, submittedCR)) shouldBe true
     }
     "return true for a submission that is already Acknowledged" in new SetupNoProcess {
-      when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
+      when(mockCTRepository.findBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
         .thenReturn(Future.successful(Some(acknowledgedCR)))
 
       await(service.updateSubmissionWithIncorporation(incorpSuccess, submittedCR)) shouldBe true
     }
     "throw UnexpectedStatus for a submission that is neither 'Held' nor 'Submitted'" in new SetupNoProcess {
-      when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
+      when(mockCTRepository.findBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
         .thenReturn(Future.successful(Some(failCaseCR)))
 
       intercept[UnexpectedStatus] {
@@ -341,14 +341,14 @@ class ProcessIncorporationServiceSpec extends WordSpec with Matchers with Mockit
     }
 
     "return a future true when processing an accepted incorporation" in new SetupBoolean(true) {
-      when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
+      when(mockCTRepository.findBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
         .thenReturn(Future.successful(Some(validCR)))
       when(mockSendEmailService.sendVATEmail(ArgumentMatchers.eq("testemail.com"), ArgumentMatchers.any())(ArgumentMatchers.any[HeaderCarrier]())).thenReturn(Future.successful(true))
       await(service.processIncorporationUpdate(incorpSuccess)) shouldBe true
     }
 
     "return a future true when processing an accepted incorporation and the email fails to send" in new SetupBoolean(true) {
-      when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
+      when(mockCTRepository.findBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
         .thenReturn(Future.successful(Some(validCR)))
       when(mockSendEmailService.sendVATEmail(ArgumentMatchers.eq("testemail.com"), ArgumentMatchers.any())(ArgumentMatchers.any[HeaderCarrier]()))
         .thenReturn(Future.failed(new EmailErrorResponse("503")))
@@ -357,13 +357,13 @@ class ProcessIncorporationServiceSpec extends WordSpec with Matchers with Mockit
     }
 
     "return a future false when processing an accepted incorporation returns a false" in new SetupBoolean(false) {
-      when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
+      when(mockCTRepository.findBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
         .thenReturn(Future.successful(Some(validCR)))
       await(service.processIncorporationUpdate(incorpSuccess)) shouldBe false
     }
 
     "return a future true when processing a rejected incorporation" in new Setup {
-      when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
+      when(mockCTRepository.findBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
         .thenReturn(Future.successful(Some(validCR)))
 
       when(mockCTRepository.updateSubmissionStatus(ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(Future.successful("rejected"))
@@ -387,7 +387,7 @@ class ProcessIncorporationServiceSpec extends WordSpec with Matchers with Mockit
     }
 
     "return a future false, do not top up on rejected incorporation in LOCKED state" in new Setup {
-      when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
+      when(mockCTRepository.findBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
         .thenReturn(Future.successful(Some(validCR.copy(status = LOCKED))))
 
       when(mockAuditConnector.sendExtendedEvent(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
@@ -397,7 +397,7 @@ class ProcessIncorporationServiceSpec extends WordSpec with Matchers with Mockit
     }
 
     "return an exception when processing a rejected incorporation and Des returns a 500" in new Setup {
-      when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
+      when(mockCTRepository.findBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
         .thenReturn(Future.successful(Some(validCR)))
       when(mockCTRepository.updateSubmissionStatus(ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(Future.successful("rejected"))
       when(mockAuditConnector.sendExtendedEvent(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
@@ -416,7 +416,7 @@ class ProcessIncorporationServiceSpec extends WordSpec with Matchers with Mockit
 
     "log a pagerduty if no reg document is found" in new Setup {
 
-      when(mockCTRepository.retrieveRegistrationByTransactionID(ArgumentMatchers.eq(transId)))
+      when(mockCTRepository.findBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
         .thenReturn(Future.successful(None))
 
       when(mockCTRepository.updateSubmissionStatus(ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(Future.successful("rejected"))

@@ -24,7 +24,7 @@ import models.{ConfirmationReferences, HO6RegistrationInformation}
 import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc.{Action, _}
-import repositories.{CorporationTaxRegistrationMongoRepository, CorporationTaxRegistrationRepository, Repositories}
+import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.admin.AdminService
 import services.{CorporationTaxRegistrationService, SubmissionService}
 import uk.gov.hmrc.http.HeaderCarrier
@@ -48,7 +48,7 @@ trait AdminController extends BaseController with FutureInstances with Applicati
 
   val adminService: AdminService
   val submissionService: SubmissionService
-  val cTRegistrationRepository: CorporationTaxRegistrationRepository
+  val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository
 
 
   def fetchHO6RegistrationInformation(regId: String): Action[AnyContent] = Action.async {

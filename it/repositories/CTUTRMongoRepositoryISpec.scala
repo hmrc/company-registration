@@ -103,7 +103,7 @@ class CTUTRMongoRepositoryISpec
       (stored.get \ "acknowledgementReferences" \ "ct-utr").as[String] shouldNot be(ctUtr)
 
       // check that it is the UTR when fetched properly
-      val fetched: CorporationTaxRegistration = await(repository.retrieveByAckRef(ackRef)).get
+      val fetched: CorporationTaxRegistration = await(repository.findBySelector(repository.ackRefSelector(ackRef))).get
       fetched.acknowledgementReferences.map(_.ctUtr) shouldBe Some(ctUtr)
     }
   }

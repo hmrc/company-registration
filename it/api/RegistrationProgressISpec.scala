@@ -85,7 +85,7 @@ class RegistrationProgressISpec extends IntegrationSpecBase with LoginStub {
 
       response.status shouldBe 200
 
-      val doc = await( repository.retrieveCorporationTaxRegistration(registrationId) )
+      val doc = await( repository.findBySelector(repository.regIDSelector(registrationId)))
 
       doc shouldBe defined
       doc.get.registrationProgress shouldBe Some(progress)

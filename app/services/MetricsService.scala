@@ -124,7 +124,7 @@ trait MetricsService extends ScheduledService[Either[Map[String, Int], LockRespo
     }
 
   def updateDocumentMetrics(): Future[Map[String, Int]] = {
-    ctRepository.getRegistrationStats() map {
+    ctRepository.getRegistrationStats map {
       stats => {
         for( (status, count) <- stats ) {
           recordStatusCountStat(status, count)

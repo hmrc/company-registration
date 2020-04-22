@@ -49,7 +49,7 @@ class AppStartupJobsImpl @Inject()(val config: Configuration,
     val ctRepo: CorporationTaxRegistrationMongoRepository
 
     def startupStats: Future[Unit] = {
-      ctRepo.getRegistrationStats() map {
+      ctRepo.getRegistrationStats map {
         stats => Logger.info(s"[RegStats] $stats")
       }
     }
@@ -107,7 +107,7 @@ class AppStartupJobsImpl @Inject()(val config: Configuration,
   def fetchDocInfoByRegId(regIds: Seq[String]): Future[Seq[Unit]] = {
 
     Future.sequence(regIds.map{ regId =>
-      ctRepo.retrieveCorporationTaxRegistration(regId).map {
+      ctRepo.findBySelector(ctRepo.regIDSelector(regId)).map {
         case Some(doc) =>
           Logger.info(
             s"""
@@ -132,7 +132,7 @@ class AppStartupJobsImpl @Inject()(val config: Configuration,
   def fetchByAckRef(ackRefs: Seq[String]): Unit = {
 
     for (ackRef <- ackRefs) {
-      ctRepo.retrieveByAckRef(ackRef).map {
+      ctRepo.findBySelector(ctRepo.ackRefSelector(ackRef)).map {
         case Some(doc) =>
           Logger.info(
             s"""

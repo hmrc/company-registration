@@ -75,7 +75,7 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
   def fetchHO6RegistrationInformation(regId: String): Future[Option[HO6RegistrationInformation]] = corpTaxRegRepo.fetchHO6Information(regId)
 
   def fetchSessionIdData(regId: String): Future[Option[SessionIdData]] = {
-    corpTaxRegRepo.retrieveCorporationTaxRegistration(regId) map (_.map{ reg =>
+    corpTaxRegRepo.findBySelector(corpTaxRegRepo.regIDSelector(regId)) map (_.map{ reg =>
       SessionIdData(
         reg.sessionIdentifiers.map(_.sessionId),
         reg.sessionIdentifiers.map(_.credId),

@@ -24,18 +24,18 @@ import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import scala.concurrent.Future
 
 class ContactDetailsServiceImpl @Inject()(val repositories: Repositories) extends ContactDetailsService {
-  lazy val corporationTaxRegistrationRepository = repositories.cTRepository
+  lazy val corporationTaxRegistrationMongoRepository = repositories.cTRepository
 }
 
 trait ContactDetailsService {
 
-  val corporationTaxRegistrationRepository : CorporationTaxRegistrationMongoRepository
+  val corporationTaxRegistrationMongoRepository : CorporationTaxRegistrationMongoRepository
 
   def retrieveContactDetails(registrationID: String): Future[Option[ContactDetails]] = {
-    corporationTaxRegistrationRepository.retrieveContactDetails(registrationID)
+    corporationTaxRegistrationMongoRepository.retrieveContactDetails(registrationID)
   }
 
   def updateContactDetails(registrationID: String, contactDetails: ContactDetails): Future[Option[ContactDetails]] = {
-    corporationTaxRegistrationRepository.updateContactDetails(registrationID, contactDetails)
+    corporationTaxRegistrationMongoRepository.updateContactDetails(registrationID, contactDetails)
   }
 }

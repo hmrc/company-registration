@@ -26,7 +26,7 @@ import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{JsObject, JsResultException, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import repositories.CorporationTaxRegistrationRepository
+import repositories.CorporationTaxRegistrationMongoRepository
 import services.SubmissionService
 import services.admin.AdminService
 import uk.gov.hmrc.http.HeaderCarrier
@@ -41,13 +41,13 @@ class AdminControllerSpec extends WordSpec with Matchers with MockitoSugar {
 
   val mockAdminService: AdminService = mock[AdminService]
   val mockSubmissionService: SubmissionService = mock[SubmissionService]
-  val mockCorporationTaxMongo: CorporationTaxRegistrationRepository = mock[CorporationTaxRegistrationRepository]
+  val mockCorporationTaxMongo: CorporationTaxRegistrationMongoRepository = mock[CorporationTaxRegistrationMongoRepository]
 
   trait Setup {
     val controller = new AdminController {
       override val adminService: AdminService = mockAdminService
       override val submissionService: SubmissionService = mockSubmissionService
-      override val cTRegistrationRepository: CorporationTaxRegistrationRepository = mockCorporationTaxMongo
+      override val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository = mockCorporationTaxMongo
     }
   }
 

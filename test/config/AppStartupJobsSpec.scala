@@ -57,7 +57,7 @@ class AppStartupJobsSpec extends WordSpec with Matchers with MockitoSugar with L
       when(mockCTRepository.retrieveLockedRegIDs())
         .thenReturn(Future.successful(expectedLockedReg))
 
-      when(mockCTRepository.getRegistrationStats())
+      when(mockCTRepository.getRegistrationStats)
         .thenReturn(Future.successful(expectedRegStats))
       when(mockCTRepository.retrieveMultipleCorporationTaxRegistration(any()))
         .thenReturn(Future.successful(List(ctDoc1, ctDoc2)))
@@ -118,13 +118,13 @@ class AppStartupJobsSpec extends WordSpec with Matchers with MockitoSugar with L
       when(mockCTRepository.retrieveLockedRegIDs())
         .thenReturn(Future.successful(expectedLockedReg))
 
-      when(mockCTRepository.getRegistrationStats())
+      when(mockCTRepository.getRegistrationStats)
         .thenReturn(Future.successful(expectedRegStats))
-      when(mockCTRepository.retrieveCorporationTaxRegistration("regId1"))
+      when(mockCTRepository.findBySelector(mockCTRepository.regIDSelector("regId1")))
         .thenReturn(Future.successful(Some(corporationTaxRegistration("regId1","TestStatus","transid-1"))))
-      when(mockCTRepository.retrieveCorporationTaxRegistration("regId2"))
+      when(mockCTRepository.findBySelector(mockCTRepository.regIDSelector("regId2")))
         .thenReturn(Future.successful(Some(corporationTaxRegistration("regId2","TestStatus2","transid-2"))))
-      when(mockCTRepository.retrieveCorporationTaxRegistration("regId3"))
+      when(mockCTRepository.findBySelector(mockCTRepository.regIDSelector("regId3")))
         .thenReturn(Future.successful(None))
 
       val appStartupJobs: AppStartupJobs = new AppStartupJobs {
