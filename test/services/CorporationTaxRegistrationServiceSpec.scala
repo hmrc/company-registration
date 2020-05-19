@@ -305,7 +305,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
 
       "the RO address line 1 contains unexpected punctation" in new Setup {
         val roAddress = CHROAddress(
-          premise, "-1 Test![][@:~:~ Road", Some("-1 Test Town"), country, local, pobox, testPost, region
+          premise, "-1 Test![][@~~ Road", Some("-1 Test Town"), country, local, pobox, testPost, region
         )
 
         service.convertROToPPOBAddress(roAddress) shouldBe Some(PPOBAddress(
@@ -461,7 +461,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
 
       "the RO address line 1 contains unexpected punctation" in new Setup {
         val roAddress = CHROAddress(
-          premise, "-1 Test![][@:~:~ Road", Some("-1 Test Town"), country, local, pobox, testPost, region
+          premise, "-1 Test![][@~~ Road", Some("-1 Test Town"), country, local, pobox, testPost, region
         )
 
         service.convertRoToBusinessAddress(roAddress) shouldBe Some(BusinessAddress(

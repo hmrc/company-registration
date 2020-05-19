@@ -154,8 +154,8 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
       val expectedResult = Json.parse(
         """
           |{
-          |"addressLine1":"foo & Bar, 11 & AAAAA.",
-          |"addressLine2":"BBBBB",
+          |"addressLine1":"foo & Bar, 11 & AAAAA;.",
+          |"addressLine2":"BBBBB:",
           |"addressLine3":"CCC(",
           |"addressLine4":"DDDDD/",
           |"postCode":"AA11 1AA",

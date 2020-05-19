@@ -28,12 +28,12 @@ class StringNormaliserSpec extends WordSpec with Matchers {
       ("ZZ1 1ZZ", "[a-z0-9 ]", "1 1"),
       ("My nænæ is juúst like yØû", "[A-Za-z0-9 ]", "My naenae is juust like yOu"),
       ("My nænæ is just like you", "[0-9]", ""),
-      ("St Bob ; ; Lane", APIValidation.lineInvert.toString(), "St Bob   Lane"),
-      ("""1:-,.:;0-9A-Z&@$£¥€'\"«»‘’“”?!/\n()[]{}<>*=#%+àáâãäåāăąæǽçćĉċčþďðèéêëēĕėęěĝģğġĥħìíîïĩīĭįĵķĺļľŀłñńņňŋòóôõöøōŏőǿœŕŗřśŝşšţťŧùúûüũūŭůűųŵẁẃẅỳýŷÿźżžſÀÁÂÃÄÅĀĂĄÆǼÇĆĈĊČÞĎÐÈÉÊËĒĔĖĘĚĜĞĠĢĤĦÌÍÎÏĨĪĬĮİĴĶĹĻĽĿŁÑŃŅŇŊÒÓÔÕÖØŌŎŐǾŒŔŖŘŚŜŞŠŢŤŦÙÚÛÜŨŪŬŮŰŲŴẀẂẄỲÝŶŸŹŻŽſa-zÀ-ÖØ-ſƒǺ-ǿẀ-ẅỲỳ""", APIValidation.lineInvert.toString(), """1-,.0-9A-Z&'\"/\n()aaaaaaaaaaeaecccccdeeeeeeeeegggghiiiiiiiijkllllnnnnoooooooooooerrrssssttuuuuuuuuuuwwwwyyyyzzzsAAAAAAAAAAEAECCCCCDEEEEEEEEEGGGGHIIIIIIIIIJKLLLLNNNNOOOOOOOOOOOERRRSSSSTTUUUUUUUUUUWWWWYYYYZZZsa-zA-OO-sA-oW-wYy"""),
+      ("St Bob ; ; Lane", APIValidation.lineInvert.toString(), "St Bob ; ; Lane"),
+      ("""1:-,.:;0-9A-Z&@$£¥€'\"«»‘’“”?!/\n()[]{}<>*=#%+àáâãäåāăąæǽçćĉċčþďðèéêëēĕėęěĝģğġĥħìíîïĩīĭįĵķĺļľŀłñńņňŋòóôõöøōŏőǿœŕŗřśŝşšţťŧùúûüũūŭůűųŵẁẃẅỳýŷÿźżžſÀÁÂÃÄÅĀĂĄÆǼÇĆĈĊČÞĎÐÈÉÊËĒĔĖĘĚĜĞĠĢĤĦÌÍÎÏĨĪĬĮİĴĶĹĻĽĿŁÑŃŅŇŊÒÓÔÕÖØŌŎŐǾŒŔŖŘŚŜŞŠŢŤŦÙÚÛÜŨŪŬŮŰŲŴẀẂẄỲÝŶŸŹŻŽſa-zÀ-ÖØ-ſƒǺ-ǿẀ-ẅỲỳ""", APIValidation.lineInvert.toString(), """1:-,.:;0-9A-Z&'\"/\n()aaaaaaaaaaeaecccccdeeeeeeeeegggghiiiiiiiijkllllnnnnoooooooooooerrrssssttuuuuuuuuuuwwwwyyyyzzzsAAAAAAAAAAEAECCCCCDEEEEEEEEEGGGGHIIIIIIIIIJKLLLLNNNNOOOOOOOOOOOERRRSSSSTTUUUUUUUUUUWWWWYYYYZZZsa-zA-OO-sA-oW-wYy"""),
       ("fwibble #", APIValidation.lineInvert.toString(), "fwibble "),
       ("fwibble#", APIValidation.lineInvert.toString(), "fwibble"),
       ("Ted & Bob's Farm", APIValidation.lineInvert.toString(), "Ted & Bob's Farm"),
-      ("Ted #& Bob;'~s @Farm", APIValidation.lineInvert.toString(), "Ted & Bob's Farm")
+      ("Ted #& Bob;'~s @Farm", APIValidation.lineInvert.toString(), "Ted & Bob;'s Farm")
 
     ).foreach {
       case (string, filter, result) => s"return '$result' when '$string' is passed in using regex '$filter'" in {
