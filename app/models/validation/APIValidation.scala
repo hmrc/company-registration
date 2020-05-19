@@ -156,13 +156,13 @@ trait AddressValidator {
     regex.r
   }
 
-  val linePattern = regexWrap("""[a-zA-Z0-9\/\\("),.'&-]{1}[a-zA-Z0-9\/\\("), .'&-]{0,26}""")
-  val line4Pattern = regexWrap("""[a-zA-Z0-9\/\\("),.'&-]{1}[a-zA-Z0-9\/\\("), .'&-]{0,17}""")
+  val linePattern = regexWrap("""[a-zA-Z0-9\/\\("),.'&:;-]{1}[a-zA-Z0-9\/\\("), .'&:;-]{0,26}""")
+  val line4Pattern = regexWrap("""[a-zA-Z0-9\/\\("),.'&:;-]{1}[a-zA-Z0-9\/\\("), .'&:;-]{0,17}""")
   val postCodePattern = regexWrap("[A-Z]{1,2}[0-9][0-9A-Z]? [0-9][A-Z]{2}")
   val countryPattern = regexWrap("[A-Za-z0-9]{1}[A-Za-z 0-9]{0,19}")
   val parentGroupNamePattern = regexWrap("""[A-Z a-z 0-9\\'-]{1,20}$""")
 
-  val lineInvert = regexWrap("""[a-zA-Z0-9\/\\("), .'&-]""")
+  val lineInvert = regexWrap("""[a-zA-Z0-9\/\\("), .'&;:-]""")
   val postCodeInvert = regexWrap("[A-Z0-9 ]")
   val countryInvert = regexWrap("[A-Za-z0-9 ]")
   //Groups

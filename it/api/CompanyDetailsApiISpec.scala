@@ -74,7 +74,7 @@ class CompanyDetailsApiISpec extends IntegrationSpecBase with LoginStub {
   val ctDoc = CorporationTaxRegistration(internalId, regId, RegistrationStatus.DRAFT, formCreationTimestamp = "foo", language = "bar")
   val validCompanyDetails = CompanyDetails("testCompanyName", defaultCHROAddress, defaulPPOBAddress, "testJurisdiction")
   val ctDocWithCompDetails: CorporationTaxRegistration = ctDoc.copy(companyDetails = Some(validCompanyDetails))
-  val nonNormalisedSpecialCharCheck = PPOB("MANUAL", Some(PPOBAddress("<123> {ABC} !*^%$£", "BDT & CFD /|@", Some("A¥€ 1 «»"), Some("B~ ¬` 2^ -+=_:;"), Some("XX1 1ØZ"), Some("test coûntry"), None, "txid")))
+  val nonNormalisedSpecialCharCheck = PPOB("MANUAL", Some(PPOBAddress("<123> {ABC} !*^%$£", "BDT & CFD /|@", Some("A¥€ 1 «»"), Some("B~ ¬` 2^ -+=_"), Some("XX1 1ØZ"), Some("test coûntry"), None, "txid")))
   val normalisedSpecialCharCheck1 = PPOB("MANUAL", Some(PPOBAddress("123 ABC", "BDT & CFD", Some("A 1"), Some("B  2 -"), Some("XX1 1OZ"), Some("test country"), None, "txid")))
   val normalisedSpecialCharCheck2 = PPOB("MANUAL", Some(PPOBAddress("123 ABC ", "BDT & CFD /", Some("A 1 "), Some("B  2 -"), Some("XX1 1OZ"), Some("test country"), None, "txid")))
   val defaultSpecialCharCheck = PPOB("MANUAL", Some(PPOBAddress("123 ABC ", "BDT & CFD ", Some("A 1 "), Some("B  2 -"), Some("XX1 1OZ"), Some("test country"), None, "txid")))

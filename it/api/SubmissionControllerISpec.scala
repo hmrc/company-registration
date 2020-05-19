@@ -492,8 +492,8 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
                 "companyACharity" -> false,
                 "businessAddress" -> Json.obj(
                   "line1" -> "123 ABC  BDT & CFD /",
-                  "line2" -> "A 1 ",
-                  "line3" -> "Rts2",
+                  "line2" -> "A 1 ,.",
+                  "line3" -> ".Rts2",
                   "line4" -> "test country",
                   "postcode" -> "XX1 1OZ",
                   "country" -> "Dql"
