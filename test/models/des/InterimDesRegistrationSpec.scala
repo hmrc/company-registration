@@ -31,7 +31,7 @@ class InterimDesRegistrationSpec extends WordSpec with Matchers {
     "Construct a direct from an other" in { CompletionCapacity("director") shouldBe Director }
     "Construct an agent from an other" in { CompletionCapacity("agent") shouldBe Agent }
     "Construct a secretary from an other" in { CompletionCapacity("company secretary") shouldBe Secretary }
-    "Construct an other" in { CompletionCapacity("foo") shouldBe Other("foo") }
+    "Construct an other" in { CompletionCapacity("other") shouldBe Other("other") }
   }
 
   "Registration metadata model" should {
@@ -102,11 +102,11 @@ class InterimDesRegistrationSpec extends WordSpec with Matchers {
                                       |  "submissionFromAgent": false,
                                       |  "language" : "ENG",
                                       |  "completionCapacity" : "Other",
-                                      |  "completionCapacityOther" : "wibble",
+                                      |  "completionCapacityOther" : "other",
                                       |  "declareAccurateAndComplete": true
                                       |}""".stripMargin
 
-      val desModel = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), CompletionCapacity("wibble") )
+      val desModel = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), CompletionCapacity("other") )
 
       val result = Json.toJson[Metadata](desModel)
       result.getClass shouldBe classOf[JsObject]
@@ -273,10 +273,10 @@ class InterimDesRegistrationSpec extends WordSpec with Matchers {
                                      |  "hasCompanyTakenOverBusiness" : false,
                                      |  "companyMemberOfGroup" : true,
                                      |  "groupDetails" : {
-                                     |    "parentCompanyName" : "MISTAR FOO",
+                                     |    "parentCompanyName" : "testParentCompanyName",
                                      |    "groupAddress" : {
-                                     |                      "line1" : "FOO 1",
-                                     |                       "line2" : "FOO 2",
+                                     |                      "line1" : "Line 1",
+                                     |                       "line2" : "Line 2",
                                      |                       "line3" : "Telford",
                                      |                       "line4" : "Shropshire",
                                      |                       "postcode" : "ZZ1 1ZZ"
@@ -320,10 +320,10 @@ class InterimDesRegistrationSpec extends WordSpec with Matchers {
       )
       val validGroups = Some(Groups(
         groupRelief = true,
-        nameOfCompany = Some(GroupCompanyName("MISTAR FOO", GroupCompanyNameEnum.Other)),
+        nameOfCompany = Some(GroupCompanyName("testParentCompanyName", GroupCompanyNameEnum.Other)),
         addressAndType = Some(GroupsAddressAndType(GroupAddressTypeEnum.ALF,BusinessAddress(
-          "FOO 1",
-          "FOO 2",
+          "Line 1",
+          "Line 2",
           Some("Telford"),
           Some("Shropshire"),
           Some("ZZ1 1ZZ"),
@@ -432,14 +432,14 @@ class InterimDesRegistrationSpec extends WordSpec with Matchers {
                                      |  "hasCompanyTakenOverBusiness" : false,
                                      |  "companyMemberOfGroup" : true,
                                      |  "groupDetails" : {
-                                     |    "parentCompanyName" : "MISTAR FOO",
+                                     |    "parentCompanyName" : "testParentCompanyName",
                                      |    "groupAddress" : {
-                                     |                      "line1" : "FOO 1",
-                                     |                      "line2" : "FOO 2",
+                                     |                      "line1" : "Line 1",
+                                     |                      "line2" : "Line 2",
                                      |                      "line3" : "Telford",
                                      |                      "line4" : "Shropshire",
                                      |                      "postcode" : "ZZ1 1ZZ",
-                                     |                      "country" : "foo"
+                                     |                      "country" : "UK"
                                      |    }
                                      |  },
                                      |  "companiesHouseCompanyName" : "DG Limited",
@@ -479,14 +479,14 @@ class InterimDesRegistrationSpec extends WordSpec with Matchers {
       )
       val validGroups = Some(Groups(
         groupRelief = true,
-        nameOfCompany = Some(GroupCompanyName("MISTAR FOO", GroupCompanyNameEnum.Other)),
+        nameOfCompany = Some(GroupCompanyName("testParentCompanyName", GroupCompanyNameEnum.Other)),
         addressAndType = Some(GroupsAddressAndType(GroupAddressTypeEnum.ALF,BusinessAddress(
-          "FOO 1",
-          "FOO 2",
+          "Line 1",
+          "Line 2",
           Some("Telford"),
           Some("Shropshire"),
           Some("ZZ1 1ZZ"),
-          Some("foo")
+          Some("UK")
         ))),
         Some(GroupUTR(None))
       ))
@@ -544,10 +544,10 @@ class InterimDesRegistrationSpec extends WordSpec with Matchers {
                                      |  },
                                      |  "companyMemberOfGroup" : true,
                                      |  "groupDetails" : {
-                                     |    "parentCompanyName" : "MISTAR FOO",
+                                     |    "parentCompanyName" : "testParentCompanyName",
                                      |    "groupAddress" : {
-                                     |                      "line1" : "FOO 1",
-                                     |                       "line2" : "FOO 2",
+                                     |                       "line1" : "Line 1",
+                                     |                       "line2" : "Line 2",
                                      |                       "line3" : "Telford",
                                      |                       "line4" : "Shropshire",
                                      |                       "postcode" : "ZZ1 1ZZ"
@@ -591,10 +591,10 @@ class InterimDesRegistrationSpec extends WordSpec with Matchers {
       )
       val validGroups = Some(Groups(
         groupRelief = true,
-        nameOfCompany = Some(GroupCompanyName("MISTAR FOO", GroupCompanyNameEnum.Other)),
+        nameOfCompany = Some(GroupCompanyName("testParentCompanyName", GroupCompanyNameEnum.Other)),
         addressAndType = Some(GroupsAddressAndType(GroupAddressTypeEnum.ALF,BusinessAddress(
-          "FOO 1",
-          "FOO 2",
+          "Line 1",
+          "Line 2",
           Some("Telford"),
           Some("Shropshire"),
           Some("ZZ1 1ZZ"),

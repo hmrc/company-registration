@@ -21,12 +21,12 @@ import helpers.BaseSpec
 import mocks.AuthorisationMocks
 import models.Email
 import org.mockito.ArgumentMatchers.{eq => eqTo}
+import org.mockito.Mockito._
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
-import services.EmailService
-import org.mockito.Mockito._
 import play.api.test.Helpers._
 import repositories.MissingCTDocument
+import services.EmailService
 import uk.gov.hmrc.auth.core.MissingBearerToken
 
 import scala.concurrent.Future
@@ -46,8 +46,15 @@ class EmailControllerSpec extends BaseSpec with AuthorisationMocks {
   val registrationID = "reg-12345"
   val internalId = "int-12345"
   val otherInternalID = "other-int-12345"
-  
-  val email = Email("testAddress", "GG", linkSent = true, verified = true, returnLinkEmailSent = true)
+
+  val email = Email(
+    address = "testAddress",
+    emailType = "GG",
+    linkSent = true,
+    verified = true,
+    returnLinkEmailSent = true
+  )
+
   val emailJson = Json.toJson(email)
 
   "retrieveEmail" should {

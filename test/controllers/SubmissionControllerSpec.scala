@@ -89,7 +89,7 @@ class SubmissionControllerSpec extends BaseSpec with AuthorisationMocks with Cor
   "acknowledgementConfirmation" should {
 
     def request(ctutr: Boolean, code: String) = FakeRequest().withBody(
-      Json.toJson(AcknowledgementReferences(if (ctutr) Option("aaa") else None, "bbb", code))(AcknowledgementReferences.format(APIValidation, mockInstanceOfCrypto))
+      Json.toJson(AcknowledgementReferences(if (ctutr) Some("testCtutr") else None, "testTimestamp", code))(AcknowledgementReferences.format(APIValidation, mockInstanceOfCrypto))
     )
 
     "return a bad request" when {
@@ -99,7 +99,7 @@ class SubmissionControllerSpec extends BaseSpec with AuthorisationMocks with Cor
         status(result) shouldBe BAD_REQUEST
       }
       "given an Accepted response without a CTUTR" in new Setup {
-        val json = Json.toJson(AcknowledgementReferences(None, "bbb", "04"))(AcknowledgementReferences.format(MongoValidation, mockInstanceOfCrypto))
+        val json = Json.toJson(AcknowledgementReferences(None, "testTimestamp", "04"))(AcknowledgementReferences.format(MongoValidation, mockInstanceOfCrypto))
 
         val request = FakeRequest().withBody(Json.toJson(json))
         val result = controller.acknowledgementConfirmation("TestAckRef")(request)
@@ -163,7 +163,7 @@ class SubmissionControllerSpec extends BaseSpec with AuthorisationMocks with Cor
         val ackRef = "TestAckRef"
 
         "the status provided is not recognised by the contract" in new Setup {
-          val result = controller.acknowledgementConfirmation(ackRef)(request(ctutr = true, "I'm a surprise"))
+          val result = controller.acknowledgementConfirmation(ackRef)(request(ctutr = true, ""))
           intercept[RuntimeException](await(result))
         }
       }

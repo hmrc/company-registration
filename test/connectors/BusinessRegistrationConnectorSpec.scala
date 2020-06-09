@@ -87,9 +87,6 @@ class BusinessRegistrationConnectorSpec extends BaseSpec with BusinessRegistrati
   }
 
   "dropMetadata" should {
-
-    val url = s"$busRegBaseUrl//business-registration/test-only/drop-collection"
-
     val successMessage = Json.parse("""{"message":"success"}""")
     val failureMessage = Json.parse("""{"message":"failed"}""")
 

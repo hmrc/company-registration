@@ -17,27 +17,17 @@
 package models
 
 import org.scalatest.{Matchers, WordSpec}
-import play.api.libs.json.Json
+import play.api.libs.json.{JsObject, Json}
 
 class ElementsFromH02ReadsSpec extends WordSpec with Matchers {
 
-  val jsonParsedTxidInObj = Json.parse(
-    """{
-      | "transaction_id" : "foo"
-      | }
-    """.stripMargin)
+  val validJson: JsObject = Json.obj("transaction_id" -> "testTransactionId")
 
-  val transactionIdDoesntExist = Json.parse(
-    """{
-      | "transaction_foo" : "bar"
-      |}
-    """.stripMargin
-  )
   "reads should return a string when jsObject provided containing transaction_id" in {
-    jsonParsedTxidInObj.as[String](ElementsFromH02Reads.reads) shouldBe "foo"
+    validJson.as[String](ElementsFromH02Reads.reads) shouldBe "testTransactionId"
   }
   "reads should return jsError if element transaction_id not in obj" in {
-    transactionIdDoesntExist.validate[String](ElementsFromH02Reads.reads).isError shouldBe true
+    Json.obj().validate[String](ElementsFromH02Reads.reads).isError shouldBe true
   }
 
 }

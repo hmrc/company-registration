@@ -28,9 +28,9 @@ class SuccessfulIncorporationAuditEventSpec extends WordSpec with Matchers {
   implicit val format = Json.format[ExtendedDataEvent]
 
   val testModel = SuccessfulIncorporationAuditEventDetail(
-    "1234567890",
-    "1234",
-    DateTime.parse("2017-01-01")
+    journeyId = "1234567890",
+    companyRegistrationNumber = "1234",
+    incorporationDate = DateTime.parse("2017-01-01")
   )
 
   "successfulIncorporationAuditEventDetail" should {

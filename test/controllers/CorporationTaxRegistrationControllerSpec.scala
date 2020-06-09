@@ -37,7 +37,8 @@ import utils.AlertLogging
 import scala.concurrent.Future
 
 class CorporationTaxRegistrationControllerSpec extends BaseSpec with AuthorisationMocks with CorporationTaxRegistrationFixture {
-  class Setup (nowTime: LocalTime = LocalTime.parse("13:00:00")){
+
+  class Setup(nowTime: LocalTime = LocalTime.parse("13:00:00")) {
     val controller = new CorporationTaxRegistrationController {
       val ctService = mockCTDataService
       val resource = mockResource
@@ -215,7 +216,7 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
 
   "convertAndReturnRoAddressIfValidInPPOBFormat" should {
 
-    val cHROAddress = Json.toJson(CHROAddress("p","14 St Test Walk",Some("Test"),"c","l",Some("pb"),Some("TE1 1ST"),Some("r")))
+    val cHROAddress = Json.toJson(CHROAddress("p", "14 St Test Walk", Some("Test"), "c", "l", Some("pb"), Some("TE1 1ST"), Some("r")))
 
     "return an OK if the RO address can be converted to a PPOB address" in new Setup {
       when(mockCTDataService.convertROToPPOBAddress(ArgumentMatchers.any()))
@@ -239,10 +240,28 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
   }
 
   "convertAndReturnRoAddressIfValidInBusinessAddressFormat" should {
-    val anyCHROAddress = Json.toJson(CHROAddress("p","14 St Test Walk",Some("Test"),"c","l",Some("pb"),Some("TE1 1ST"),Some("r")))
+    val anyCHROAddress = Json.toJson(
+      CHROAddress(
+        premises = "premises",
+        address_line_1 = "14 St Test Walk",
+        address_line_2 = Some("Test"),
+        country = "country",
+        locality = "locality",
+        po_box = Some("po box"),
+        postal_code = Some("TE1 1ST"),
+        region = Some("region")
+      ))
     "return an ok if the Ro can be converted to a Business Address" in new Setup {
       when(mockCTDataService.convertRoToBusinessAddress(ArgumentMatchers.any())).thenReturn(
-        Some(BusinessAddress("1 abc","2 abc",Some("3 abc"),Some("4 abc"),Some("ZZ1 1ZZ"),Some("foo"))))
+        Some(BusinessAddress(
+          line1 = "1 abc",
+          line2 = "2 abc",
+          line3 = Some("3 abc"),
+          line4 = Some("4 abc"),
+          postcode = Some("ZZ1 1ZZ"),
+          country = Some("UK")
+        ))
+      )
 
       val request = FakeRequest().withBody(anyCHROAddress)
       val response = controller.convertAndReturnRoAddressIfValidInBusinessAddressFormat(request)
@@ -255,7 +274,7 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
           |   "line3" : "3 abc",
           |   "line4" : "4 abc",
           |   "postcode" : "ZZ1 1ZZ",
-          |   "country" : "foo"
+          |   "country" : "UK"
           |}
         """.stripMargin
       )

@@ -30,8 +30,8 @@ class StringNormaliserSpec extends WordSpec with Matchers {
       ("My nænæ is just like you", "[0-9]", ""),
       ("St Bob ; ; Lane", APIValidation.lineInvert.toString(), "St Bob ; ; Lane"),
       ("""1:-,.:;0-9A-Z&@$£¥€'\"«»‘’“”?!/\n()[]{}<>*=#%+àáâãäåāăąæǽçćĉċčþďðèéêëēĕėęěĝģğġĥħìíîïĩīĭįĵķĺļľŀłñńņňŋòóôõöøōŏőǿœŕŗřśŝşšţťŧùúûüũūŭůűųŵẁẃẅỳýŷÿźżžſÀÁÂÃÄÅĀĂĄÆǼÇĆĈĊČÞĎÐÈÉÊËĒĔĖĘĚĜĞĠĢĤĦÌÍÎÏĨĪĬĮİĴĶĹĻĽĿŁÑŃŅŇŊÒÓÔÕÖØŌŎŐǾŒŔŖŘŚŜŞŠŢŤŦÙÚÛÜŨŪŬŮŰŲŴẀẂẄỲÝŶŸŹŻŽſa-zÀ-ÖØ-ſƒǺ-ǿẀ-ẅỲỳ""", APIValidation.lineInvert.toString(), """1:-,.:;0-9A-Z&'\"/\n()aaaaaaaaaaeaecccccdeeeeeeeeegggghiiiiiiiijkllllnnnnoooooooooooerrrssssttuuuuuuuuuuwwwwyyyyzzzsAAAAAAAAAAEAECCCCCDEEEEEEEEEGGGGHIIIIIIIIIJKLLLLNNNNOOOOOOOOOOOERRRSSSSTTUUUUUUUUUUWWWWYYYYZZZsa-zA-OO-sA-oW-wYy"""),
-      ("fwibble #", APIValidation.lineInvert.toString(), "fwibble "),
-      ("fwibble#", APIValidation.lineInvert.toString(), "fwibble"),
+      ("test #", APIValidation.lineInvert.toString(), "test "),
+      ("test#", APIValidation.lineInvert.toString(), "test"),
       ("Ted & Bob's Farm", APIValidation.lineInvert.toString(), "Ted & Bob's Farm"),
       ("Ted #& Bob;'~s @Farm", APIValidation.lineInvert.toString(), "Ted & Bob;'s Farm")
 

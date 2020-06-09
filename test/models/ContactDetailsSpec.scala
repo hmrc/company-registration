@@ -94,7 +94,7 @@ class ContactDetailsSpec extends WordSpec with Matchers with JsonFormatValidatio
     }
 
     "fail if email is invalid" ignore { // ignored for now due to regex clarification!
-      val json = j(e = Some("foo"))
+      val json = j(e = Some("testInvalidEmail"))
       val result = Json.parse(json).validate[ContactDetails]
       shouldHaveErrors(result, JsPath() \ "contactEmail", Seq(ValidationError("error.pattern")))
     }

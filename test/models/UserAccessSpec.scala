@@ -67,7 +67,7 @@ class UserAccessSpec extends WordSpec with Matchers {
           created = true,
           confRefs = false,
           paymentRefs = false,
-          verifiedEmail = Some(Email("a@a.a", "GG", true, false, false))
+          verifiedEmail = Some(Email("a@a.a", "GG", linkSent = true, verified = false, returnLinkEmailSent = false))
         )
 
       val result = Json.toJson[UserAccessSuccessResponse](testModel)

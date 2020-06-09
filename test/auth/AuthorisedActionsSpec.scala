@@ -18,8 +18,8 @@ package auth
 
 import helpers.BaseSpec
 import mocks.AuthorisationMocks
-import play.api.test.FakeRequest
 import play.api.mvc.Results.Ok
+import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import repositories.MissingCTDocument
 import uk.gov.hmrc.auth.core.{BearerTokenExpired, InvalidBearerToken, MissingBearerToken, SessionRecordNotFound}

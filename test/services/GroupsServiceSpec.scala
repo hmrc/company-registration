@@ -29,11 +29,11 @@ import scala.concurrent.Future
 
 class GroupsServiceSpec extends BaseSpec with LogCapturing {
 
-  val regId = "regIdWizz"
+  val regId = "testRegId"
 
   val validGroupsModel = Groups(
     groupRelief = true,
-    nameOfCompany = Some(GroupCompanyName("foo", GroupCompanyNameEnum.Other)),
+    nameOfCompany = Some(GroupCompanyName("testGroupName", GroupCompanyNameEnum.Other)),
     addressAndType = Some(GroupsAddressAndType(
       GroupAddressTypeEnum.ALF,
       BusinessAddress("1 abc", "2 abc", Some("3 abc"), Some("4 abc"), Some("ZZ1 1ZZ"), Some("country A")))
@@ -69,7 +69,7 @@ class GroupsServiceSpec extends BaseSpec with LogCapturing {
       res shouldBe true
     }
     "return future failed if delete was unsuccessful db returned an exception" in new Setup {
-      when(mockCTDataRepository.deleteGroupsBlock(eqTo(regId))).thenReturn(Future.failed(new Exception("foo")))
+      when(mockCTDataRepository.deleteGroupsBlock(eqTo(regId))).thenReturn(Future.failed(new Exception("failure reason")))
       intercept[Exception](await(service.deleteGroups(regId)))
     }
   }
@@ -81,7 +81,7 @@ class GroupsServiceSpec extends BaseSpec with LogCapturing {
       res shouldBe validGroupsModel
     }
     "return a future failed if db returns an exception" in new Setup {
-      when(mockCTDataRepository.updateGroups(eqTo(regId), eqTo(validGroupsModel))).thenReturn(Future.failed(new Exception("")))
+      when(mockCTDataRepository.updateGroups(eqTo(regId), eqTo(validGroupsModel))).thenReturn(Future.failed(new Exception("failure reason")))
       intercept[Exception](await(service.updateGroups(regId, validGroupsModel)))
     }
   }
