@@ -31,7 +31,7 @@ object TestConstants {
 
   object CorporationTaxRegistration {
 
-    val testInternalId = "tiid"
+    val testInternalId = "testInternalId"
     val testRegistrationId = "0123456789"
     val testStatus = "held"
     val testFormCreationTimestamp = "2001-12-31T12:00:00Z"
@@ -40,8 +40,8 @@ object TestConstants {
     val testLastSignedIn: Long = 1485859613928L
 
     val testAcknowledgementReference = "BRCT12345678910"
-    val testTransactionId = "TX1"
-    val testPaymentReference = "PY1"
+    val testTransactionId = "testTransactionId"
+    val testPaymentReference = "testPaymentReference"
     val testPaymentAmount = "12.00"
 
     val testConfirmationReferences = Json.obj(fields =

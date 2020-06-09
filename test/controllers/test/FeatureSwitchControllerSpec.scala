@@ -21,8 +21,8 @@ import akka.stream.ActorMaterializer
 import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
-import org.scalatest.{Matchers, WordSpec}
 import org.scalatest.mockito.MockitoSugar
+import org.scalatest.{Matchers, WordSpec}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 
@@ -55,13 +55,13 @@ class FeatureSwitchControllerSpec extends WordSpec with Matchers with MockitoSug
       when(mockQuartz.resumeJob(ArgumentMatchers.any())).thenReturn(true)
       val result = controller.switch("missing-incorporation-job", "enable")(FakeRequest())
       status(result) shouldBe OK
-      verify(mockQuartz,times(1)).resumeJob(ArgumentMatchers.any())
+      verify(mockQuartz, times(1)).resumeJob(ArgumentMatchers.any())
     }
     "disable scheduledJob successfully" in new Setup {
       when(mockQuartz.suspendJob(ArgumentMatchers.any())).thenReturn(true)
       val result = controller.switch("missing-incorporation-job", "disable")(FakeRequest())
       status(result) shouldBe OK
-      verify(mockQuartz,times(1)).suspendJob(ArgumentMatchers.any())
+      verify(mockQuartz, times(1)).suspendJob(ArgumentMatchers.any())
     }
   }
 }

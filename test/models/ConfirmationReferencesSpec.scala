@@ -27,9 +27,9 @@ class ConfirmationReferencesSpec extends WordSpec with Matchers with JsonFormatV
     s"""
        |{
        |  "acknowledgement-reference" : "${ackRef}",
-       |  "transaction-id" : "aaa",
-       |  "payment-reference" : "bbb",
-       |  "payment-amount" : "ccc"
+       |  "transaction-id" : "testTransactionId",
+       |  "payment-reference" : "testPaymentReference",
+       |  "payment-amount" : "£100.00"
        |}
      """.stripMargin
   }
@@ -38,7 +38,7 @@ class ConfirmationReferencesSpec extends WordSpec with Matchers with JsonFormatV
     "Be able to be parsed from JSON" in {
       val ackRef = "1234567890123456789012345678901"
       val json = j(ackRef)
-      val expected = ConfirmationReferences(ackRef, "aaa", Some("bbb"), Some("ccc"))
+      val expected = ConfirmationReferences(ackRef, "testTransactionId", Some("testPaymentReference"), Some("£100.00"))
 
       val result = Json.parse(json).validate[ConfirmationReferences]
 

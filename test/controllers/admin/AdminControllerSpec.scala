@@ -57,7 +57,7 @@ class AdminControllerSpec extends WordSpec with Matchers with MockitoSugar {
   "fetchHO6RegistrationInformation" should {
 
     "return a 200 and HO6 registration information as json" in new Setup {
-      val regInfo = HO6RegistrationInformation("draft" , Some("testCompanyName"), Some("ho5"))
+      val regInfo = HO6RegistrationInformation("draft", Some("testCompanyName"), Some("ho5"))
 
 
       val expectedJson = Json.parse(
@@ -93,19 +93,19 @@ class AdminControllerSpec extends WordSpec with Matchers with MockitoSugar {
     "return a 200 and HO6 registration information as json" in new Setup {
       val sessionId = "session-id"
       val credId = "cred-id"
-      val companyName = "Fake Company Name"
-      val ackRef = "fakeAckRef"
+      val companyName = "Test Company Name"
+      val ackRef = "testAckRef"
 
       val regInfo = SessionIdData(Some(sessionId), Some(credId), Some(companyName), Some(ackRef))
 
       val expectedJson = Json.parse(
         s"""
-          |{
-          |  "sessionId":"$sessionId",
-          |  "credId":"$credId",
-          |  "companyName":"$companyName",
-          |  "ackRef":"$ackRef"
-          |}
+           |{
+           |  "sessionId":"$sessionId",
+           |  "credId":"$credId",
+           |  "companyName":"$companyName",
+           |  "ackRef":"$ackRef"
+           |}
         """.stripMargin)
 
       when(mockAdminService.fetchSessionIdData(eqTo(regId)))
@@ -133,7 +133,7 @@ class AdminControllerSpec extends WordSpec with Matchers with MockitoSugar {
         """{}""",
         """{"status": "06", "ctutr": false}""",
         """{"status": "04", "ctutr": true}"""
-      ).map{js => Json.parse(js).as[JsObject]}
+      ).map { js => Json.parse(js).as[JsObject] }
 
       val mocks = outputs map Future.successful
 
@@ -157,15 +157,15 @@ class AdminControllerSpec extends WordSpec with Matchers with MockitoSugar {
       language = "en",
       status = RegistrationStatus.HELD,
       companyDetails = Some(CompanyDetails(
-        "testCompanyName",
-        CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
-        PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"), None, "txid"))),
-        "testJurisdiction"
+        companyName = "testCompanyName",
+        registeredOffice = CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
+        ppob = PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"), None, "txid"))),
+        jurisdiction = "testJurisdiction"
       )),
       contactDetails = Some(ContactDetails(
-        Some("0123456789"),
-        Some("0123456789"),
-        Some("test@email.co.uk")
+        phone = Some("0123456789"),
+        mobile = Some("0123456789"),
+        email = Some("test@email.co.uk")
       )),
       tradingDetails = Some(TradingDetails("false")),
       heldTimestamp = None,
@@ -179,7 +179,8 @@ class AdminControllerSpec extends WordSpec with Matchers with MockitoSugar {
   )
 
   "ctUtrUpdate" should {
-    val jsrequest = FakeRequest().withBody(Json.parse("""
+    val jsrequest = FakeRequest().withBody(Json.parse(
+      """
         |{
         | "ctutr" : "test",
         | "username" : "user"
@@ -209,14 +210,16 @@ class AdminControllerSpec extends WordSpec with Matchers with MockitoSugar {
   }
 
   "updateSessionId" should {
-    val jsrequest = FakeRequest().withBody(Json.parse("""
+    val jsrequest = FakeRequest().withBody(Json.parse(
+      """
         |{
         | "sessionId" : "new-session-id",
         | "credId" : "new-cred-id",
         | "username" : "username"
         |}""".stripMargin))
 
-    val invalidJsRequest = FakeRequest().withBody(Json.parse("""
+    val invalidJsRequest = FakeRequest().withBody(Json.parse(
+      """
         |{
         | "badKey" : "new-session-id"
         |}""".stripMargin))

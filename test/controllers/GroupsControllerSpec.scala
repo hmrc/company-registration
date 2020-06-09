@@ -33,15 +33,15 @@ import services.GroupsService
 import scala.concurrent.Future
 
 class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
-  val internalId = "fooBar"
-  val regId = "regIdWizz"
+  val internalId = "testInternalId"
+  val regId = "testRegId"
   implicit val act = ActorSystem()
   implicit val mat = ActorMaterializer()
 
   val validGroupsModel = Groups(
     groupRelief = true,
-    nameOfCompany = Some(GroupCompanyName("foo", GroupCompanyNameEnum.Other)),
-    addressAndType = Some(GroupsAddressAndType(GroupAddressTypeEnum.ALF, BusinessAddress("1 abc", "2 abc", Some("3 abc"), Some("4 abc"), Some("ZZ1 1ZZ"), Some("country A")))),
+    nameOfCompany = Some(GroupCompanyName("testGroupName", GroupCompanyNameEnum.Other)),
+    addressAndType = Some(GroupsAddressAndType(GroupAddressTypeEnum.ALF, BusinessAddress("1 abc", "2 abc", Some("3 abc"), Some("4 abc"), Some("ZZ1 1ZZ"), Some("UK")))),
     groupUTR = Some(GroupUTR(Some("1234567890"))))
 
 
@@ -105,7 +105,7 @@ class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
     "return exception if groups returns future failed" in new Setup {
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.successful(internalId))
-      when(mockGroupsService.deleteGroups(eqTo(regId))).thenReturn(Future.failed(new Exception("foo bar wizz AND bang")))
+      when(mockGroupsService.deleteGroups(eqTo(regId))).thenReturn(Future.failed(new Exception("Failure Reason")))
       intercept[Exception](await(controller.deleteBlock(regId)(FakeRequest())))
     }
   }
@@ -122,7 +122,7 @@ class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
           |{
           |   "groupRelief": true,
           |   "nameOfCompany": {
-          |     "name": "foo",
+          |     "name": "testGroupName",
           |     "nameType" : "Other"
           |   },
           |  "addressAndType" : {
@@ -132,7 +132,7 @@ class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
           |         "line2" : "2 abc",
           |         "line3" : "3 abc",
           |         "line4" : "4 abc",
-          |         "country" : "country A",
+          |         "country" : "UK",
           |         "postcode" : "ZZ1 1ZZ"
           |     }
           |   },
@@ -145,7 +145,7 @@ class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
     "return 200 if the user has selected No previously to the page group relief" in new Setup {
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.successful(internalId))
-      when(mockGroupsService.returnGroups(eqTo(regId))).thenReturn(Future.successful(Some(Groups(false, None, None, None))))
+      when(mockGroupsService.returnGroups(eqTo(regId))).thenReturn(Future.successful(Some(Groups(groupRelief = false, None, None, None))))
       val res = controller.getBlock(regId)(FakeRequest())
       status(res) shouldBe OK
       contentAsJson(res) shouldBe Json.parse(
@@ -165,7 +165,7 @@ class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
     "return exception if returnGroups returns an exception" in new Setup {
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.successful(internalId))
-      when(mockGroupsService.returnGroups(eqTo(regId))).thenReturn(Future.failed(new Exception("boom")))
+      when(mockGroupsService.returnGroups(eqTo(regId))).thenReturn(Future.failed(new Exception("Failure Reason")))
       intercept[Exception](await(controller.getBlock(regId)(FakeRequest())))
 
     }
@@ -177,7 +177,7 @@ class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
           |{
           |   "groupRelief": true,
           |   "nameOfCompany": {
-          |     "name": "foo",
+          |     "name": "testGroupName",
           |     "nameType" : "Other"
           |   },
           |  "addressAndType" : {
@@ -187,7 +187,7 @@ class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
           |         "line2" : "2 abc",
           |         "line3" : "3 abc",
           |         "line4" : "4 abc",
-          |         "country" : "country A",
+          |         "country" : "UK",
           |         "postcode" : "ZZ1 1ZZ"
           |     }
           |   },
@@ -201,7 +201,7 @@ class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
           |{
           |   "groupRelief": false,
           |   "nameOfCompany": {
-          |     "name": "foo",
+          |     "name": "testGroupName",
           |     "nameType" : "Other"
           |   },
           |   "addressAndType" : {
@@ -211,7 +211,7 @@ class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
           |         "line2" : "2 abc",
           |         "line3" : "3 abc",
           |         "line4" : "4 abc",
-          |         "country" : "country A",
+          |         "country" : "UK",
           |         "postcode" : "ZZ1 1ZZ"
           |     }
           |   },
@@ -240,7 +240,7 @@ class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
           |         "line2" : "2 abc",
           |         "line3" : "3 abc",
           |         "line4" : "4 abc",
-          |         "country" : "country A",
+          |         "country" : "UK",
           |         "postcode" : "ZZ1 1ZZ"
           |     }
           |   },
@@ -258,9 +258,9 @@ class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
       val request = FakeRequest().withBody(Json.parse(
         """
           |{
-          |   "groupRelief": "foo not a boolean uh oh",
+          |   "groupRelief": "",
           |   "nameOfCompany": {
-          |     "name": "foo",
+          |     "name": "testGroupName",
           |     "nameType" : "Other"
           |   },  "addressAndType" : {
           |     "addressType" : "ALF",
@@ -269,7 +269,7 @@ class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
           |         "line2" : "2 abc",
           |         "line3" : "3 abc",
           |         "line4" : "4 abc",
-          |         "country" : "country A",
+          |         "country" : "UK",
           |         "postcode" : "ZZ1 1ZZ"
           |     }
           |   },
@@ -292,7 +292,7 @@ class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
       val request = FakeRequest().withBody(Json.parse(
         """
           [
-          "$","foo", "££", "bar"
+          "$","testGroupName1", "££", "testGroupName2"
           ]
         """.stripMargin))
       val res = controller.validateListOfNamesAgainstGroupNameValidation(request)
@@ -300,7 +300,7 @@ class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
       contentAsJson(res) shouldBe Json.parse(
         """
           |[
-          | "foo", "bar"
+          | "testGroupName1", "testGroupName2"
           |]
         """.stripMargin)
     }

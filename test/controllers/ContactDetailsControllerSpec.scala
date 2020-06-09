@@ -18,12 +18,11 @@ package controllers
 
 import fixtures.ContactDetailsFixture
 import helpers.BaseSpec
+import mocks.{AuthorisationMocks, MockMetricsService}
 import models.ErrorResponse
 import play.api.libs.json._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import mocks.{AuthorisationMocks, MockMetricsService}
-import play.api.mvc.Result
 import repositories.MissingCTDocument
 import uk.gov.hmrc.auth.core.MissingBearerToken
 
@@ -72,7 +71,7 @@ class ContactDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
 
     "return a 404 when the CT document cannot be found" in new Setup {
       mockAuthorise(Future.successful(internalId))
-      mockGetInternalId(Future.failed(new MissingCTDocument("hfbhdbf")))
+      mockGetInternalId(Future.failed(new MissingCTDocument("testRegId")))
 
       val result = controller.retrieveContactDetails(registrationID)(FakeRequest())
       status(result) shouldBe NOT_FOUND
@@ -121,7 +120,7 @@ class ContactDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
 
     "return a 404 when the CT document cannot be found" in new Setup {
       mockAuthorise(Future.successful(internalId))
-      mockGetInternalId(Future.failed(new MissingCTDocument("hfbhdbf")))
+      mockGetInternalId(Future.failed(new MissingCTDocument("testRegId")))
 
       val result = controller.updateContactDetails(registrationID)(request)
       status(result) shouldBe NOT_FOUND

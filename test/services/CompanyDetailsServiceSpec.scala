@@ -56,7 +56,7 @@ class CompanyDetailsServiceSpec extends BaseSpec with CompanyDetailsFixture {
   }
 
   "updateCompanyDetails" should {
-    "return a CompanyDetailsResponse when a company detaisl record is updated" in new Setup {
+    "return a CompanyDetailsResponse when a company details record is updated" in new Setup {
       CTDataRepositoryMocks.updateCompanyDetails(Some(validCompanyDetails))
 
       await(service.updateCompanyDetails(registrationID, validCompanyDetails)) shouldBe Some(validCompanyDetails)
@@ -70,16 +70,16 @@ class CompanyDetailsServiceSpec extends BaseSpec with CompanyDetailsFixture {
   }
   "convertAckRefToJsObject" should {
     "return jsObject" in new Setup {
-      service.convertAckRefToJsObject("foo") shouldBe Json.obj("acknowledgement-reference" -> "foo")
+      service.convertAckRefToJsObject("testAckRef") shouldBe Json.obj("acknowledgement-reference" -> "testAckRef")
     }
   }
 
   "saveTxidAndGenerateAckRef" should {
-    val ackRefJsObject = Json.obj("acknowledgement-reference" -> "fooBar")
-    val conf = ConfirmationReferences("fooBar", "txId", None, None)
+    val ackRefJsObject = Json.obj("acknowledgement-reference" -> "testAckRef")
+    val conf = ConfirmationReferences("testAckRef", "txId", None, None)
     "return jsObject with new ackref from repo" in new Setup {
       when(mockCTDataRepository.retrieveConfirmationReferences(any())).thenReturn(Future.successful(None))
-      when(mockSubmissionService.generateAckRef).thenReturn(Future.successful("fooBar"))
+      when(mockSubmissionService.generateAckRef).thenReturn(Future.successful("testAckRef"))
       when(mockCTDataRepository.updateConfirmationReferences(any(), eqTo(conf)))
         .thenReturn(Future.successful(Some(conf)))
       val res = await(service.saveTxIdAndAckRef(registrationID, "txId"))
@@ -96,16 +96,16 @@ class CompanyDetailsServiceSpec extends BaseSpec with CompanyDetailsFixture {
       res shouldBe ackRefJsObject
     }
     "return exception when retrieve fails" in new Setup {
-      val ex = new Exception("foo")
+      val ex = new Exception("failure reason")
       when(mockCTDataRepository.retrieveConfirmationReferences(any())).thenReturn(Future.failed(ex))
       intercept[Exception](await(service.saveTxIdAndAckRef(registrationID, "txId")))
       verify(mockSubmissionService, times(0)).generateAckRef
 
     }
     "return exception when save fails" in new Setup {
-      val ex = new Exception("bar")
+      val ex = new Exception("failure reason")
       when(mockCTDataRepository.retrieveConfirmationReferences(any())).thenReturn(Future.successful(None))
-      when(mockSubmissionService.generateAckRef).thenReturn(Future.successful("foo"))
+      when(mockSubmissionService.generateAckRef).thenReturn(Future.successful("testAckRef"))
       when(mockCTDataRepository.updateConfirmationReferences(any(), any())).thenReturn(Future.failed(ex))
 
       val res = intercept[Exception](await(service.saveTxIdAndAckRef(registrationID, "txId")))

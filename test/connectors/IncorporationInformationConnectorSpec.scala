@@ -39,11 +39,11 @@ class IncorporationInformationConnectorSpec extends BaseSpec with BusinessRegist
 
   trait Setup {
     val connector = new IncorporationInformationConnector {
-      override val iiUrl = "testUrl"
+      override val iiUrl = "testIncorporationInformationUrl"
       override val http = mockWSHttp
       override val regime = tRegime
       override val subscriber = tSubscriber
-      override val companyRegUrl: String = "http://foo/bar"
+      override val companyRegUrl: String = "testCompanyRegistrationUrl"
     }
   }
 
@@ -51,44 +51,44 @@ class IncorporationInformationConnectorSpec extends BaseSpec with BusinessRegist
   implicit val req: Request[AnyContent] = FakeRequest()
 
   val regId = "reg-id-12345"
-  val txId  = "tx-id-12345"
-  val crn   = "1234567890"
-  val status      = "accepted"
+  val txId = "tx-id-12345"
+  val crn = "1234567890"
+  val status = "accepted"
   val description = "Some description"
-  val incorpDate  = "2017-04-25"
+  val incorpDate = "2017-04-25"
 
-  val incorpInfoResponse = Json.parse(s"""
-      |{
-      |  "SCRSIncorpStatus":{
-      |    "IncorpSubscriptionKey":{
-      |      "subscriber":"SCRS",
-      |      "discriminator":"CT",
-      |      "transactionId":"$txId"
-      |    },
-      |    "SCRSIncorpSubscription":{
-      |      "callbackUrl":"/callBackUrl"
-      |    },
-      |    "IncorpStatusEvent":{
-      |      "status":"$status",
-      |      "crn":"$crn",
-      |      "incorporationDate":"$incorpDate",
-      |      "description":"$description",
-      |      "timestamp":"${DateTime.parse("2017-04-25").getMillis}"
-      |    }
-      |  }
-      |}
+  val incorpInfoResponse = Json.parse(
+    s"""
+       |{
+       |  "SCRSIncorpStatus":{
+       |    "IncorpSubscriptionKey":{
+       |      "subscriber":"SCRS",
+       |      "discriminator":"CT",
+       |      "transactionId":"$txId"
+       |    },
+       |    "SCRSIncorpSubscription":{
+       |      "callbackUrl":"/callBackUrl"
+       |    },
+       |    "IncorpStatusEvent":{
+       |      "status":"$status",
+       |      "crn":"$crn",
+       |      "incorporationDate":"$incorpDate",
+       |      "description":"$description",
+       |      "timestamp":"${DateTime.parse("2017-04-25").getMillis}"
+       |    }
+       |  }
+       |}
       """.stripMargin)
-
 
 
   val expected = IncorpStatus(txId, status, Some(crn), Some(description), Some(DateTime.parse(incorpDate)))
 
   "callBackUrl" should {
     "return admin url when admin is true" in new Setup {
-      connector.callBackurl(true) shouldBe "http://foo/bar/corporation-tax-registration/process-admin-incorp"
+      connector.callBackurl(true) shouldBe "testCompanyRegistrationUrl/corporation-tax-registration/process-admin-incorp"
     }
     "return non admin url when admin is false" in new Setup {
-      connector.callBackurl(false) shouldBe "http://foo/bar/corporation-tax-registration/process-incorp"
+      connector.callBackurl(false) shouldBe "testCompanyRegistrationUrl/corporation-tax-registration/process-incorp"
 
     }
   }

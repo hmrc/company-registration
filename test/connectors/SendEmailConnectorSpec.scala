@@ -30,20 +30,21 @@ class SendEmailConnectorSpec extends BaseSpec {
 
   trait Setup {
     val connector = new SendEmailConnector {
-      override val sendEmailURL = "test sendEmailURL"
+      override val sendEmailURL = "testSendEmailURL"
       override val http = mockWSHttp
 
     }
   }
+
   implicit val hc = HeaderCarrier()
 
   val verifiedEmail = Array("verified@email.com")
-  val returnLinkURL = "registeryourcompanyurl"
+  val returnLinkURL = "testReturnLinkUrl"
   val emailRequest = SendEmailRequest(
-    verifiedEmail,
-    "register_your_company_register_vat_email",
-    Map(),
-    true
+    to = verifiedEmail,
+    templateId = "register_your_company_register_vat_email",
+    parameters = Map(),
+    force = true
   )
 
   "send Email" should {
@@ -84,36 +85,36 @@ class SendEmailConnectorSpec extends BaseSpec {
 
   }
 
-  "customRead" should{
+  "customRead" should {
     "return a 200" in new Setup {
       val expected = HttpResponse(OK)
-      val result = connector.customRead("test","test", expected)
+      val result = connector.customRead("test", "test", expected)
       result.status shouldBe expected.status
     }
     "return a 409" in new Setup {
       val expected = HttpResponse(CONFLICT)
-      val result = connector.customRead("test","test", HttpResponse(CONFLICT))
+      val result = connector.customRead("test", "test", HttpResponse(CONFLICT))
       result.status shouldBe expected.status
     }
     "return a BadRequestException" in new Setup {
       val response = HttpResponse(BAD_REQUEST)
-      intercept[BadRequestException](connector.customRead("test","test", response))
+      intercept[BadRequestException](connector.customRead("test", "test", response))
     }
     "return a NotFoundException" in new Setup {
       val response = HttpResponse(NOT_FOUND)
-      intercept[NotFoundException](connector.customRead("test","test", response))
+      intercept[NotFoundException](connector.customRead("test", "test", response))
     }
     "return an InternalServerException" in new Setup {
       val response = HttpResponse(INTERNAL_SERVER_ERROR)
-      intercept[InternalServerException](connector.customRead("test","test", response))
+      intercept[InternalServerException](connector.customRead("test", "test", response))
     }
     "return a BadGatewayException" in new Setup {
       val response = HttpResponse(BAD_GATEWAY)
-      intercept[BadGatewayException](connector.customRead("test","test", response))
+      intercept[BadGatewayException](connector.customRead("test", "test", response))
     }
     "return an upstream 4xx" in new Setup {
       val response = HttpResponse(UNAUTHORIZED)
-      intercept[Upstream4xxResponse](connector.customRead("test","test", response))
+      intercept[Upstream4xxResponse](connector.customRead("test", "test", response))
     }
   }
 }

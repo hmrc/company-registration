@@ -21,18 +21,23 @@ import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 import jobs.SchedulingActor.MissingIncorporation
 import org.mockito.Mockito.reset
 import org.quartz.CronExpression
-import org.scalatest.{Matchers, WordSpec}
 import org.scalatest.mockito.MockitoSugar
+import org.scalatest.{Matchers, WordSpec}
 import play.api.Configuration
 import services.CorporationTaxRegistrationService
 
 class ScheduledJobSpec extends WordSpec with Matchers with MockitoSugar {
-  val jobNameTest = "fooBarAndWizzWithABang"
+  val jobNameTest = "testJobName"
   val mockActorSystem = mock[ActorSystem]
   val mockService = mock[CorporationTaxRegistrationService]
   val mockQuartzSchedulerExtension = mock[QuartzSchedulerExtension]
-  class Setup(cronString:String, enabled: Boolean = false) {
-    val stringBecauseBooleansAreWeird:String = if(enabled) "true" else "false"
+
+  class Setup(cronString: String, enabled: Boolean = false) {
+    val testConfig = Configuration(
+      s"schedules.$jobNameTest.expression" -> s"$cronString",
+      s"schedules.$jobNameTest.enabled" -> enabled,
+      s"schedules.$jobNameTest.description" -> "testDescription"
+    )
 
     reset(
       mockQuartzSchedulerExtension,
@@ -41,11 +46,7 @@ class ScheduledJobSpec extends WordSpec with Matchers with MockitoSugar {
 
     val job = new ScheduledJob {
       override lazy val scheduledMessage: SchedulingActor.ScheduledMessage[_] = MissingIncorporation(mockService)
-      override  val config: Configuration = Configuration(
-        s"schedules.$jobNameTest.expression" -> s"$cronString",
-        s"schedules.$jobNameTest.enabled" -> s"$stringBecauseBooleansAreWeird",
-        s"schedules.$jobNameTest.description" -> "foo bar"
-      )
+      override val config: Configuration = testConfig
       override lazy val actorSystem: ActorSystem = mockActorSystem
       override lazy val jobName: String = jobNameTest
       override lazy val scheduler = mockQuartzSchedulerExtension
@@ -53,45 +54,53 @@ class ScheduledJobSpec extends WordSpec with Matchers with MockitoSugar {
     }
   }
 
-  "expression should read from string correctly with underscores" in new Setup ("0_0/10_0-23_?_*_*_*") {
+  "expression should read from string correctly with underscores" in new Setup("0_0/10_0-23_?_*_*_*") {
     job.expression shouldBe "0 0/10 0-23 ? * * *"
   }
-  "expression should read from string correctly with underscores with a different value we will also be using" in new Setup ("0/59_0_0-23_?_*_*_*") {
+
+  "expression should read from string correctly with underscores with a different value we will also be using" in new Setup("0/59_0_0-23_?_*_*_*") {
     job.expression shouldBe "0/59 0 0-23 ? * * *"
   }
+
   "isValid should return true if valid cron config returned" in new Setup("0_0/2_0-23_?_*_*_*") {
     job.expressionValid shouldBe true
   }
-  "isValid should return false if foo is returned as cron config" in new Setup("foo") {
+
+  "isValid should return false if an invalid cron config is returned" in new Setup("testInvalidCronString") {
     job.expressionValid shouldBe false
   }
+
   "isValid should return false if empty string is returned" in new Setup("") {
     job.expressionValid shouldBe false
   }
+
   "expression once converted should convert to a cron expression success" in new Setup("0/10_0_0-23_?_*_*_*") {
     val parsed = new CronExpression(job.expression)
     parsed.getCronExpression shouldBe "0/10 0 0-23 ? * * *"
-    parsed.getExpressionSummary shouldBe """seconds: 0,10,20,30,40,50
-                                           |minutes: 0
-                                           |hours: 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23
-                                           |daysOfMonth: ?
-                                           |months: *
-                                           |daysOfWeek: *
-                                           |lastdayOfWeek: false
-                                           |nearestWeekday: false
-                                           |NthDayOfWeek: 0
-                                           |lastdayOfMonth: false
-                                           |years: *
-                                           |""".stripMargin
+    parsed.getExpressionSummary shouldBe
+      """seconds: 0,10,20,30,40,50
+        |minutes: 0
+        |hours: 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23
+        |daysOfMonth: ?
+        |months: *
+        |daysOfWeek: *
+        |lastdayOfWeek: false
+        |nearestWeekday: false
+        |NthDayOfWeek: 0
+        |lastdayOfMonth: false
+        |years: *
+        |""".stripMargin
   }
-  "scheduler called if enabled and valid cron config" in new Setup ("0/10_0_0-23_?_*_*_*", true) {
+
+  "scheduler called if enabled and valid cron config" in new Setup("0/10_0_0-23_?_*_*_*", true) {
     job.schedule shouldBe true
   }
-  "scheduler NOT called if not enabled and cron config invalid" in new Setup ("fudge*", false) {
+
+  "scheduler NOT called if not enabled and cron config invalid" in new Setup("testInvalidCronString", false) {
     job.schedule shouldBe false
 
   }
-  "scheduler NOT called if enabled and cron config invalid" in new Setup ("0/10_0_0-FOO23_?_*_*_*", true) {
+  "scheduler NOT called if enabled and cron config invalid" in new Setup("testInvalidCronString", true) {
     job.schedule shouldBe false
   }
 }

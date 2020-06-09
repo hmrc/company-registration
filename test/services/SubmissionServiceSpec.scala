@@ -207,8 +207,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
 
     "throw pager duty if txId in handOff doesnt match txId in CR and status is already Held" in new Setup {
 
-      val confRefs: ConfirmationReferences = ConfirmationReferences("crFooBar", "crFooBar", Some("testPayAmount"), Some("12"))
-      val ho6RequestBodyDiffTxId: ConfirmationReferences = ConfirmationReferences("crFooBar", "handOffTxID", Some("testPayAmount"), Some("12"))
+      val confRefs: ConfirmationReferences = ConfirmationReferences("testAckRef", "testTransactionId", Some("testPayAmount"), Some("12"))
 
       when(mockCorpTaxRepo.findBySelector(mockCorpTaxRepo.regIDSelector(eqTo(regId))))
         .thenReturn(Future.successful(Option(corporationTaxRegistration(regId, HELD, Some(confRefs)))))
@@ -602,7 +601,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
           regId,
           Some(companyDetails2),
           Some(contactDetails2)).copy(
-          groups = Some(Groups(groupRelief = false, Some(GroupCompanyName("foo", GroupCompanyNameEnum.Other)), None, None))
+          groups = Some(Groups(groupRelief = false, Some(GroupCompanyName("testGroupName", GroupCompanyNameEnum.Other)), None, None))
         )
 
       val result: InterimDesRegistration = service.buildPartialDesSubmission(regId, ackRef, credId, businessRegistration, ctReg)
@@ -765,7 +764,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
         .thenReturn(Future.successful(Some(corporationTaxRegistration)))
 
       val ctReg: CorporationTaxRegistration = getCTReg(regId, Some(companyDetails2), Some(contactDetails2)).copy(
-        groups = Some(Groups(groupRelief = true, Some(GroupCompanyName("foo", GroupCompanyNameEnum.Other)), None, Some(GroupUTR(None)))))
+        groups = Some(Groups(groupRelief = true, Some(GroupCompanyName("testGroupName", GroupCompanyNameEnum.Other)), None, Some(GroupUTR(None)))))
 
       val res: RuntimeException = intercept[RuntimeException](service.buildPartialDesSubmission(regId, ackRef, credId, businessRegistration, ctReg))
       res.getMessage shouldBe s"formatGroupsForSubmission groups exists but address does not: $regId"
@@ -783,7 +782,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
         Some(contactDetails2)).copy(groups =
         Some(Groups(
           groupRelief = true,
-          Some(GroupCompanyName("foo", GroupCompanyNameEnum.Other)),
+          Some(GroupCompanyName("testGroupName", GroupCompanyNameEnum.Other)),
           Some(GroupsAddressAndType(GroupAddressTypeEnum.ALF, BusinessAddress("1", "1", None, None, Some("ZZ1 1ZZ"), None))),
           None
         ))
@@ -1123,7 +1122,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
     }
 
     "return an exception when mockSequenceRepository returns an exception" in new Setup {
-      when(mockSequenceRepository.getNext(any())).thenReturn(Future.failed(new Exception("foo")))
+      when(mockSequenceRepository.getNext(any())).thenReturn(Future.failed(new Exception("failure reason")))
       intercept[Exception](await(service.generateAckRef))
     }
   }

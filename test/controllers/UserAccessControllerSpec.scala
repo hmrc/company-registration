@@ -64,11 +64,11 @@ class UserAccessControllerSpec extends BaseSpec with AuthorisationMocks {
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.successful(internalId))
       when(mockUserAccessService.checkUserAccess(anyString())(any()))
-        .thenReturn(Future.successful(Right(UserAccessSuccessResponse("123", false, false, false))))
+        .thenReturn(Future.successful(Right(UserAccessSuccessResponse("123", created = false, confRefs = false, paymentRefs = false))))
 
       val result = controller.checkUserAccess(FakeRequest())
       status(result) shouldBe OK
-      contentAsJson(result) shouldBe Json.toJson(UserAccessSuccessResponse("123", false, false, false))
+      contentAsJson(result) shouldBe Json.toJson(UserAccessSuccessResponse("123", created = false, confRefs = false, paymentRefs = false))
     }
 
     "return a 429" in new Setup {

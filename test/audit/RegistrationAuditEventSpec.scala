@@ -17,7 +17,7 @@
 package audit
 
 import org.scalatest.{Matchers, WordSpec}
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsObject, Json, OFormat}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.logging.{Authorization, ForwardedFor, RequestId, SessionId}
 import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
@@ -32,7 +32,7 @@ class RegistrationAuditEventSpec extends WordSpec with Matchers {
     val session: String = "sess"
     val request: String = "req"
 
-    implicit val format = Json.format[ExtendedDataEvent]
+    implicit val format: OFormat[ExtendedDataEvent] = Json.format[ExtendedDataEvent]
 
     val completeCarrier = HeaderCarrier(
       trueClientIp = Some(clientIP),

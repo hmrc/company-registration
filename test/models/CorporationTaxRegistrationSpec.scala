@@ -58,6 +58,7 @@ class CorporationTaxRegistrationSpec extends BaseSpec with JsonFormatValidation 
         lastSignedIn = testDateTime,
         takeoverDetails = Some(testTakeoverDetailsModel)
       )
+      //TODO: Add assertion here
     }
   }
 

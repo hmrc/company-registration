@@ -146,12 +146,12 @@ class ProcessIncorporationServiceSpec extends WordSpec with Matchers with Mockit
        |  "companyOfficeNumber" : "001",
        |  "hasCompanyTakenOverBusiness" : false,
        |  "companyMemberOfGroup" : false,
-       |  "companiesHouseCompanyName" : "FooBar",
+       |  "companiesHouseCompanyName" : "testCompaniesHouseName",
        |  "returnsOnCT61" : false,
        |  "companyACharity" : false,
-       |  "businessAddress" : {"line1" : "1 FooBar Avenue", "line2" : "Bar", "line3" : "Foo Town",
-       |  "line4" : "Fooshire", "postcode" : "ZZ1 1ZZ", "country" : "United Kingdom"},
-       |  "businessContactDetails" : {"phoneNumber" : "0123457889","mobileNumber" : "07654321000","email" : "foo@bar.com"}
+       |  "businessAddress" : {"line1" : "1 Test Avenue", "line2" : "Oakengates", "line3" : "Telford",
+       |  "line4" : "Shropshire", "postcode" : "ZZ1 1ZZ", "country" : "United Kingdom"},
+       |  "businessContactDetails" : {"phoneNumber" : "0123457889","mobileNumber" : "07654321000","email" : "test@email.com"}
        |  $extra
        |  }
        |  }

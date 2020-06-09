@@ -48,11 +48,11 @@ class SubmissionCheckAPIConnectorSpec extends WordSpec with Matchers with Mockit
   val validSubmissionResponse = SubmissionCheckResponse(
     Seq(
       IncorpUpdate(
-        "transactionId",
-        "status",
-        Some("crn"),
-        Some(new DateTime(2016, 8, 10, 0, 0)),
-        "100000011")
+        transactionId = "transactionId",
+        status = "status",
+        crn = Some("crn"),
+        incorpDate = Some(new DateTime(2016, 8, 10, 0, 0)),
+        timepoint = "100000011")
     ),
     "testNextLink")
 
@@ -62,8 +62,6 @@ class SubmissionCheckAPIConnectorSpec extends WordSpec with Matchers with Mockit
     val testTimepoint = UUID.randomUUID().toString
 
     "return a submission status response when no timepoint is provided" in new Setup {
-      val testTimepoint = UUID.randomUUID().toString
-
       when(mockWSHttp.GET[SubmissionCheckResponse](ArgumentMatchers.anyString())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(validSubmissionResponse))
 
@@ -71,7 +69,7 @@ class SubmissionCheckAPIConnectorSpec extends WordSpec with Matchers with Mockit
     }
 
     "return a submission status response when a timepoint is provided" in new Setup {
-      val testTimepoint = UUID.randomUUID().toString
+      val testTimepoint: String = UUID.randomUUID().toString
 
       when(mockWSHttp.GET[SubmissionCheckResponse](ArgumentMatchers.anyString())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(validSubmissionResponse))
