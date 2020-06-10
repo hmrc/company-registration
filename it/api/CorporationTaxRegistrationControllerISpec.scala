@@ -70,7 +70,7 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
     val validCHROAddressOne =
       """
         |{
-        |   "premises": "foo",
+        |   "premises": "testPremises",
         |   "address_line_1": "11 AAAAA",
         |   "address_line_2": "BBBBB",
         |   "country": "Eng",
@@ -98,7 +98,7 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
     val expectedCHROAddressOne = Json.parse(
       """
         |{
-        |"addressLine1":"foo 11 AAAAA",
+        |"addressLine1":"testPremises 11 AAAAA",
         |"addressLine2":"BBBBB",
         |"addressLine3":"CCC",
         |"addressLine4":"DDDDD",
@@ -140,7 +140,7 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
       val specialCharCHROAddress =
         """
           |{
-          |   "premises": "foo! & Bar,",
+          |   "premises": "aaa! & BBB,",
           |   "address_line_1": "11 & $£AAAAA;.",
           |   "address_line_2": "BBBBB^*:",
           |   "country": "Eng;.",
@@ -154,7 +154,7 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
       val expectedResult = Json.parse(
         """
           |{
-          |"addressLine1":"foo & Bar, 11 & AAAAA;.",
+          |"addressLine1":"aaa & BBB, 11 & AAAAA;.",
           |"addressLine2":"BBBBB:",
           |"addressLine3":"CCC(",
           |"addressLine4":"DDDDD/",
