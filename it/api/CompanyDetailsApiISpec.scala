@@ -71,7 +71,7 @@ class CompanyDetailsApiISpec extends IntegrationSpecBase with LoginStub {
   val normalisedAddressMaxLengthCheck = PPOB("MANUAL", Some(PPOBAddress("aeae aeaeaeae aeaeaeaeae", "abcdcgasfgfags fgafsggafgae", Some("aeaeaeaeaeaeae aeaeaeaeae"), Some("taest county"), Some("XX1 1OZ"), Some("test country"), None, "txid")))
   val normalisedDefaultPPOBAddress = PPOB("MANUAL", Some(PPOBAddress("10 taest beet", "test tOwn", Some("taest area"), Some("taest county"), Some("XX1 1OZ"), Some("test country"), None, "txid")))
   val validPPOBAddress = PPOB("MANUAL", Some(PPOBAddress("10 test beet", "test tOwn", Some("test area"), Some("test county"), Some("XX1 1OZ"), Some("test country"), None, "txid")))
-  val ctDoc = CorporationTaxRegistration(internalId, regId, RegistrationStatus.DRAFT, formCreationTimestamp = "foo", language = "bar")
+  val ctDoc = CorporationTaxRegistration(internalId, regId, RegistrationStatus.DRAFT, formCreationTimestamp = "testTimestamp", language = "EN")
   val validCompanyDetails = CompanyDetails("testCompanyName", defaultCHROAddress, defaulPPOBAddress, "testJurisdiction")
   val ctDocWithCompDetails: CorporationTaxRegistration = ctDoc.copy(companyDetails = Some(validCompanyDetails))
   val nonNormalisedSpecialCharCheck = PPOB("MANUAL", Some(PPOBAddress("<123> {ABC} !*^%$£", "BDT & CFD /|@", Some("A¥€ 1 «»"), Some("B~ ¬` 2^ -+=_"), Some("XX1 1ØZ"), Some("test coûntry"), None, "txid")))
@@ -189,25 +189,25 @@ class CompanyDetailsApiISpec extends IntegrationSpecBase with LoginStub {
       await(ctRepository.count) shouldBe 1
       await(seqRepo.count) shouldBe 0
       val response = await(client(s"/$regId/handOff2Reference-ackRef-save")
-        .put(Json.obj("transaction_id" -> "foo").toString()))
+        .put(Json.obj("transaction_id" -> "testTransactionId").toString()))
       response.status shouldBe 200
       response.json.as[JsObject] shouldBe Json.obj("acknowledgement-reference" -> "BRCT00000000001")
       await(seqRepo.count) shouldBe 1
       val res = await(ctRepository.getExistingRegistration(regId)).confirmationReferences.get
-      res shouldBe ConfirmationReferences("BRCT00000000001", "foo", None, None)
+      res shouldBe ConfirmationReferences("BRCT00000000001", "testTransactionId", None, None)
     }
     "return 200 with json body containing existing ackref in db but updated txid" in new Setup {
       stubAuthorise(internalId)
-      setupCTRegistration(ctDoc.copy(confirmationReferences = Some(ConfirmationReferences("fooAckRef", "barTxID", None, None))))
+      setupCTRegistration(ctDoc.copy(confirmationReferences = Some(ConfirmationReferences("testAckRef", "testTransactionId", None, None))))
       await(ctRepository.count) shouldBe 1
       await(seqRepo.count) shouldBe 0
       val response = await(client(s"/$regId/handOff2Reference-ackRef-save")
-        .put(Json.obj("transaction_id" -> "foo").toString()))
+        .put(Json.obj("transaction_id" -> "testTxId").toString()))
       response.status shouldBe 200
       await(seqRepo.count) shouldBe 0
-      response.json.as[JsObject] shouldBe Json.obj("acknowledgement-reference" -> "fooAckRef")
+      response.json.as[JsObject] shouldBe Json.obj("acknowledgement-reference" -> "testAckRef")
       val res = await(ctRepository.getExistingRegistration(regId)).confirmationReferences.get
-      res shouldBe ConfirmationReferences("fooAckRef", "foo", None, None)
+      res shouldBe ConfirmationReferences("testAckRef", "testTxId", None, None)
     }
   }
 }

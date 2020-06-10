@@ -88,7 +88,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
   val validGroupsModel = Groups(
     groupRelief = true,
-    nameOfCompany = Some(GroupCompanyName("foo", GroupCompanyNameEnum.Other)),
+    nameOfCompany = Some(GroupCompanyName("testGroupName", GroupCompanyNameEnum.Other)),
     addressAndType = Some(GroupsAddressAndType(GroupAddressTypeEnum.ALF, BusinessAddress("1 abc", "2 abc", Some("3 abc"), Some("4 abc"), Some("ZZ1 1ZZ"), Some("country A")))),
     groupUTR = Some(GroupUTR(Some("1234567890"))))
 
@@ -683,7 +683,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       await(response) shouldBe "held"
     }
     "return an exception when document is missing because mapping on result will not contain status" in new Setup {
-      intercept[Exception](await(repository.updateSubmissionStatus(registrationId, "foo")))
+      intercept[Exception](await(repository.updateSubmissionStatus(registrationId, "testStatus")))
     }
   }
 
@@ -720,12 +720,12 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       await(response) shouldBe true
     }
     "throw a MissingCTDocument exception when document does not exist" in new Setup {
-      intercept[MissingCTDocument](await(repository.removeTaxRegistrationInformation("foo")))
+      intercept[MissingCTDocument](await(repository.removeTaxRegistrationInformation("testRegId")))
     }
   }
   "getInternalId" should {
     "return None when no CT Doc exists" in new Setup {
-      intercept[MissingCTDocument](await(repository.getInternalId("fooBarWizz")))
+      intercept[MissingCTDocument](await(repository.getInternalId("testInternalId")))
     }
     "return Some(regId, InternalId) when ct doc exists" in new Setup {
       insert(newCTDoc)
@@ -816,7 +816,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     "update the CRN and timestamp" in new Setup {
       await(setupCollection(repository, heldReg))
 
-      val crn = "foo1234"
+      val crn = "crn1234"
       val submissionTS = "2001-12-31T12:00:00Z"
 
       val result = await(repository.updateHeldToSubmitted(heldReg.registrationID, crn, submissionTS))
@@ -837,7 +837,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
       await(setupCollection(repository, heldReg.copy(registrationID = "ABC")))
 
-      val crn = "foo1234"
+      val crn = "crn1234"
       val submissionTS = "2001-12-31T12:00:00Z"
 
       intercept[MissingCTDocument] {
@@ -915,7 +915,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
       retrieve.get.registrationProgress shouldBe None
 
-      val progress = "foo"
+      val progress = "In progress"
       await(repository.updateRegistrationProgress(registrationId, progress))
 
       retrieve.get.registrationProgress shouldBe Some(progress)
@@ -953,10 +953,10 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       lastSignedIn = dateTime,
       groups = Some(Groups(
         groupRelief = true,
-        nameOfCompany = Some(GroupCompanyName("MISTAR FOO", GroupCompanyNameEnum.Other)),
+        nameOfCompany = Some(GroupCompanyName("testGroupName", GroupCompanyNameEnum.Other)),
         addressAndType = Some(GroupsAddressAndType(GroupAddressTypeEnum.ALF, BusinessAddress(
-          "FOO 1",
-          "FOO 2",
+          "Line 1",
+          "Line 2",
           Some("Telford"),
           Some("Shropshire"),
           Some("ZZ1 1ZZ"),
@@ -1489,7 +1489,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
            |"groups": {
            |   "groupRelief": true,
            |   "nameOfCompany": {
-           |     "name": "foo",
+           |     "name": "testGroupName",
            |     "nameType" : "Other"
            |   },
            |   "addressAndType" : {
@@ -1541,7 +1541,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
            |"groups": {
            |   "groupRelief": true,
            |   "nameOfCompany": {
-           |     "name": "foo",
+           |     "name": "testGroupName",
            |     "nameType" : "Other"
            |   },
            |   "addressAndType" : {
@@ -1598,7 +1598,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
            |"groups": {
            |   "groupRelief": true,
            |   "nameOfCompany": {
-           |     "name": "foo",
+           |     "name": "testGroupName",
            |     "nameType" : "Other"
            |   },
            |   "addressAndType" : {
@@ -1637,7 +1637,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         s"""{
            |   "groupRelief": true,
            |   "nameOfCompany": {
-           |     "name": "foo",
+           |     "name": "testGroupName",
            |     "nameType" : "Other"
            |   },
            |   "addressAndType" : {
@@ -1672,7 +1672,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
            |"groups": {
            |   "groupRelief": true,
            |   "nameOfCompany": {
-           |     "name": "foo",
+           |     "name": "testGroupName",
            |     "nameType" : "Other"
            |   },
            |   "addressAndType" : {

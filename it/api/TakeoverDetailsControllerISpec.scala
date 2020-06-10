@@ -68,8 +68,8 @@ class TakeoverDetailsControllerISpec extends IntegrationSpecBase with LoginStub 
     internalId,
     registrationId,
     RegistrationStatus.DRAFT,
-    formCreationTimestamp = "foo",
-    language = "bar",
+    formCreationTimestamp = "testTimestamp",
+    language = "EN",
     takeoverDetails = details)
 
   val validTakeoverDetailsModel: TakeoverDetails = TakeoverDetails(

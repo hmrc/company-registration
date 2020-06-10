@@ -69,7 +69,7 @@ class GroupsControllerISpec extends IntegrationSpecBase  with LoginStub {
        |"groups" : {
        |   "groupRelief": true,
        |   "nameOfCompany": {
-       |     "name": "foo",
+       |     "name": "testCompanyName",
        |     "nameType" : "Other"
        |   },
        |   "addressAndType" : {
@@ -99,7 +99,7 @@ class GroupsControllerISpec extends IntegrationSpecBase  with LoginStub {
       res.json shouldBe Json.parse("""{
                                      |   "groupRelief": true,
                                      |   "nameOfCompany": {
-                                     |     "name": "foo",
+                                     |     "name": "testCompanyName",
                                      |     "nameType" : "Other"
                                      |   },
                                      |   "addressAndType" : {

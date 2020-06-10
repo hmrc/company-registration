@@ -335,7 +335,6 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
 
         setupSimpleAuthMocks()
         stubPost("/hmrc/email", 202, "")
-        val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
         stubPost("/business-incorporation/corporation-tax", 400, "")
 
         val response = await(client(processIncorpPath).post(jsonIncorpStatus(incorpDate)))
@@ -346,8 +345,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
 
         setupSimpleAuthMocks()
         stubPost("/hmrc/email", 202, "")
-        val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
-        stubPost("/business-incorporation/corporation-tax", 409, """{"wibble" : "bar"}""")
+        stubPost("/business-incorporation/corporation-tax", 409, "{}")
 
         val response = await(client(processIncorpPath).post(jsonIncorpStatus(incorpDate)))
         response.status shouldBe 200
@@ -357,8 +355,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
 
         setupSimpleAuthMocks()
         stubPost("/hmrc/email", 202, "")
-        val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
-        stubPost("/business-incorporation/corporation-tax", 429, """{"wibble" : "bar"}""")
+        stubPost(url = "/business-incorporation/corporation-tax", status = 429, responseBody = "{}")
 
         val response = await(client(processIncorpPath).post(jsonIncorpStatus(incorpDate)))
         response.status shouldBe 503
@@ -368,8 +365,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
 
         setupSimpleAuthMocks()
         stubPost("/hmrc/email", 202, "")
-        val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
-        stubPost("/business-incorporation/corporation-tax", 499, """{"wibble" : "bar"}""")
+        stubPost(url = "/business-incorporation/corporation-tax", status = 499, responseBody = "{}")
 
         val response = await(client(processIncorpPath).post(jsonIncorpStatus(incorpDate)))
         response.status shouldBe 502
@@ -379,8 +375,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
 
         setupSimpleAuthMocks()
         stubPost("/hmrc/email", 202, "")
-        val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
-        stubPost("/business-incorporation/corporation-tax", 501, """{"wibble" : "bar"}""")
+        stubPost(url = "/business-incorporation/corporation-tax", status = 501, responseBody = "{}")
 
         val response = await(client(processIncorpPath).post(jsonIncorpStatus(incorpDate)))
         response.status shouldBe 502
@@ -402,7 +397,6 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
         setupSimpleAuthMocks()
 
         stubPost("/hmrc/email", 202, "")
-        val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
 
         stubGet(s"/business-registration/admin/business-tax-registration/$regId", 200, businessRegistrationResponse)
         stubPost(s"/business-registration/corporation-tax", 200, """{"a": "b"}""")
@@ -437,7 +431,6 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
         setupSimpleAuthMocks()
 
         stubPost("/hmrc/email", 202, "")
-        val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
 
         stubGet(s"/business-registration/admin/business-tax-registration/$regId", 200, businessRegistrationResponse)
         stubPost(s"/business-registration/corporation-tax", 400, """{"a": "b"}""")
@@ -472,7 +465,6 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
         setupSimpleAuthMocks()
 
         stubPost("/hmrc/email", 202, "")
-        val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
 
         stubGet(s"/business-registration/admin/business-tax-registration/$regId", 200, businessRegistrationResponse)
 
@@ -499,7 +491,6 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
         setupSimpleAuthMocks()
 
         stubPost("/hmrc/email", 202, "")
-        val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
 
         stubGet(s"/business-registration/admin/business-tax-registration/$regId", 200, businessRegistrationResponse)
         stubPost(s"/business-registration/corporation-tax", 200, """{"a": "b"}""")
@@ -534,7 +525,6 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
         setupSimpleAuthMocks()
 
         stubPost("/hmrc/email", 202, "")
-        val ctSubmission = heldJson.deepMerge(jsonAppendDataForSubmission(incorpDate)).toString
 
         stubGet(s"/business-registration/admin/business-tax-registration/$regId", 200, businessRegistrationResponse)
         stubPost(s"/business-registration/corporation-tax", 400, """{"a": "b"}""")

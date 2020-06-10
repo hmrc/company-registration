@@ -35,7 +35,7 @@ class IncorporationInformationConnectorSpec extends IntegrationSpecBase {
     "auditing.consumer.baseUri.host" -> s"$mockHost",
     "auditing.consumer.baseUri.port" -> s"$mockPort",
     "microservice.services.company-registration.protocol" -> s"https",
-    "microservice.services.company-registration.host" -> s"foo.bar",
+    "microservice.services.company-registration.host" -> s"test.host",
     "microservice.services.company-registration.port" -> s"1234",
     "microservice.services.incorporation-information.host" -> s"$mockHost",
     "microservice.services.incorporation-information.port" -> s"$mockPort"
@@ -43,11 +43,11 @@ class IncorporationInformationConnectorSpec extends IntegrationSpecBase {
   override implicit lazy val app: Application = new GuiceApplicationBuilder()
     .configure(additionalConfiguration)
     .build
-implicit val hc: HeaderCarrier = HeaderCarrier()
+  implicit val hc: HeaderCarrier = HeaderCarrier()
   val connector = app.injector.instanceOf[IncorporationInformationConnector]
   "callBackUrl" should {
     "be the correct url" in {
-      connector.callBackurl(true) shouldBe "https://foo.bar:1234/company-registration/corporation-tax-registration/process-admin-incorp"
+      connector.callBackurl(true) shouldBe "https://test.host:1234/company-registration/corporation-tax-registration/process-admin-incorp"
     }
   }
 
@@ -60,7 +60,7 @@ implicit val hc: HeaderCarrier = HeaderCarrier()
             withStatus(202).
             withBody("""{ "f" :"c" }""")))
 
-      await(connector.registerInterest("1","123", false)(implicitly[HeaderCarrier],FakeRequest.apply(Call("",""))))
+      await(connector.registerInterest("1", "123", false)(implicitly[HeaderCarrier], FakeRequest.apply(Call("", ""))))
     }
     "return future successful true if Admin is true" in {
       stubFor(post(urlEqualTo("/incorporation-information/subscribe/123/regime/ctax/subscriber/SCRS?force=true"))
@@ -69,7 +69,7 @@ implicit val hc: HeaderCarrier = HeaderCarrier()
           aResponse().
             withStatus(202).
             withBody("""{ "f" :"c" }""")))
-      await(connector.registerInterest("1","123", true)(implicitly[HeaderCarrier],FakeRequest.apply(Call("",""))))
+      await(connector.registerInterest("1", "123", true)(implicitly[HeaderCarrier], FakeRequest.apply(Call("", ""))))
     }
     "return future failed" in {
       stubFor(post(urlEqualTo("/incorporation-information/subscribe/123/regime/ctax/subscriber/SCRS?force=true"))
@@ -77,7 +77,7 @@ implicit val hc: HeaderCarrier = HeaderCarrier()
           aResponse().
             withStatus(500).
             withBody("""{ "f" :"c" }""")))
-      intercept[Exception](await(connector.registerInterest("1","123", true)(implicitly[HeaderCarrier],FakeRequest.apply(Call("","")))))
+      intercept[Exception](await(connector.registerInterest("1", "123", true)(implicitly[HeaderCarrier], FakeRequest.apply(Call("", "")))))
     }
   }
 }

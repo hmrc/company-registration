@@ -49,22 +49,23 @@ class IncorporationCheckAPIConnectorISpec extends IntegrationSpecBase {
 
   "IncorporationCheckAPIConnector" should {
     "process a full response as expected" in {
-      stubGet("/internal/check-submission.*", 200, s"""{
-                                                      |"items":[{
-                                                      |   "company_number":"c",
-                                                      |   "transaction_status":"s",
-                                                      |   "transaction_type":"incorporation",
-                                                      |   "company_profile_link":"http://api.companieshouse.gov.uk/company/9999999999",
-                                                      |   "transaction_id":"t",
-                                                      |   "incorporated_on":"2017-05-06",
-                                                      |   "timepoint":"tp"
-                                                      | }],"links":{"next":"foo"}
-                                                      |}""".stripMargin
+      stubGet("/internal/check-submission.*", 200,
+        s"""{
+           |"items":[{
+           |   "company_number":"c",
+           |   "transaction_status":"s",
+           |   "transaction_type":"incorporation",
+           |   "company_profile_link":"http://api.companieshouse.gov.uk/company/9999999999",
+           |   "transaction_id":"t",
+           |   "incorporated_on":"2017-05-06",
+           |   "timepoint":"tp"
+           | }],"links":{"next":"testLink"}
+           |}""".stripMargin
       )
 
       val expected = SubmissionCheckResponse(
-        Seq(IncorpUpdate("t","s",Some("c"),Some(asDate("2017-05-06")), "tp", None)),
-        "foo"
+        Seq(IncorpUpdate("t", "s", Some("c"), Some(asDate("2017-05-06")), "tp", None)),
+        "testLink"
       )
       val actual = await(incorporationCheckAPIConnector.checkSubmission(None))
 
@@ -76,13 +77,13 @@ class IncorporationCheckAPIConnectorISpec extends IntegrationSpecBase {
         s"""{
            |"items":[
            |  {"transaction_status":"s", "transaction_id":"t", "timepoint":"tp"}
-           | ],"links":{"next":"foo"}
+           | ],"links":{"next":"testLink"}
            |}""".stripMargin
       )
 
       val expected = SubmissionCheckResponse(
-        Seq(IncorpUpdate("t","s",None,None, "tp", None)),
-        "foo"
+        Seq(IncorpUpdate("t", "s", None, None, "tp", None)),
+        "testLink"
       )
       val actual = await(incorporationCheckAPIConnector.checkSubmission(None))
 
@@ -92,27 +93,27 @@ class IncorporationCheckAPIConnectorISpec extends IntegrationSpecBase {
     "process a couple of results" in {
       stubGet("/internal/check-submission.*", 200,
         s"""{
-          |"items":[
-          |  {"transaction_status":"s1", "transaction_id":"t1", "timepoint":"tp1"},
-          |  {"transaction_status":"s2", "transaction_id":"t2", "timepoint":"tp2"}
-          | ],"links":{"next":"foo"}
-          |}""".stripMargin
+           |"items":[
+           |  {"transaction_status":"s1", "transaction_id":"t1", "timepoint":"tp1"},
+           |  {"transaction_status":"s2", "transaction_id":"t2", "timepoint":"tp2"}
+           | ],"links":{"next":"testLink"}
+           |}""".stripMargin
       )
 
       val expected = SubmissionCheckResponse(Seq(
-        IncorpUpdate("t1","s1",None,None, "tp1", None),
-        IncorpUpdate("t2","s2",None,None, "tp2", None)
-      ), "foo"
-      )
+        IncorpUpdate("t1", "s1", None, None, "tp1", None),
+        IncorpUpdate("t2", "s2", None, None, "tp2", None)
+      ), "testLink")
+
       val actual = await(incorporationCheckAPIConnector.checkSubmission(None))
 
       actual shouldBe expected
     }
 
     "process with no results" in {
-      stubGet("/internal/check-submission.*", 200, """{"items":[],"links":{"next":"foo"}}""")
+      stubGet("/internal/check-submission.*", 200, """{"items":[],"links":{"next":"testLink"}}""")
 
-      val expected = SubmissionCheckResponse( Seq(), "foo" )
+      val expected = SubmissionCheckResponse(Seq(), "testLink")
       val actual = await(incorporationCheckAPIConnector.checkSubmission(None))
 
       actual shouldBe expected

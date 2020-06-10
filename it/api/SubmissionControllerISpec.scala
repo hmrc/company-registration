@@ -604,10 +604,10 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
         )
         val validGroups: Option[Groups] = Some(Groups(
           groupRelief = true,
-          nameOfCompany = Some(GroupCompanyName("MISTAR%% FOO", GroupCompanyNameEnum.Other)),
+          nameOfCompany = Some(GroupCompanyName("testCompanyName", GroupCompanyNameEnum.Other)),
           addressAndType = Some(GroupsAddressAndType(GroupAddressTypeEnum.ALF, BusinessAddress(
-            "FOO 1",
-            "FOO 2",
+            "Line 1",
+            "Line 2",
             Some("Telford"),
             Some("Shropshire"),
             Some("ZZ1 1ZZ"),
@@ -671,10 +671,10 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
                 "companyACharity" -> false,
                 "companyMemberOfGroup" -> true,
                 "groupDetails" -> Json.obj(
-                  "parentCompanyName" -> "MISTAR FOO",
+                  "parentCompanyName" -> "testCompanyName",
                   "groupAddress" -> Json.obj(
-                    "line1" -> "FOO 1",
-                    "line2" -> "FOO 2",
+                    "line1" -> "Line 1",
+                    "line2" -> "Line 2",
                     "line3" -> "Telford",
                     "line4" -> "Shropshire",
                     "postcode" -> "ZZ1 1ZZ"
