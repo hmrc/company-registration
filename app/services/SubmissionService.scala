@@ -199,21 +199,13 @@ trait SubmissionService extends DateHelper {
             .getOrElse(throw new RuntimeException(s"formatGroupsForSubmission groups exists but name does not: $regId"))
           val address = og.addressAndType
             .getOrElse(throw new RuntimeException(s"formatGroupsForSubmission groups exists but address does not: $regId"))
-          val formattedGroupAddress = GroupsAddressAndType(addressType = address.addressType, address=BusinessAddress(
-            line1 = StringNormaliser.removeIllegalCharacters(address.address.line1),
-            line2 = StringNormaliser.removeIllegalCharacters(address.address.line2),
-            line3 = address.address.line3.map{ line3 => StringNormaliser.removeIllegalCharacters(line3) },
-            line4 = address.address.line4.map{ line4 => StringNormaliser.removeIllegalCharacters(line4) },
-            postcode = address.address.postcode,
-            country = address.address.country
-          ) )
           val utr = og.groupUTR.getOrElse(throw new RuntimeException(s"formatGroupsForSubmission groups exists but utr block does not: $regId"))
           val nameFormatted = APIValidation.parentGroupNameValidator.reads(JsString(nameOfComp.name))
             .getOrElse(throw new RuntimeException(s"Parent group name saved does not pass des validation: $regId"))
           Groups(
             og.groupRelief,
             Some(nameOfComp.copy(name = nameFormatted)),
-            Some(formattedGroupAddress),
+            Some(address),
             Some(utr))
         } else Groups(groupRelief = false, None, None, None)
     }
