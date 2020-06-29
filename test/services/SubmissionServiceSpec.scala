@@ -655,6 +655,43 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
           )))
     }
 
+    "return a valid des submission if groups is provided but there are illegal characters in the address supplied by Coho" in new Setup {
+
+      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+        .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
+      when(mockCorpTaxRepo.findBySelector(mockCorpTaxRepo.regIDSelector(eqTo(registrationId))))
+        .thenReturn(Future.successful(Some(corporationTaxRegistration)))
+
+      val ctReg: CorporationTaxRegistration =
+        getCTReg(
+          regId,
+          Some(companyDetails2),
+          Some(contactDetails2)).copy(groups =
+          Some(Groups(
+            groupRelief = true,
+            Some(GroupCompanyName("%%% This is my compa$y over 20 chars and has special chars at the start", GroupCompanyNameEnum.Other)),
+            Some(GroupsAddressAndType(GroupAddressTypeEnum.ALF, BusinessAddress("line 1:", "line 2:", Some("line 3:"),Some("line 4:"), Some("ZZ1 1ZZ"), None))),
+            Some(GroupUTR(None))
+          ))
+        )
+      val result: InterimDesRegistration = service.buildPartialDesSubmission(regId, ackRef, credId, businessRegistration, ctReg)
+
+      result shouldBe InterimDesRegistration(
+        ackRef,
+        Metadata(sessionId, credId, "en", DateTime.parse(service.formatTimestamp(dateTime)), Director),
+        InterimCorporationTax(
+          "name",
+          returnsOnCT61 = false,
+          Some(BusinessAddress("1", "1", None, None, Some("ZZ1 1ZZ"), None)),
+          BusinessContactDetails(None, None, Some("a@b.c")),
+          groups = Some(
+            Groups(
+              groupRelief = true,
+              Some(GroupCompanyName(" This is my compay o", GroupCompanyNameEnum.Other)),
+              Some(GroupsAddressAndType(GroupAddressTypeEnum.ALF, BusinessAddress("line 1.", "line 2.", Some("line 3."), Some("line 4."), Some("ZZ1 1ZZ"), None))), Some(GroupUTR(None)))
+          )))
+    }
+
     "return a valid des submission if takeover block is provided" in new Setup {
       when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
