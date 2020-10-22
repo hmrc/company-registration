@@ -17,32 +17,28 @@
 package controllers
 
 import auth._
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import models.{AccountingDetails, ErrorResponse}
 import play.api.libs.json.{JsObject, JsValue, Json}
-import play.api.mvc.{Action, AnyContent}
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.{AccountingDetailsService, MetricsService, PrepareAccountService}
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
 
+@Singleton
+class AccountingDetailsController @Inject()(val metricsService: MetricsService,
+                                            val prepareAccountService: PrepareAccountService,
+                                            val accountingDetailsService: AccountingDetailsService,
+                                            val authConnector: AuthConnector,
+                                            val repositories: Repositories,
+                                            controllerComponents: ControllerComponents)
+  extends BackendController(controllerComponents) with AuthorisedActions {
+  lazy val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 
-class AccountingDetailsControllerImpl @Inject()(val metricsService: MetricsService,
-                                                val prepareAccountService: PrepareAccountService,
-                                                val accountingDetailsService: AccountingDetailsService,
-                                                val authConnector: AuthConnector,
-                                                val repositories: Repositories) extends AccountingDetailsController {
- lazy val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
-}
-
-trait AccountingDetailsController extends BaseController with AuthorisedActions {
-
-  val metricsService: MetricsService
-  val accountingDetailsService: AccountingDetailsService
-  val prepareAccountService: PrepareAccountService
 
   private def mapToResponse(registrationID: String, res: AccountingDetails) = {
     Json.toJson(res).as[JsObject] ++
@@ -71,7 +67,7 @@ trait AccountingDetailsController extends BaseController with AuthorisedActions 
       withJsonBody[AccountingDetails] { companyDetails =>
         for {
           accountingDetails <- accountingDetailsService.updateAccountingDetails(registrationID, companyDetails)
-          _                 <- prepareAccountService.updateEndDate(registrationID)
+          _ <- prepareAccountService.updateEndDate(registrationID)
         } yield {
           accountingDetails match {
             case Some(details) => timer.stop()

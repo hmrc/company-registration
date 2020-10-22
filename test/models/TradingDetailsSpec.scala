@@ -17,7 +17,7 @@
 package models
 
 import org.scalatest.{Matchers, WordSpec}
-import play.api.data.validation.ValidationError
+import play.api.libs.json.JsonValidationError
 import play.api.libs.json.{JsPath, Json}
 
 class TradingDetailsSpec extends WordSpec with Matchers {
@@ -45,7 +45,7 @@ class TradingDetailsSpec extends WordSpec with Matchers {
       val result = json.validate[TradingDetails]
 
       result.isSuccess shouldBe false
-      result.asEither.left.get shouldBe Seq((JsPath \ "regularPayments", List(ValidationError("expected either 'true' or 'false' but neither was found"))))
+      result.asEither.left.get shouldBe Seq((JsPath \ "regularPayments", List(JsonValidationError("expected either 'true' or 'false' but neither was found"))))
     }
   }
 

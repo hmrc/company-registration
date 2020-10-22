@@ -17,8 +17,7 @@
 package models
 
 import org.scalatest.{Matchers, WordSpec}
-import play.api.data.validation.ValidationError
-import play.api.libs.json._
+import play.api.libs.json.{JsonValidationError, _}
 
 class AccountingDetailsSpec extends WordSpec with Matchers with JsonFormatValidation {
 
@@ -35,13 +34,13 @@ class AccountingDetailsSpec extends WordSpec with Matchers with JsonFormatValida
     "fail if status is not valid" in {
       val json = """{"accountingDateStatus":"XXX"}"""
       val result = Json.parse(json).validate[AccountingDetails]
-      shouldHaveErrors(result, JsPath() \ "accountingDateStatus", Seq(ValidationError("error.pattern")))
+      shouldHaveErrors(result, JsPath() \ "accountingDateStatus", Seq(JsonValidationError("error.pattern")))
     }
 
     "fail if the date format isn't valid" in {
       val json = """{"accountingDateStatus":"FUTURE_DATE","startDateOfBusiness":"2017/02/01"}"""
       val result = Json.parse(json).validate[AccountingDetails]
-      shouldHaveErrors(result, JsPath() \ "startDateOfBusiness", Seq(ValidationError("error.pattern")))
+      shouldHaveErrors(result, JsPath() \ "startDateOfBusiness", Seq(JsonValidationError("error.pattern")))
     }
   }
 
@@ -59,7 +58,7 @@ class AccountingDetailsSpec extends WordSpec with Matchers with JsonFormatValida
       val json = Json.parse("""{"accountingDateStatus":"FUTURE_DATE"}""")
 
       val result = Json.fromJson[AccountingDetails](json)
-      shouldHaveErrors(result, JsPath(), Seq(ValidationError("If a date is specified, the status must be FUTURE_DATE")))
+      shouldHaveErrors(result, JsPath(), Seq(JsonValidationError("If a date is specified, the status must be FUTURE_DATE")))
     }
   }
 

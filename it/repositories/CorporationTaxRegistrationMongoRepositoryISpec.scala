@@ -54,9 +54,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     .build()
 
   class Setup {
-    val rmc = app.injector.instanceOf[ReactiveMongoComponent]
-    val crypto = app.injector.instanceOf[CryptoSCRS]
-    val repository = new CorporationTaxRegistrationMongoRepository(rmc, crypto)
+    val repository = app.injector.instanceOf[CorporationTaxRegistrationMongoRepository]
     await(repository.drop)
     await(repository.ensureIndexes)
 

@@ -20,7 +20,7 @@ import fixtures.AccountingDetailsFixture
 import mocks.SCRSMocks
 import models.SubmissionDates
 import org.joda.time.DateTime
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
 import play.api.test.Helpers._
 

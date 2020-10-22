@@ -18,6 +18,7 @@ package api
 
 import auth.CryptoSCRS
 import com.github.tomakehurst.wiremock.client.WireMock._
+import itutil.WiremockHelper._
 import itutil.{IntegrationSpecBase, LoginStub, RequestFinder, WiremockHelper}
 import models.RegistrationStatus._
 import models._
@@ -25,9 +26,10 @@ import models.des.BusinessAddress
 import play.api.Application
 import play.api.http.HeaderNames
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.crypto.DefaultCookieSigner
 import play.api.libs.json._
+import play.api.libs.ws.{WSRequest, WSResponse}
 import play.api.test.Helpers._
-import play.api.libs.ws.{WS, WSRequest, WSResponse}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.play.json._
@@ -40,6 +42,8 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
   val mockHost: String = WiremockHelper.wiremockHost
   val mockPort: Int = WiremockHelper.wiremockPort
   val mockUrl: String = s"http://$mockHost:$mockPort"
+  lazy val defaultCookieSigner: DefaultCookieSigner = app.injector.instanceOf[DefaultCookieSigner]
+
 
   val additionalConfiguration: Map[String, Any] = Map(
     "auditing.consumer.baseUri.host" -> s"$mockHost",
@@ -68,11 +72,11 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
     .configure(additionalConfiguration)
     .build()
 
-  private def client(path: String): WSRequest = WS.url(s"http://localhost:$port/company-registration/corporation-tax-registration$path")
+  private def client(path: String): WSRequest = ws.url(s"http://localhost:$port/company-registration/corporation-tax-registration$path")
     .withFollowRedirects(false)
-    .withHeaders("Content-Type" -> "application/json")
-    .withHeaders(HeaderNames.SET_COOKIE -> getSessionCookie())
-    .withHeaders(GovHeaderNames.xSessionId -> SessionId)
+    .withHttpHeaders("Content-Type" -> "application/json")
+    .withHttpHeaders(HeaderNames.SET_COOKIE -> getSessionCookie())
+    .withHttpHeaders(GovHeaderNames.xSessionId -> SessionId)
 
   class Setup {
     val rmComp: ReactiveMongoComponent = app.injector.instanceOf[ReactiveMongoComponent]
@@ -357,7 +361,8 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
         reg.status shouldBe HELD
       }
 
-      "registration is in Draft status and update Confirmation References with Ack Ref (new HO5-1)" in new Setup {
+      "registration is in Draft sta" +
+        "tus and update Confirmation References with Ack Ref (new HO5-1)" in new Setup {
         stubAuthorise(200, authorisedRetrievals)
 
         val confRefsWithoutPayment: ConfirmationReferences = ConfirmationReferences(

@@ -20,10 +20,11 @@ import java.net.{URLDecoder, URLEncoder}
 import java.util.UUID
 
 import com.github.tomakehurst.wiremock.client.WireMock._
-import play.api.libs.Crypto
+import play.api.libs.crypto.DefaultCookieSigner
 import play.api.libs.ws.WSCookie
 import uk.gov.hmrc.crypto.{CompositeSymmetricCrypto, Crypted, PlainText}
 import uk.gov.hmrc.http.SessionKeys
+
 
 trait LoginStub extends SessionCookieBaker {
 
@@ -48,6 +49,7 @@ trait LoginStub extends SessionCookieBaker {
   }
 
   val userId = "/auth/oid/1234567890"
+
   def setupSimpleAuthMocks(internalId: String = "Int-xxx") = {
     stubFor(post(urlMatching("/write/audit"))
       .willReturn(
@@ -61,20 +63,21 @@ trait LoginStub extends SessionCookieBaker {
       .willReturn(
         aResponse().
           withStatus(200).
-          withBody(s"""
-                      |{
-                      |"uri":"${userId}",
-                      |"loggedInAt": "2014-06-09T14:57:09.522Z",
-                      |"previouslyLoggedInAt": "2014-06-09T14:48:24.841Z",
-                      |"credentials":{"gatewayId":"xxx2"},
-                      |"accounts":{},
-                      |"levelOfAssurance": "2",
-                      |"confidenceLevel" : 50,
-                      |"credentialStrength": "strong",
-                      |"legacyOid":"1234567890",
-                      |"userDetailsLink":"http://localhost:11111/auth/userDetails",
-                      |"ids":"/auth/ids"
-                      |}""".stripMargin)
+          withBody(
+            s"""
+               |{
+               |"uri":"${userId}",
+               |"loggedInAt": "2014-06-09T14:57:09.522Z",
+               |"previouslyLoggedInAt": "2014-06-09T14:48:24.841Z",
+               |"credentials":{"gatewayId":"xxx2"},
+               |"accounts":{},
+               |"levelOfAssurance": "2",
+               |"confidenceLevel" : 50,
+               |"credentialStrength": "strong",
+               |"legacyOid":"1234567890",
+               |"userDetailsLink":"http://localhost:11111/auth/userDetails",
+               |"ids":"/auth/ids"
+               |}""".stripMargin)
       )
     )
 
@@ -82,13 +85,14 @@ trait LoginStub extends SessionCookieBaker {
       .willReturn(
         aResponse().
           withStatus(200).
-          withBody(s"""{
-                      |  "name": "testUserName",
-                      |  "email": "testUserEmail",
-                      |  "affinityGroup": "testAffinityGroup",
-                      |  "authProviderId": "testAuthProviderId",
-                      |  "authProviderType": "testAuthProviderType"
-                      |}""".stripMargin)
+          withBody(
+            s"""{
+               |  "name": "testUserName",
+               |  "email": "testUserEmail",
+               |  "affinityGroup": "testAffinityGroup",
+               |  "authProviderId": "testAuthProviderId",
+               |  "authProviderType": "testAuthProviderType"
+               |}""".stripMargin)
       ))
 
     stubFor(get(urlMatching("/auth/ids"))
@@ -102,14 +106,16 @@ trait LoginStub extends SessionCookieBaker {
 }
 
 trait SessionCookieBaker {
+  val defaultCookieSigner: DefaultCookieSigner
   val cookieKey = "gvBoGdgzqG1AarzF1LY0zQ=="
-  def cookieValue(sessionData: Map[String,String]) = {
+
+  def cookieValue(sessionData: Map[String, String]) = {
     def encode(data: Map[String, String]): PlainText = {
       val encoded = data.map {
         case (k, v) => URLEncoder.encode(k, "UTF-8") + "=" + URLEncoder.encode(v, "UTF-8")
       }.mkString("&")
       val key = "yNhI04vHs9<_HWbC`]20u`37=NGLGYY5:0Tg5?y`W<NoJnXWqmjcgZBec@rOxb^G".getBytes
-      PlainText(Crypto.sign(encoded, key) + "-" + encoded)
+      PlainText(defaultCookieSigner.sign(encoded, key) + "-" + encoded)
     }
 
     val encodedCookie = encode(sessionData)
@@ -119,7 +125,7 @@ trait SessionCookieBaker {
   }
 
   def getCookieData(cookie: WSCookie): Map[String, String] = {
-    getCookieData(cookie.value.get)
+    getCookieData(cookie.value)
   }
 
   def getCookieData(cookieData: String): Map[String, String] = {
@@ -127,7 +133,7 @@ trait SessionCookieBaker {
     val decrypted = CompositeSymmetricCrypto.aesGCM(cookieKey, Seq()).decrypt(Crypted(cookieData)).value
     val result = decrypted.split("&")
       .map(_.split("="))
-      .map { case Array(k, v) => (k, URLDecoder.decode(v))}
+      .map { case Array(k, v) => (k, URLDecoder.decode(v)) }
       .toMap
 
     result

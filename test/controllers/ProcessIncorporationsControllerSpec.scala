@@ -23,7 +23,7 @@ import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.concurrent.Eventually
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
 import play.api.Logger
 import play.api.libs.json.Reads._
@@ -32,6 +32,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import services._
 import utils.LogCapturing
+
 
 import scala.concurrent.Future
 
@@ -50,10 +51,10 @@ class ProcessIncorporationsControllerSpec extends WordSpec with Matchers with Mo
   val mockSubmissionService = mock[SubmissionService]
 
   class Setup {
-    val controller = new ProcessIncorporationsController {
-      override val processIncorporationService = mockProcessIncorporationService
-      override val corpTaxRegService = mockCorpRegTaxService
-      override val submissionService = mockSubmissionService
+    val controller = new ProcessIncorporationsController(mockProcessIncorporationService,
+      mockCorpRegTaxService,
+      mockSubmissionService,
+      stubControllerComponents(playBodyParsers = stubPlayBodyParsers(mat))) {
     }
   }
 

@@ -18,7 +18,7 @@ package controllers.admin
 
 import cats.instances.FutureInstances
 import cats.syntax.{ApplicativeSyntax, FlatMapSyntax}
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import models.admin.{HO6Identifiers, HO6Response}
 import models.{ConfirmationReferences, HO6RegistrationInformation}
 import play.api.Logger
@@ -30,26 +30,19 @@ import services.{CorporationTaxRegistrationService, SubmissionService}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.logging.SessionId
 import uk.gov.hmrc.play.audit.http.connector.AuditResult
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class AdminControllerImpl @Inject()(
-                                     val adminService: AdminService,
-                                     val submissionService: SubmissionService,
-                                     val repositories: Repositories
-      ) extends AdminController {
+@Singleton
+class AdminController @Inject()(
+                                 val adminService: AdminService,
+                                 val submissionService: SubmissionService,
+                                 val repositories: Repositories,
+                                 controllerComponents: ControllerComponents
+                               ) extends BackendController(controllerComponents) with FutureInstances with ApplicativeSyntax with FlatMapSyntax {
   lazy val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
-
-}
-
-trait AdminController extends BaseController with FutureInstances with ApplicativeSyntax with FlatMapSyntax {
-
-  val adminService: AdminService
-  val submissionService: SubmissionService
-  val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository
-
 
   def fetchHO6RegistrationInformation(regId: String): Action[AnyContent] = Action.async {
     implicit request =>
@@ -78,7 +71,7 @@ trait AdminController extends BaseController with FutureInstances with Applicati
 
         fetchStatus(ids.registrationId) { statusBefore =>
           submissionService.handleSubmission(ids.registrationId, ids.credId, confirmationReferences, isAdmin = true)(
-            updatedHc, request.map(AnyContentAsJson)).flatMap{
+            updatedHc, request.map(AnyContentAsJson)).flatMap {
             references =>
               Logger.info(s"[Admin Confirmation Refs] Acknowledgement ref : ${references.acknowledgementReference} " +
                 s"- Transaction id : ${references.transactionId} - Payment ref : ${references.paymentReference}")
@@ -129,7 +122,7 @@ trait AdminController extends BaseController with FutureInstances with Applicati
     fetchStatus(identifiers.registrationId) { statusAfter =>
       val response = HO6Response(success = isSuccess, statusBefore, statusAfter)
       val jsonResponse = Json.toJson[HO6Response](response)(HO6Response.format)
-      val result = (if(isSuccess) Ok(jsonResponse) else NotFound(jsonResponse)).pure[Future]
+      val result = (if (isSuccess) Ok(jsonResponse) else NotFound(jsonResponse)).pure[Future]
       auditAdminEvent(identifiers.strideUser, identifiers, response) flatMap {
         case AuditResult.Success => result
         case AuditResult.Failure(errMsg, _) =>

@@ -23,17 +23,19 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import repositories.MissingCTDocument
 import uk.gov.hmrc.auth.core.{BearerTokenExpired, InvalidBearerToken, MissingBearerToken, SessionRecordNotFound}
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.Future
 
 class AuthorisedActionsSpec extends BaseSpec with AuthorisationMocks {
 
   trait Setup {
-    val authorisedActions = new AuthorisedActions with BaseController {
-      override val authConnector = mockAuthConnector
-      override val resource = mockResource
+
+    object AuthorisedController extends BackendController(stubControllerComponents()) with AuthorisedActions {
+      val authConnector = mockAuthConnector
+      val resource = mockResource
     }
+
   }
 
   val registrationID = "reg-12345"
@@ -49,7 +51,7 @@ class AuthorisedActionsSpec extends BaseSpec with AuthorisationMocks {
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.successful(internalId))
 
-      val result = authorisedActions.AuthorisedAction(registrationID).async(block)(request)
+      val result = AuthorisedController.AuthorisedAction(registrationID).async(block)(request)
       status(result) shouldBe 200
     }
 
@@ -57,7 +59,7 @@ class AuthorisedActionsSpec extends BaseSpec with AuthorisationMocks {
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.failed(new MissingCTDocument("hfbhdbf")))
 
-      val result = authorisedActions.AuthorisedAction(registrationID).async(block)(request)
+      val result = AuthorisedController.AuthorisedAction(registrationID).async(block)(request)
       status(result) shouldBe 404
     }
 
@@ -65,7 +67,7 @@ class AuthorisedActionsSpec extends BaseSpec with AuthorisationMocks {
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.successful(otherInternalID))
 
-      val result = authorisedActions.AuthorisedAction(registrationID).async(block)(request)
+      val result = AuthorisedController.AuthorisedAction(registrationID).async(block)(request)
       status(result) shouldBe 403
     }
 
@@ -79,7 +81,7 @@ class AuthorisedActionsSpec extends BaseSpec with AuthorisationMocks {
       ) foreach { ex =>
         mockAuthorise(Future.failed(ex))
 
-        val result = authorisedActions.AuthorisedAction(registrationID).async(block)(request)
+        val result = AuthorisedController.AuthorisedAction(registrationID).async(block)(request)
         status(result) shouldBe 401
       }
     }

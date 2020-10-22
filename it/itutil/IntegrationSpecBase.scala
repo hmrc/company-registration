@@ -18,10 +18,11 @@ package itutil
 
 import org.scalatest._
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
-import org.scalatestplus.play.OneServerPerSuite
+import org.scalatestplus.play.guice.GuiceOneServerPerSuite
+import play.api.libs.ws.WSClient
 
 trait IntegrationSpecBase extends WordSpec
-  with OneServerPerSuite with ScalaFutures with IntegrationPatience with Matchers
+  with GuiceOneServerPerSuite with ScalaFutures with IntegrationPatience with Matchers
   with WiremockHelper with BeforeAndAfterEach with BeforeAndAfterAll with FakeAppConfig {
 
   override def beforeEach() = {
@@ -37,9 +38,12 @@ trait IntegrationSpecBase extends WordSpec
     stopWiremock()
     super.afterAll()
   }
+  implicit lazy val ws: WSClient = app.injector.instanceOf[WSClient]
+
 }
 
 trait FakeAppConfig {
+
   import WiremockHelper._
 
   def fakeConfig(additionalConfig: Map[String, String] = Map.empty) = Map(
@@ -50,4 +54,5 @@ trait FakeAppConfig {
     "microservice.services.business-registration.host" -> s"$wiremockHost",
     "microservice.services.business-registration.port" -> s"$wiremockPort"
   ) ++ additionalConfig
+
 }

@@ -20,13 +20,15 @@ import itutil.{IntegrationSpecBase, LoginStub, RequestFinder, WiremockHelper}
 import play.api.Application
 import play.api.http.HeaderNames
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.crypto.DefaultCookieSigner
 import play.api.libs.json.Json
-import play.api.libs.ws.WS
 import play.api.test.Helpers._
 import uk.gov.hmrc.http.{HeaderNames => GovHeaderNames}
 
 
 class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with LoginStub with RequestFinder {
+  lazy val defaultCookieSigner: DefaultCookieSigner = app.injector.instanceOf[DefaultCookieSigner]
+
   val mockHost = WiremockHelper.wiremockHost
   val mockPort = WiremockHelper.wiremockPort
   val mockUrl = s"http://$mockHost:$mockPort"
@@ -59,7 +61,7 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
     .build()
   val regId = "reg-id-12345"
 
-  private def client(path: String) = WS.url(s"http://localhost:$port/company-registration/corporation-tax-registration$path")
+  private def client(path: String) = ws.url(s"http://localhost:$port/company-registration/corporation-tax-registration$path")
     .withFollowRedirects(false)
     .withHeaders("Content-Type" -> "application/json")
     .withHeaders(HeaderNames.SET_COOKIE -> getSessionCookie())

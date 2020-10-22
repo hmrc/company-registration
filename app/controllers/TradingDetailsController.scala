@@ -17,52 +17,48 @@
 package controllers
 
 import auth._
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import models.{ErrorResponse, TradingDetails}
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.{Action, AnyContent}
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.{MetricsService, TradingDetailsService}
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class TradingDetailsControllerImpl @Inject()(val metricsService: MetricsService,
-                                             val tradingDetailsService: TradingDetailsService,
-                                             val authConnector: AuthConnector,
-                                             val repositories: Repositories) extends TradingDetailsController {
+@Singleton
+class TradingDetailsController @Inject()(val metricsService: MetricsService,
+                                         val tradingDetailsService: TradingDetailsService,
+                                         val authConnector: AuthConnector,
+                                         val repositories: Repositories,
+                                         controllerComponents: ControllerComponents) extends BackendController(controllerComponents) with AuthorisedActions {
   lazy val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
-}
 
-
-trait TradingDetailsController extends BaseController with AuthorisedActions {
-
-  val tradingDetailsService : TradingDetailsService
-  val metricsService: MetricsService
-
-  def retrieveTradingDetails(registrationID : String): Action[AnyContent] = AuthorisedAction(registrationID).async {
+  def retrieveTradingDetails(registrationID: String): Action[AnyContent] = AuthorisedAction(registrationID).async {
     implicit request =>
       val timer = metricsService.retrieveTradingDetailsCRTimer.time()
       tradingDetailsService.retrieveTradingDetails(registrationID).map {
-          case Some(res) => timer.stop()
-            Ok(Json.toJson(res))
-          case _ => timer.stop()
-            NotFound(ErrorResponse.tradingDetailsNotFound)
-        }
+        case Some(res) => timer.stop()
+          Ok(Json.toJson(res))
+        case _ => timer.stop()
+          NotFound(ErrorResponse.tradingDetailsNotFound)
+      }
   }
 
-  def updateTradingDetails(registrationID : String) : Action[JsValue] = AuthorisedAction(registrationID).async(parse.json) {
+  def updateTradingDetails(registrationID: String): Action[JsValue] = AuthorisedAction(registrationID).async(parse.json) {
     implicit request =>
-          val timer = metricsService.updateTradingDetailsCRTimer.time()
-          withJsonBody[TradingDetails] {
-            tradingDetails => tradingDetailsService.updateTradingDetails(registrationID, tradingDetails)
-              .map{
-                case Some(details) => timer.stop()
-                                      Ok(Json.toJson(details))
-                case None => timer.stop()
-                  NotFound(ErrorResponse.tradingDetailsNotFound)
-              }
-          }
+      val timer = metricsService.updateTradingDetailsCRTimer.time()
+      withJsonBody[TradingDetails] {
+        tradingDetails =>
+          tradingDetailsService.updateTradingDetails(registrationID, tradingDetails)
+            .map {
+              case Some(details) => timer.stop()
+                Ok(Json.toJson(details))
+              case None => timer.stop()
+                NotFound(ErrorResponse.tradingDetailsNotFound)
+            }
+      }
   }
 }

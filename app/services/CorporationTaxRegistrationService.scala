@@ -19,7 +19,7 @@ package services
 import config.MicroserviceAppConfig
 import connectors._
 import helpers.DateHelper
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import jobs.{LockResponse, MongoLocked, ScheduledService, UnlockingFailed}
 import models.des.BusinessAddress
 import models.validation.APIValidation
@@ -31,6 +31,7 @@ import repositories._
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.lock.LockKeeper
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import utils.StringNormaliser
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -38,20 +39,21 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NoStackTrace
 import scala.util.{Success, Try}
 
+@Singleton
 class CorporationTaxRegistrationServiceImpl @Inject()(
                                                        val submissionCheckAPIConnector: IncorporationCheckAPIConnector,
                                                        val brConnector: BusinessRegistrationConnector,
                                                        val desConnector: DesConnector,
-                                                       val microserviceAppConfig: MicroserviceAppConfig,
                                                        val incorpInfoConnector: IncorporationInformationConnector,
                                                        val repositories: Repositories,
-                                                       val auditConnector: AuditConnector
+                                                       val auditConnector: AuditConnector,
+                                                       servicesConfig:ServicesConfig
                                                      ) extends CorporationTaxRegistrationService {
 
   lazy val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
   lazy val sequenceRepository: SequenceMongoRepository = repositories.sequenceRepository
 
-  lazy val lockoutTimeout = microserviceAppConfig.getInt("schedules.missing-incorporation-job.lockTimeout")
+  lazy val lockoutTimeout = servicesConfig.getInt("schedules.missing-incorporation-job.lockTimeout")
   def currentDateTime: DateTime = DateTime.now(DateTimeZone.UTC)
   lazy val lockKeeper: LockKeeper = new LockKeeper() {
     override val lockId = "missing-incorporation-job-lock"

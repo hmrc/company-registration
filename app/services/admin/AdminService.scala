@@ -22,7 +22,7 @@ import audit._
 import config.MicroserviceAppConfig
 import connectors.{BusinessRegistrationConnector, DesConnector, IncorporationInformationConnector}
 import helpers.DateFormatter
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import jobs.{LockResponse, MongoLocked, ScheduledService, UnlockingFailed}
 import models.RegistrationStatus._
 import models.admin.{AdminCTReferenceDetails, HO6Identifiers, HO6Response}
@@ -36,22 +36,25 @@ import services.FailedToDeleteSubmissionData
 import uk.gov.hmrc.http.{HeaderCarrier, NotFoundException}
 import uk.gov.hmrc.lock.LockKeeper
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
+@Singleton
 class AdminServiceImpl @Inject()(val corpTaxRegRepo: CorporationTaxRegistrationMongoRepository,
                                  val brConnector: BusinessRegistrationConnector,
                                  val desConnector: DesConnector,
                                  val repositories: Repositories,
                                  val incorpInfoConnector: IncorporationInformationConnector, microserviceAppConfig: MicroserviceAppConfig,
-                                 val auditConnector: AuditConnector)
-                                 extends AdminService {
-  lazy val staleAmount: Int = microserviceAppConfig.getInt("staleDocumentAmount")
-  lazy val clearAfterXDays: Int = microserviceAppConfig.getInt("clearAfterXDays")
+                                 val auditConnector: AuditConnector,
+                                 servicesConfig: ServicesConfig)
+  extends AdminService {
+  lazy val staleAmount: Int = servicesConfig.getInt("staleDocumentAmount")
+  lazy val clearAfterXDays: Int = servicesConfig.getInt("clearAfterXDays")
   lazy val ignoredDocs: Set[String] = new String(Base64.getDecoder.decode(microserviceAppConfig.getConfigString("skipStaleDocs")), "UTF-8").split(",").toSet
 
-  lazy val lockoutTimeout = microserviceAppConfig.getInt("schedules.remove-stale-documents-job.lockTimeout")
+  lazy val lockoutTimeout = servicesConfig.getInt("schedules.remove-stale-documents-job.lockTimeout")
   lazy val lockKeeper: LockKeeper = new LockKeeper() {
     override val lockId = "remove-stale-documents-job-lock"
     override val forceLockReleaseAfter: Duration = Duration.standardSeconds(lockoutTimeout)
@@ -75,7 +78,7 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
   def fetchHO6RegistrationInformation(regId: String): Future[Option[HO6RegistrationInformation]] = corpTaxRegRepo.fetchHO6Information(regId)
 
   def fetchSessionIdData(regId: String): Future[Option[SessionIdData]] = {
-    corpTaxRegRepo.findBySelector(corpTaxRegRepo.regIDSelector(regId)) map (_.map{ reg =>
+    corpTaxRegRepo.findBySelector(corpTaxRegRepo.regIDSelector(regId)) map (_.map { reg =>
       SessionIdData(
         reg.sessionIdentifiers.map(_.sessionId),
         reg.sessionIdentifiers.map(_.credId),
@@ -127,25 +130,25 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
   }
 
 
-  def adminDeleteSubmission(info: DocumentInfo, txId : Option[String])(implicit hc : HeaderCarrier): Future[Boolean] = {
+  def adminDeleteSubmission(info: DocumentInfo, txId: Option[String])(implicit hc: HeaderCarrier): Future[Boolean] = {
     val cancelSub = txId match {
       case Some(tId) =>
         incorpInfoConnector.cancelSubscription(info.regId, tId) recover {
-          case e : NotFoundException =>
+          case e: NotFoundException =>
             Logger.info(s"[processStaleDocument] Registration ${info.regId} - $tId does not have CTAX subscription. Now trying to delete CT sub.")
             incorpInfoConnector.cancelSubscription(info.regId, tId, useOldRegime = true) recover {
-              case e : NotFoundException =>
+              case e: NotFoundException =>
                 Logger.warn(s"[processStaleDocument] Registration ${info.regId} - $tId has no subscriptions.")
                 true
             }
         }
-      case _         => Future.successful(true)
+      case _ => Future.successful(true)
     }
 
     for {
-      _               <- cancelSub
+      _ <- cancelSub
       metadataDeleted <- brConnector.adminRemoveMetadata(info.regId)
-      ctDeleted       <- corpTaxRegRepo.removeTaxRegistrationById(info.regId)
+      ctDeleted <- corpTaxRegRepo.removeTaxRegistrationById(info.regId)
     } yield {
       if (ctDeleted && metadataDeleted) {
         Logger.info(s"[processStaleDocument] Deleted stale regId: ${info.regId} timestamp: ${info.lastSignedIn}")
@@ -164,6 +167,7 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
       case _ => false
     }
   }
+
   def invoke(implicit ec: ExecutionContext): Future[Either[Int, LockResponse]] = {
     implicit val hc = HeaderCarrier()
     lockKeeper.tryLock(deleteStaleDocuments()).map {
@@ -185,11 +189,11 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
     val startTS = System.currentTimeMillis
     for {
       documents <- corpTaxRegRepo.retrieveStaleDocuments(staleAmount, clearAfterXDays)
-      _         = Logger.info(s"[deleteStaleDocuments] Mongo query found ${documents.size} stale documents. Now processing.")
-      processed <- Future.sequence(documents filterNot(doc => ignoredDocs(doc.registrationID)) map processStaleDocument)
+      _ = Logger.info(s"[deleteStaleDocuments] Mongo query found ${documents.size} stale documents. Now processing.")
+      processed <- Future.sequence(documents filterNot (doc => ignoredDocs(doc.registrationID)) map processStaleDocument)
     } yield {
       val duration = System.currentTimeMillis - startTS
-      val res =  processed count (_ == true)
+      val res = processed count (_ == true)
       Logger.info(s"[remove-stale-documents-job] Duration to run $duration ms")
       res
     }
@@ -197,7 +201,7 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
 
   case class DocumentInfo(regId: String, status: String, lastSignedIn: DateTime)
 
-  private def removeStaleDocument(documentInfo: DocumentInfo, optRefs : Option[ConfirmationReferences])(implicit hc: HeaderCarrier) = optRefs match {
+  private def removeStaleDocument(documentInfo: DocumentInfo, optRefs: Option[ConfirmationReferences])(implicit hc: HeaderCarrier) = optRefs match {
     case Some(confRefs) => checkNotIncorporated(documentInfo, confRefs) flatMap { _ =>
       rejectNoneDraft(documentInfo, confRefs) flatMap { _ =>
         adminDeleteSubmission(documentInfo, Some(confRefs.transactionId))
@@ -214,7 +218,7 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
 
     ((doc.status, doc.confirmationReferences) match {
       case ((DRAFT | HELD | LOCKED), optRefs) => removeStaleDocument(documentInfo, optRefs)
-      case _                                  => Future.successful(false)
+      case _ => Future.successful(false)
     }) recover {
       case e: Throwable =>
         Logger.warn(s"[processStaleDocument] Failed to delete regId: ${documentInfo.regId} with throwable ${e.getMessage}")
@@ -266,17 +270,17 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
     }
   }
 
-  def updateDocSessionID(regId: String, sessionId: String, credId: String, username : String)(implicit hc : HeaderCarrier) : Future[SessionIdData] = {
+  def updateDocSessionID(regId: String, sessionId: String, credId: String, username: String)(implicit hc: HeaderCarrier): Future[SessionIdData] = {
     Logger.info(s"[updateDocSessionID] Updating document session id regId $regId")
 
     corpTaxRegRepo.retrieveSessionIdentifiers(regId) flatMap {
       case Some(sessionIds) =>
         for {
-          _             <- corpTaxRegRepo.storeSessionIdentifiers(regId, sessionId, credId)
+          _ <- corpTaxRegRepo.storeSessionIdentifiers(regId, sessionId, credId)
           sessionIdData <- fetchSessionIdData(regId).map(
             _.getOrElse(throw new RuntimeException(s"Registration Document does not exist or Document does not have sessionIdInfo for regId $regId")))
-          timestamp     = Json.obj("timestamp" -> Json.toJson(nowAsZonedDateTime)(zonedDateTimeWrites))
-          _             = auditConnector.sendExtendedEvent(new AdminSessionIDEvent(timestamp, username, Json.toJson(sessionIdData).as[JsObject], sessionIds.sessionId))
+          timestamp = Json.obj("timestamp" -> Json.toJson(nowAsZonedDateTime)(zonedDateTimeWrites))
+          _ = auditConnector.sendExtendedEvent(new AdminSessionIDEvent(timestamp, username, Json.toJson(sessionIdData).as[JsObject], sessionIds.sessionId))
         } yield sessionIdData
       case _ => throw new RuntimeException(s"Registration Document does not exist or Document does not have sessionIdentifiers for regId $regId")
     }

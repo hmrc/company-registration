@@ -16,20 +16,21 @@
 
 package utils
 
-import org.joda.time.{DateTimeZone, DateTime}
 import org.joda.time.format.ISODateTimeFormat
-import play.api.libs.json.Json
-
+import org.joda.time.{DateTime, DateTimeZone}
 
 sealed trait FeatureSwitch {
   def name: String
+
   def enabled: Boolean
 }
 
 trait TimedFeatureSwitch extends FeatureSwitch {
 
   def start: Option[DateTime]
+
   def end: Option[DateTime]
+
   def target: DateTime
 
   override def enabled: Boolean = (start, end) match {
@@ -43,6 +44,7 @@ trait TimedFeatureSwitch extends FeatureSwitch {
 case class BooleanFeatureSwitch(name: String, enabled: Boolean) extends FeatureSwitch
 
 case class EnabledTimedFeatureSwitch(name: String, start: Option[DateTime], end: Option[DateTime], target: DateTime) extends TimedFeatureSwitch
+
 case class DisabledTimedFeatureSwitch(name: String, start: Option[DateTime], end: Option[DateTime], target: DateTime) extends TimedFeatureSwitch {
   override def enabled = !super.enabled
 }
@@ -71,7 +73,7 @@ object FeatureSwitch {
     getProperty(name)
   }
 
-  private[utils] def toDate(text: String) : Option[DateTime] = {
+  private[utils] def toDate(text: String): Option[DateTime] = {
     text match {
       case UNSPECIFIED => None
       case _ => Some(dateFormat.parseDateTime(text))
@@ -81,12 +83,14 @@ object FeatureSwitch {
   private[utils] def systemPropertyName(name: String) = s"feature.$name"
 
   def enable(fs: FeatureSwitch): FeatureSwitch = setProperty(fs.name, "true")
+
   def disable(fs: FeatureSwitch): FeatureSwitch = setProperty(fs.name, "false")
 
   def apply(name: String, enabled: Boolean = false): FeatureSwitch = getProperty(name)
+
   def unapply(fs: FeatureSwitch): Option[(String, Boolean)] = Some(fs.name -> fs.enabled)
 
-  implicit val formats = Json.format[FeatureSwitch]
+
 }
 
 object SCRSFeatureSwitches extends SCRSFeatureSwitches

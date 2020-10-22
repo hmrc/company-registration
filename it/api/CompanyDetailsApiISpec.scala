@@ -18,13 +18,14 @@ package api
 
 import auth.CryptoSCRS
 import controllers.routes
+import itutil.WiremockHelper._
 import itutil.{IntegrationSpecBase, LoginStub, WiremockHelper}
 import models._
 import play.api.Application
 import play.api.http.HeaderNames
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.crypto.DefaultCookieSigner
 import play.api.libs.json.{JsObject, Json}
-import play.api.libs.ws.WS
 import play.api.test.Helpers._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.WriteResult
@@ -32,9 +33,9 @@ import repositories.{CorporationTaxRegistrationMongoRepository, SequenceMongoRep
 import uk.gov.hmrc.http.{HeaderNames => GovHeaderNames}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 
 class CompanyDetailsApiISpec extends IntegrationSpecBase with LoginStub {
+  lazy val defaultCookieSigner: DefaultCookieSigner = app.injector.instanceOf[DefaultCookieSigner]
   val mockHost = WiremockHelper.wiremockHost
   val mockPort = WiremockHelper.wiremockPort
   val mockUrl = s"http://$mockHost:$mockPort"
@@ -95,11 +96,11 @@ class CompanyDetailsApiISpec extends IntegrationSpecBase with LoginStub {
     "jurisdiction" -> "testJurisdiction"
   )
 
-  private def client(path: String) = WS.url(s"http://localhost:$port/company-registration/corporation-tax-registration$path")
+  private def client(path: String) = ws.url(s"http://localhost:$port/company-registration/corporation-tax-registration$path")
     .withFollowRedirects(false)
-    .withHeaders("Content-Type" -> "application/json")
-    .withHeaders(HeaderNames.SET_COOKIE -> getSessionCookie())
-    .withHeaders(GovHeaderNames.xSessionId -> SessionId)
+    .withHttpHeaders("Content-Type" -> "application/json")
+    .withHttpHeaders(HeaderNames.SET_COOKIE -> getSessionCookie())
+    .withHttpHeaders(GovHeaderNames.xSessionId -> SessionId)
 
   class Setup {
     val rmComp = app.injector.instanceOf[ReactiveMongoComponent]

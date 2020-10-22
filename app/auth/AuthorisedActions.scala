@@ -21,22 +21,25 @@ import play.api.libs.json.Reads
 import play.api.mvc.{ActionBuilder, _}
 import repositories.MissingCTDocument
 import uk.gov.hmrc.auth.core.AuthProvider.GovernmentGateway
-import uk.gov.hmrc.auth.core.retrieve.{Retrieval, SimpleRetrieval}
-import uk.gov.hmrc.auth.core.retrieve.~
+import uk.gov.hmrc.auth.core.retrieve.{Retrieval, SimpleRetrieval, ~}
 import uk.gov.hmrc.auth.core.{AuthorisationException, _}
-import scala.concurrent.ExecutionContext.Implicits.global
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
-import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 
 trait AuthenticatedActions extends MicroserviceAuthorisedFunctions {
-  self: BaseController =>
+  self: BackendController =>
 
   private[auth] val predicate = ConfidenceLevel.L50 and AuthProviders(GovernmentGateway)
 
   val internalId: Retrieval[String] = SimpleRetrieval("internalId", Reads.StringReads)
 
-  object AuthenticatedAction extends ActionBuilder[Request] {
+  object AuthenticatedAction extends ActionBuilder[Request, AnyContent] {
+
+    override val parser: BodyParser[AnyContent] = controllerComponents.parsers.defaultBodyParser
+    override protected val executionContext: ExecutionContext = controllerComponents.executionContext
+
 
     override def invokeBlock[T](request: Request[T], block: (Request[T]) => Future[Result]): Future[Result] = {
       implicit val req: Request[T] = request
@@ -56,6 +59,7 @@ trait AuthenticatedActions extends MicroserviceAuthorisedFunctions {
         }
       }
     }
+
   }
 
   private def authenticationErrorHandling[A](implicit request: Request[A]): PartialFunction[Throwable, Result] = {
@@ -69,9 +73,13 @@ trait AuthenticatedActions extends MicroserviceAuthorisedFunctions {
 }
 
 trait AuthorisedActions extends AuthenticatedActions with AuthResource {
-  self: BaseController =>
+  self: BackendController =>
 
-  case class AuthorisedAction(regId: String) extends ActionBuilder[Request] {
+  case class AuthorisedAction(regId: String) extends ActionBuilder[Request, AnyContent] {
+
+    override val parser: BodyParser[AnyContent] = controllerComponents.parsers.defaultBodyParser
+    override protected val executionContext: ExecutionContext = controllerComponents.executionContext
+
 
     override def invokeBlock[A](request: Request[A], block: (Request[A]) => Future[Result]): Future[Result] = {
       implicit val req: Request[A] = request
@@ -90,7 +98,7 @@ trait AuthorisedActions extends AuthenticatedActions with AuthResource {
       override protected[auth] def withRetrieval[A](bodyParser: BodyParser[A])(block: T => Action[A]): Action[A] = {
         Action.async(bodyParser) {
           implicit request =>
-            authConnector.authorise(predicate, internalId and retrieval).flatMap{ case (authIntId ~ retrievals) =>
+            authConnector.authorise(predicate, internalId and retrieval).flatMap { case (authIntId ~ retrievals) =>
               fetchInternalID(regId).flatMap {
                 case `authIntId` => block(retrievals)(request)
                 case _ => throw new UnauthorisedAccess
@@ -99,6 +107,7 @@ trait AuthorisedActions extends AuthenticatedActions with AuthResource {
         }
       }
     }
+
   }
 
   private def authorisationErrorHandling[A](regId: String)(implicit request: Request[A]): PartialFunction[Throwable, Result] = {

@@ -19,19 +19,21 @@ package services
 import com.codahale.metrics.{Counter, Gauge, Timer}
 import com.kenshoo.play.metrics.{Metrics, MetricsDisabledException}
 import config.MicroserviceAppConfig
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import jobs.{LockResponse, MongoLocked, ScheduledService, UnlockingFailed}
 import org.joda.time.Duration
 import play.api.Logger
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.lock.LockKeeper
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
+@Singleton
 class MetricsServiceImpl @Inject()(metricsInstance: Metrics,
-                                   val microserviceAppConfig: MicroserviceAppConfig,
+                                   servicesConfig: ServicesConfig,
                                    val repositories: Repositories) extends MetricsService {
 
   override val metrics: Metrics = metricsInstance
@@ -65,7 +67,7 @@ class MetricsServiceImpl @Inject()(metricsInstance: Metrics,
   override val desSubmissionCRTimer: Timer = metrics.defaultRegistry.timer("des-submission-CR-timer")
 
 
-  lazy val lockoutTimeout = microserviceAppConfig.getInt("schedules.metrics-job.lockTimeout")
+  lazy val lockoutTimeout = servicesConfig.getInt("schedules.metrics-job.lockTimeout")
 
   lazy val lockKeeper: LockKeeper = new LockKeeper() {
     override val lockId = "metrics-job-lock"
@@ -76,57 +78,58 @@ class MetricsServiceImpl @Inject()(metricsInstance: Metrics,
 
 trait MetricsService extends ScheduledService[Either[Map[String, Int], LockResponse]] {
 
-  val ctutrConfirmationCounter : Counter
+  val ctutrConfirmationCounter: Counter
 
-  val retrieveAccountingDetailsCRTimer : Timer
-  val updateAccountingDetailsCRTimer : Timer
+  val retrieveAccountingDetailsCRTimer: Timer
+  val updateAccountingDetailsCRTimer: Timer
 
-  val retrieveCompanyDetailsCRTimer : Timer
-  val updateCompanyDetailsCRTimer : Timer
+  val retrieveCompanyDetailsCRTimer: Timer
+  val updateCompanyDetailsCRTimer: Timer
 
-  val retrieveContactDetailsCRTimer : Timer
-  val updateContactDetailsCRTimer : Timer
+  val retrieveContactDetailsCRTimer: Timer
+  val updateContactDetailsCRTimer: Timer
 
-  val createCorporationTaxRegistrationCRTimer : Timer
-  val retrieveCorporationTaxRegistrationCRTimer : Timer
-  val retrieveFullCorporationTaxRegistrationCRTimer : Timer
-  val updateReferencesCRTimer : Timer
-  val retrieveConfirmationReferenceCRTimer : Timer
-  val acknowledgementConfirmationCRTimer : Timer
+  val createCorporationTaxRegistrationCRTimer: Timer
+  val retrieveCorporationTaxRegistrationCRTimer: Timer
+  val retrieveFullCorporationTaxRegistrationCRTimer: Timer
+  val updateReferencesCRTimer: Timer
+  val retrieveConfirmationReferenceCRTimer: Timer
+  val acknowledgementConfirmationCRTimer: Timer
 
-  val updateCompanyEndDateCRTimer : Timer
+  val updateCompanyEndDateCRTimer: Timer
 
-  val retrieveTradingDetailsCRTimer : Timer
-  val updateTradingDetailsCRTimer : Timer
+  val retrieveTradingDetailsCRTimer: Timer
+  val updateTradingDetailsCRTimer: Timer
 
-  val userAccessCRTimer : Timer
+  val userAccessCRTimer: Timer
 
-  val desSubmissionCRTimer : Timer
+  val desSubmissionCRTimer: Timer
 
   val ctRepository: CorporationTaxRegistrationMongoRepository
   val lockKeeper: LockKeeper
 
   protected val metrics: Metrics
+
   def invoke(implicit ec: ExecutionContext): Future[Either[Map[String, Int], LockResponse]] = {
-      implicit val hc = HeaderCarrier()
-      lockKeeper.tryLock(updateDocumentMetrics()).map {
-        case Some(res) =>
-          Logger.info("MetricsService acquired lock and returned results")
-          Logger.info(s"Result updateDocumentMetrics: $res")
-          Left(res)
-        case None =>
-          Logger.info("MetricsService cant acquire lock")
-          Right(MongoLocked)
-      }.recover {
-        case e: Exception => Logger.error(s"Error running updateDocumentMetrics with message: ${e.getMessage}")
-          Right(UnlockingFailed)
-      }
+    implicit val hc = HeaderCarrier()
+    lockKeeper.tryLock(updateDocumentMetrics()).map {
+      case Some(res) =>
+        Logger.info("MetricsService acquired lock and returned results")
+        Logger.info(s"Result updateDocumentMetrics: $res")
+        Left(res)
+      case None =>
+        Logger.info("MetricsService cant acquire lock")
+        Right(MongoLocked)
+    }.recover {
+      case e: Exception => Logger.error(s"Error running updateDocumentMetrics with message: ${e.getMessage}")
+        Right(UnlockingFailed)
     }
+  }
 
   def updateDocumentMetrics(): Future[Map[String, Int]] = {
     ctRepository.getRegistrationStats map {
       stats => {
-        for( (status, count) <- stats ) {
+        for ((status, count) <- stats) {
           recordStatusCountStat(status, count)
         }
         stats

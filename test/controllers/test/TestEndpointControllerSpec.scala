@@ -24,9 +24,11 @@ import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
 import play.api.Logger
+import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import repositories._
+import uk.gov.hmrc.http.HeaderCarrier
 import utils.LogCapturing
 
 import scala.concurrent.Future
@@ -45,6 +47,7 @@ class TestEndpointControllerSpec extends BaseSpec with LogCapturing {
       val cTMongoRepository = mockCTRepository
       val bRConnector = mockBusRegConnector
       val submissionService = mockSubmissionService
+      val controllerComponents = stubControllerComponents()
     }
   }
 
@@ -54,7 +57,7 @@ class TestEndpointControllerSpec extends BaseSpec with LogCapturing {
       when(mockThrottleRepository.modifyThrottledUsers(ArgumentMatchers.anyString(), ArgumentMatchers.eq(5)))
         .thenReturn(Future.successful(5))
 
-      val result = controller.modifyThrottledUsers(5)(FakeRequest())
+      val result: Future[Result] = controller.modifyThrottledUsers(5)(FakeRequest())
       status(result) shouldBe OK
       contentAsJson(result).toString() shouldBe """{"users_in":5}"""
     }
@@ -67,7 +70,7 @@ class TestEndpointControllerSpec extends BaseSpec with LogCapturing {
       when(mockBusRegConnector.dropMetadataCollection(ArgumentMatchers.any()))
         .thenReturn(Future.successful("test message success"))
 
-      val result = controller.dropJourneyCollections(FakeRequest())
+      val result: Future[Result] = controller.dropJourneyCollections(FakeRequest())
       status(result) shouldBe OK
       contentAsJson(result).toString() shouldBe """{"message":"CT collection was dropped test message success"}"""
     }
@@ -77,7 +80,7 @@ class TestEndpointControllerSpec extends BaseSpec with LogCapturing {
       when(mockBusRegConnector.dropMetadataCollection(ArgumentMatchers.any()))
         .thenReturn(Future.successful("test message failed"))
 
-      val result = controller.dropJourneyCollections(FakeRequest())
+      val result: Future[Result] = controller.dropJourneyCollections(FakeRequest())
       status(result) shouldBe OK
       contentAsJson(result).toString() shouldBe """{"message":"A problem occurred and the CT Collection could not be dropped test message failed"}"""
     }
@@ -93,7 +96,7 @@ class TestEndpointControllerSpec extends BaseSpec with LogCapturing {
       when(mockSubmissionService.handleSubmission(eqTo(registrationId), any(), any(), eqTo(false))(any(), any()))
         .thenReturn(Future.successful(confirmationRefs))
 
-      val result = controller.updateConfirmationRefs(registrationId)(FakeRequest())
+      val result: Future[Result] = controller.updateConfirmationRefs(registrationId)(FakeRequest())
       status(result) shouldBe OK
     }
   }

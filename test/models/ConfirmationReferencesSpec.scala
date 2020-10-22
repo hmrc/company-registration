@@ -17,7 +17,6 @@
 package models
 
 import org.scalatest.{Matchers, WordSpec}
-import play.api.data.validation.ValidationError
 import play.api.libs.json._
 
 
@@ -50,7 +49,7 @@ class ConfirmationReferencesSpec extends WordSpec with Matchers with JsonFormatV
 
       val result = Json.parse(json).validate[ConfirmationReferences]
 
-      shouldHaveErrors(result, JsPath() \ "acknowledgement-reference", ValidationError("error.maxLength", 31))
+      shouldHaveErrors(result, JsPath() \ "acknowledgement-reference", JsonValidationError("error.maxLength", 31))
     }
 
   }

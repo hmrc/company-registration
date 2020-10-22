@@ -17,41 +17,34 @@
 package controllers
 
 import auth.{AuthorisedActions, CryptoSCRS}
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import models.validation.APIValidation
 import models.{AcknowledgementReferences, ConfirmationReferences}
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.{Action, AnyContentAsJson, Request}
+import play.api.mvc.{Action, AnyContentAsJson, ControllerComponents, Request}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.{MetricsService, SubmissionService}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.auth.core.retrieve.Retrievals.credentials
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 import utils.{AlertLogging, Logging, PagerDutyKeys}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-
-class SubmissionControllerImpl @Inject()(val metricsService: MetricsService,
-                                         val authConnector: AuthConnector,
-                                         val submissionService: SubmissionService,
-                                         val repositories: Repositories,
-                                         val alertLogging: AlertLogging,
-                                         val cryptoSCRS: CryptoSCRS) extends SubmissionController {
+@Singleton
+class SubmissionController @Inject()(val metricsService: MetricsService,
+                                     val authConnector: AuthConnector,
+                                     val submissionService: SubmissionService,
+                                     val repositories: Repositories,
+                                     val alertLogging: AlertLogging,
+                                     val cryptoSCRS: CryptoSCRS,
+                                     controllerComponents: ControllerComponents) extends BackendController(controllerComponents) with AuthorisedActions with Logging {
   lazy val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
-}
 
-
-trait SubmissionController extends BaseController with AuthorisedActions with Logging {
-
-  val metricsService: MetricsService
-  val submissionService: SubmissionService
-  val alertLogging: AlertLogging
-  val cryptoSCRS: CryptoSCRS
-
-  def handleUserSubmission(registrationID : String): Action[JsValue] =
-    AuthorisedAction(registrationID).retrieve(credentials).async(parse.json){ credentials =>
+  def handleUserSubmission(registrationID: String): Action[JsValue] =
+    AuthorisedAction(registrationID).retrieve(credentials).async(parse.json) { credentials =>
       implicit request =>
         val requestAsAnyContentAsJson: Request[AnyContentAsJson] = request.map(AnyContentAsJson)
         withJsonBody[ConfirmationReferences] { refs =>
@@ -66,13 +59,13 @@ trait SubmissionController extends BaseController with AuthorisedActions with Lo
         }
     }
 
-  def acknowledgementConfirmation(ackRef : String): Action[JsValue] = Action.async[JsValue](parse.json) {
+  def acknowledgementConfirmation(ackRef: String): Action[JsValue] = Action.async[JsValue](parse.json) {
     logger.debug(s"[CorporationTaxRegistrationController] [acknowledgementConfirmation] confirming for ack $ackRef")
     implicit request =>
-      withJsonBody[AcknowledgementReferences]{ etmpNotification =>
+      withJsonBody[AcknowledgementReferences] { etmpNotification =>
 
         (etmpNotification.ctUtr.isDefined, etmpNotification.status) match {
-          case accepted @ (true, "04" | "05") =>
+          case accepted@(true, "04" | "05") =>
             val timer = metricsService.acknowledgementConfirmationCRTimer.time()
             submissionService.updateCTRecordWithAckRefs(ackRef, etmpNotification) map {
               case Some(_) =>
@@ -83,15 +76,15 @@ trait SubmissionController extends BaseController with AuthorisedActions with Lo
                 timer.stop()
                 NotFound(s"Document not found for Ack ref: $ackRef")
             }
-          case rejected @ (_, "06" | "07" | "08" | "09" | "10") =>
+          case rejected@(_, "06" | "07" | "08" | "09" | "10") =>
             alertLogging.pagerduty(PagerDutyKeys.CT_REJECTED, Some(s"Received a Rejected response code (${etmpNotification.status}) from ETMP for ackRef: $ackRef"))
             submissionService.updateCTRecordWithAckRefs(ackRef, etmpNotification.copy(ctUtr = None)) map { _ => Ok }
-          case missingCTUTR @ (_, "04" | "05") =>
+          case missingCTUTR@(_, "04" | "05") =>
             alertLogging.pagerduty(PagerDutyKeys.CT_ACCEPTED_MISSING_UTR, Some(s"Received an Accepted response code (${etmpNotification.status}) from ETMP without a CTUTR for ackRef: $ackRef"))
             Future.successful(BadRequest(s"Accepted but no CTUTR provided for ackRef: $ackRef"))
           case unrecognised =>
             Future.failed(new RuntimeException(s"Unknown notification code (${etmpNotification.status}) received from ETMP for ackRef: $ackRef"))
         }
-      }(implicitly,implicitly,AcknowledgementReferences.format(APIValidation,cryptoSCRS))
+      }(implicitly, implicitly, AcknowledgementReferences.format(APIValidation, cryptoSCRS))
   }
 }

@@ -23,7 +23,7 @@ import models.{Email, UserAccessLimitReachedResponse, UserAccessSuccessResponse}
 import org.joda.time.{DateTime, DateTimeZone}
 import org.mockito.ArgumentMatchers.{any, anyString, eq => eqTo}
 import org.mockito.Mockito._
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
 import play.api.libs.json.Json
 import play.api.test.Helpers._

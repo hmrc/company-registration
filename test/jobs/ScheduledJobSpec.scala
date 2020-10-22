@@ -21,7 +21,7 @@ import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 import jobs.SchedulingActor.MissingIncorporation
 import org.mockito.Mockito.reset
 import org.quartz.CronExpression
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
 import play.api.Configuration
 import services.CorporationTaxRegistrationService

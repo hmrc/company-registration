@@ -19,11 +19,10 @@ package utils
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
-import DateCalculators.{getCurrentDay, getCurrentTime}
 import config.MicroserviceAppConfig
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import play.api.Logger
-import uk.gov.hmrc.play.config.ServicesConfig
+import utils.DateCalculators.{getCurrentDay, getCurrentTime}
 
 object PagerDutyKeys extends Enumeration {
   val CT_REJECTED = Value
@@ -33,6 +32,7 @@ object PagerDutyKeys extends Enumeration {
   val TXID_IN_CR_DOESNT_MATCH_HANDOFF_TXID = Value
 }
 
+@Singleton
 class AlertLoggingImpl @Inject()(microserviceAppConfig: MicroserviceAppConfig) extends AlertLogging {
   override protected val loggingDays: String = microserviceAppConfig.getConfigString("alert-config.logging-day")
   override protected val loggingTimes: String = microserviceAppConfig.getConfigString("alert-config.logging-time")

@@ -19,14 +19,16 @@ package api
 import auth.CryptoSCRS
 import com.github.tomakehurst.wiremock.client.WireMock.{stubFor, _}
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
+import itutil.WiremockHelper._
 import itutil.{IntegrationSpecBase, LoginStub, MongoIntegrationSpec, WiremockHelper}
 import models.RegistrationStatus.{DRAFT, HELD, LOCKED}
 import models._
 import org.joda.time.DateTime
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.crypto.DefaultCookieSigner
 import play.api.libs.json.{JsObject, Json}
-import play.api.libs.ws.{WS, WSResponse}
+import play.api.libs.ws.WSResponse
 import play.api.test.Helpers._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.WriteResult
@@ -36,6 +38,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with MongoIntegrationSpec with LoginStub {
+  lazy val defaultCookieSigner: DefaultCookieSigner = app.injector.instanceOf[DefaultCookieSigner]
   val mockHost = WiremockHelper.wiremockHost
   val mockPort = WiremockHelper.wiremockPort
   val mockUrl = s"http://$mockHost:$mockPort"
@@ -68,15 +71,15 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
     .configure(additionalConfiguration)
     .build()
 
-  private def client(path: String) = WS.url(s"http://localhost:$port/company-registration/corporation-tax-registration$path").
+  private def client(path: String) = ws.url(s"http://localhost:$port/company-registration/corporation-tax-registration$path").
     withFollowRedirects(false).
-    withHeaders("Content-Type"->"application/json")
+    withHttpHeaders("Content-Type" -> "application/json")
 
   class Setup {
     val rmComp = app.injector.instanceOf[ReactiveMongoComponent]
     val crypto = app.injector.instanceOf[CryptoSCRS]
     val ctRepository = new CorporationTaxRegistrationMongoRepository(
-      rmComp,crypto)
+      rmComp, crypto)
     await(ctRepository.drop)
     await(ctRepository.ensureIndexes)
 
@@ -112,7 +115,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
       verified = true,
       returnLinkEmailSent = true
     )),
-    companyDetails =  Some(CompanyDetails(
+    companyDetails = Some(CompanyDetails(
       companyName = "testCompanyName",
       CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
       PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"), None, "txid"))),
@@ -133,41 +136,41 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
 
   val heldJson: JsObject = Json.parse(
     s"""
-      |{
-      |   "acknowledgementReference":"$ackRef",
-      |   "registration":{
-      |      "metadata":{
-      |         "businessType":"Limited company",
-      |         "submissionFromAgent":false,
-      |         "declareAccurateAndComplete":true,
-      |         "sessionId":"session-152ebc2f-8e0d-4137-8236-058b295fe52f",
-      |         "credentialId":"cred-id-254524311264",
-      |         "language":"ENG",
-      |         "formCreationTimestamp":"2017-07-03T13:19:54.000+01:00",
-      |         "completionCapacity":"Director"
-      |      },
-      |      "corporationTax":{
-      |         "companyOfficeNumber":"623",
-      |         "hasCompanyTakenOverBusiness":false,
-      |         "companyMemberOfGroup":false,
-      |         "companiesHouseCompanyName":"Company Name Ltd",
-      |         "returnsOnCT61":false,
-      |         "companyACharity":false,
-      |         "businessAddress":{
-      |            "line1":"12 address line 1",
-      |            "line2":"address line 2",
-      |            "line3":"address line 3",
-      |            "line4":"address line 4",
-      |            "postcode":"ZZ11 1ZZ"
-      |         },
-      |         "businessContactDetails":{
-      |            "phoneNumber":"1234",
-      |            "mobileNumber":"123456",
-      |            "email":"6email@whatever.com"
-      |         }
-      |      }
-      |   }
-      |}
+       |{
+       |   "acknowledgementReference":"$ackRef",
+       |   "registration":{
+       |      "metadata":{
+       |         "businessType":"Limited company",
+       |         "submissionFromAgent":false,
+       |         "declareAccurateAndComplete":true,
+       |         "sessionId":"session-152ebc2f-8e0d-4137-8236-058b295fe52f",
+       |         "credentialId":"cred-id-254524311264",
+       |         "language":"ENG",
+       |         "formCreationTimestamp":"2017-07-03T13:19:54.000+01:00",
+       |         "completionCapacity":"Director"
+       |      },
+       |      "corporationTax":{
+       |         "companyOfficeNumber":"623",
+       |         "hasCompanyTakenOverBusiness":false,
+       |         "companyMemberOfGroup":false,
+       |         "companiesHouseCompanyName":"Company Name Ltd",
+       |         "returnsOnCT61":false,
+       |         "companyACharity":false,
+       |         "businessAddress":{
+       |            "line1":"12 address line 1",
+       |            "line2":"address line 2",
+       |            "line3":"address line 3",
+       |            "line4":"address line 4",
+       |            "postcode":"ZZ11 1ZZ"
+       |         },
+       |         "businessContactDetails":{
+       |            "phoneNumber":"1234",
+       |            "mobileNumber":"123456",
+       |            "email":"6email@whatever.com"
+       |         }
+       |      }
+       |   }
+       |}
     """.stripMargin).as[JsObject]
 
   val subscriber = "SCRS"
@@ -177,23 +180,23 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
 
   def jsonIncorpStatus(incorpDate: String): String =
     s"""
-      |{
-      |  "SCRSIncorpStatus": {
-      |    "IncorpSubscriptionKey": {
-      |      "subscriber":"$subscriber",
-      |      "discriminator":"$regime",
-      |      "transactionId": "$transId"
-      |    },
-      |    "SCRSIncorpSubscription":{
-      |      "callbackUrl":"www.url.com"
-      |    },
-      |    "IncorpStatusEvent": {
-      |      "status": "accepted",
-      |      "crn": "$crn",
-      |      "incorporationDate": ${DateTime.parse(incorpDate).getMillis}
-      |    }
-      |  }
-      |}
+       |{
+       |  "SCRSIncorpStatus": {
+       |    "IncorpSubscriptionKey": {
+       |      "subscriber":"$subscriber",
+       |      "discriminator":"$regime",
+       |      "transactionId": "$transId"
+       |    },
+       |    "SCRSIncorpSubscription":{
+       |      "callbackUrl":"www.url.com"
+       |    },
+       |    "IncorpStatusEvent": {
+       |      "status": "accepted",
+       |      "crn": "$crn",
+       |      "incorporationDate": ${DateTime.parse(incorpDate).getMillis}
+       |    }
+       |  }
+       |}
       """.stripMargin
 
   def jsonIncorpStatusRejected: String =
@@ -230,7 +233,9 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
        """.stripMargin).as[JsObject]
 
   def stubDesPost(status: Int, submission: String): StubMapping = stubPost("/business-registration/corporation-tax", status, submission)
+
   def stubEmailPost(status: Int): StubMapping = stubPost("/hmrc/email", status, "")
+
   def stubDesTopUpPost(status: Int, submission: String): StubMapping = stubPost("/business-incorporation/corporation-tax", status, submission)
 
   "Process Incorporation" should {
@@ -278,6 +283,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
       }
 
       "user has selected When Registered for Accounting Dates" in new Setup {
+
         import AccountingDetails.WHEN_REGISTERED
 
         val incorpDate = "2017-07-25"
@@ -302,6 +308,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
       }
 
       "user has selected Not Intend to trade for Accounting Dates" in new Setup {
+
         import AccountingDetails.NOT_PLANNING_TO_YET
 
         val incorpDate = "2017-07-25"
@@ -381,13 +388,14 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
         response.status shouldBe 502
       }
       "registration is Locked by returning 202 to postpone the II notification" in new Setup {
-        val businessRegistrationResponse = s"""
-                                              |{
-                                              |  "registrationID":"$regId",
-                                              |  "formCreationTimestamp":"2017-08-09T11:48:20+01:00",
-                                              |  "language":"en",
-                                              |  "completionCapacity":"director"
-                                              |}
+        val businessRegistrationResponse =
+          s"""
+             |{
+             |  "registrationID":"$regId",
+             |  "formCreationTimestamp":"2017-08-09T11:48:20+01:00",
+             |  "language":"en",
+             |  "completionCapacity":"director"
+             |}
         """.stripMargin
 
         await(ctRepository.insert(heldRegistration.copy(
@@ -415,13 +423,14 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
         reg.status shouldBe HELD
       }
       "registration is Locked, but the update to held fails" in new Setup {
-        val businessRegistrationResponse = s"""
-                                              |{
-                                              |  "registrationID":"$regId",
-                                              |  "formCreationTimestamp":"2017-08-09T11:48:20+01:00",
-                                              |  "language":"en",
-                                              |  "completionCapacity":"director"
-                                              |}
+        val businessRegistrationResponse =
+          s"""
+             |{
+             |  "registrationID":"$regId",
+             |  "formCreationTimestamp":"2017-08-09T11:48:20+01:00",
+             |  "language":"en",
+             |  "completionCapacity":"director"
+             |}
         """.stripMargin
 
         await(ctRepository.insert(heldRegistration.copy(
@@ -449,13 +458,14 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
         reg.status shouldBe LOCKED
       }
       "registration is Locked, but cannot submit on behalf due to no session identifiers" in new Setup {
-        val businessRegistrationResponse = s"""
-                                              |{
-                                              |  "registrationID":"$regId",
-                                              |  "formCreationTimestamp":"2017-08-09T11:48:20+01:00",
-                                              |  "language":"en",
-                                              |  "completionCapacity":"director"
-                                              |}
+        val businessRegistrationResponse =
+          s"""
+             |{
+             |  "registrationID":"$regId",
+             |  "formCreationTimestamp":"2017-08-09T11:48:20+01:00",
+             |  "language":"en",
+             |  "completionCapacity":"director"
+             |}
         """.stripMargin
 
         await(ctRepository.insert(heldRegistration.copy(
@@ -475,13 +485,14 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
         reg.status shouldBe LOCKED
       }
       "registration is Locked by returning 202 to postpone the II rejected notification" in new Setup {
-        val businessRegistrationResponse = s"""
-                                              |{
-                                              |  "registrationID":"$regId",
-                                              |  "formCreationTimestamp":"2017-08-09T11:48:20+01:00",
-                                              |  "language":"en",
-                                              |  "completionCapacity":"director"
-                                              |}
+        val businessRegistrationResponse =
+          s"""
+             |{
+             |  "registrationID":"$regId",
+             |  "formCreationTimestamp":"2017-08-09T11:48:20+01:00",
+             |  "language":"en",
+             |  "completionCapacity":"director"
+             |}
         """.stripMargin
 
         await(ctRepository.insert(heldRegistration.copy(
@@ -509,13 +520,14 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
         reg.status shouldBe HELD
       }
       "registration is Locked, but the update to held fails on a rejection" in new Setup {
-        val businessRegistrationResponse = s"""
-                                              |{
-                                              |  "registrationID":"$regId",
-                                              |  "formCreationTimestamp":"2017-08-09T11:48:20+01:00",
-                                              |  "language":"en",
-                                              |  "completionCapacity":"director"
-                                              |}
+        val businessRegistrationResponse =
+          s"""
+             |{
+             |  "registrationID":"$regId",
+             |  "formCreationTimestamp":"2017-08-09T11:48:20+01:00",
+             |  "language":"en",
+             |  "completionCapacity":"director"
+             |}
         """.stripMargin
 
         await(ctRepository.insert(heldRegistration.copy(
@@ -655,7 +667,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
 
       val response1: Future[WSResponse] = client(processIncorpPath).post(jsonBodyFromII)
 
-     await(response1).status shouldBe 502
+      await(response1).status shouldBe 502
 
       val reg1 :: _ = await(ctRepository.findAll())
       reg1.status shouldBe "held"
@@ -694,6 +706,6 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
       val response1: Future[WSResponse] = client(processIncorpPath).post(jsonBodyFromII)
 
       await(response1).status shouldBe 200
-   }
+    }
   }
 }

@@ -17,29 +17,24 @@
 package controllers
 
 import auth.AuthorisedActions
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import models.TakeoverDetails
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.{Action, AnyContent}
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.TakeoverDetailsService
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.ExecutionContext
 
-
-class TakeoverDetailsControllerImpl @Inject()(val repositories: Repositories,
-                                              val takeoverDetailsService: TakeoverDetailsService,
-                                              val authConnector: AuthConnector,
-                                              val ec: ExecutionContext) extends TakeoverDetailsController {
+@Singleton
+class TakeoverDetailsController @Inject()(val repositories: Repositories,
+                                          val takeoverDetailsService: TakeoverDetailsService,
+                                          val authConnector: AuthConnector,
+                                          controllerComponents: ControllerComponents)
+                                         (implicit val ec: ExecutionContext) extends BackendController(controllerComponents) with AuthorisedActions {
   lazy val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
-}
-
-trait TakeoverDetailsController extends BaseController with AuthorisedActions {
-
-  implicit val ec: ExecutionContext
-  val takeoverDetailsService: TakeoverDetailsService
 
   def getBlock(registrationID: String): Action[AnyContent] =
     AuthorisedAction(registrationID).async {

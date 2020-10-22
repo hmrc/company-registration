@@ -17,37 +17,44 @@
 package controllers
 
 
+import auth.AuthorisationResource
 import fixtures.AccountingDetailsFixture
 import helpers.BaseSpec
 import mocks.{AuthorisationMocks, MockMetricsService}
 import models.{AccountPrepDetails, ErrorResponse}
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
+import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.PrepareAccountService
 
 import scala.concurrent.Future
 
 class AccountingDetailsControllerSpec extends BaseSpec with AccountingDetailsFixture with AuthorisationMocks {
 
-  val mockPrepareAccountService = mock[PrepareAccountService]
+  val mockPrepareAccountService: PrepareAccountService = mock[PrepareAccountService]
+  val mockRepositories: Repositories = mock[Repositories]
+  override val mockResource: CorporationTaxRegistrationMongoRepository = mockTypedResource[CorporationTaxRegistrationMongoRepository]
 
   trait Setup {
-    val controller = new AccountingDetailsController {
-      override val authConnector = mockAuthConnector
-      override val resource = mockResource
-      override val accountingDetailsService = mockAccountingDetailsService
-      override val metricsService = MockMetricsService
-      override val prepareAccountService = mockPrepareAccountService
+    val controller: AccountingDetailsController = new AccountingDetailsController(
+      MockMetricsService,
+      mockPrepareAccountService,
+      mockAccountingDetailsService,
+      mockAuthConnector,
+      mockRepositories,
+      stubControllerComponents()) {
+      override lazy val resource: CorporationTaxRegistrationMongoRepository = mockResource
     }
   }
 
   val registrationID = "12345"
   val internalId = "int-12345"
 
-  val accountingDetailsResponseJson = Json.toJson(validAccountingDetailsResponse)
+  val accountingDetailsResponseJson: JsValue = Json.toJson(validAccountingDetailsResponse)
 
   "retrieveAccountingDetails" should {
 
@@ -60,7 +67,7 @@ class AccountingDetailsControllerSpec extends BaseSpec with AccountingDetailsFix
       when(mockPrepareAccountService.updateEndDate(ArgumentMatchers.any()))
         .thenReturn(Future.successful(Some(AccountPrepDetails())))
 
-      val result = controller.retrieveAccountingDetails(registrationID)(FakeRequest())
+      val result: Future[Result] = controller.retrieveAccountingDetails(registrationID)(FakeRequest())
       status(result) shouldBe OK
       contentAsJson(result) shouldBe accountingDetailsResponseJson
     }
@@ -75,7 +82,7 @@ class AccountingDetailsControllerSpec extends BaseSpec with AccountingDetailsFix
       when(mockPrepareAccountService.updateEndDate(ArgumentMatchers.any()))
         .thenReturn(Future.successful(Some(AccountPrepDetails())))
 
-      val result = controller.retrieveAccountingDetails(registrationID)(FakeRequest())
+      val result: Future[Result] = controller.retrieveAccountingDetails(registrationID)(FakeRequest())
       status(result) shouldBe NOT_FOUND
       contentAsJson(result) shouldBe ErrorResponse.accountingDetailsNotFound
     }
@@ -91,7 +98,7 @@ class AccountingDetailsControllerSpec extends BaseSpec with AccountingDetailsFix
 
       AccountingDetailsServiceMocks.updateAccountingDetails(registrationID, Some(validAccountingDetails))
 
-      val result = controller.updateAccountingDetails(registrationID)(request)
+      val result: Future[Result] = controller.updateAccountingDetails(registrationID)(request)
       status(result) shouldBe OK
       contentAsJson(result) shouldBe accountingDetailsResponseJson
     }
@@ -102,7 +109,7 @@ class AccountingDetailsControllerSpec extends BaseSpec with AccountingDetailsFix
 
       AccountingDetailsServiceMocks.updateAccountingDetails(registrationID, None)
 
-      val result = controller.updateAccountingDetails(registrationID)(request)
+      val result: Future[Result] = controller.updateAccountingDetails(registrationID)(request)
       status(result) shouldBe NOT_FOUND
     }
   }

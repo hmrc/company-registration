@@ -16,24 +16,27 @@
 
 package services
 
+import config.MicroserviceAppConfig
 import helpers.BaseSpec
 import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
 import play.api.test.Helpers._
-import repositories.ThrottleMongoRepository
+import repositories.{Repositories, ThrottleMongoRepository}
 
 import scala.concurrent.Future
 
 class ThrottleServiceSpec extends BaseSpec {
 
   val mockThrottleMongoRepository = mock[ThrottleMongoRepository]
+  val mockRepositories = mock[Repositories]
+  val mockConfig = mock[MicroserviceAppConfig]
 
   trait Setup {
-    val service = new ThrottleService {
-      val throttleMongoRepository = mockThrottleMongoRepository
+    val service = new ThrottleService(mockRepositories, mockConfig, stubControllerComponents()) {
+      override lazy val throttleMongoRepository = mockThrottleMongoRepository
       override def dateTime = DateTime.parse("2000-02-01")
-      val threshold = 10
+      override lazy val threshold = 10
     }
   }
 

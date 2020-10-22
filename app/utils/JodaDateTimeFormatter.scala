@@ -14,14 +14,16 @@
  * limitations under the License.
  */
 
-package auth
+package utils
 
-import config.MicroserviceAppConfig
-import javax.inject.Inject
-import uk.gov.hmrc.auth.core.PlayAuthConnector
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import org.joda.time.DateTime
+import play.api.libs.json.{Format, JodaReads, JodaWrites, JsResult, JsValue}
 
+trait JodaDateTimeFormatter {
 
-class AuthClientConnector @Inject()(config: MicroserviceAppConfig, val http: HttpClient) extends PlayAuthConnector {
-  override val serviceUrl: String = config.baseUrl("auth")
+  implicit val dateFormatDefault = new Format[DateTime] {
+    override def reads(json: JsValue): JsResult[DateTime] = JodaReads.DefaultJodaDateTimeReads.reads(json)
+    override def writes(o: DateTime): JsValue = JodaWrites.JodaDateTimeNumberWrites.writes(o)
+  }
+
 }

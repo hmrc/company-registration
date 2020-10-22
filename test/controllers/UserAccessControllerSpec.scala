@@ -42,11 +42,12 @@ class UserAccessControllerSpec extends BaseSpec with AuthorisationMocks {
   implicit val hc = HeaderCarrier()
 
   trait Setup {
-    val controller = new UserAccessController {
-      override val userAccessService = mockUserAccessService
-      override val metricsService = MockMetricsService
-      override val authConnector = mockAuthConnector
-    }
+    val controller = new UserAccessController(
+      mockAuthConnector,
+      MockMetricsService,
+      mockUserAccessService,
+      stubControllerComponents()
+    )
   }
 
   val internalId = "int-12345"

@@ -16,44 +16,42 @@
 
 package services
 
-import config.MicroserviceAppConfig
-import javax.inject.Inject
 import connectors.{BusinessRegistrationConnector, BusinessRegistrationNotFoundResponse, BusinessRegistrationSuccessResponse}
+import javax.inject.{Inject, Singleton}
 import models.{CorporationTaxRegistration, UserAccessLimitReachedResponse, UserAccessSuccessResponse}
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json.{JsValue, Json}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.config.ServicesConfig
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.control.NoStackTrace
 
-
-class UserAccessServiceImpl @Inject()(
-        val throttleService: ThrottleService,
-        val ctService: CorporationTaxRegistrationService,
-        val brConnector: BusinessRegistrationConnector,
-        val repositories: Repositories,
-        val microserviceAppConfig: MicroserviceAppConfig
-      ) extends UserAccessService {
+@Singleton
+class UserAccessServiceImpl @Inject()(val throttleService: ThrottleService,
+                                      val ctService: CorporationTaxRegistrationService,
+                                      val brConnector: BusinessRegistrationConnector,
+                                      val repositories: Repositories,
+                                      servicesConfig: ServicesConfig
+                                     ) extends UserAccessService {
 
   lazy val ctRepository = repositories.cTRepository
-  lazy val threshold = microserviceAppConfig.getConfInt("throttle-threshold", throw new Exception("Could not find Threshold in config"))
+  lazy val threshold = servicesConfig.getConfInt("throttle-threshold", throw new Exception("Could not find Threshold in config"))
 }
 
 private[services] class MissingRegistration(regId: String) extends NoStackTrace
 
 trait UserAccessService {
 
-  val threshold : Int
-  val brConnector : BusinessRegistrationConnector
-  val ctRepository : CorporationTaxRegistrationMongoRepository
-  val ctService : CorporationTaxRegistrationService
-  val throttleService : ThrottleService
+  val threshold: Int
+  val brConnector: BusinessRegistrationConnector
+  val ctRepository: CorporationTaxRegistrationMongoRepository
+  val ctService: CorporationTaxRegistrationService
+  val throttleService: ThrottleService
 
-  def checkUserAccess(internalId: String)(implicit hc : HeaderCarrier): Future[Either[JsValue,UserAccessSuccessResponse]] = {
+  def checkUserAccess(internalId: String)(implicit hc: HeaderCarrier): Future[Either[JsValue, UserAccessSuccessResponse]] = {
     brConnector.retrieveMetadata flatMap {
       case BusinessRegistrationSuccessResponse(metadata) =>
         val now = DateTime.now(DateTimeZone.UTC)
@@ -68,7 +66,7 @@ trait UserAccessService {
         }
       case BusinessRegistrationNotFoundResponse =>
         throttleService.checkUserAccess flatMap {
-          case false => Future.successful(Left(Json.toJson(UserAccessLimitReachedResponse(limitReached=true))))
+          case false => Future.successful(Left(Json.toJson(UserAccessLimitReachedResponse(limitReached = true))))
           case true => for {
             metaData <- brConnector.createMetadataEntry
             crData <- ctService.createCorporationTaxRegistrationRecord(internalId, metaData.registrationID, "en")

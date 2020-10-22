@@ -19,11 +19,12 @@ package api
 import java.util.UUID
 
 import auth.CryptoSCRS
+import itutil.WiremockHelper._
 import itutil.{IntegrationSpecBase, LoginStub, WiremockHelper}
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.crypto.DefaultCookieSigner
 import play.api.libs.json.{JsBoolean, JsObject, JsString, Json}
-import play.api.libs.ws.WS
 import play.api.test.Helpers._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import repositories.{CorporationTaxRegistrationMongoRepository, ThrottleMongoRepo}
@@ -36,6 +37,7 @@ class ThrottleCheckISpec extends IntegrationSpecBase with LoginStub {
   val mockHost = WiremockHelper.wiremockHost
   val mockPort = WiremockHelper.wiremockPort
   val mockUrl = s"http://$mockHost:$mockPort"
+  lazy val defaultCookieSigner: DefaultCookieSigner = app.injector.instanceOf[DefaultCookieSigner]
 
   val throttleThreshold = 5
 
@@ -54,15 +56,15 @@ class ThrottleCheckISpec extends IntegrationSpecBase with LoginStub {
     .configure(additionalConfiguration)
     .build
 
-  private def client(path: String) = WS.url(s"http://localhost:$port/company-registration$path").
+  private def client(path: String) = ws.url(s"http://localhost:$port/company-registration$path").
     withFollowRedirects(false).
-    withHeaders("Content-Type"->"application/json")
+    withHttpHeaders("Content-Type" -> "application/json")
 
   class Setup {
     val rmComp = app.injector.instanceOf[ReactiveMongoComponent]
     val crypto = app.injector.instanceOf[CryptoSCRS]
     val crRepo = new CorporationTaxRegistrationMongoRepository(
-      rmComp,crypto)
+      rmComp, crypto)
     await(crRepo.drop)
     await(crRepo.ensureIndexes)
 

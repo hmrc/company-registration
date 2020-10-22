@@ -21,9 +21,9 @@ import scala.concurrent.Future
 
 trait AuthResource {
 
-  val resource : AuthorisationResource[String]
+  val resource: AuthorisationResource[String]
 
-  def fetchInternalID(regId : String): Future[String] = {
-    resource.getInternalId(regId).map{case(_, intId) => intId }
+  def fetchInternalID(regId: String): Future[String] = {
+    resource.getInternalId(regId).map { case (_, intId) => intId }
   }
 }

@@ -39,11 +39,12 @@ import mocks.{AuthorisationMocks, MockMetricsService, SCRSMocks}
 import models.TradingDetails
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
-import org.scalatest.mockito.MockitoSugar
-import play.api.libs.json.Json
+import org.scalatestplus.mockito.MockitoSugar
+import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.TradingDetailsService
 import uk.gov.hmrc.auth.core.MissingBearerToken
 
@@ -51,20 +52,26 @@ import scala.concurrent.Future
 
 class TradingDetailsControllerSpec extends BaseSpec with MockitoSugar with SCRSMocks with AuthorisationMocks {
 
-  val mockTradingDetailsService = mock[TradingDetailsService]
+  val mockTradingDetailsService: TradingDetailsService = mock[TradingDetailsService]
+  val mockRepositories: Repositories = mock[Repositories]
+  override val mockResource: CorporationTaxRegistrationMongoRepository = mockTypedResource[CorporationTaxRegistrationMongoRepository]
 
   trait Setup {
-    val controller = new TradingDetailsController {
-      override val tradingDetailsService = mockTradingDetailsService
-      override val authConnector = mockAuthConnector
-      override val resource = mockResource
-      override val metricsService = MockMetricsService
+    val controller: TradingDetailsController =
+      new TradingDetailsController(
+        MockMetricsService,
+        mockTradingDetailsService,
+        mockAuthConnector,
+        mockRepositories,
+        stubControllerComponents()
+      ) {
+      override lazy val resource: CorporationTaxRegistrationMongoRepository = mockResource
     }
   }
 
-  val regID = UUID.randomUUID.toString
-  val internalId = "int-12345"
-  val otherInternalID = "other-int-12345"
+  val regID: String = UUID.randomUUID.toString
+  val internalId: String = "int-12345"
+  val otherInternalID: String = "other-int-12345"
 
   "retrieveTradingDetails" should {
     "retrieve a 200 - Ok and a Json package of TradingDetails" in new Setup {
@@ -76,7 +83,7 @@ class TradingDetailsControllerSpec extends BaseSpec with MockitoSugar with SCRSM
         .thenReturn(Future.successful(Some(TradingDetails("true"))))
 
 
-      val result = controller.retrieveTradingDetails(regID)(FakeRequest())
+      val result: Future[Result] = controller.retrieveTradingDetails(regID)(FakeRequest())
 
       status(result) shouldBe OK
       contentAsJson(result) shouldBe Json.toJson(TradingDetails("true"))
@@ -90,7 +97,7 @@ class TradingDetailsControllerSpec extends BaseSpec with MockitoSugar with SCRSM
       when(mockTradingDetailsService.retrieveTradingDetails(ArgumentMatchers.eq(regID)))
         .thenReturn(Future.successful(None))
 
-      val result = controller.retrieveTradingDetails(regID)(FakeRequest())
+      val result: Future[Result] = controller.retrieveTradingDetails(regID)(FakeRequest())
       status(result) shouldBe NOT_FOUND
       contentAsJson(result) shouldBe Json.parse(s"""{"statusCode":"404","message":"Could not find trading details record"}""")
     }
@@ -98,7 +105,7 @@ class TradingDetailsControllerSpec extends BaseSpec with MockitoSugar with SCRSM
     "return a 401 - if the user cannot be authenticated" in new Setup {
 
       mockAuthorise(Future.failed(MissingBearerToken()))
-      val result = controller.retrieveTradingDetails(regID)(FakeRequest())
+      val result: Future[Result] = controller.retrieveTradingDetails(regID)(FakeRequest())
       status(result) shouldBe UNAUTHORIZED
     }
 
@@ -106,7 +113,7 @@ class TradingDetailsControllerSpec extends BaseSpec with MockitoSugar with SCRSM
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.successful(otherInternalID))
 
-      val result = controller.retrieveTradingDetails(regID)(FakeRequest())
+      val result: Future[Result] = controller.retrieveTradingDetails(regID)(FakeRequest())
       status(result) shouldBe FORBIDDEN
     }
 
@@ -114,7 +121,7 @@ class TradingDetailsControllerSpec extends BaseSpec with MockitoSugar with SCRSM
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.successful(internalId))
 
-      val result = controller.retrieveTradingDetails(regID)(FakeRequest())
+      val result: Future[Result] = controller.retrieveTradingDetails(regID)(FakeRequest())
       status(result) shouldBe NOT_FOUND
     }
   }
@@ -127,8 +134,8 @@ class TradingDetailsControllerSpec extends BaseSpec with MockitoSugar with SCRSM
       when(mockTradingDetailsService.updateTradingDetails(ArgumentMatchers.eq("testRegID"), ArgumentMatchers.eq(TradingDetails("true"))))
         .thenReturn(Future.successful(Some(TradingDetails("true"))))
 
-      val request = FakeRequest().withBody(Json.toJson(TradingDetails("true")))
-      val result = controller.updateTradingDetails("testRegID")(request)
+      val request: FakeRequest[JsValue] = FakeRequest().withBody(Json.toJson(TradingDetails("true")))
+      val result: Future[Result] = controller.updateTradingDetails("testRegID")(request)
 
       status(result) shouldBe OK
       contentAsJson(result) shouldBe Json.toJson(TradingDetails("true"))
@@ -141,9 +148,9 @@ class TradingDetailsControllerSpec extends BaseSpec with MockitoSugar with SCRSM
       when(mockTradingDetailsService.updateTradingDetails(ArgumentMatchers.eq("testRegID"), ArgumentMatchers.eq(TradingDetails("true"))))
         .thenReturn(Future.successful(None))
 
-      val request = FakeRequest().withBody(Json.toJson(TradingDetails("true")))
+      val request: FakeRequest[JsValue] = FakeRequest().withBody(Json.toJson(TradingDetails("true")))
 
-      val result = controller.updateTradingDetails("testRegID")(request)
+      val result: Future[Result] = controller.updateTradingDetails("testRegID")(request)
 
       status(result) shouldBe NOT_FOUND
       contentAsJson(result) shouldBe Json.parse(s"""{"statusCode":"404","message":"Could not find trading details record"}""")
@@ -151,8 +158,8 @@ class TradingDetailsControllerSpec extends BaseSpec with MockitoSugar with SCRSM
 
     "return a 401 - if the user cannot be authenticated" in new Setup {
       mockAuthorise(Future.failed(MissingBearerToken()))
-      val request = FakeRequest().withBody(Json.toJson(TradingDetails("true")))
-      val result = controller.updateTradingDetails(regID)(request)
+      val request: FakeRequest[JsValue] = FakeRequest().withBody(Json.toJson(TradingDetails("true")))
+      val result: Future[Result] = controller.updateTradingDetails(regID)(request)
       status(result) shouldBe UNAUTHORIZED
     }
 
@@ -160,8 +167,8 @@ class TradingDetailsControllerSpec extends BaseSpec with MockitoSugar with SCRSM
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.successful(otherInternalID))
 
-      val request = FakeRequest().withBody(Json.toJson(TradingDetails("true")))
-      val result = controller.updateTradingDetails(regID)(request)
+      val request: FakeRequest[JsValue] = FakeRequest().withBody(Json.toJson(TradingDetails("true")))
+      val result: Future[Result] = controller.updateTradingDetails(regID)(request)
 
       status(result) shouldBe FORBIDDEN
     }
@@ -174,8 +181,8 @@ class TradingDetailsControllerSpec extends BaseSpec with MockitoSugar with SCRSM
       when(mockTradingDetailsService.updateTradingDetails(ArgumentMatchers.eq(regID), ArgumentMatchers.eq(TradingDetails("true"))))
         .thenReturn(Future.successful(None))
 
-      val request = FakeRequest().withBody(Json.toJson(TradingDetails("true")))
-      val result = controller.updateTradingDetails(regID)(request)
+      val request: FakeRequest[JsValue] = FakeRequest().withBody(Json.toJson(TradingDetails("true")))
+      val result: Future[Result] = controller.updateTradingDetails(regID)(request)
 
       status(result) shouldBe NOT_FOUND
     }

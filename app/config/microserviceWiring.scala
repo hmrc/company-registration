@@ -26,7 +26,6 @@ import uk.gov.hmrc.http.hooks.{HttpHook, HttpHooks}
 import uk.gov.hmrc.play.audit.http.HttpAuditing
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
-import uk.gov.hmrc.play.config.AppName
 import uk.gov.hmrc.play.http.ws._
 
 trait Hooks extends HttpHooks with HttpAuditing {
@@ -39,10 +38,9 @@ trait WSHttpSCRS extends
   HttpPut with WSPut with
   HttpPost with WSPost with
   HttpDelete with WSDelete with
-  HttpPatch with WSPatch with
-  Hooks with AppName
+  HttpPatch with WSPatch
 
-class WSHttpSCRSImpl @Inject()(val actorSystem: ActorSystem, val appNameConfiguration: Configuration, val auditConnector: AuditConnector) extends WSHttpSCRS with HttpClient {
+abstract class WSHttpSCRSImpl @Inject()(val actorSystem: ActorSystem, val appNameConfiguration: Configuration, val auditConnector: AuditConnector) extends WSHttpSCRS with HttpClient {
   override val hooks = NoneRequired
 
   override protected def configuration: Option[Config] = Option(appNameConfiguration.underlying)

@@ -22,9 +22,10 @@ import models.{CorporationTaxRegistration, RegistrationStatus}
 import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
+import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import repositories.{CorporationTaxRegistrationMongoRepository, MissingCTDocument}
+import repositories.{CorporationTaxRegistrationMongoRepository, MissingCTDocument, Repositories}
 import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.Future
@@ -32,23 +33,23 @@ import scala.concurrent.Future
 
 class HeldControllerSpec extends BaseSpec with AuthorisationMocks {
 
-  implicit val hc = HeaderCarrier()
+  implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  override val mockResource = mockTypedResource[CorporationTaxRegistrationMongoRepository]
+  override val mockResource: CorporationTaxRegistrationMongoRepository = mockTypedResource[CorporationTaxRegistrationMongoRepository]
+  val mockRepositories: Repositories = mock[Repositories]
 
   trait Setup {
-    val controller = new HeldController {
-      override val service = mockProcessIncorporationService
-      override val authConnector = mockAuthConnector
-      override val resource = mockResource
+    val controller: HeldController = new HeldController(mockAuthConnector, mockProcessIncorporationService, mockRepositories, stubControllerComponents()) {
+      override lazy val resource: CorporationTaxRegistrationMongoRepository = mockResource
     }
+
   }
 
-  val regId = "reg-12345"
-  val otherRegId = "other-reg-12345"
-  val internalId = "int-12345"
-  val timestamp = "2016-12-31T12:00:00.000Z"
-  val dateTime = DateTime.parse(timestamp)
+  val regId: String = "reg-12345"
+  val otherRegId: String = "other-reg-12345"
+  val internalId: String = "int-12345"
+  val timestamp: String = "2016-12-31T12:00:00.000Z"
+  val dateTime: DateTime = DateTime.parse(timestamp)
 
   def doc(timestamp: Option[DateTime]): CorporationTaxRegistration = {
     CorporationTaxRegistration(internalId = "",
@@ -77,12 +78,12 @@ class HeldControllerSpec extends BaseSpec with AuthorisationMocks {
   "fetchHeldTimestamp" should {
     "return a 200 and a held time stamp" in new Setup {
       mockAuthorise()
-      val now = DateTime.now()
+      val now: DateTime = DateTime.now()
 
       when(mockResource.getExistingRegistration(ArgumentMatchers.any()))
         .thenReturn(Future.successful(doc(Some(now))))
 
-      val result = controller.fetchHeldSubmissionTime(regId)(FakeRequest())
+      val result: Future[Result] = controller.fetchHeldSubmissionTime(regId)(FakeRequest())
       status(result) shouldBe OK
       contentAsString(result) shouldBe s"${now.getMillis}"
     }
@@ -92,7 +93,7 @@ class HeldControllerSpec extends BaseSpec with AuthorisationMocks {
       when(mockResource.getExistingRegistration(ArgumentMatchers.any()))
         .thenReturn(Future.successful(doc(None)))
 
-      val result = controller.fetchHeldSubmissionTime(regId)(FakeRequest())
+      val result: Future[Result] = controller.fetchHeldSubmissionTime(regId)(FakeRequest())
       status(result) shouldBe 404
       contentAsString(result) shouldBe ""
     }
@@ -115,7 +116,7 @@ class HeldControllerSpec extends BaseSpec with AuthorisationMocks {
 
       when(controller.service.deleteRejectedSubmissionData(ArgumentMatchers.any())(ArgumentMatchers.any())).thenReturn(Future.successful(true))
 
-      val result = controller.deleteSubmissionData(regId)(FakeRequest())
+      val result: Future[Result] = controller.deleteSubmissionData(regId)(FakeRequest())
       status(result) shouldBe OK
     }
 
@@ -125,7 +126,7 @@ class HeldControllerSpec extends BaseSpec with AuthorisationMocks {
 
       when(controller.service.deleteRejectedSubmissionData(ArgumentMatchers.any())(ArgumentMatchers.any())).thenReturn(Future.successful(false))
 
-      val result = controller.deleteSubmissionData(regId)(FakeRequest())
+      val result: Future[Result] = controller.deleteSubmissionData(regId)(FakeRequest())
       status(result) shouldBe NOT_FOUND
     }
   }
