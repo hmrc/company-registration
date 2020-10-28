@@ -18,7 +18,6 @@ package models
 
 import models.validation.APIValidation
 import org.scalatest.{Matchers, WordSpec}
-import play.api.data.validation.ValidationError
 import play.api.libs.json._
 
 class PPOBAddressSpec extends WordSpec with Matchers with JsonFormatValidation {
@@ -69,7 +68,7 @@ class PPOBAddressSpec extends WordSpec with Matchers with JsonFormatValidation {
       val json = j(line1 = "")
       val result = Json.parse(json).validate[PPOBAddress](PPOBAddress.normalisingReads(APIValidation))
 
-      shouldHaveErrors(result, JsPath() \ "addressLine1", Seq(ValidationError("error.minLength", 1)))
+      shouldHaveErrors(result, JsPath() \ "addressLine1", Seq(JsonValidationError("error.minLength", 1)))
     }
 
     "be able parse to be read from JSON if line1 is longer than 27 characters returning 27 characters" in {
@@ -126,7 +125,7 @@ class PPOBAddressSpec extends WordSpec with Matchers with JsonFormatValidation {
 
       val result = Json.parse(json).validate[PPOBAddress](PPOBAddress.normalisingReads(APIValidation))
 
-      shouldHaveErrors(result, JsPath() \ "addressLine3", Seq(ValidationError("error.minLength", 1)))
+      shouldHaveErrors(result, JsPath() \ "addressLine3", Seq(JsonValidationError("error.minLength", 1)))
     }
 
     "be able to parse from JSON if line2 is longer than 27 characters returning 27 characters" in {
@@ -153,7 +152,7 @@ class PPOBAddressSpec extends WordSpec with Matchers with JsonFormatValidation {
       val json = Json.parse("""{"houseNameNumber":"hnn","addressLine1":"1","addressLine2":"2","addressLine4":"4", "txid": "txid"}""")
 
       val result = Json.fromJson[PPOBAddress](json)(PPOBAddress.normalisingReads(APIValidation))
-      shouldHaveErrors(result, JsPath(), Seq(ValidationError("Must have at least one of postcode and country")))
+      shouldHaveErrors(result, JsPath(), Seq(JsonValidationError("Must have at least one of postcode and country")))
     }
   }
 }

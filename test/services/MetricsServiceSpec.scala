@@ -20,7 +20,7 @@ import com.codahale.metrics.MetricRegistry
 import mocks.MockMetricsService
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
 import play.api.test.Helpers._
 

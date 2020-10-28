@@ -35,57 +35,57 @@ object CorporationTaxRegistrationFixture {
                          lastSignedIn: Long = 1515151515151L,
                          malform: Option[JsObject] = None): JsObject = Json.parse(
     s"""
-      |{
-      | "internalId":"testID",
-      | "registrationID":"$regId",
-      | "status":"$status",
-      | "formCreationTimestamp":"testDateTime",
-      | "language":"en",
-      | "acknowledgementReferences":{
-      |   "ct-utr":${cryptoFormat.writes("ctutr")},
-      |   "timestamp":"timestamp",
-      |   "status":"draft"
-      | },
-      | "confirmationReferences":{
-      |   "acknowledgement-reference":"test-ack-ref",
-      |   "transaction-id":"txId"
-      | },
-      | "companyDetails":{
-      |   "companyName":"testCompanyName",
-      |   "cHROAddress":{
-      |     "premises":"Premises",
-      |     "address_line_1":"Line 1",
-      |     "address_line_2":"Line 2",
-      |     "country":"Country",
-      |     "locality":"Locality",
-      |     "po_box":"PO box",
-      |     "postal_code":"Post code",
-      |     "region":"Region"
-      |   },
-      |   "pPOBAddress":{
-      |     "addressType":"MANUAL",
-      |     "address":{
-      |       "addressLine1":"10 test street",
-      |       "addressLine2":"test town",
-      |       "addressLine3":"test area",
-      |       "addressLine4":"test county",
-      |       "postCode":"XX1 1ZZ",
-      |       "country":"test country",
-      |       "txid":"txid"
-      |     }
-      |   },
-      | "jurisdiction":"testJurisdiction"
-      | },
-      | "tradingDetails":{
-      |   "regularPayments":"true"
-      | },
-      | "contactDetails":{
-      |   "contactDaytimeTelephoneNumber":"0123456789",
-      |   "contactMobileNumber":"0123456789",
-      |   "contactEmail":"test@email.co.uk"
-      | },
-      | "createdTime":1504532988261,
-      | "lastSignedIn":$lastSignedIn
-      |}
+       |{
+       | "internalId":"testID",
+       | "registrationID":"$regId",
+       | "status":"$status",
+       | "formCreationTimestamp":"testDateTime",
+       | "language":"en",
+       | "acknowledgementReferences":{
+       |   "ct-utr":${cryptoFormat.writes("ctutr")},
+       |   "timestamp":"timestamp",
+       |   "status":"draft"
+       | },
+       | "confirmationReferences":{
+       |   "acknowledgement-reference":"test-ack-ref",
+       |   "transaction-id":"txId"
+       | },
+       | "companyDetails":{
+       |   "companyName":"testCompanyName",
+       |   "cHROAddress":{
+       |     "premises":"Premises",
+       |     "address_line_1":"Line 1",
+       |     "address_line_2":"Line 2",
+       |     "country":"Country",
+       |     "locality":"Locality",
+       |     "po_box":"PO box",
+       |     "postal_code":"Post code",
+       |     "region":"Region"
+       |   },
+       |   "pPOBAddress":{
+       |     "addressType":"MANUAL",
+       |     "address":{
+       |       "addressLine1":"10 test street",
+       |       "addressLine2":"test town",
+       |       "addressLine3":"test area",
+       |       "addressLine4":"test county",
+       |       "postCode":"XX1 1ZZ",
+       |       "country":"test country",
+       |       "txid":"txid"
+       |     }
+       |   },
+       | "jurisdiction":"testJurisdiction"
+       | },
+       | "tradingDetails":{
+       |   "regularPayments":"true"
+       | },
+       | "contactDetails":{
+       |   "contactDaytimeTelephoneNumber":"0123456789",
+       |   "contactMobileNumber":"0123456789",
+       |   "contactEmail":"test@email.co.uk"
+       | },
+       | "createdTime":1504532988261,
+       | "lastSignedIn":$lastSignedIn
+       |}
     """.stripMargin).as[JsObject].deepMerge(malform.getOrElse(Json.obj()))
 }

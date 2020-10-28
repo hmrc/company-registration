@@ -16,9 +16,6 @@
 
 package controllers
 
-import java.time.LocalTime
-
-import auth.CryptoSCRS
 import fixtures.CorporationTaxRegistrationFixture
 import helpers.BaseSpec
 import mocks.{AuthorisationMocks, MockMetricsService}
@@ -27,10 +24,11 @@ import models.{AcknowledgementReferences, ConfirmationReferences}
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
+import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import services.SubmissionService
+import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import uk.gov.hmrc.auth.core.InsufficientConfidenceLevel
 import uk.gov.hmrc.auth.core.retrieve.{Credentials, ~}
 import utils.AlertLogging
@@ -39,15 +37,23 @@ import scala.concurrent.Future
 
 class SubmissionControllerSpec extends BaseSpec with AuthorisationMocks with CorporationTaxRegistrationFixture {
 
-  class Setup (nowTime: LocalTime = LocalTime.parse("13:00:00")){
-    val controller = new SubmissionController {
-      val submissionService = mockSubmissionService
-      val resource = mockResource
-      val authConnector = mockAuthConnector
-      val metricsService = MockMetricsService
-      val alertLogging: AlertLogging = new AlertLogging {}
-      override val cryptoSCRS: CryptoSCRS = mockInstanceOfCrypto
-    }
+  val mockRepositories: Repositories = mock[Repositories]
+  val mockAlertLogging: AlertLogging = mock[AlertLogging]
+  override val mockResource: CorporationTaxRegistrationMongoRepository = mockTypedResource[CorporationTaxRegistrationMongoRepository]
+
+  class Setup {
+    val controller: SubmissionController =
+      new SubmissionController(
+        MockMetricsService,
+        mockAuthConnector,
+        mockSubmissionService,
+        mockRepositories,
+        mockAlertLogging,
+        mockInstanceOfCrypto,
+        stubControllerComponents()
+      ) {
+        override lazy val resource: CorporationTaxRegistrationMongoRepository = mockResource
+      }
   }
 
   val regId = "reg-12345"
@@ -65,7 +71,7 @@ class SubmissionControllerSpec extends BaseSpec with AuthorisationMocks with Cor
       mockAuthorise(Future.successful(new ~(internalId, credentials)))
       mockGetInternalId(Future.successful(internalId))
 
-      val expectedRefs = ConfirmationReferences("BRCT00000000123", "tx", Some("py"), Some("12.00"))
+      val expectedRefs: ConfirmationReferences = ConfirmationReferences("BRCT00000000123", "tx", Some("py"), Some("12.00"))
 
       when(mockSubmissionService.handleSubmission(eqTo(regId), any(), any(), eqTo(false))(any(), any()))
         .thenReturn(Future.successful(expectedRefs))
@@ -73,7 +79,7 @@ class SubmissionControllerSpec extends BaseSpec with AuthorisationMocks with Cor
       when(mockCTDataService.retrieveConfirmationReferences(eqTo(regId)))
         .thenReturn(Future.successful(Some(expectedRefs)))
 
-      val result = controller.handleUserSubmission(regId)(request)
+      val result: Future[Result] = controller.handleUserSubmission(regId)(request)
       status(result) shouldBe OK
       contentAsJson(result) shouldBe Json.toJson(expectedRefs)
     }
@@ -81,28 +87,28 @@ class SubmissionControllerSpec extends BaseSpec with AuthorisationMocks with Cor
     "return a 403 when the user is not authenticated" in new Setup {
       mockAuthorise(Future.failed(InsufficientConfidenceLevel()))
 
-      val result = controller.handleUserSubmission(regId)(request)
+      val result: Future[Result] = controller.handleUserSubmission(regId)(request)
       status(result) shouldBe FORBIDDEN
     }
   }
 
   "acknowledgementConfirmation" should {
 
-    def request(ctutr: Boolean, code: String) = FakeRequest().withBody(
+    def request(ctutr: Boolean, code: String): FakeRequest[JsValue] = FakeRequest().withBody(
       Json.toJson(AcknowledgementReferences(if (ctutr) Some("testCtutr") else None, "testTimestamp", code))(AcknowledgementReferences.format(APIValidation, mockInstanceOfCrypto))
     )
 
     "return a bad request" when {
       "given invalid json" in new Setup {
-        val request = FakeRequest().withBody(Json.toJson(""))
-        val result = controller.acknowledgementConfirmation("TestAckRef")(request)
+        val request: FakeRequest[JsValue] = FakeRequest().withBody(Json.toJson(""))
+        val result: Future[Result] = controller.acknowledgementConfirmation("TestAckRef")(request)
         status(result) shouldBe BAD_REQUEST
       }
       "given an Accepted response without a CTUTR" in new Setup {
-        val json = Json.toJson(AcknowledgementReferences(None, "testTimestamp", "04"))(AcknowledgementReferences.format(MongoValidation, mockInstanceOfCrypto))
+        val json: JsValue = Json.toJson(AcknowledgementReferences(None, "testTimestamp", "04"))(AcknowledgementReferences.format(MongoValidation, mockInstanceOfCrypto))
 
-        val request = FakeRequest().withBody(Json.toJson(json))
-        val result = controller.acknowledgementConfirmation("TestAckRef")(request)
+        val request: FakeRequest[JsValue] = FakeRequest().withBody(Json.toJson(json))
+        val result: Future[Result] = controller.acknowledgementConfirmation("TestAckRef")(request)
         status(result) shouldBe BAD_REQUEST
       }
     }
@@ -126,24 +132,24 @@ class SubmissionControllerSpec extends BaseSpec with AuthorisationMocks with Cor
 
         val rejected = Some(
           validHeldCorporationTaxRegistration
-          .copy(acknowledgementReferences = Some(AcknowledgementReferences(None, "Timestamp", "06")))
+            .copy(acknowledgementReferences = Some(AcknowledgementReferences(None, "Timestamp", "06")))
         )
 
         "has a CTUTR" in new Setup {
           when(mockSubmissionService.updateCTRecordWithAckRefs(ArgumentMatchers.eq(ackRef), ArgumentMatchers.any()))
             .thenReturn(Future.successful(rejected))
 
-          val ctutrExists = controller.acknowledgementConfirmation(ackRef)(request(ctutr = true, rejections.head))
+          val ctutrExists: Future[Result] = controller.acknowledgementConfirmation(ackRef)(request(ctutr = true, rejections.head))
           status(ctutrExists) shouldBe OK
         }
 
         "has no CTUTR" in new Setup {
-            when(mockSubmissionService.updateCTRecordWithAckRefs(ArgumentMatchers.eq(ackRef), ArgumentMatchers.any()))
-              .thenReturn(Future.successful(rejected))
-            rejections.tail foreach { code =>
-              val result = controller.acknowledgementConfirmation(ackRef)(request(ctutr = false, code))
-              status(result) shouldBe OK
-            }
+          when(mockSubmissionService.updateCTRecordWithAckRefs(ArgumentMatchers.eq(ackRef), ArgumentMatchers.any()))
+            .thenReturn(Future.successful(rejected))
+          rejections.tail foreach { code =>
+            val result = controller.acknowledgementConfirmation(ackRef)(request(ctutr = false, code))
+            status(result) shouldBe OK
+          }
         }
       }
 
@@ -154,7 +160,7 @@ class SubmissionControllerSpec extends BaseSpec with AuthorisationMocks with Cor
           when(mockSubmissionService.updateCTRecordWithAckRefs(eqTo(ackRef), any()))
             .thenReturn(Future.successful(None))
 
-          val result = controller.acknowledgementConfirmation(ackRef)(request(ctutr = true, "04"))
+          val result: Future[Result] = controller.acknowledgementConfirmation(ackRef)(request(ctutr = true, "04"))
           status(result) shouldBe NOT_FOUND
         }
       }
@@ -163,7 +169,7 @@ class SubmissionControllerSpec extends BaseSpec with AuthorisationMocks with Cor
         val ackRef = "TestAckRef"
 
         "the status provided is not recognised by the contract" in new Setup {
-          val result = controller.acknowledgementConfirmation(ackRef)(request(ctutr = true, ""))
+          val result: Future[Result] = controller.acknowledgementConfirmation(ackRef)(request(ctutr = true, ""))
           intercept[RuntimeException](await(result))
         }
       }

@@ -24,8 +24,7 @@ import models.validation.APIValidation
 import org.joda.time.{DateTime, DateTimeZone}
 import org.scalacheck.Prop.forAll
 import org.scalacheck.{Gen, Prop, Test}
-import play.api.data.validation.ValidationError
-import play.api.libs.json._
+import play.api.libs.json.{JsonValidationError, _}
 
 class CorporationTaxRegistrationSpec extends BaseSpec with JsonFormatValidation with CorporationTaxRegistrationFixture {
 
@@ -97,21 +96,21 @@ class CorporationTaxRegistrationSpec extends BaseSpec with JsonFormatValidation 
         val longName = List.fill(161)('a').mkString
         val json = testJson(longName)
         val result = Json.fromJson[CompanyDetails](json)
-        shouldHaveErrors(result, JsPath() \ "companyName", Seq(ValidationError("Invalid company name")))
+        shouldHaveErrors(result, JsPath() \ "companyName", Seq(JsonValidationError("Invalid company name")))
       }
 
       "it is too short" in {
         val emptyCompanyName = ""
         val json = testJson(emptyCompanyName)
         val result = Json.fromJson[CompanyDetails](json)
-        shouldHaveErrors(result, JsPath() \ "companyName", Seq(ValidationError("Invalid company name")))
+        shouldHaveErrors(result, JsPath() \ "companyName", Seq(JsonValidationError("Invalid company name")))
       }
 
       "it contains invalid character " in {
         val invalidCompanyName = "étest|company"
         val json = testJson(invalidCompanyName)
         val result = Json.fromJson[CompanyDetails](json)
-        shouldHaveErrors(result, JsPath() \ "companyName", Seq(ValidationError("Invalid company name")))
+        shouldHaveErrors(result, JsPath() \ "companyName", Seq(JsonValidationError("Invalid company name")))
       }
     }
 

@@ -19,8 +19,9 @@ package assets
 import models._
 import org.joda.time.DateTime
 import play.api.libs.json._
+import utils.JodaDateTimeFormatter
 
-object TestConstants {
+object TestConstants extends JodaDateTimeFormatter {
 
   implicit class AppendableJsValue(jsValue: JsObject) {
     def plusOptional[A](optValue: (String, Option[A]))(implicit writes: Writes[A]): JsObject = optValue match {

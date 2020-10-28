@@ -21,29 +21,15 @@ import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
+import org.scalatest.concurrent.{Eventually, IntegrationPatience}
+import play.api.inject.{Injector, NewInstanceInjector}
 import play.api.libs.json.{JsObject, Json}
+import play.api.libs.ws.WSClient
 
-object WiremockHelper {
+object WiremockHelper extends Eventually with IntegrationPatience {
   val wiremockPort = 11111
   val wiremockHost = "localhost"
   val url = s"http://$wiremockHost:$wiremockPort"
-}
-
-trait WiremockHelper {
-
-  import WiremockHelper._
-
-  val wmConfig = wireMockConfig().port(wiremockPort)
-  val wireMockServer = new WireMockServer(wmConfig)
-
-  def startWiremock() = {
-    wireMockServer.start()
-    WireMock.configureFor(wiremockHost, wiremockPort)
-  }
-
-  def stopWiremock() = wireMockServer.stop()
-
-  def resetWiremock() = WireMock.reset()
 
   def stubGet(url: String, status: Integer, body: String) =
     stubFor(get(urlMatching(url))
@@ -110,4 +96,20 @@ trait WiremockHelper {
   }
 
   def stubAuthorise(internalId: String): StubMapping = stubAuthorise(200, "internalId" -> internalId)
+}
+
+trait WiremockHelper {
+  import WiremockHelper._
+  lazy val wmConfig = wireMockConfig().port(wiremockPort)
+  lazy val wireMockServer = new WireMockServer(wmConfig)
+
+
+  def startWiremock() = {
+    wireMockServer.start()
+    WireMock.configureFor(wiremockHost, wiremockPort)
+  }
+
+  def stopWiremock() = wireMockServer.stop()
+
+  def resetWiremock() = WireMock.reset()
 }

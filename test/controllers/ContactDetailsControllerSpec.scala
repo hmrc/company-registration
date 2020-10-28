@@ -23,19 +23,26 @@ import models.ErrorResponse
 import play.api.libs.json._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import repositories.MissingCTDocument
+import repositories.{CorporationTaxRegistrationMongoRepository, MissingCTDocument, Repositories}
+import services.PrepareAccountService
 import uk.gov.hmrc.auth.core.MissingBearerToken
 
 import scala.concurrent.Future
 
 class ContactDetailsControllerSpec extends BaseSpec with AuthorisationMocks with ContactDetailsFixture {
+  val mockPrepareAccountService = mock[PrepareAccountService]
+  val mockRepositories = mock[Repositories]
+  override val mockResource: CorporationTaxRegistrationMongoRepository = mockTypedResource[CorporationTaxRegistrationMongoRepository]
 
   trait Setup {
-    val controller = new ContactDetailsController {
-      override val contactDetailsService = mockContactDetailsService
-      override val resource = mockResource
-      override val authConnector = mockAuthConnector
-      override val metricsService = MockMetricsService
+    val controller = new ContactDetailsController(
+      MockMetricsService,
+      mockContactDetailsService,
+      mockAuthConnector,
+      mockRepositories,
+      stubControllerComponents()
+    ) {
+      override lazy val resource: CorporationTaxRegistrationMongoRepository = mockResource
     }
   }
 

@@ -22,15 +22,17 @@ import models.TradingDetails
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
 import play.api.test.Helpers._
+import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 
 import scala.concurrent.Future
 
 class TradingDetailsServiceSpec extends BaseSpec with CorporationTaxRegistrationFixture {
 
   class Setup {
+    val mockRepositories = mock[Repositories]
 
-    object TestService extends TradingDetailsService {
-      val corporationTaxRegistrationMongoRepository = mockCTDataRepository
+    object TestService extends TradingDetailsService(mockRepositories,stubControllerComponents()) {
+      override lazy val corporationTaxRegistrationMongoRepository: CorporationTaxRegistrationMongoRepository = mockCTDataRepository
     }
 
   }

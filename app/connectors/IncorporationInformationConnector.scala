@@ -17,7 +17,7 @@
 package connectors
 
 import config.MicroserviceAppConfig
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.http.Status.{ACCEPTED, NO_CONTENT, OK}
 import play.api.libs.json.{JsObject, Json}
@@ -35,6 +35,7 @@ class SubscriptionFailure(msg: String) extends NoStackTrace {
   override def getMessage: String = msg
 }
 
+@Singleton
 class IncorporationInformationConnectorImpl @Inject()(config: MicroserviceAppConfig, val http: HttpClient) extends IncorporationInformationConnector {
   lazy val iiUrl: String = config.incorpInfoUrl
   lazy val companyRegUrl = config.compRegUrl

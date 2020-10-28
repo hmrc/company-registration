@@ -18,7 +18,7 @@ package mocks
 
 import com.codahale.metrics.{Counter, Timer}
 import com.kenshoo.play.metrics.Metrics
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import repositories.CorporationTaxRegistrationMongoRepository
 import services._
 import uk.gov.hmrc.lock.LockKeeper

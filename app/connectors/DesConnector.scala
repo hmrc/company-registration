@@ -18,25 +18,27 @@ package connectors
 
 import audit.DesSubmissionEventFailure
 import config.MicroserviceAppConfig
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.json.{JsObject, Writes}
 import services.{AuditService, MetricsService}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.logging.Authorization
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-
+@Singleton
 class DesConnectorImpl @Inject()(val metricsService: MetricsService,
                                  val http: HttpClient,
                                  microserviceAppConfig: MicroserviceAppConfig,
+                                 servicesConfig: ServicesConfig,
                                  val auditConnector: AuditConnector) extends DesConnector {
 
-  lazy val serviceURL = microserviceAppConfig.baseUrl("des-service")
+  lazy val serviceURL = servicesConfig.baseUrl("des-service")
   lazy val urlHeaderEnvironment: String = microserviceAppConfig.getConfigString("des-service.environment")
   lazy val urlHeaderAuthorization: String = s"Bearer ${
     microserviceAppConfig.getConfigString("des-service.authorization-token")
@@ -106,7 +108,7 @@ trait DesConnector extends AuditService with RawResponseReads with HttpErrorFunc
       copy(authorization = Some(Authorization(urlHeaderAuthorization)))
   }
 
-  private[connectors] def customDESRead(http: String, url: String, response: HttpResponse) = {
+  private[connectors] def customDESRead(http: String, url: String, response: HttpResponse): HttpResponse = {
     response.status match {
       case 409 =>
         Logger.warn("[DesConnector] [customDESRead] Received 409 from DES - converting to 202")

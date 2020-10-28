@@ -18,8 +18,7 @@ package models
 
 import helpers.DateHelper
 import org.scalatest.{Matchers, WordSpec}
-import play.api.data.validation.ValidationError
-import play.api.libs.json._
+import play.api.libs.json.{JsonValidationError, _}
 
 class AccountPrepDetailsSpec extends WordSpec with Matchers with JsonFormatValidation with DateHelper {
 
@@ -36,13 +35,13 @@ class AccountPrepDetailsSpec extends WordSpec with Matchers with JsonFormatValid
     "fail if choice is not valid" in {
       val json = """{"businessEndDateChoice":"XXX"}"""
       val result = Json.parse(json).validate[AccountPrepDetails]
-      shouldHaveErrors(result, JsPath() \ "businessEndDateChoice", Seq(ValidationError("error.pattern")))
+      shouldHaveErrors(result, JsPath() \ "businessEndDateChoice", Seq(JsonValidationError("error.pattern")))
     }
 
     "fail if the date format isn't valid" in {
       val json = """{"businessEndDateChoice":"COMPANY_DEFINED","businessEndDate":"2017/02/01"}"""
       val result = Json.parse(json).validate[AccountPrepDetails]
-      shouldHaveErrors(result, JsPath() \ "businessEndDate", Seq(ValidationError("error.pattern")))
+      shouldHaveErrors(result, JsPath() \ "businessEndDate", Seq(JsonValidationError("error.pattern")))
     }
   }
 
@@ -60,7 +59,7 @@ class AccountPrepDetailsSpec extends WordSpec with Matchers with JsonFormatValid
       val json = Json.parse("""{"businessEndDateChoice":"COMPANY_DEFINED"}""")
 
       val result = Json.fromJson[AccountPrepDetails](json)
-      shouldHaveErrors(result, JsPath(), Seq(ValidationError("If a date is specified, the status must be COMPANY_DEFINED")))
+      shouldHaveErrors(result, JsPath(), Seq(JsonValidationError("If a date is specified, the status must be COMPANY_DEFINED")))
     }
   }
 

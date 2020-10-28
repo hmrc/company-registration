@@ -23,25 +23,25 @@ import javax.inject.Inject
 import models.ConfirmationReferences
 import play.api.Logger
 import play.api.libs.json.Json
-import play.api.mvc.{Action, AnyContent}
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import repositories._
 import services.SubmissionService
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BackendBaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 
-class TestEndpointControllerImpl @Inject()(
-                                            val submissionService: SubmissionService,
-                                            val bRConnector: BusinessRegistrationConnector,
-                                            val repositories: Repositories) extends TestEndpointController {
+class TestEndpointControllerImpl @Inject()(val submissionService: SubmissionService,
+                                           val bRConnector: BusinessRegistrationConnector,
+                                           val repositories: Repositories,
+                                           val controllerComponents: ControllerComponents
+                                          ) extends TestEndpointController {
   lazy val throttleMongoRepository = repositories.throttleRepository
   lazy val cTMongoRepository = repositories.cTRepository
 }
 
-trait TestEndpointController extends BaseController {
-
+trait TestEndpointController extends BackendBaseController {
   val throttleMongoRepository: ThrottleMongoRepository
   val cTMongoRepository: CorporationTaxRegistrationMongoRepository
   val bRConnector: BusinessRegistrationConnector
@@ -68,7 +68,7 @@ trait TestEndpointController extends BaseController {
       } yield {
         Ok(Json.parse(s"""{"message":"$cTDrop $bRDrop"}"""))
       }
-    }
+  }
 
   def updateSubmissionStatusToHeld(registrationId: String) = Action.async {
     implicit request =>
@@ -84,7 +84,7 @@ trait TestEndpointController extends BaseController {
 
   def removeTaxRegistrationInformation(registrationId: String) = Action.async {
     implicit request =>
-      cTMongoRepository.removeTaxRegistrationInformation(registrationId) map(if(_) Ok else BadRequest)
+      cTMongoRepository.removeTaxRegistrationInformation(registrationId) map (if (_) Ok else BadRequest)
   }
 
   def pagerDuty(name: String) = Action.async {

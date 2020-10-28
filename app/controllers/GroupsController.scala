@@ -17,33 +17,32 @@
 package controllers
 
 import auth._
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import models.{GroupNameListValidator, Groups}
 import models.validation.APIValidation
 import play.api.Logger
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.{Action, AnyContent, Result}
+import play.api.libs.ws.WSClient
+import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.GroupsService
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class GroupsControllerImpl @Inject()(val authConnector: AuthConnector,
-                                     val groupsService: GroupsService,
-                                     val cryptoSCRS: CryptoSCRS,
-                                     val repositories: Repositories) extends GroupsController {
+@Singleton
+class GroupsController @Inject()(val authConnector: AuthConnector,
+                                 val groupsService: GroupsService,
+                                 val cryptoSCRS: CryptoSCRS,
+                                 val repositories: Repositories,
+                                 controllerComponents: ControllerComponents
+                                ) extends BackendController(controllerComponents) with AuthorisedActions {
   lazy val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
-}
 
-trait GroupsController extends BaseController with AuthorisedActions {
 
-  val groupsService: GroupsService
-  val cryptoSCRS: CryptoSCRS
-
-  private[controllers] def groupsBlockValidation(groups: Groups): Either[Groups,Throwable] = {
+  private[controllers] def groupsBlockValidation(groups: Groups): Either[Groups, Throwable] = {
     groups match {
       case Groups(_, None, address@Some(_), _) => Right(new Exception("[groupsBlockValidation] name of company skipped"))
       case Groups(_, nameOfCompany@Some(_), None, Some(_)) => Right(new Exception("[groupsBlockValidation] address skipped"))
@@ -66,24 +65,24 @@ trait GroupsController extends BaseController with AuthorisedActions {
       }
   }
 
-  def saveBlock(registrationID: String): Action[JsValue] = AuthorisedAction(registrationID).async[JsValue](parse.json){
+  def saveBlock(registrationID: String): Action[JsValue] = AuthorisedAction(registrationID).async[JsValue](parse.json) {
     implicit request =>
       withJsonBody[Groups] { groups =>
         groupsBlockValidation(groups).fold(
-          validatedBlock => groupsService.updateGroups(registrationID,groups).map{ updatedGroups =>
-            Ok(Json.toJson(updatedGroups)(Groups.formats(APIValidation,cryptoSCRS)))
-          },exceptionOccurredValidatingBlock => throw exceptionOccurredValidatingBlock
+          validatedBlock => groupsService.updateGroups(registrationID, groups).map { updatedGroups =>
+            Ok(Json.toJson(updatedGroups)(Groups.formats(APIValidation, cryptoSCRS)))
+          }, exceptionOccurredValidatingBlock => throw exceptionOccurredValidatingBlock
         )
-      }(implicitly,implicitly,Groups.formats(APIValidation,cryptoSCRS))
+      }(implicitly, implicitly, Groups.formats(APIValidation, cryptoSCRS))
   }
 
   def getBlock(registrationID: String): Action[AnyContent] = AuthorisedAction(registrationID).async {
     implicit request =>
-      groupsService.returnGroups(registrationID).map{
+      groupsService.returnGroups(registrationID).map {
         optGroupsReturned =>
           optGroupsReturned
             .fold[Result](NoContent)(groups =>
-            Ok(Json.toJson(groups)(Groups.formats(APIValidation,cryptoSCRS))))
+              Ok(Json.toJson(groups)(Groups.formats(APIValidation, cryptoSCRS))))
       }
   }
 
@@ -91,11 +90,11 @@ trait GroupsController extends BaseController with AuthorisedActions {
   def validateListOfNamesAgainstGroupNameValidation: Action[JsValue] = Action.async(parse.json) {
     implicit request =>
       withJsonBody[Seq[String]] { listOfNames =>
-        if(listOfNames.isEmpty) {
+        if (listOfNames.isEmpty) {
           Future.successful(NoContent)
         } else {
           Future.successful(Ok(Json.toJson(listOfNames)(GroupNameListValidator.formats)))
         }
-      }(implicitly,implicitly, GroupNameListValidator.formats)
+      }(implicitly, implicitly, GroupNameListValidator.formats)
   }
 }

@@ -52,7 +52,7 @@ class SendEmailServiceSpec extends BaseSpec with AuthorisationMocks {
     }
   }
 
-    "generateEmailRequest" should {
+  "generateEmailRequest" should {
 
     val testEmail = "myTestEmail@test.test"
     val testRequest = SendEmailRequest(
@@ -74,7 +74,7 @@ class SendEmailServiceSpec extends BaseSpec with AuthorisationMocks {
 
       val resultAsJson = Json.toJson(result)
 
-      val expectedJson = Json.parse{
+      val expectedJson = Json.parse {
         s"""
            |{
            |  "to":["test@email.com"],

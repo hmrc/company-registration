@@ -17,36 +17,31 @@
 package controllers
 
 import auth._
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import models._
 import models.validation.APIValidation
 import play.api.libs.json.{JsObject, JsValue, Json}
-import play.api.mvc.{Action, AnyContent}
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.{CorporationTaxRegistrationService, MetricsService}
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 import utils.{AlertLogging, Logging}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class CorporationTaxRegistrationControllerImpl @Inject()(
-                                                          val metricsService: MetricsService,
-                                                          val authConnector: AuthConnector,
-                                                          val ctService: CorporationTaxRegistrationService,
-                                                          val repositories: Repositories,
-                                                          val alertLogging: AlertLogging,
-                                                          val cryptoSCRS: CryptoSCRS) extends CorporationTaxRegistrationController {
+@Singleton
+class CorporationTaxRegistrationController @Inject()(val metricsService: MetricsService,
+                                                     val authConnector: AuthConnector,
+                                                     val ctService: CorporationTaxRegistrationService,
+                                                     val repositories: Repositories,
+                                                     val alertLogging: AlertLogging,
+                                                     val cryptoSCRS: CryptoSCRS,
+                                                     controllerComponents: ControllerComponents)
+  extends BackendController(controllerComponents) with AuthorisedActions with Logging {
 
   lazy val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
-}
-
-trait CorporationTaxRegistrationController extends BaseController with AuthorisedActions with Logging {
-
-  val ctService: CorporationTaxRegistrationService
-  val metricsService: MetricsService
-  val cryptoSCRS: CryptoSCRS
 
   def createCorporationTaxRegistration(registrationId: String): Action[JsValue] =
     AuthenticatedAction.retrieve(internalId).async(parse.json) { internalId =>
@@ -90,7 +85,7 @@ trait CorporationTaxRegistrationController extends BaseController with Authorise
       val timer = metricsService.retrieveFullCorporationTaxRegistrationCRTimer.time()
       ctService.retrieveCorporationTaxRegistrationRecord(registrationID).map {
         case Some(data) => timer.stop()
-          Ok(Json.toJson(data)(CorporationTaxRegistration.format(APIValidation,cryptoSCRS)))
+          Ok(Json.toJson(data)(CorporationTaxRegistration.format(APIValidation, cryptoSCRS)))
         case _ => timer.stop()
           NotFound
       }

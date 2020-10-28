@@ -17,11 +17,12 @@
 package connectors
 
 import config.MicroserviceAppConfig
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import models.SendEmailRequest
 import play.api.Logger
 import play.api.http.Status._
 import uk.gov.hmrc.http._
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -30,10 +31,10 @@ import scala.util.control.NoStackTrace
 
 class EmailErrorResponse(s: String) extends NoStackTrace
 
-class SendEmailConnectorImpl @Inject()(
-                                        val microserviceAppConfig: MicroserviceAppConfig,
+@Singleton
+class SendEmailConnectorImpl @Inject()(servicesConfig:ServicesConfig,
                                         val http: HttpClient) extends SendEmailConnector with HttpErrorFunctions {
-  val sendEmailURL = microserviceAppConfig.getConfString("email.sendEmailURL", throw new Exception("email.sendEmailURL not found"))
+  val sendEmailURL = servicesConfig.getConfString("email.sendEmailURL", throw new Exception("email.sendEmailURL not found"))
 }
 
 trait SendEmailConnector extends HttpErrorFunctions {

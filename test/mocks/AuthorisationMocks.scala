@@ -16,8 +16,8 @@
 
 package mocks
 
-import auth.{AuthClientConnector, AuthorisationResource}
-import org.scalatest.mockito.MockitoSugar
+import auth.AuthorisationResource
+import org.scalatestplus.mockito.MockitoSugar
 import org.mockito.Mockito._
 import org.mockito.ArgumentMatchers._
 import org.mockito.stubbing.OngoingStubbing

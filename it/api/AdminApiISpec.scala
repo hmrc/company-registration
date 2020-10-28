@@ -25,8 +25,9 @@ import models._
 import org.joda.time.DateTime
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.crypto.DefaultCookieSigner
 import play.api.libs.json._
-import play.api.libs.ws.{WSClient, WSRequest, WSResponse}
+import play.api.libs.ws.{WSRequest, WSResponse}
 import play.api.test.Helpers._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.WriteResult
@@ -38,16 +39,18 @@ class AdminApiISpec extends IntegrationSpecBase with LoginStub {
 
   val regime = "testRegime"
   val subscriber = "testSubcriber"
+  lazy val defaultCookieSigner: DefaultCookieSigner = app.injector.instanceOf[DefaultCookieSigner]
+
 
   override implicit lazy val app: Application = new GuiceApplicationBuilder()
     .configure(
       fakeConfig(
         Map("microservice.services.incorporation-information.host" -> s"$wiremockHost",
-            "microservice.services.incorporation-information.port" -> s"$wiremockPort",
-            "microservice.services.des-service.host" -> s"$wiremockHost",
-            "microservice.services.des-service.port" -> s"$wiremockPort",
-            "microservice.services.regime" -> s"$regime",
-            "microservice.services.subscriber" -> s"$subscriber")
+          "microservice.services.incorporation-information.port" -> s"$wiremockPort",
+          "microservice.services.des-service.host" -> s"$wiremockHost",
+          "microservice.services.des-service.port" -> s"$wiremockPort",
+          "microservice.services.regime" -> s"$regime",
+          "microservice.services.subscriber" -> s"$subscriber")
       )
     ).build
 
@@ -66,7 +69,7 @@ class AdminApiISpec extends IntegrationSpecBase with LoginStub {
     val rmComp = app.injector.instanceOf[ReactiveMongoComponent]
     val crypto = app.injector.instanceOf[CryptoSCRS]
     val corpTaxRepo = new CorporationTaxRegistrationMongoRepository(
-      rmComp,crypto)
+      rmComp, crypto)
     val seqRepo = app.injector.instanceOf[SequenceMongoRepo].repo
 
     await(corpTaxRepo.drop)
@@ -76,14 +79,13 @@ class AdminApiISpec extends IntegrationSpecBase with LoginStub {
     await(seqRepo.ensureIndexes)
 
     def ctRegCount: Int = await(corpTaxRepo.count)
+
     def insertCorpTax(doc: CorporationTaxRegistration): WriteResult = await(corpTaxRepo.insert(doc))
 
     ctRegCount shouldBe 0
 
     System.clearProperty("feature.registerInterest")
   }
-
-  val ws: WSClient = app.injector.instanceOf(classOf[WSClient])
 
   def client(path: String): WSRequest = ws.url(s"http://localhost:$port/company-registration/admin$path").
     withFollowRedirects(false)
@@ -95,7 +97,7 @@ class AdminApiISpec extends IntegrationSpecBase with LoginStub {
     formCreationTimestamp = "2001-12-31T12:00:00Z",
     language = "en",
     confirmationReferences = None,
-    companyDetails =  Some(CompanyDetails(
+    companyDetails = Some(CompanyDetails(
       companyName = "testCompanyName",
       CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
       PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"), None, "txid"))),
@@ -140,7 +142,7 @@ class AdminApiISpec extends IntegrationSpecBase with LoginStub {
       paymentReference = Some(payRef),
       paymentAmount = Some("12")
     )),
-    companyDetails =  Some(CompanyDetails(
+    companyDetails = Some(CompanyDetails(
       companyName = "testCompanyName",
       CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
       PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), Some("test country"), None, "txid"))),
@@ -185,7 +187,7 @@ class AdminApiISpec extends IntegrationSpecBase with LoginStub {
       paymentReference = Some(payRef),
       paymentAmount = Some("12")
     )),
-    companyDetails =  None,
+    companyDetails = None,
     accountingDetails = Some(AccountingDetails(
       status = AccountingDetails.FUTURE_DATE,
       activeDate = Some("2019-12-31"))),
@@ -230,7 +232,7 @@ class AdminApiISpec extends IntegrationSpecBase with LoginStub {
 
       ctRegCount shouldBe 1
 
-      val result: WSResponse  = await(client(s"$url/$regId").get())
+      val result: WSResponse = await(client(s"$url/$regId").get())
 
       result.status shouldBe 200
       result.json shouldBe expected
@@ -256,12 +258,12 @@ class AdminApiISpec extends IntegrationSpecBase with LoginStub {
 
       val expected: JsValue = Json.parse(
         s"""
-          |{
-          |  "sessionId":"oldSessionId",
-          |  "credId":"oldCredId",
-          |  "companyName":"testCompanyName",
-          |  "ackRef":"$ackRef"
-          |}
+           |{
+           |  "sessionId":"oldSessionId",
+           |  "credId":"oldCredId",
+           |  "companyName":"testCompanyName",
+           |  "ackRef":"$ackRef"
+           |}
         """.stripMargin)
 
       setupSimpleAuthMocks()
@@ -270,7 +272,7 @@ class AdminApiISpec extends IntegrationSpecBase with LoginStub {
 
       ctRegCount shouldBe 1
 
-      val result: WSResponse  = await(client(s"$url/$regId").get())
+      val result: WSResponse = await(client(s"$url/$regId").get())
 
       result.status shouldBe 200
       result.json shouldBe expected
@@ -294,15 +296,16 @@ class AdminApiISpec extends IntegrationSpecBase with LoginStub {
 
     val businessRegistrationResponse = Json.parse(
       s"""
-        |{
-        |  "registrationID":"$regId",
-        |  "formCreationTimestamp":"2017-08-09T11:48:20+01:00",
-        |  "language":"en",
-        |  "completionCapacity":"director"
-        |}
+         |{
+         |  "registrationID":"$regId",
+         |  "formCreationTimestamp":"2017-08-09T11:48:20+01:00",
+         |  "language":"en",
+         |  "completionCapacity":"director"
+         |}
       """.stripMargin)
 
-    val incorpInfoResponse = Json.parse(s"""
+    val incorpInfoResponse = Json.parse(
+      s"""
          |{
          |  "SCRSIncorpStatus":{
          |    "IncorpSubscriptionKey":{
@@ -353,11 +356,11 @@ class AdminApiISpec extends IntegrationSpecBase with LoginStub {
 
       val expected: JsValue = Json.parse(
         s"""
-          |{
-          |  "success":true,
-          |  "statusBefore":"draft",
-          |  "statusAfter":"held"
-          |}
+           |{
+           |  "success":true,
+           |  "statusBefore":"draft",
+           |  "statusAfter":"held"
+           |}
         """.stripMargin)
 
       result.status shouldBe 200
@@ -484,6 +487,7 @@ class AdminApiISpec extends IntegrationSpecBase with LoginStub {
 
     val testRegistrationID = "12345678"
     val testAckowledgementReference = "BRCT01234567890"
+
     def path(id: String) = s"/$id/ctutr"
 
     "successfully return a 200 with valid JSON" when {
@@ -493,21 +497,21 @@ class AdminApiISpec extends IntegrationSpecBase with LoginStub {
             ConfirmationReferences(
               acknowledgementReference = testAckowledgementReference, "transID", None, None
             )),
-            acknowledgementReferences = Option(
-              AcknowledgementReferences(
+          acknowledgementReferences = Option(
+            AcknowledgementReferences(
               Option("ctutr"), "timestamp", "04"
             ))
-          )
+        )
         )
         ctRegCount shouldBe 1
 
         val result: WSResponse = await(client(path(testAckowledgementReference)).get())
         val expectedJson: JsValue = Json.parse(
           """
-          |{
-          |  "status": "04",
-          |  "ctutr": true
-          |}
+            |{
+            |  "status": "04",
+            |  "ctutr": true
+            |}
         """.
             stripMargin)
 
@@ -562,6 +566,7 @@ class AdminApiISpec extends IntegrationSpecBase with LoginStub {
 
     val testRegistrationID = "12345678"
     val testAckowledgementReference = "BRCT01234567890"
+
     def path(id: String) = s"/$id/ctutr"
 
     "successfully return a 200 with valid JSON" when {
@@ -635,7 +640,7 @@ class AdminApiISpec extends IntegrationSpecBase with LoginStub {
 
       ctRegCount shouldBe 1
 
-      val result: WSResponse  = await(client(s"$url/$regId").post(adminJsonBody))
+      val result: WSResponse = await(client(s"$url/$regId").post(adminJsonBody))
 
       result.status shouldBe 200
       result.json shouldBe expected

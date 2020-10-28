@@ -17,7 +17,7 @@
 package services
 
 import audit.CTRegistrationSubmissionAuditEventDetails
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.http.HeaderCarrier

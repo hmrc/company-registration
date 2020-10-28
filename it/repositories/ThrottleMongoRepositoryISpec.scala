@@ -38,17 +38,12 @@ class ThrottleMongoRepositoryISpec extends IntegrationSpecBase {
     .build()
 
   class Setup {
-    val service = new ThrottleService {
-      val rmc = app.injector.instanceOf[ReactiveMongoComponent]
+    val service = app.injector.instanceOf[ThrottleService]
 
-      val throttleMongoRepository = new ThrottleMongoRepository(rmc.mongoConnector.db)
-      val dateTime = DateTimeUtils.now
-      val threshold = 10
-    }
     val repository = service.throttleMongoRepository
     await(repository.drop)
     await(repository.ensureIndexes)
-  }
+    }
 
   override def afterAll() = new Setup {
     await(repository.drop)

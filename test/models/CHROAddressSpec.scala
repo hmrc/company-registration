@@ -17,16 +17,18 @@
 package models
 
 import org.scalatest.{Matchers, WordSpec}
-import play.api.data.validation.ValidationError
-import play.api.libs.json._
+import play.api.libs.json.{JsonValidationError, _}
 
 
 class CHROAddressSpec extends WordSpec with Matchers with JsonFormatValidation {
 
-  def lineEnd(comma: Boolean) = if( comma ) "," else ""
+  def lineEnd(comma: Boolean) = if (comma) "," else ""
+
   def jsonLine(key: String, value: String): String = jsonLine(key, value, true)
+
   def jsonLine(key: String, value: String, comma: Boolean): String = s""""${key}" : "${value}"${lineEnd(comma)}"""
-  def jsonLine(key: String, value: Option[String], comma: Boolean = true): String = value.fold("")(v=>s""""${key}" : "${v}"${lineEnd(comma)}""")
+
+  def jsonLine(key: String, value: Option[String], comma: Boolean = true): String = value.fold("")(v => s""""${key}" : "${v}"${lineEnd(comma)}""")
 
   def j(line1: String = "1", line2: Option[String] = None) = {
     s"""
@@ -46,8 +48,8 @@ class CHROAddressSpec extends WordSpec with Matchers with JsonFormatValidation {
   "CHROAddress Model - line 1" should {
     "Be able to be parsed from JSON" in {
       val line1 = "12345678901234567890123456789012345678901234567890"
-      val json = j(line1=line1)
-      val expected = CHROAddress("p", line1, None, "c", "l", Some("pb"), Some("pc"), Some("r") )
+      val json = j(line1 = line1)
+      val expected = CHROAddress("p", line1, None, "c", "l", Some("pb"), Some("pc"), Some("r"))
 
       val result = Json.parse(json).validate[CHROAddress]
 
@@ -55,19 +57,19 @@ class CHROAddressSpec extends WordSpec with Matchers with JsonFormatValidation {
     }
 
     "fail to be read from JSON if is empty string" in {
-      val json = j(line1="")
+      val json = j(line1 = "")
 
       val result = Json.parse(json).validate[CHROAddress]
 
-      shouldHaveErrors(result, JsPath() \ "address_line_1", ValidationError("error.minLength", 1))
+      shouldHaveErrors(result, JsPath() \ "address_line_1", JsonValidationError("error.minLength", 1))
     }
 
     "fail to be read from JSON if line1 is longer than 50 characters" in {
-      val json = j(line1="123456789012345678901234567890123456789012345678901")
+      val json = j(line1 = "123456789012345678901234567890123456789012345678901")
 
       val result = Json.parse(json).validate[CHROAddress]
 
-      shouldHaveErrors(result, JsPath() \ "address_line_1", ValidationError("error.maxLength", 50))
+      shouldHaveErrors(result, JsPath() \ "address_line_1", JsonValidationError("error.maxLength", 50))
     }
 
   }
@@ -75,8 +77,8 @@ class CHROAddressSpec extends WordSpec with Matchers with JsonFormatValidation {
   "CHROAddress Model - line 2" should {
     "Be able to be parsed from JSON" in {
       val line2 = Some("12345678901234567890123456789012345678901234567890")
-      val json = j(line2=line2)
-      val expected = CHROAddress("p", "1", line2, "c", "l", Some("pb"), Some("pc"), Some("r") )
+      val json = j(line2 = line2)
+      val expected = CHROAddress("p", "1", line2, "c", "l", Some("pb"), Some("pc"), Some("r"))
 
       val result = Json.parse(json).validate[CHROAddress]
 
@@ -84,7 +86,7 @@ class CHROAddressSpec extends WordSpec with Matchers with JsonFormatValidation {
     }
 
     "Be able to be parsed from JSON with no line2" in {
-      val json = j(line2=None)
+      val json = j(line2 = None)
       val expected = CHROAddress("p", "1", None, "c", "l", Some("pb"), Some("pc"), Some("r"))
 
       val result = Json.parse(json).validate[CHROAddress]
@@ -93,19 +95,19 @@ class CHROAddressSpec extends WordSpec with Matchers with JsonFormatValidation {
     }
 
     "fail to be read from JSON if line2 is empty string" in {
-      val json = j(line2=Some(""))
+      val json = j(line2 = Some(""))
 
       val result = Json.parse(json).validate[CHROAddress]
 
-      shouldHaveErrors(result, JsPath() \ "address_line_2", ValidationError("error.minLength", 1))
+      shouldHaveErrors(result, JsPath() \ "address_line_2", JsonValidationError("error.minLength", 1))
     }
 
     "fail to be read from JSON if line2 is longer than 50 characters" in {
-      val json = j(line2=Some("123456789012345678901234567890123456789012345678901"))
+      val json = j(line2 = Some("123456789012345678901234567890123456789012345678901"))
 
       val result = Json.parse(json).validate[CHROAddress]
 
-      shouldHaveErrors(result, JsPath() \ "address_line_2", ValidationError("error.maxLength", 50))
+      shouldHaveErrors(result, JsPath() \ "address_line_2", JsonValidationError("error.maxLength", 50))
     }
 
   }

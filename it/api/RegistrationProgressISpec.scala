@@ -19,11 +19,12 @@ package api
 import java.util.UUID
 
 import auth.CryptoSCRS
+import itutil.WiremockHelper._
 import itutil.{IntegrationSpecBase, LoginStub, WiremockHelper}
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.crypto.DefaultCookieSigner
 import play.api.libs.json.{JsObject, Json}
-import play.api.libs.ws.WS
 import play.api.test.Helpers._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import repositories.CorporationTaxRegistrationMongoRepository
@@ -35,6 +36,8 @@ class RegistrationProgressISpec extends IntegrationSpecBase with LoginStub {
   val mockHost = WiremockHelper.wiremockHost
   val mockPort = WiremockHelper.wiremockPort
   val mockUrl = s"http://$mockHost:$mockPort"
+  lazy val defaultCookieSigner: DefaultCookieSigner = app.injector.instanceOf[DefaultCookieSigner]
+
 
   val additionalConfiguration = Map(
     "auditing.consumer.baseUri.host" -> s"$mockHost",
@@ -47,15 +50,15 @@ class RegistrationProgressISpec extends IntegrationSpecBase with LoginStub {
     .configure(additionalConfiguration)
     .build
 
-  private def client(path: String) = WS.url(s"http://localhost:$port/company-registration/corporation-tax-registration$path").
+  private def client(path: String) = ws.url(s"http://localhost:$port/company-registration/corporation-tax-registration$path").
     withFollowRedirects(false).
-    withHeaders("Content-Type"->"application/json")
+    withHttpHeaders("Content-Type" -> "application/json")
 
   class Setup {
     val rmComp = app.injector.instanceOf[ReactiveMongoComponent]
     val crypto = app.injector.instanceOf[CryptoSCRS]
     val repository = new CorporationTaxRegistrationMongoRepository(
-      rmComp,crypto)
+      rmComp, crypto)
     await(repository.drop)
     await(repository.ensureIndexes)
   }
@@ -67,7 +70,7 @@ class RegistrationProgressISpec extends IntegrationSpecBase with LoginStub {
 
     import reactivemongo.play.json._
 
-    val jsonDoc = Json.parse (
+    val jsonDoc = Json.parse(
       s"""
          |{
          |"internalId":"${internalId}","registrationID":"${registrationId}","status":"draft","formCreationTimestamp":"testDateTime","language":"en",
@@ -85,7 +88,7 @@ class RegistrationProgressISpec extends IntegrationSpecBase with LoginStub {
 
       response.status shouldBe 200
 
-      val doc = await( repository.findBySelector(repository.regIDSelector(registrationId)))
+      val doc = await(repository.findBySelector(repository.regIDSelector(registrationId)))
 
       doc shouldBe defined
       doc.get.registrationProgress shouldBe Some(progress)

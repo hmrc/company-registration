@@ -20,14 +20,15 @@ import java.util.UUID
 
 import auth.CryptoSCRS
 import com.google.inject.name.Names
+import itutil.WiremockHelper._
 import itutil.{IntegrationSpecBase, LogCapturing, WiremockHelper}
 import models._
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.inject.{BindingKey, QualifierInstance}
 import play.api.libs.json.{JsObject, Json, OWrites}
-import play.api.{Application, Logger}
 import play.api.test.Helpers._
+import play.api.{Application, Logger}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.Cursor
 import reactivemongo.api.commands.WriteResult
@@ -143,6 +144,7 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with LogCapturing
       "there is one stale document" in new Setup {
         stubGet(s"/incorporation-information/$txID/incorporation-update", 200, s"""{}""")
         stubGet(s"/business-registration/admin/business-tax-registration/remove/$regId", 200, """{}""")
+        stubDelete(s"/incorporation-information/subscribe/$txID/regime/ctax/subscriber/SCRS?force=true", 200, s"""""")
 
         insert(corporationTaxRegistration(lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(93), regId = regId))
 

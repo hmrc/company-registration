@@ -18,7 +18,7 @@ package helpers
 
 import mocks.SCRSMocks
 import org.mockito.Mockito.reset
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterEach, WordSpec}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 

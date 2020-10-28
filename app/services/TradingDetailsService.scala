@@ -16,30 +16,26 @@
 
 package services
 
-import javax.inject.Inject
-
+import javax.inject.{Inject,Singleton}
 import models.TradingDetails
+import play.api.mvc.ControllerComponents
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class TradingDetailsServiceImpl @Inject()(val repositories: Repositories) extends TradingDetailsService {
-  lazy val corporationTaxRegistrationMongoRepository = repositories.cTRepository
-}
+@Singleton
+class TradingDetailsService @Inject()(val repositories: Repositories, controllerComponents: ControllerComponents) extends BackendController(controllerComponents) {
+  lazy val corporationTaxRegistrationMongoRepository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 
-trait TradingDetailsService extends BaseController {
-
-  val corporationTaxRegistrationMongoRepository : CorporationTaxRegistrationMongoRepository
-
-  def retrieveTradingDetails(registrationID : String) : Future[Option[TradingDetails]] = {
+  def retrieveTradingDetails(registrationID: String): Future[Option[TradingDetails]] = {
     corporationTaxRegistrationMongoRepository.retrieveTradingDetails(registrationID).map {
       tradingDetails => tradingDetails
     }
   }
 
-  def updateTradingDetails(registrationID : String, tradingDetails: TradingDetails) : Future[Option[TradingDetails]] = {
+  def updateTradingDetails(registrationID: String, tradingDetails: TradingDetails): Future[Option[TradingDetails]] = {
     corporationTaxRegistrationMongoRepository.updateTradingDetails(registrationID, tradingDetails).map {
       tradingDetails => tradingDetails
     }

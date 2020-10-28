@@ -17,30 +17,26 @@
 package controllers
 
 import auth._
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import models.{ContactDetails, ErrorResponse}
 import play.api.libs.json.{JsObject, JsValue, Json}
-import play.api.mvc.{Action, AnyContent}
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.{ContactDetailsService, MetricsService}
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class ContactDetailsControllerImpl @Inject()(val metricsService: MetricsService,
-                                             val contactDetailsService: ContactDetailsService,
-                                             val authConnector: AuthConnector,
-                                             val repositories: Repositories) extends ContactDetailsController {
+@Singleton
+class ContactDetailsController @Inject()(val metricsService: MetricsService,
+                                         val contactDetailsService: ContactDetailsService,
+                                         val authConnector: AuthConnector,
+                                         val repositories: Repositories,
+                                         controllerComponents: ControllerComponents) extends BackendController(controllerComponents) with AuthorisedActions {
   lazy val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
-}
 
-trait ContactDetailsController extends BaseController with AuthorisedActions {
-
-  val contactDetailsService: ContactDetailsService
-  val metricsService: MetricsService
-
-  private[controllers] def mapToResponse(registrationID: String, res: ContactDetails)= {
+  private[controllers] def mapToResponse(registrationID: String, res: ContactDetails) = {
     Json.toJson(res).as[JsObject] ++
       Json.obj(
         "links" -> Json.obj(
@@ -53,7 +49,7 @@ trait ContactDetailsController extends BaseController with AuthorisedActions {
   def retrieveContactDetails(registrationID: String): Action[AnyContent] = AuthorisedAction(registrationID).async {
     implicit request =>
       val timer = metricsService.retrieveContactDetailsCRTimer.time()
-      contactDetailsService.retrieveContactDetails(registrationID).map{
+      contactDetailsService.retrieveContactDetails(registrationID).map {
         case Some(details) => timer.stop()
           Ok(mapToResponse(registrationID, details))
         case None => timer.stop()
@@ -64,8 +60,8 @@ trait ContactDetailsController extends BaseController with AuthorisedActions {
   def updateContactDetails(registrationID: String): Action[JsValue] = AuthorisedAction(registrationID).async(parse.json) {
     implicit request =>
       val timer = metricsService.updateContactDetailsCRTimer.time()
-      withJsonBody[ContactDetails]{ contactDetails =>
-        contactDetailsService.updateContactDetails(registrationID, contactDetails).map{
+      withJsonBody[ContactDetails] { contactDetails =>
+        contactDetailsService.updateContactDetails(registrationID, contactDetails).map {
           case Some(details) => timer.stop()
             Ok(mapToResponse(registrationID, details))
           case None => timer.stop()

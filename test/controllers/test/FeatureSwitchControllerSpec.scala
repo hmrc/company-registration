@@ -21,29 +21,31 @@ import akka.stream.ActorMaterializer
 import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
+import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 
+import scala.concurrent.Future
+
 class FeatureSwitchControllerSpec extends WordSpec with Matchers with MockitoSugar {
 
-  implicit val system = ActorSystem("CR")
-  implicit val materializer = ActorMaterializer()
+  implicit val system: ActorSystem = ActorSystem("CR")
+  implicit val materializer: ActorMaterializer = ActorMaterializer()
 
-
-  val mockQuartz = mock[QuartzSchedulerExtension]
+  val mockQuartz: QuartzSchedulerExtension = mock[QuartzSchedulerExtension]
 
   class Setup {
-    val controller = new FeatureSwitchController {
-      override val scheduler: QuartzSchedulerExtension = mockQuartz
+    val controller: FeatureSwitchController = new FeatureSwitchController(system, stubControllerComponents()) {
+      override lazy val scheduler: QuartzSchedulerExtension = mockQuartz
     }
   }
 
   "show" should {
 
     "return a 200 and display all feature flags and their status " in new Setup {
-      val result = controller.show(FakeRequest())
+      val result: Future[Result] = controller.show(FakeRequest())
       status(result) shouldBe 200
       contentAsString(result) shouldBe ""
     }
@@ -53,13 +55,13 @@ class FeatureSwitchControllerSpec extends WordSpec with Matchers with MockitoSug
 
     "enable scheduledJob successfully" in new Setup {
       when(mockQuartz.resumeJob(ArgumentMatchers.any())).thenReturn(true)
-      val result = controller.switch("missing-incorporation-job", "enable")(FakeRequest())
+      val result: Future[Result] = controller.switch("missing-incorporation-job", "enable")(FakeRequest())
       status(result) shouldBe OK
       verify(mockQuartz, times(1)).resumeJob(ArgumentMatchers.any())
     }
     "disable scheduledJob successfully" in new Setup {
       when(mockQuartz.suspendJob(ArgumentMatchers.any())).thenReturn(true)
-      val result = controller.switch("missing-incorporation-job", "disable")(FakeRequest())
+      val result: Future[Result] = controller.switch("missing-incorporation-job", "disable")(FakeRequest())
       status(result) shouldBe OK
       verify(mockQuartz, times(1)).suspendJob(ArgumentMatchers.any())
     }

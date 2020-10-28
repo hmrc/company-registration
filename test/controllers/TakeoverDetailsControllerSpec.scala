@@ -18,22 +18,24 @@ package controllers
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import auth.AuthorisationResource
 import helpers.BaseSpec
 import mocks.AuthorisationMocks
 import models.{Address, TakeoverDetails}
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
-import play.api.libs.json.Json
+import play.api.libs.json.{JsObject, Json}
+import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.TakeoverDetailsService
-import uk.gov.hmrc.auth.core.AuthConnector
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
 class TakeoverDetailsControllerSpec extends BaseSpec with AuthorisationMocks {
+
+  override val mockResource: CorporationTaxRegistrationMongoRepository = mockTypedResource[CorporationTaxRegistrationMongoRepository]
 
   val validTakeoverDetailsModel: TakeoverDetails = TakeoverDetails(
     replacingAnotherBusiness = true,
@@ -47,17 +49,19 @@ class TakeoverDetailsControllerSpec extends BaseSpec with AuthorisationMocks {
   val internalId = "int-12345"
   val mockTakeoverDetailsService: TakeoverDetailsService = mock[TakeoverDetailsService]
 
-  implicit val act = ActorSystem()
-  implicit val mat = ActorMaterializer()
+  implicit val act: ActorSystem = ActorSystem()
+  implicit val mat: ActorMaterializer = ActorMaterializer()
 
   class Setup {
     reset(mockTakeoverDetailsService)
+    val mockRepositories: Repositories = mock[Repositories]
 
-    val controller: TakeoverDetailsController = new TakeoverDetailsController {
-      val authConnector: AuthConnector = mockAuthConnector
-      val resource: AuthorisationResource[String] = mockResource
-      val takeoverDetailsService: TakeoverDetailsService = mockTakeoverDetailsService
-      implicit val ec: ExecutionContext = global
+    val controller: TakeoverDetailsController = new TakeoverDetailsController(mockRepositories,
+      mockTakeoverDetailsService,
+      mockAuthConnector,
+      stubControllerComponents()) {
+      override lazy val resource: CorporationTaxRegistrationMongoRepository = mockResource
+      override val ec: ExecutionContext = global
     }
   }
 
@@ -68,7 +72,7 @@ class TakeoverDetailsControllerSpec extends BaseSpec with AuthorisationMocks {
 
       when(mockTakeoverDetailsService.retrieveTakeoverDetailsBlock(registrationId)).thenReturn(Future.successful(Some(validTakeoverDetailsModel)))
 
-      val result = controller.getBlock(registrationId)(FakeRequest())
+      val result: Future[Result] = controller.getBlock(registrationId)(FakeRequest())
       status(result) shouldBe OK
       contentAsJson(result) shouldBe Json.obj(
         "replacingAnotherBusiness" -> true,
@@ -98,7 +102,7 @@ class TakeoverDetailsControllerSpec extends BaseSpec with AuthorisationMocks {
 
       when(mockTakeoverDetailsService.retrieveTakeoverDetailsBlock(registrationId)).thenReturn(Future.successful(None))
 
-      val result = controller.getBlock(registrationId)(FakeRequest())
+      val result: Future[Result] = controller.getBlock(registrationId)(FakeRequest())
       status(result) shouldBe NO_CONTENT
     }
   }
@@ -107,7 +111,7 @@ class TakeoverDetailsControllerSpec extends BaseSpec with AuthorisationMocks {
     "return a 200 response if the TakeoverDetails json is valid" in new Setup {
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.successful(internalId))
-      val request = FakeRequest().withBody(Json.obj(
+      val request: FakeRequest[JsObject] = FakeRequest().withBody(Json.obj(
         "replacingAnotherBusiness" -> true,
         "businessName" -> "business",
         "businessTakeoverAddress" -> Json.obj(
@@ -131,14 +135,14 @@ class TakeoverDetailsControllerSpec extends BaseSpec with AuthorisationMocks {
 
       when(mockTakeoverDetailsService.updateTakeoverDetailsBlock(eqTo(registrationId), any())).thenReturn(Future.successful(validTakeoverDetailsModel))
 
-      val result = controller.saveBlock(registrationId)(request)
+      val result: Future[Result] = controller.saveBlock(registrationId)(request)
       status(result) shouldBe OK
     }
 
     "return a 400 response if the TakeoverDetails json is invalid" in new Setup {
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.successful(internalId))
-      val request = FakeRequest().withBody(Json.obj(
+      val request: FakeRequest[JsObject] = FakeRequest().withBody(Json.obj(
         "replacingAnotherBusiness" -> true,
         "businessName" -> 123,
         "businessTakeoverAddress" -> Json.obj(
@@ -160,13 +164,13 @@ class TakeoverDetailsControllerSpec extends BaseSpec with AuthorisationMocks {
         )
       ))
 
-      val result = controller.saveBlock(registrationId)(request)
+      val result: Future[Result] = controller.saveBlock(registrationId)(request)
       status(result) shouldBe BAD_REQUEST
     }
     "return an exception if the request is missing fields" in new Setup {
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.successful(internalId))
-      val request = FakeRequest().withBody(Json.obj(
+      val request: FakeRequest[JsObject] = FakeRequest().withBody(Json.obj(
         "replacingAnotherBusiness" -> true,
         "businessName" -> "business",
         "prevOwnersName" -> "human",

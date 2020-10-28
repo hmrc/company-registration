@@ -15,19 +15,19 @@
  */
 
 package models.validation
+
 import auth.CryptoSCRS
 import models.AccountPrepDetails.{COMPANY_DEFINED, HMRC_DEFINED}
 import models.AccountingDetails.{FUTURE_DATE => FD, NOT_PLANNING_TO_YET => NP2Y, WHEN_REGISTERED => WR}
 import models._
-import models.validation.MongoValidation.lengthFmt
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
-import play.api.data.validation.ValidationError
-import play.api.libs.json.Reads.{maxLength, pattern}
-import play.api.libs.json._
 import play.api.libs.functional.syntax._
+import play.api.libs.json.Reads.{maxLength, pattern}
+import play.api.libs.json.JsonValidationError
 import utils.StringNormaliser
+import play.api.libs.json._
 
 import scala.util.Try
 import scala.util.matching.Regex
@@ -35,9 +35,9 @@ import scala.util.matching.Regex
 object APIValidation extends APIValidation
 
 trait APIValidation extends BaseJsonFormatting
-    with ContactDetailsValidator
-    with AddressValidator
-    with DateValidator with GroupsValidator {
+  with ContactDetailsValidator
+  with AddressValidator
+  with DateValidator with GroupsValidator {
 
   val ackRefValidator: Format[String] = readToFmt(maxLength[String](31))
 
@@ -46,12 +46,13 @@ trait APIValidation extends BaseJsonFormatting
   val acctPrepStatusValidator: Format[String] = readToFmt(pattern(s"^$COMPANY_DEFINED|$HMRC_DEFINED$$".r))
 
   def accountPrepDetailsFormatWithFilter(formatDef: OFormat[AccountPrepDetails]): Format[AccountPrepDetails] = {
-    withFilter[AccountPrepDetails](formatDef, ValidationError("If a date is specified, the status must be COMPANY_DEFINED")) {
+    withFilter[AccountPrepDetails](formatDef, JsonValidationError("If a date is specified, the status must be COMPANY_DEFINED")) {
       aPD => if (aPD.endDate.isDefined) aPD.status == COMPANY_DEFINED else aPD.status != COMPANY_DEFINED
     }
   }
 
 }
+
 trait GroupsValidator {
   self: BaseJsonFormatting =>
 
@@ -60,22 +61,25 @@ trait GroupsValidator {
       json.validate[String].flatMap(str =>
         Try(GroupCompanyNameEnum.withName(str))
           .toOption
-          .fold[JsResult[GroupCompanyNameEnum.Value]](JsError(s"String value is not an enum: $str")){success =>
-          if(name.length > 20 && success == GroupCompanyNameEnum.Other) {
-            Logger.warn("[Groups API Reads] nameOfCompany.nameType = Other but name.size > 20, could indicate frontend validation issue")
-          }
-          JsSuccess(success)})
+          .fold[JsResult[GroupCompanyNameEnum.Value]](JsError(s"String value is not an enum: $str")) { success =>
+            if (name.length > 20 && success == GroupCompanyNameEnum.Other) {
+              Logger.warn("[Groups API Reads] nameOfCompany.nameType = Other but name.size > 20, could indicate frontend validation issue")
+            }
+            JsSuccess(success)
+          })
     }
 
     override def writes(o: GroupCompanyNameEnum.Value): JsValue = JsString(o.toString)
   }
+
   override def formatsForGroupAddressType: Format[GroupAddressTypeEnum.Value] = new Format[GroupAddressTypeEnum.Value] {
     override def reads(json: JsValue): JsResult[GroupAddressTypeEnum.Value] = {
       json.validate[String].flatMap(str =>
         Try(GroupAddressTypeEnum.withName(str))
           .toOption
-          .fold[JsResult[GroupAddressTypeEnum.Value]](JsError(s"String value is not an enum: $str")){success =>
-          JsSuccess(success)})
+          .fold[JsResult[GroupAddressTypeEnum.Value]](JsError(s"String value is not an enum: $str")) { success =>
+            JsSuccess(success)
+          })
     }
 
     override def writes(o: GroupAddressTypeEnum.Value): JsValue = JsString(o.toString)
@@ -84,13 +88,13 @@ trait GroupsValidator {
   override def utrFormats(cryptoSCRS: CryptoSCRS): Format[String] = new Format[String] {
     override def writes(o: String): JsValue = JsString(o)
 
-    override def reads(json: JsValue): JsResult[String] = json.validate[String].flatMap{
+    override def reads(json: JsValue): JsResult[String] = json.validate[String].flatMap {
       str => {
-        if(str.replaceAll(" ","").matches("""[0-9]{1,10}""")) {
-        JsSuccess(str)
-      } else {
-        JsError("UTR does not match regex")
-      }
+        if (str.replaceAll(" ", "").matches("""[0-9]{1,10}""")) {
+          JsSuccess(str)
+        } else {
+          JsError("UTR does not match regex")
+        }
       }
     }
   }
@@ -100,7 +104,7 @@ trait ContactDetailsValidator {
   self: BaseJsonFormatting =>
 
   def contactDetailsFormatWithFilter(formatDef: OFormat[ContactDetails]): Format[ContactDetails] = {
-    withFilter(formatDef, ValidationError("Must have at least one email, phone or mobile specified")) {
+    withFilter(formatDef, JsonValidationError("Must have at least one email, phone or mobile specified")) {
       cD => cD.mobile.isDefined || cD.phone.isDefined || cD.email.isDefined
     }
   }
@@ -114,6 +118,7 @@ trait DateValidator {
   self: BaseJsonFormatting =>
 
   def now: DateTime = DateTime.now(DateTimeZone.UTC)
+
   def yyyymmddValidator: Reads[String] = pattern("^[0-9]{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$".r)
 
   val startDateValidator: Format[String] = readToFmt(yyyymmddValidator)
@@ -121,7 +126,7 @@ trait DateValidator {
   def accountingDetailsFormatWithFilter(formatDef: OFormat[AccountingDetails]): Format[AccountingDetails] = {
     import AccountingDetails.FUTURE_DATE
 
-    withFilter[AccountingDetails](formatDef, ValidationError("If a date is specified, the status must be FUTURE_DATE")) {
+    withFilter[AccountingDetails](formatDef, JsonValidationError("If a date is specified, the status must be FUTURE_DATE")) {
       aD => if (aD.activeDate.isDefined) aD.status == FUTURE_DATE else aD.status != FUTURE_DATE
     }
   }
@@ -147,12 +152,12 @@ trait AddressValidator {
   val chRegionValidator: Format[String] = chLineValidator
 
   def ppobAddressFormatWithFilter(formatDef: OFormat[PPOBAddress]): Format[PPOBAddress] = {
-    withFilter(formatDef, ValidationError("Must have at least one of postcode and country")) {
+    withFilter(formatDef, JsonValidationError("Must have at least one of postcode and country")) {
       ppob => ppob.postcode.isDefined || ppob.country.isDefined
     }
   }
 
-  private def regexWrap(regex : String): Regex = {
+  private def regexWrap(regex: String): Regex = {
     regex.r
   }
 
@@ -168,7 +173,7 @@ trait AddressValidator {
   //Groups
   val parentGroupNameInvert = regexWrap("""[A-Z a-z 0-9\\'-]""")
 
-  def normaliseStringReads(regex:Regex, amountToTake: Int)(implicit implReads: Reads[String]): Reads[String] = new Reads[String] {
+  def normaliseStringReads(regex: Regex, amountToTake: Int)(implicit implReads: Reads[String]): Reads[String] = new Reads[String] {
     override def reads(json: JsValue): JsResult[String] = {
       implReads.reads(json).flatMap { theString =>
         val string = StringNormaliser.normaliseString(theString, regex)
@@ -188,7 +193,7 @@ trait AddressValidator {
   val parentGroupNameValidator = readToFmt(pattern(parentGroupNamePattern)(chainedNormaliseReads(parentGroupNameInvert, 20)))
 
   val lineValidator = readToFmt(pattern(linePattern)(chainedNormaliseReads(lineInvert, 27)))
-  val line4Validator = readToFmt(pattern(line4Pattern)(chainedNormaliseReads(lineInvert,18)))
+  val line4Validator = readToFmt(pattern(line4Pattern)(chainedNormaliseReads(lineInvert, 18)))
   val postcodeValidator = readToFmt(pattern(postCodePattern)(chainedNormaliseReads(postCodeInvert, 20)))
   val countryValidator = readToFmt(pattern(countryPattern)(chainedNormaliseReads(countryInvert, 20)))
 
@@ -199,6 +204,7 @@ trait AddressValidator {
         JsError(err)
       }, success => JsSuccess(json.as[String]))
     }
+
     override def writes(o: String): JsValue = JsString(o)
   }
 }

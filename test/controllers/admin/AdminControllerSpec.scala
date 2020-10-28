@@ -21,12 +21,12 @@ import akka.stream.ActorMaterializer
 import models._
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{JsObject, JsResultException, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import repositories.CorporationTaxRegistrationMongoRepository
+import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.SubmissionService
 import services.admin.AdminService
 import uk.gov.hmrc.http.HeaderCarrier
@@ -42,13 +42,15 @@ class AdminControllerSpec extends WordSpec with Matchers with MockitoSugar {
   val mockAdminService: AdminService = mock[AdminService]
   val mockSubmissionService: SubmissionService = mock[SubmissionService]
   val mockCorporationTaxMongo: CorporationTaxRegistrationMongoRepository = mock[CorporationTaxRegistrationMongoRepository]
+  val mockRepositories = mock[Repositories]
 
   trait Setup {
-    val controller = new AdminController {
-      override val adminService: AdminService = mockAdminService
-      override val submissionService: SubmissionService = mockSubmissionService
-      override val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository = mockCorporationTaxMongo
-    }
+    val controller = new AdminController(
+        mockAdminService,
+        mockSubmissionService,
+        mockRepositories,
+        stubControllerComponents()
+      )
   }
 
   val regId = "reg-12345"

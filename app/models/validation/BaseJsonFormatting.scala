@@ -22,10 +22,9 @@ import java.text.Normalizer.Form
 import auth.CryptoSCRS
 import models.{GroupCompanyNameEnum, _}
 import org.joda.time.DateTime
-import play.api.data.validation.ValidationError
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads.{maxLength, minLength}
-import play.api.libs.json._
+import play.api.libs.json.{JsonValidationError, _}
 
 trait BaseJsonFormatting {
   private val companyNameRegex = """^[A-Za-z 0-9\-,.()/'&\"!%*_+:@<>?=;]{1,160}$"""
@@ -39,11 +38,11 @@ trait BaseJsonFormatting {
 
   def readToFmt(rds: Reads[String])(implicit wts: Writes[String]): Format[String] = Format(rds, wts)
 
-  def digitLength(minLength: Int, maxLength: Int)(implicit wts: Writes[String]):Format[String] = {
+  def digitLength(minLength: Int, maxLength: Int)(implicit wts: Writes[String]): Format[String] = {
     val reads: Reads[String] = new Reads[String] {
       override def reads(json: JsValue) = {
         val str = json.as[String]
-        if(str.replaceAll(" ", "").matches(s"[0-9]{$minLength,$maxLength}")) {
+        if (str.replaceAll(" ", "").matches(s"[0-9]{$minLength,$maxLength}")) {
           JsSuccess(str)
         } else {
           JsError(s"field must contain between $minLength and $maxLength numbers")
@@ -56,14 +55,14 @@ trait BaseJsonFormatting {
 
   def lengthFmt(maxLen: Int, minLen: Int = 1): Format[String] = readToFmt(length(maxLen, minLen))
 
-  def withFilter[A](fmt: Format[A], error: ValidationError)(f: (A) => Boolean): Format[A] = {
+  def withFilter[A](fmt: Format[A], error: JsonValidationError)(f: (A) => Boolean): Format[A] = {
     Format(fmt.filter(error)(f), fmt)
   }
 
   def standardRead: Reads[String] = Reads.StringReads
 
   def cleanseCompanyName(companyName: String): String = Normalizer.normalize(
-    companyName.map(c => if(illegalCharacters.contains(c)) illegalCharacters(c) else c).mkString,
+    companyName.map(c => if (illegalCharacters.contains(c)) illegalCharacters(c) else c).mkString,
     Form.NFD
   ).replaceAll("[^\\p{ASCII}]", "").filterNot(forbiddenPunctuation)
 
@@ -72,10 +71,11 @@ trait BaseJsonFormatting {
 
   //Contact Details
   def contactDetailsFormatWithFilter(formatDef: OFormat[ContactDetails]): Format[ContactDetails]
+
   val phoneValidator: Format[String]
   val emailValidator: Format[String]
 
-  val companyNameValidator: Format[String] = readToFmt(Reads.StringReads.filter(ValidationError("Invalid company name"))(companyName => cleanseCompanyName(companyName).matches(companyNameRegex)))
+  val companyNameValidator: Format[String] = readToFmt(Reads.StringReads.filter(JsonValidationError("Invalid company name"))(companyName => cleanseCompanyName(companyName).matches(companyNameRegex)))
 
   //CHROAddress
   val chPremisesValidator: Format[String]
@@ -85,6 +85,7 @@ trait BaseJsonFormatting {
 
   //PPOBAddress
   def ppobAddressFormatWithFilter(formatDef: OFormat[PPOBAddress]): Format[PPOBAddress]
+
   val lineValidator: Format[String]
   val line4Validator: Format[String]
   val postcodeValidator: Format[String]
@@ -95,6 +96,7 @@ trait BaseJsonFormatting {
 
   //AccountingDetails
   def accountingDetailsFormatWithFilter(formatDef: OFormat[AccountingDetails]): Format[AccountingDetails]
+
   val acctStatusValidator: Format[String]
   val startDateValidator: Format[String]
 
@@ -103,12 +105,16 @@ trait BaseJsonFormatting {
 
   //AccountPrepDetails
   def accountPrepDetailsFormatWithFilter(formatDef: OFormat[AccountPrepDetails]): Format[AccountPrepDetails]
+
   val acctPrepStatusValidator: Format[String]
   val dateFormat: Format[DateTime]
-  
+
   //Groups
   def formatsForGroupCompanyNameEnum(name: String): Format[GroupCompanyNameEnum.Value]
+
   def formatsForGroupAddressType: Format[GroupAddressTypeEnum.Value]
+
   def utrFormats(cryptoSCRS: CryptoSCRS): Format[String]
+
   def groupNameValidation: Format[String] = Format(Reads.StringReads, Writes.StringWrites)
 }

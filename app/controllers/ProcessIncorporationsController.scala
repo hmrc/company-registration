@@ -16,28 +16,23 @@
 
 package controllers
 
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import models._
 import play.api.Logger
 import play.api.libs.json.JsValue
-import play.api.mvc.{Action, AnyContentAsJson, Request}
+import play.api.mvc.{Action, AnyContentAsJson, ControllerComponents, Request}
 import services._
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class ProcessIncorporationsControllerImpl @Inject()(
-                                                     metricsService: MetricsService,
-                                                     val processIncorporationService: ProcessIncorporationService,
-                                                     val corpTaxRegService: CorporationTaxRegistrationService,
-                                                     val submissionService: SubmissionService) extends ProcessIncorporationsController
-
-trait ProcessIncorporationsController extends BaseController {
-
-  val processIncorporationService: ProcessIncorporationService
-  val corpTaxRegService: CorporationTaxRegistrationService
-  val submissionService: SubmissionService
+@Singleton
+class ProcessIncorporationsController @Inject()(val processIncorporationService: ProcessIncorporationService,
+                                                val corpTaxRegService: CorporationTaxRegistrationService,
+                                                val submissionService: SubmissionService,
+                                                controllerComponents: ControllerComponents
+                                               ) extends BackendController(controllerComponents) {
 
   private def logFailedTopup(txId: String) = {
     Logger.error("FAILED_DES_TOPUP")
@@ -48,10 +43,10 @@ trait ProcessIncorporationsController extends BaseController {
     implicit request =>
 
       implicit val reads = IncorpStatus.reads
-      withJsonBody[IncorpStatus]{ incorp =>
+      withJsonBody[IncorpStatus] { incorp =>
         val requestAsAnyContentAsJson: Request[AnyContentAsJson] = request.map(AnyContentAsJson)
         processIncorporationService.processIncorporationUpdate(incorp.toIncorpUpdate) flatMap {
-          if(_) Future.successful(Ok) else {
+          if (_) Future.successful(Ok) else {
             submissionService.setupPartialForTopupOnLocked(incorp.transactionId)(hc, requestAsAnyContentAsJson) map { _ =>
               Logger.info(s"[processIncorp] Sent partial submission in response to locked document on incorp update: ${incorp.transactionId}")
               Accepted
@@ -62,25 +57,27 @@ trait ProcessIncorporationsController extends BaseController {
           case e =>
             logFailedTopup(incorp.transactionId)
             throw e
+        }
       }
-    }
   }
 
   def processAdminIncorporation: Action[JsValue] = Action.async[JsValue](parse.json) {
     implicit request =>
       implicit val reads = IncorpStatus.reads
-      withJsonBody[IncorpStatus]{ incorp =>
+      withJsonBody[IncorpStatus] { incorp =>
         processIncorporationService.processIncorporationUpdate(incorp.toIncorpUpdate, isAdmin = true) map {
-          if(_) { Ok } else {
+          if (_) {
+            Ok
+          } else {
             logFailedTopup(incorp.transactionId)
             BadRequest
           }
-      } recover {
+        } recover {
           case e =>
             logFailedTopup(incorp.transactionId)
             throw e
         }
-    }
+      }
   }
 
 }

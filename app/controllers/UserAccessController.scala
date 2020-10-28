@@ -17,23 +17,21 @@
 package controllers
 
 import auth._
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import play.api.libs.json.Json
-import play.api.mvc.{Action, AnyContent}
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import services.{MetricsService, UserAccessService}
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class UserAccessControllerImpl @Inject()(val authConnector: AuthConnector,
-                                         val metricsService: MetricsService,
-                                         val userAccessService: UserAccessService) extends UserAccessController
-
-trait UserAccessController extends BaseController with AuthenticatedActions {
-  val userAccessService: UserAccessService
-  val metricsService: MetricsService
+@Singleton
+class UserAccessController @Inject()(val authConnector: AuthConnector,
+                                     val metricsService: MetricsService,
+                                     val userAccessService: UserAccessService,
+                                     controllerComponents: ControllerComponents) extends BackendController(controllerComponents) with AuthenticatedActions {
 
   def checkUserAccess: Action[AnyContent] = AuthenticatedAction.retrieve(internalId).async { intId =>
     implicit request =>

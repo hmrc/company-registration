@@ -16,9 +16,8 @@
 
 package models
 
-import play.api.data.validation.ValidationError
 import play.api.libs.functional.syntax._
-import play.api.libs.json.{JsPath, Reads, Writes}
+import play.api.libs.json.{JsPath, JsonValidationError, Reads, Writes}
 
 case class Address(line1: String,
                    line2: String,
@@ -35,8 +34,8 @@ object Address {
       (JsPath \ "line4").readNullable[String] and
       (JsPath \ "postcode").readNullable[String] and
       (JsPath \ "country").readNullable[String]
-    )(Address.apply _)
-    .filter(ValidationError("Must have at least one of postcode and country"))(addr => addr.postcode.isDefined || addr.country.isDefined)
+    ) (Address.apply _)
+    .filter(JsonValidationError("Must have at least one of postcode and country"))(addr => addr.postcode.isDefined || addr.country.isDefined)
 
   implicit val writes: Writes[Address] = (
     (JsPath \ "line1").write[String] and
@@ -45,6 +44,6 @@ object Address {
       (JsPath \ "line4").writeNullable[String] and
       (JsPath \ "postcode").writeNullable[String] and
       (JsPath \ "country").writeNullable[String]
-    )(unlift(Address.unapply _))
+    ) (unlift(Address.unapply _))
 
 }

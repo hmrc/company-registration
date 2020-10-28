@@ -17,30 +17,37 @@
 package services
 
 import config.MicroserviceAppConfig
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import org.joda.time.DateTime
+import play.api.mvc.{BaseController, ControllerComponents}
 import repositories.{Repositories, ThrottleMongoRepository}
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 import uk.gov.hmrc.time.DateTimeUtils
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 sealed trait ThrottleResponse
+
 case class ThrottleSuccessResponse(registrationID: String) extends ThrottleResponse
+
 case object ThrottleTooManyRequestsResponse extends ThrottleResponse
 
-class ThrottleServiceImpl @Inject()(val repositories: Repositories,
-                                    microserviceAppConfig: MicroserviceAppConfig) extends ThrottleService {
-  lazy val throttleMongoRepository = repositories.throttleRepository
-  def dateTime = DateTimeUtils.now
-  lazy val threshold = microserviceAppConfig.getConfInt("throttle-threshold", throw new Exception("throttle-threshold not found in config"))
-}
+@Singleton
+class ThrottleService @Inject()(val repositories: Repositories,
+                                config: MicroserviceAppConfig,
+                                override val controllerComponents: ControllerComponents)
+  extends BackendController(controllerComponents) {
 
-trait ThrottleService extends BaseController {
-  val throttleMongoRepository : ThrottleMongoRepository
-  def dateTime: DateTime
-  val threshold: Int
+
+  lazy val throttleMongoRepository = repositories.throttleRepository
+
+  def dateTime = DateTimeUtils.now
+
+
+  lazy val threshold = config.threshold
+
 
   def checkUserAccess: Future[Boolean] = {
     val date = getCurrentDay

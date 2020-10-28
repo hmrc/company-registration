@@ -16,30 +16,27 @@
 
 package controllers
 
-import auth._
-import javax.inject.Inject
+import auth.AuthorisedActions
+import javax.inject.{Inject, Singleton}
 import models.{CompanyDetails, ElementsFromH02Reads, ErrorResponse, TradingDetails}
 import play.api.libs.json._
-import play.api.mvc.{Action, AnyContent}
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services._
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-
-class CompanyDetailsControllerImpl @Inject()(val metricsService: MetricsService,
-                                             val companyDetailsService: CompanyDetailsService,
-                                             val authConnector: AuthConnector,
-                                             val repositories: Repositories) extends CompanyDetailsController {
+@Singleton
+class CompanyDetailsController @Inject()(val metricsService: MetricsService,
+                                         val companyDetailsService: CompanyDetailsService,
+                                         val authConnector: AuthConnector,
+                                         val repositories: Repositories,
+                                         controllerComponents: ControllerComponents)
+  extends BackendController(controllerComponents) with AuthorisedActions {
   lazy val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
-}
 
-trait CompanyDetailsController extends BaseController with AuthorisedActions {
-
-  val companyDetailsService: CompanyDetailsService
-  val metricsService: MetricsService
 
   private[controllers] def mapToResponse(registrationID: String, res: CompanyDetails) = {
     Json.toJson(res).as[JsObject] ++
@@ -52,14 +49,15 @@ trait CompanyDetailsController extends BaseController with AuthorisedActions {
       )
   }
 
-  def saveHandOff2ReferenceAndGenerateAckRef(registrationID: String): Action[JsValue] = AuthorisedAction(registrationID).async[JsValue](parse.json){implicit request =>
+  def saveHandOff2ReferenceAndGenerateAckRef(registrationID: String): Action[JsValue] = AuthorisedAction(registrationID).async[JsValue](parse.json) { implicit request =>
     withJsonBody[String] { txId =>
-      companyDetailsService.saveTxIdAndAckRef(registrationID, txId).map{
-        ackRefJsObject => Ok(ackRefJsObject)}
-      }(implicitly,implicitly, ElementsFromH02Reads.reads)
-    }
+      companyDetailsService.saveTxIdAndAckRef(registrationID, txId).map {
+        ackRefJsObject => Ok(ackRefJsObject)
+      }
+    }(implicitly, implicitly, ElementsFromH02Reads.reads)
+  }
 
-  def retrieveCompanyDetails(registrationID: String): Action[AnyContent] = AuthorisedAction(registrationID).async{
+  def retrieveCompanyDetails(registrationID: String): Action[AnyContent] = AuthorisedAction(registrationID).async {
     implicit request =>
       val timer = metricsService.retrieveCompanyDetailsCRTimer.time()
       companyDetailsService.retrieveCompanyDetails(registrationID).map {
@@ -70,16 +68,17 @@ trait CompanyDetailsController extends BaseController with AuthorisedActions {
       }
   }
 
-  def updateCompanyDetails(registrationID: String): Action[JsValue] = AuthorisedAction(registrationID).async[JsValue](parse.json){
+  def updateCompanyDetails(registrationID: String): Action[JsValue] = AuthorisedAction(registrationID).async[JsValue](parse.json) {
     implicit request =>
       val timer = metricsService.updateCompanyDetailsCRTimer.time()
-      withJsonBody[CompanyDetails]{
-        companyDetails => companyDetailsService.updateCompanyDetails(registrationID, companyDetails).map {
-          case Some(details) => timer.stop()
-            Ok(mapToResponse(registrationID, details))
-          case None => timer.stop()
-            NotFound(ErrorResponse.companyDetailsNotFound)
-        }
+      withJsonBody[CompanyDetails] {
+        companyDetails =>
+          companyDetailsService.updateCompanyDetails(registrationID, companyDetails).map {
+            case Some(details) => timer.stop()
+              Ok(mapToResponse(registrationID, details))
+            case None => timer.stop()
+              NotFound(ErrorResponse.companyDetailsNotFound)
+          }
       }
   }
 }

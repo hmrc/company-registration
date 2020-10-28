@@ -16,16 +16,16 @@
 
 package controllers
 
-import controllers.test.EmailController
 import helpers.BaseSpec
 import mocks.AuthorisationMocks
 import models.Email
 import org.mockito.ArgumentMatchers.{eq => eqTo}
 import org.mockito.Mockito._
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
+import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import repositories.MissingCTDocument
+import repositories.{CorporationTaxRegistrationMongoRepository, MissingCTDocument, Repositories}
 import services.EmailService
 import uk.gov.hmrc.auth.core.MissingBearerToken
 
@@ -33,21 +33,28 @@ import scala.concurrent.Future
 
 class EmailControllerSpec extends BaseSpec with AuthorisationMocks {
 
-  val mockEmailService = mock[EmailService]
+  val mockEmailService: EmailService = mock[EmailService]
+  val mockRepositories: Repositories = mock[Repositories]
+  override val mockResource: CorporationTaxRegistrationMongoRepository = mockTypedResource[CorporationTaxRegistrationMongoRepository]
 
   class Setup {
-    val emailController = new EmailController {
-      val emailService = mockEmailService
-      val authConnector = mockAuthConnector
-      val resource = mockResource
-    }
+    val emailController: EmailController =
+      new EmailController(
+        mockEmailService,
+        mockAuthConnector,
+        mockRepositories,
+        stubControllerComponents()
+      ) {
+        override lazy val resource: CorporationTaxRegistrationMongoRepository = mockResource
+
+      }
   }
 
   val registrationID = "reg-12345"
   val internalId = "int-12345"
   val otherInternalID = "other-int-12345"
 
-  val email = Email(
+  val email: Email = Email(
     address = "testAddress",
     emailType = "GG",
     linkSent = true,
@@ -55,7 +62,7 @@ class EmailControllerSpec extends BaseSpec with AuthorisationMocks {
     returnLinkEmailSent = true
   )
 
-  val emailJson = Json.toJson(email)
+  val emailJson: JsValue = Json.toJson(email)
 
   "retrieveEmail" should {
 
@@ -66,7 +73,7 @@ class EmailControllerSpec extends BaseSpec with AuthorisationMocks {
       when(mockEmailService.retrieveEmail(eqTo(registrationID)))
         .thenReturn(Future.successful(Some(email)))
 
-      val result = emailController.retrieveEmail(registrationID)(FakeRequest())
+      val result: Future[Result] = emailController.retrieveEmail(registrationID)(FakeRequest())
       status(result) shouldBe OK
       contentAsJson(result) shouldBe Json.toJson(email)
     }
@@ -74,7 +81,7 @@ class EmailControllerSpec extends BaseSpec with AuthorisationMocks {
     "return a 401 when the user is not logged in" in new Setup {
       mockAuthorise(Future.failed(MissingBearerToken()))
 
-      val result = emailController.retrieveEmail(registrationID)(FakeRequest())
+      val result: Future[Result] = emailController.retrieveEmail(registrationID)(FakeRequest())
       status(result) shouldBe UNAUTHORIZED
     }
 
@@ -82,7 +89,7 @@ class EmailControllerSpec extends BaseSpec with AuthorisationMocks {
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.successful(otherInternalID))
 
-      val result = emailController.retrieveEmail(registrationID)(FakeRequest())
+      val result: Future[Result] = emailController.retrieveEmail(registrationID)(FakeRequest())
       status(result) shouldBe FORBIDDEN
     }
 
@@ -90,7 +97,7 @@ class EmailControllerSpec extends BaseSpec with AuthorisationMocks {
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.failed(new MissingCTDocument("hfbhdbf")))
 
-      val result = emailController.retrieveEmail(registrationID)(FakeRequest())
+      val result: Future[Result] = emailController.retrieveEmail(registrationID)(FakeRequest())
       status(result) shouldBe NOT_FOUND
     }
   }
@@ -106,7 +113,7 @@ class EmailControllerSpec extends BaseSpec with AuthorisationMocks {
       when(mockEmailService.updateEmail(eqTo(registrationID), eqTo(email)))
         .thenReturn(Future.successful(Some(email)))
 
-      val result = emailController.updateEmail(registrationID)(request)
+      val result: Future[Result] = emailController.updateEmail(registrationID)(request)
       status(result) shouldBe OK
       contentAsJson(result) shouldBe emailJson
     }
@@ -114,7 +121,7 @@ class EmailControllerSpec extends BaseSpec with AuthorisationMocks {
     "return a 401 when the user is not logged in" in new Setup {
       mockAuthorise(Future.failed(MissingBearerToken()))
 
-      val result = emailController.updateEmail(registrationID)(request)
+      val result: Future[Result] = emailController.updateEmail(registrationID)(request)
       status(result) shouldBe UNAUTHORIZED
     }
 
@@ -122,7 +129,7 @@ class EmailControllerSpec extends BaseSpec with AuthorisationMocks {
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.successful(otherInternalID))
 
-      val result = emailController.updateEmail(registrationID)(request)
+      val result: Future[Result] = emailController.updateEmail(registrationID)(request)
       status(result) shouldBe FORBIDDEN
     }
 
@@ -130,7 +137,7 @@ class EmailControllerSpec extends BaseSpec with AuthorisationMocks {
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.failed(new MissingCTDocument("hfbhdbf")))
 
-      val result = emailController.updateEmail(registrationID)(request)
+      val result: Future[Result] = emailController.updateEmail(registrationID)(request)
       status(result) shouldBe NOT_FOUND
     }
   }

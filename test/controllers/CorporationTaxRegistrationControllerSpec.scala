@@ -16,10 +16,8 @@
 
 package controllers
 
-import java.time.LocalTime
-
 import auth.CryptoSCRS
-import fixtures.CorporationTaxRegistrationFixture
+import fixtures.{CorporationTaxRegistrationFixture, CorporationTaxRegistrationResponse}
 import helpers.BaseSpec
 import mocks.{AuthorisationMocks, MockMetricsService}
 import models.des.BusinessAddress
@@ -28,9 +26,11 @@ import models.{CHROAddress, ConfirmationReferences, CorporationTaxRegistration, 
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
 import org.mockito.{ArgumentCaptor, ArgumentMatchers}
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
+import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import uk.gov.hmrc.auth.core.InsufficientConfidenceLevel
 import utils.AlertLogging
 
@@ -38,16 +38,24 @@ import scala.concurrent.Future
 
 class CorporationTaxRegistrationControllerSpec extends BaseSpec with AuthorisationMocks with CorporationTaxRegistrationFixture {
 
-  class Setup(nowTime: LocalTime = LocalTime.parse("13:00:00")) {
-    val controller = new CorporationTaxRegistrationController {
-      val ctService = mockCTDataService
-      val resource = mockResource
-      val authConnector = mockAuthConnector
-      val metricsService = MockMetricsService
-      val alertLogging: AlertLogging = new AlertLogging {
+  val mockRepositories: Repositories = mock[Repositories]
+  val mockAlertLogging: AlertLogging = mock[AlertLogging]
+  override val mockResource: CorporationTaxRegistrationMongoRepository = mockTypedResource[CorporationTaxRegistrationMongoRepository]
+
+  class Setup {
+    val controller: CorporationTaxRegistrationController =
+      new CorporationTaxRegistrationController(
+        MockMetricsService,
+        mockAuthConnector,
+        mockCTDataService,
+        mockRepositories,
+        mockAlertLogging,
+        mockInstanceOfCrypto,
+        stubControllerComponents()
+      ) {
+        override val cryptoSCRS: CryptoSCRS = mockInstanceOfCrypto
+        override lazy val resource: CorporationTaxRegistrationMongoRepository = mockResource
       }
-      override val cryptoSCRS: CryptoSCRS = mockInstanceOfCrypto
-    }
   }
 
   val regId = "reg-12345"
@@ -64,9 +72,9 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
 
       when(mockCTDataService.createCorporationTaxRegistrationRecord(eqTo(internalId), eqTo(regId), eqTo("en")))
         .thenReturn(Future.successful(draftCorporationTaxRegistration(regId)))
-      val response = buildCTRegistrationResponse(regId)
+      val response: CorporationTaxRegistrationResponse = buildCTRegistrationResponse(regId)
 
-      val result = controller.createCorporationTaxRegistration(regId)(request)
+      val result: Future[Result] = controller.createCorporationTaxRegistration(regId)(request)
       status(result) shouldBe CREATED
       contentAsJson(result) shouldBe Json.toJson(response)
     }
@@ -74,7 +82,7 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
     "return a 403 when the user is not authorised" in new Setup {
       mockAuthorise(Future.failed(InsufficientConfidenceLevel()))
 
-      val result = controller.createCorporationTaxRegistration(regId)(request)
+      val result: Future[Result] = controller.createCorporationTaxRegistration(regId)(request)
       status(result) shouldBe FORBIDDEN
     }
   }
@@ -90,7 +98,7 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
       when(mockCTDataService.retrieveCorporationTaxRegistrationRecord(eqTo(regId), any()))
         .thenReturn(Future.successful(Some(draftCorporationTaxRegistration(regId))))
 
-      val result = controller.retrieveCorporationTaxRegistration(regId)(FakeRequest())
+      val result: Future[Result] = controller.retrieveCorporationTaxRegistration(regId)(FakeRequest())
       status(result) shouldBe OK
       contentAsJson(result) shouldBe Json.toJson(ctRegistrationResponse)
     }
@@ -101,14 +109,14 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
 
       CTServiceMocks.retrieveCTDataRecord(regId, None)
 
-      val result = controller.retrieveCorporationTaxRegistration(regId)(FakeRequest())
+      val result: Future[Result] = controller.retrieveCorporationTaxRegistration(regId)(FakeRequest())
       status(result) shouldBe NOT_FOUND
     }
 
     "return a 403 when the user is not authenticated" in new Setup {
       mockAuthorise(Future.failed(InsufficientConfidenceLevel()))
 
-      val result = controller.retrieveCorporationTaxRegistration(regId)(FakeRequest())
+      val result: Future[Result] = controller.retrieveCorporationTaxRegistration(regId)(FakeRequest())
       status(result) shouldBe FORBIDDEN
     }
   }
@@ -121,7 +129,7 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
 
       CTServiceMocks.retrieveCTDataRecord(regId, Some(validDraftCorporationTaxRegistration))
 
-      val result = controller.retrieveFullCorporationTaxRegistration(regId)(FakeRequest())
+      val result: Future[Result] = controller.retrieveFullCorporationTaxRegistration(regId)(FakeRequest())
       status(result) shouldBe OK
       contentAsJson(result) shouldBe Json.toJson(validDraftCorporationTaxRegistration)(CorporationTaxRegistration.format(MongoValidation, mockInstanceOfCrypto))
     }
@@ -132,14 +140,14 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
 
       CTServiceMocks.retrieveCTDataRecord(regId, None)
 
-      val result = controller.retrieveFullCorporationTaxRegistration(regId)(FakeRequest())
+      val result: Future[Result] = controller.retrieveFullCorporationTaxRegistration(regId)(FakeRequest())
       status(result) shouldBe NOT_FOUND
     }
 
     "return a 403 when the user is not authenticated" in new Setup {
       mockAuthorise(Future.failed(InsufficientConfidenceLevel()))
 
-      val result = controller.retrieveFullCorporationTaxRegistration(regId)(FakeRequest())
+      val result: Future[Result] = controller.retrieveFullCorporationTaxRegistration(regId)(FakeRequest())
       status(result) shouldBe FORBIDDEN
     }
   }
@@ -150,11 +158,11 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.successful(internalId))
 
-      val expected = ConfirmationReferences("BRCT00000000123", "tx", Some("py"), Some("12.00"))
+      val expected: ConfirmationReferences = ConfirmationReferences("BRCT00000000123", "tx", Some("py"), Some("12.00"))
       when(mockCTDataService.retrieveConfirmationReferences(ArgumentMatchers.eq(regId)))
         .thenReturn(Future.successful(Some(expected)))
 
-      val result = controller.retrieveConfirmationReference(regId)(FakeRequest())
+      val result: Future[Result] = controller.retrieveConfirmationReference(regId)(FakeRequest())
       status(result) shouldBe OK
       contentAsJson(result) shouldBe Json.toJson(expected)
     }
@@ -166,35 +174,35 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
       when(mockCTDataService.retrieveConfirmationReferences(ArgumentMatchers.eq(regId)))
         .thenReturn(Future.successful(None))
 
-      val result = controller.retrieveConfirmationReference(regId)(FakeRequest())
+      val result: Future[Result] = controller.retrieveConfirmationReference(regId)(FakeRequest())
       status(result) shouldBe NOT_FOUND
     }
 
     "return a 403 when the user is not authenticated" in new Setup {
       mockAuthorise(Future.failed(InsufficientConfidenceLevel()))
 
-      val result = controller.retrieveConfirmationReference(regId)(FakeRequest())
+      val result: Future[Result] = controller.retrieveConfirmationReference(regId)(FakeRequest())
       status(result) shouldBe FORBIDDEN
     }
   }
 
   "updateRegistrationProgress" should {
 
-    def progressRequest(progress: String) = Json.parse(s"""{"registration-progress":"${progress}"}""")
+    def progressRequest(progress: String): JsValue = Json.parse(s"""{"registration-progress":"$progress"}""")
 
     "Extract the progress correctly from the message and request doc is updated" in new Setup {
       mockAuthorise(Future.successful(internalId))
       mockGetInternalId(Future.successful(internalId))
 
-      val progress = "HO5"
-      val request = FakeRequest().withBody(progressRequest(progress))
+      val progress: String = "HO5"
+      val request: FakeRequest[JsValue] = FakeRequest().withBody(progressRequest(progress))
       when(mockCTDataService.updateRegistrationProgress(ArgumentMatchers.eq(regId), ArgumentMatchers.any[String]())).
         thenReturn(Future.successful(Some("")))
-      val response = controller.updateRegistrationProgress(regId)(request)
+      val response: Future[Result] = controller.updateRegistrationProgress(regId)(request)
 
       status(response) shouldBe OK
 
-      val captor = ArgumentCaptor.forClass[String, String](classOf[String])
+      val captor: ArgumentCaptor[String] = ArgumentCaptor.forClass[String, String](classOf[String])
       verify(mockCTDataService, times(1)).updateRegistrationProgress(eqTo(regId), captor.capture())
       captor.getValue shouldBe progress
     }
@@ -204,12 +212,12 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
       mockGetInternalId(Future.successful(internalId))
 
       val progress = "N/A"
-      val request = FakeRequest().withBody(progressRequest(progress))
+      val request: FakeRequest[JsValue] = FakeRequest().withBody(progressRequest(progress))
 
       when(mockCTDataService.updateRegistrationProgress(eqTo(regId), any())).
         thenReturn(Future.successful(None))
 
-      val result = controller.updateRegistrationProgress(regId)(request)
+      val result: Future[Result] = controller.updateRegistrationProgress(regId)(request)
       status(result) shouldBe NOT_FOUND
     }
   }
@@ -222,8 +230,8 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
       when(mockCTDataService.convertROToPPOBAddress(ArgumentMatchers.any()))
         .thenReturn(Some(PPOBAddress("test", "test", None, None, None, None, None, "test")))
 
-      val request = FakeRequest().withBody(cHROAddress)
-      val response = controller.convertAndReturnRoAddressIfValidInPPOBFormat()(request)
+      val request: FakeRequest[JsValue] = FakeRequest().withBody(cHROAddress)
+      val response: Future[Result] = controller.convertAndReturnRoAddressIfValidInPPOBFormat()(request)
 
       status(response) shouldBe OK
     }
@@ -232,8 +240,8 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
       when(mockCTDataService.convertROToPPOBAddress(ArgumentMatchers.any()))
         .thenReturn(None)
 
-      val request = FakeRequest().withBody(cHROAddress)
-      val response = controller.convertAndReturnRoAddressIfValidInPPOBFormat()(request)
+      val request: FakeRequest[JsValue] = FakeRequest().withBody(cHROAddress)
+      val response: Future[Result] = controller.convertAndReturnRoAddressIfValidInPPOBFormat()(request)
 
       status(response) shouldBe BAD_REQUEST
     }
@@ -263,8 +271,8 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
         ))
       )
 
-      val request = FakeRequest().withBody(anyCHROAddress)
-      val response = controller.convertAndReturnRoAddressIfValidInBusinessAddressFormat(request)
+      val request: FakeRequest[JsValue] = FakeRequest().withBody(anyCHROAddress)
+      val response: Future[Result] = controller.convertAndReturnRoAddressIfValidInBusinessAddressFormat(request)
       status(response) shouldBe OK
       contentAsJson(response) shouldBe Json.parse(
         """
@@ -283,8 +291,8 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
       when(mockCTDataService.convertRoToBusinessAddress(ArgumentMatchers.any())).thenReturn(
         None)
 
-      val request = FakeRequest().withBody(anyCHROAddress)
-      val response = controller.convertAndReturnRoAddressIfValidInBusinessAddressFormat(request)
+      val request: FakeRequest[JsValue] = FakeRequest().withBody(anyCHROAddress)
+      val response: Future[Result] = controller.convertAndReturnRoAddressIfValidInBusinessAddressFormat(request)
       status(response) shouldBe BAD_REQUEST
     }
   }

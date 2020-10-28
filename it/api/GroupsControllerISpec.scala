@@ -17,19 +17,22 @@
 package api
 
 import auth.CryptoSCRS
+import itutil.WiremockHelper._
 import itutil.{IntegrationSpecBase, LoginStub, WiremockHelper}
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.crypto.DefaultCookieSigner
 import play.api.libs.json.{JsObject, Json}
-import play.api.libs.ws.WS
 import play.api.test.Helpers._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.play.json._
 import repositories.CorporationTaxRegistrationMongoRepository
 
+
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class GroupsControllerISpec extends IntegrationSpecBase  with LoginStub {
+  lazy val defaultCookieSigner: DefaultCookieSigner = app.injector.instanceOf[DefaultCookieSigner]
 
   val regId: String = "123"
   val internalId: String = "456"
@@ -48,9 +51,9 @@ class GroupsControllerISpec extends IntegrationSpecBase  with LoginStub {
     .configure(additionalConfiguration)
     .build
 
-  private def client(path: String) = WS.url(s"http://localhost:$port/company-registration/corporation-tax-registration$path").
+  private def client(path: String) = ws.url(s"http://localhost:$port/company-registration/corporation-tax-registration$path").
     withFollowRedirects(false).
-    withHeaders("Content-Type"->"application/json")
+    withHttpHeaders("Content-Type"->"application/json")
 
   class Setup {
     val rmComp = app.injector.instanceOf[ReactiveMongoComponent]

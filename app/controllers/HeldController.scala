@@ -17,28 +17,26 @@
 package controllers
 
 import auth._
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import play.api.libs.json.Json
-import play.api.mvc.{Action, AnyContent}
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.ProcessIncorporationService
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
+import utils.JodaDateTimeFormatter
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class HeldControllerImpl @Inject()(
-                                    val authConnector: AuthConnector,
-                                    val service: ProcessIncorporationService,
-                                    val repositories: Repositories
-      ) extends HeldController {
+@Singleton
+class HeldController @Inject()(
+                                val authConnector: AuthConnector,
+                                val service: ProcessIncorporationService,
+                                val repositories: Repositories,
+                                controllerComponents: ControllerComponents
+                              ) extends BackendController(controllerComponents) with AuthorisedActions with JodaDateTimeFormatter {
   lazy val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
-}
 
-trait HeldController extends BaseController with AuthorisedActions {
-
-  val resource: CorporationTaxRegistrationMongoRepository
-  val service: ProcessIncorporationService
 
   def fetchHeldSubmissionTime(regId: String): Action[AnyContent] = AuthenticatedAction.async {
     implicit request =>
@@ -50,7 +48,7 @@ trait HeldController extends BaseController with AuthorisedActions {
   def deleteSubmissionData(regId: String): Action[AnyContent] = AuthorisedAction(regId).async {
     implicit request =>
       service.deleteRejectedSubmissionData(regId).map {
-        if(_) Ok else NotFound
+        if (_) Ok else NotFound
       }
   }
 }

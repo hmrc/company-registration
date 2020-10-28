@@ -18,35 +18,32 @@ package controllers.test
 
 import akka.actor.ActorSystem
 import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
-import javax.inject.Inject
-import play.api.libs.json.Json
-import play.api.mvc.{Action, AnyContent}
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import javax.inject.{Inject, Singleton}
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 import utils.{BooleanFeatureSwitch, FeatureSwitch, SCRSFeatureSwitches}
 
 import scala.concurrent.Future
 
-class FeatureSwitchControllerImpl @Inject()(val actorSystem: ActorSystem) extends FeatureSwitchController {
-  override lazy val scheduler: QuartzSchedulerExtension = QuartzSchedulerExtension(actorSystem)
-}
-
-trait FeatureSwitchController extends BaseController {
-  val scheduler: QuartzSchedulerExtension
+@Singleton
+class FeatureSwitchController @Inject()(val actorSystem: ActorSystem, controllerComponents: ControllerComponents) extends BackendController(controllerComponents) {
+  lazy val scheduler: QuartzSchedulerExtension = QuartzSchedulerExtension(actorSystem)
 
   val featureSwitch = FeatureSwitch
 
-  def switch(featureName : String, featureState : String) = Action.async {
+  def switch(featureName: String, featureState: String) = Action.async {
     implicit request =>
 
-     def feature = (featureName, featureState) match {
-        case (jobName, "enable")  =>
+      def feature = (featureName, featureState) match {
+        case (jobName, "enable") =>
           scheduler.resumeJob(jobName)
           BooleanFeatureSwitch(featureName, true)
         case (jobName, "disable") =>
           scheduler.suspendJob(jobName)
           BooleanFeatureSwitch(featureName, false)
       }
-          Future.successful(Ok(Json.toJson(feature)))
+
+      Future.successful(Ok(feature.toString))
   }
 
   def show: Action[AnyContent] = Action.async {

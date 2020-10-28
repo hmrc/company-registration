@@ -16,6 +16,7 @@
 
 package connectors
 
+import itutil.WiremockHelper._
 import itutil.{IntegrationSpecBase, WiremockHelper}
 import models._
 import org.joda.time.DateTime
@@ -24,6 +25,7 @@ import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.Helpers._
 import uk.gov.hmrc.http.HeaderCarrier
+
 
 class IncorporationCheckAPIConnectorISpec extends IntegrationSpecBase {
   val mockHost = WiremockHelper.wiremockHost

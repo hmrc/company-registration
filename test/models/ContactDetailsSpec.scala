@@ -18,8 +18,8 @@ package models
 
 import models.validation.MongoValidation
 import org.scalatest.{Matchers, WordSpec}
-import play.api.data.validation.ValidationError
 import play.api.libs.json._
+import play.api.libs.json.JsonValidationError
 
 class ContactDetailsSpec extends WordSpec with Matchers with JsonFormatValidation {
 
@@ -68,12 +68,12 @@ class ContactDetailsSpec extends WordSpec with Matchers with JsonFormatValidatio
       "invalid phone numbers are supplied" in {
         val json = j(p = Some("123456"), m = Some("1234567890"))
         val result = Json.parse(json).validate[ContactDetails]
-        shouldHaveErrors(result, JsPath() \ "contactDaytimeTelephoneNumber", Seq(ValidationError("field must contain between 10 and 20 numbers")))
+        shouldHaveErrors(result, JsPath() \ "contactDaytimeTelephoneNumber", Seq(JsonValidationError("field must contain between 10 and 20 numbers")))
       }
       "invalid phone numbers are supplied with spaces" in {
         val json = j(p = Some("1234567890"), m = Some("12345   678"))
         val result = Json.parse(json).validate[ContactDetails]
-        shouldHaveErrors(result, JsPath() \ "contactMobileNumber", Seq(ValidationError("field must contain between 10 and 20 numbers")))
+        shouldHaveErrors(result, JsPath() \ "contactMobileNumber", Seq(JsonValidationError("field must contain between 10 and 20 numbers")))
       }
     }
   }
@@ -96,7 +96,7 @@ class ContactDetailsSpec extends WordSpec with Matchers with JsonFormatValidatio
     "fail if email is invalid" ignore { // ignored for now due to regex clarification!
       val json = j(e = Some("testInvalidEmail"))
       val result = Json.parse(json).validate[ContactDetails]
-      shouldHaveErrors(result, JsPath() \ "contactEmail", Seq(ValidationError("error.pattern")))
+      shouldHaveErrors(result, JsPath() \ "contactEmail", Seq(JsonValidationError("error.pattern")))
     }
 
     "check with a valid email address" in {
@@ -119,7 +119,7 @@ class ContactDetailsSpec extends WordSpec with Matchers with JsonFormatValidatio
       val json = """{"contactMobileNumber":"1234567890", "contactEmail":"xxx+xxx@xxx.com"}"""
       val result = Json.parse(json).validate[ContactDetails]
 
-      shouldHaveErrors(result, JsPath() \ "contactEmail", Seq(ValidationError("error.pattern")))
+      shouldHaveErrors(result, JsPath() \ "contactEmail", Seq(JsonValidationError("error.pattern")))
     }
   }
 
@@ -137,7 +137,7 @@ class ContactDetailsSpec extends WordSpec with Matchers with JsonFormatValidatio
       val jsonNoContact = Json.parse("""{}""")
 
       val result = Json.fromJson[ContactDetails](jsonNoContact)
-      shouldHaveErrors(result, JsPath(), Seq(ValidationError("Must have at least one email, phone or mobile specified")))
+      shouldHaveErrors(result, JsPath(), Seq(JsonValidationError("Must have at least one email, phone or mobile specified")))
     }
   }
 }
