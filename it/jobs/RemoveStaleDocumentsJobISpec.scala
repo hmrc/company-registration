@@ -209,7 +209,7 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with LogCapturing
         }
       }
 
-      "there is one stale document and 3 on the whitelist" in new Setup {
+      "there is one stale document and 3 on the allow list" in new Setup {
         stubGet(s"/incorporation-information/$txID/incorporation-update", 200, s"""{}""")
         stubGet(s"/business-registration/admin/business-tax-registration/remove/$regId", 200, """{}""")
         stubDelete(s"/incorporation-information/subscribe/$txID/regime/ctax/subscriber/SCRS?force=true", 200, s"""""")
@@ -335,7 +335,7 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with LogCapturing
         count shouldBe 1
       }
 
-      "the documents are on the whitelist" in new Setup {
+      "the documents are on the allow list" in new Setup {
         insert(corporationTaxRegistration(lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(100), regId = "2"))
         insert(corporationTaxRegistration(lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(100), regId = "3"))
         insert(corporationTaxRegistration(lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(100), regId = "1"))
