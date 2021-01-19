@@ -404,7 +404,7 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
           .thenReturn(Future.successful(true))
         await(service.deleteStaleDocuments()) shouldBe 2
       }
-      "three are older than 90 days, and one is on the whitelist" in new Setup {
+      "three are older than 90 days, and one is on the allow list" in new Setup {
         when(mockCorpTaxRegistrationRepo.retrieveStaleDocuments(any(), any()))
           .thenReturn(Future.successful(List.fill(2)(exampleDoc).::(exampleDoc.copy(registrationID = "2"))))
         when(mockBusRegConnector.adminRemoveMetadata(any()))
