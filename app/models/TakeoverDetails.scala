@@ -23,7 +23,12 @@ case class TakeoverDetails(replacingAnotherBusiness: Boolean,
                            businessName: Option[String],
                            businessTakeoverAddress: Option[Address],
                            prevOwnersName: Option[String],
-                           prevOwnersAddress: Option[Address])
+                           prevOwnersAddress: Option[Address]) {
+  def withSanitisedAddresses: TakeoverDetails = copy(
+    businessTakeoverAddress = businessTakeoverAddress.map(_.sanitised),
+    prevOwnersAddress = prevOwnersAddress.map(_.sanitised)
+  )
+}
 
 object TakeoverDetails {
   implicit val format: Format[TakeoverDetails] = (
