@@ -17,9 +17,10 @@
 package utils
 
 
+import models.validation.APIValidation
+
 import java.text.Normalizer
 import java.text.Normalizer.Form
-
 import scala.util.matching.Regex
 
 object StringNormaliser {
@@ -48,5 +49,10 @@ object StringNormaliser {
       }.mkString,
       Form.NFD
     )
+  }
+
+  def normaliseAndRemoveIllegalCharacters(string: String) = {
+    val normalisedString = normaliseString(string ,APIValidation.lineInvert)
+    removeIllegalCharacters(normalisedString)
   }
 }

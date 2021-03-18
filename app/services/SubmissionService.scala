@@ -235,7 +235,7 @@ trait SubmissionService extends DateHelper {
         businessAddress = businessAddress,
         businessContactDetails = businessContactDetails,
         groups = formatGroupsForSubmission,
-        takeOver = ctData.takeoverDetails
+        takeOver = ctData.takeoverDetails.map(_.withSanitisedAddresses)
       )
     )
   }

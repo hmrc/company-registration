@@ -433,7 +433,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
         reg.status shouldBe HELD
       }
 
-      "registration is in Draft status, at 5-1, sending the RO address as the PPOB and RO has unormalised characters" in new Setup {
+      "registration is in Draft status, at 5-1, sending the RO address as the PPOB, RO and takeover addresses have unormalised characters" in new Setup {
         stubAuthorise(200, authorisedRetrievals)
 
         val confRefsWithoutPayment: ConfirmationReferences = ConfirmationReferences(
@@ -443,13 +443,31 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
           paymentAmount = None
         )
 
+        val invalidAddress = Address(
+          "<123> {ABC} !*^%$£",
+          "BDT & CFD /|@",
+          Some("A¥€ 1 «»;:"),
+          Some("B~ ¬` 2^ -+=_:;"),
+          Some("XX1 1ØZ"),
+          Some("test coûntry")
+        )
+
+        val takeoverWithInvalidAddress: TakeoverDetails = TakeoverDetails(
+          replacingAnotherBusiness = true,
+          businessName = Some("Takeover name"),
+          businessTakeoverAddress = Some(invalidAddress),
+          prevOwnersName = Some("prev name"),
+          prevOwnersAddress = Some(invalidAddress)
+        )
+
         await(ctRepository.insert(draftRegistration.copy(companyDetails =
           Some(CompanyDetails(
             companyName = "testCompanyName",
             CHROAddress("<123> {ABC} !*^%$£", "BDT & CFD /|@", Some("A¥€ 1 «»;:"), "D£q|l", ":~#Rts!2", Some("B~ ¬` 2^ -+=_:;"), Some("XX1 1ØZ"), Some("test coûntry")),
             PPOB("RO", None),
             jurisdiction = "testJurisdiction"
-          ))
+          )),
+          takeoverDetails = Some(takeoverWithInvalidAddress)
         )))
 
         stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
@@ -490,7 +508,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
               ),
               "corporationTax" -> Json.obj(
                 "companyOfficeNumber" -> "623",
-                "hasCompanyTakenOverBusiness" -> false,
+                "hasCompanyTakenOverBusiness" -> true,
                 "companyMemberOfGroup" -> false,
                 "companiesHouseCompanyName" -> "testCompanyName",
                 "returnsOnCT61" -> true,
@@ -507,6 +525,26 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
                   "phoneNumber" -> "02072899066",
                   "mobileNumber" -> "07567293726",
                   "email" -> "test@email.co.uk"
+                ),
+                "businessTakeOverDetails" -> Json.obj(
+                  "businessNameLine1" -> "Takeover name",
+                  "businessTakeoverAddress" -> Json.obj(
+                    "country" -> "test country",
+                    "line1" -> "123 ABC ",
+                    "line2" -> "BDT & CFD /",
+                    "line3" -> "A 1 ,.",
+                    "line4" -> "B  2 -.,",
+                    "postcode" -> "XX1 1OZ"
+                  ),
+                  "prevOwnerAddress" -> Json.obj(
+                    "country" -> "test country",
+                    "line1" -> "123 ABC ",
+                    "line2" -> "BDT & CFD /",
+                    "line3" -> "A 1 ,.",
+                    "line4" -> "B  2 -.,",
+                    "postcode" -> "XX1 1OZ"
+                  ),
+                  "prevOwnersName" -> "prev name"
                 )
               )
             )

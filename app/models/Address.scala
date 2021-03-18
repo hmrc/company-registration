@@ -18,13 +18,25 @@ package models
 
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{JsPath, JsonValidationError, Reads, Writes}
+import utils.StringNormaliser
+import utils.StringNormaliser.removeIllegalCharacters
 
 case class Address(line1: String,
                    line2: String,
                    line3: Option[String],
                    line4: Option[String],
                    postcode: Option[String],
-                   country: Option[String])
+                   country: Option[String]) {
+  def sanitised: Address =
+    Address(
+      StringNormaliser.normaliseAndRemoveIllegalCharacters(line1),
+      StringNormaliser.normaliseAndRemoveIllegalCharacters(line2),
+      line3.map(StringNormaliser.normaliseAndRemoveIllegalCharacters),
+      line4.map(StringNormaliser.normaliseAndRemoveIllegalCharacters),
+      postcode.map(StringNormaliser.normaliseAndRemoveIllegalCharacters),
+      country.map(StringNormaliser.normaliseAndRemoveIllegalCharacters)
+    )
+}
 
 object Address {
   implicit val reads: Reads[Address] = (
