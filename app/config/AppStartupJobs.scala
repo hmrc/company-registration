@@ -20,11 +20,14 @@ import java.util.Base64
 import java.util.concurrent.TimeUnit
 
 import akka.actor.ActorSystem
+import akka.event.jul
 import javax.inject.{Inject, Singleton}
-
+import models.TakeoverDetails
+import play.api
 import play.api.{Configuration, Logger}
 import reactivemongo.api.indexes.IndexType
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
+import services.TakeoverDetailsService
 import services.admin.AdminService
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -39,13 +42,15 @@ class Startup @Inject()(appStartupJobs: AppStartupJobs, actorSystem: ActorSystem
 
 class AppStartupJobsImpl @Inject()(val config: Configuration,
                                 val service: AdminService,
-                                val ctRepo: CorporationTaxRegistrationMongoRepository) extends AppStartupJobs {
+                                   val takeoverDetailsService: TakeoverDetailsService,
+val ctRepo: CorporationTaxRegistrationMongoRepository) extends AppStartupJobs {
 
 }
   trait AppStartupJobs {
 
     val config: Configuration
     val service: AdminService
+    val takeoverDetailsService: TakeoverDetailsService
     val ctRepo: CorporationTaxRegistrationMongoRepository
 
     def startupStats: Future[Unit] = {
@@ -143,6 +148,17 @@ class AppStartupJobsImpl @Inject()(val config: Configuration,
       }
     }
   }
+
+
+    def updateTakeoverData(regIds: List[String]): Future[Seq[TakeoverDetails]] = {
+      Future.traverse(regIds){
+        regId =>
+          Logger.info(s" $regId has had its takeover section rectified to false")
+          takeoverDetailsService.updateTakeoverDetailsBlock(regId, TakeoverDetails(replacingAnotherBusiness = false, None, None, None, None))
+      }
+    }
+
+
     def runEverythingOnStartUp = {
       Logger.info("Running Startup Jobs")
       lazy val regid = config.getString("companyNameRegID").getOrElse("")
@@ -156,9 +172,15 @@ class AppStartupJobsImpl @Inject()(val config: Configuration,
       lazy val listOfackRefs = new String(Base64.getDecoder.decode(base64ackRefs), "UTF-8").split(",").toList
       fetchByAckRef(listOfackRefs)
 
+      lazy val base64TakeoverRegIds = config.getString("list-of-takeover-regids").getOrElse("")
+      lazy val listOfTakeoverRegIds = new String(Base64.getDecoder.decode(base64TakeoverRegIds), "UTF-8").split(",").toList
+      updateTakeoverData(listOfTakeoverRegIds)
+
       fetchIndexes()
       startupStats
       lockedRegIds
+
     }
+
 
 }

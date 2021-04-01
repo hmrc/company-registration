@@ -29,6 +29,7 @@ import org.scalatest.{Matchers, WordSpec}
 import play.api.test.Helpers._
 import play.api.{Configuration, Logger}
 import repositories._
+import services.TakeoverDetailsService
 import services.admin.{AdminService, AdminServiceImpl}
 import utils.LogCapturing
 
@@ -41,6 +42,7 @@ class AppStartupJobsSpec extends WordSpec with Matchers with MockitoSugar with L
   val mockCTRepository: CorporationTaxRegistrationMongoRepository = mock[CorporationTaxRegistrationMongoRepository]
 
   val mockAdminService: AdminServiceImpl = mock[AdminServiceImpl]
+  val mockTakeoverDetailsService: TakeoverDetailsService = mock[TakeoverDetailsService]
   val expectedLockedReg = List()
   val expectedRegStats = Map.empty[String, Int]
 
@@ -69,6 +71,7 @@ class AppStartupJobsSpec extends WordSpec with Matchers with MockitoSugar with L
 
         override val config: Configuration = Configuration()
         override val service: AdminService = mockAdminService
+        override val takeoverDetailsService = mockTakeoverDetailsService
         override val ctRepo: CorporationTaxRegistrationMongoRepository = mockCTRepository
       }
       withCaptureOfLoggingFrom(Logger) { logEvents =>
@@ -134,9 +137,11 @@ class AppStartupJobsSpec extends WordSpec with Matchers with MockitoSugar with L
         override val config: Configuration = mockConfig
 
         override val service: AdminService = mockAdminService
+        override val takeoverDetailsService = mockTakeoverDetailsService
         override val ctRepo: CorporationTaxRegistrationMongoRepository = mockCTRepository
 
         override def runEverythingOnStartUp: Future[Unit] = Future.successful(())
+
       }
 
       withCaptureOfLoggingFrom(Logger) { logEvents =>
