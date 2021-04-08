@@ -24,22 +24,26 @@ import services._
 import services.admin.AdminService
 
 class SchedulingActor extends Actor with ActorLogging {
+
   import context.dispatcher
 
   override def receive: Receive = {
-    case message : ScheduledMessage[_] =>
+    case message: ScheduledMessage[_] =>
       Logger.info(s"Received ${message.getClass.getSimpleName}")
       message.service.invoke
   }
 }
 
 object SchedulingActor {
+
   sealed trait ScheduledMessage[A] {
     val service: ScheduledService[A]
   }
 
   case class RemoveStaleDocuments(service: AdminService) extends ScheduledMessage[Either[Int, LockResponse]]
+
   case class UpdateMetrics(service: MetricsService) extends ScheduledMessage[Either[Map[String, Int], LockResponse]]
+
   case class MissingIncorporation(service: CorporationTaxRegistrationService) extends ScheduledMessage[Either[String, LockResponse]]
 
   def props: Props = Props[SchedulingActor]

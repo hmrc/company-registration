@@ -17,17 +17,18 @@
 package jobs
 
 import akka.actor.ActorSystem
-import javax.inject.{Inject, Singleton}
 import jobs.SchedulingActor.RemoveStaleDocuments
 import play.api.Configuration
 import repositories.Repositories
 import services.admin.AdminService
 
+import javax.inject.{Inject, Singleton}
+
 @Singleton
-class RemoveStaleDocumentsJob @Inject()(val config:Configuration,
+class RemoveStaleDocumentsJob @Inject()(val config: Configuration,
                                         val repositories: Repositories,
-                                        val adminService : AdminService
-                                         ) extends ScheduledJob {
+                                        val adminService: AdminService
+                                       ) extends ScheduledJob {
   val jobName = "remove-stale-documents-job"
 
   val actorSystem = ActorSystem(jobName)
