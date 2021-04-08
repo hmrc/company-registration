@@ -59,9 +59,9 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with LogCapturing
     .build()
 
   class Setup {
-      val rmc = app.injector.instanceOf[ReactiveMongoComponent]
-      val crypto = app.injector.instanceOf[CryptoSCRS]
-     val repository = new CorporationTaxRegistrationMongoRepository(rmc,crypto)
+    val rmc = app.injector.instanceOf[ReactiveMongoComponent]
+    val crypto = app.injector.instanceOf[CryptoSCRS]
+    val repository = new CorporationTaxRegistrationMongoRepository(rmc, crypto)
     await(repository.drop)
     await(repository.count) shouldBe 0
 
@@ -69,8 +69,10 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with LogCapturing
     implicit val jsObjWts: OWrites[JsObject] = OWrites(identity)
 
     def insert(reg: CorporationTaxRegistration): WriteResult = await(repository.insert(reg))
+
     def count: Int = await(repository.count)
-    def retrieve(regId: String): List[JsObject] = await(repository.collection.find(Json.obj()).cursor[JsObject]().collect[List](-1,Cursor.FailOnError()))
+
+    def retrieve(regId: String): List[JsObject] = await(repository.collection.find(Json.obj()).cursor[JsObject]().collect[List](-1, Cursor.FailOnError()))
   }
 
   val txID = "txId"
@@ -97,7 +99,7 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with LogCapturing
       "testJurisdiction"
     )),
     contactDetails = Some(ContactDetails(
-       Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
+      Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
     )),
     tradingDetails = Some(TradingDetails("true")),
     confirmationReferences = Some(ConfirmationReferences("ackRef", txID, None, None)),
@@ -105,7 +107,6 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with LogCapturing
     createdTime = DateTime.parse("2017-09-04T14:49:48.261"),
     lastSignedIn = lastSignedIn
   )
-
 
 
   def lookupJob(name: String): ScheduledJob = {

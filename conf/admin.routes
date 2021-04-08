@@ -1,9 +1,0 @@
-
-GET        /fetch-ho6-registration-information/:registrationId        @controllers.admin.AdminController.fetchHO6RegistrationInformation(registrationId)
-POST       /update-confirmation-references                            @controllers.admin.AdminController.updateConfirmationReferences
-
-GET        /session-id/:registrationId                                @controllers.admin.AdminController.fetchSessionIDData(registrationId)
-POST       /session-id/:registrationId                                @controllers.admin.AdminController.updateSessionId(registrationId)
-
-GET        /:identifier/ctutr                                         @controllers.admin.AdminController.ctutrCheck(identifier)
-POST       /:identifier/ctutr                                         @controllers.admin.AdminController.ctutrUpdate(identifier)

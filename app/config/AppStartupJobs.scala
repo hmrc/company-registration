@@ -24,7 +24,6 @@ import javax.inject.Inject
 import play.api.{Configuration, Logger}
 import reactivemongo.api.indexes.IndexType
 import repositories.CorporationTaxRegistrationMongoRepository
-import services.admin.AdminService
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -36,8 +35,6 @@ class Startup @Inject()(appStartupJobs: AppStartupJobs, actorSystem: ActorSystem
 }
 
 class AppStartupJobsImpl @Inject()(val config: Configuration,
-                                   val service: AdminService,
-
                                    val ctRepo: CorporationTaxRegistrationMongoRepository) extends AppStartupJobs {
 
 }
@@ -45,7 +42,6 @@ class AppStartupJobsImpl @Inject()(val config: Configuration,
 trait AppStartupJobs {
 
   val config: Configuration
-  val service: AdminService
   val ctRepo: CorporationTaxRegistrationMongoRepository
 
   def startupStats: Future[Unit] = {
@@ -71,18 +67,6 @@ trait AppStartupJobs {
             s"Company Name : ${ctDoc.companyDetails.fold("")(companyDetails => companyDetails.companyName)} - " +
             s"Trans ID : ${ctDoc.confirmationReferences.fold("")(confRefs => confRefs.transactionId)}")
         }
-    }
-  }
-
-  def updateTransId(updateTransFrom: String, updateTransTo: String): Unit = {
-    if (updateTransFrom.nonEmpty && updateTransTo.nonEmpty) {
-      service.updateTransactionId(updateTransFrom, updateTransTo) map { result =>
-        if (result) {
-          Logger.info(s"Updated transaction id from $updateTransFrom to $updateTransTo")
-        }
-      }
-    } else {
-      Logger.info("[AppStartupJobs] [updateTransId] Config missing or empty to update a transaction id")
     }
   }
 
