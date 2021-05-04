@@ -29,7 +29,7 @@ case class HO6Identifiers(strideUser: String,
 object HO6Identifiers {
   val format: Format[HO6Identifiers] = Json.format[HO6Identifiers]
 
-  val adminAuditWrites = new Writes[HO6Identifiers]{
+  val adminAuditWrites = new Writes[HO6Identifiers] {
     override def writes(o: HO6Identifiers): JsValue = {
       Json.obj("submittedDetails" -> Json.obj(
         "sessionId" -> o.sessionId,

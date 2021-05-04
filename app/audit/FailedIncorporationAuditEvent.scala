@@ -19,12 +19,12 @@ package audit
 import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.http.HeaderCarrier
 
-case class FailedIncorporationAuditEventDetail(journeyId : String,
-                                               reason : String)
+case class FailedIncorporationAuditEventDetail(journeyId: String,
+                                               reason: String)
 
 object FailedIncorporationAuditEventDetail {
   implicit val format = Json.format[FailedIncorporationAuditEventDetail]
 }
 
-class FailedIncorporationAuditEvent(details: FailedIncorporationAuditEventDetail, auditType : String, transactionName : String)(implicit hc : HeaderCarrier)
+class FailedIncorporationAuditEvent(details: FailedIncorporationAuditEventDetail, auditType: String, transactionName: String)(implicit hc: HeaderCarrier)
   extends RegistrationAuditEvent(auditType, Some(transactionName), Json.toJson(details).as[JsObject], TagSet.REQUEST_ONLY)

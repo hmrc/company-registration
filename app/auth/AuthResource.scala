@@ -16,10 +16,11 @@
 
 package auth
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 trait AuthResource {
+
+  implicit val ec: ExecutionContext
 
   val resource: AuthorisationResource[String]
 

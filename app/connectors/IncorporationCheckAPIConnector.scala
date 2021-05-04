@@ -16,7 +16,6 @@
 
 package connectors
 
-import config.MicroserviceAppConfig
 import javax.inject.{Inject, Singleton}
 import models.SubmissionCheckResponse
 import play.api.Logger
@@ -24,15 +23,15 @@ import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NoStackTrace
 
 class SubmissionAPIFailure extends NoStackTrace
 
 @Singleton
-class IncorporationCheckAPIConnectorImpl @Inject()(servicesConfig:ServicesConfig,
-                                                   val http: HttpClient) extends IncorporationCheckAPIConnector {
+class IncorporationCheckAPIConnectorImpl @Inject()(servicesConfig: ServicesConfig,
+                                                   val http: HttpClient
+                                                  )(implicit val ec: ExecutionContext) extends IncorporationCheckAPIConnector {
   lazy val businessRegUrl = servicesConfig.baseUrl("business-registration")
   override lazy val proxyUrl = servicesConfig.baseUrl("company-registration-frontend")
 
@@ -40,6 +39,7 @@ class IncorporationCheckAPIConnectorImpl @Inject()(servicesConfig:ServicesConfig
 
 trait IncorporationCheckAPIConnector {
 
+  implicit val ec: ExecutionContext
   val proxyUrl: String
   val http: HttpClient
 

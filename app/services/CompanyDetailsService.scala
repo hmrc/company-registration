@@ -21,35 +21,38 @@ import models.{CompanyDetails, ConfirmationReferences}
 import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
-import scala.concurrent.ExecutionContext.Implicits.global
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class CompanyDetailsServiceImpl @Inject()(val repositories: Repositories,
-                                          val submissionService: SubmissionService) extends CompanyDetailsService {
+                                          val submissionService: SubmissionService
+                                         )(implicit val ec: ExecutionContext) extends CompanyDetailsService {
   lazy val corporationTaxRegistrationMongoRepository = repositories.cTRepository
 }
+
 trait CompanyDetailsService {
+
+  implicit val ec: ExecutionContext
 
   val submissionService: SubmissionService
 
-  val corporationTaxRegistrationMongoRepository : CorporationTaxRegistrationMongoRepository
+  val corporationTaxRegistrationMongoRepository: CorporationTaxRegistrationMongoRepository
 
   private[services] def convertAckRefToJsObject(ref: String): JsObject = Json.obj("acknowledgement-reference" -> ref)
 
-  def saveTxIdAndAckRef(registrationId:String, txid:String): Future[JsObject] = {
-    ( for {
-    optConfRefs <- corporationTaxRegistrationMongoRepository.retrieveConfirmationReferences(registrationId)
-     updated <- optConfRefs.fold(submissionService.generateAckRef
-       .map{ackRef => ConfirmationReferences(ackRef,txid,None,None)}){ alreadyHasConfRefs => Future.successful(alreadyHasConfRefs.copy(transactionId =  txid))
-     }
-    confRefs <- corporationTaxRegistrationMongoRepository.updateConfirmationReferences(registrationId, updated)
-   } yield convertAckRefToJsObject(updated.acknowledgementReference) )
-      .recoverWith{
-      case e: Exception =>
-        Logger.error(s"[CompanyDetailsService] saveTxIdAndAckRef threw an exception ${e.getMessage}  for txid: $txid, regId: $registrationId")
-       throw e
-    }
+  def saveTxIdAndAckRef(registrationId: String, txid: String): Future[JsObject] = {
+    (for {
+      optConfRefs <- corporationTaxRegistrationMongoRepository.retrieveConfirmationReferences(registrationId)
+      updated <- optConfRefs.fold(submissionService.generateAckRef
+        .map { ackRef => ConfirmationReferences(ackRef, txid, None, None) }) { alreadyHasConfRefs => Future.successful(alreadyHasConfRefs.copy(transactionId = txid))
+      }
+      confRefs <- corporationTaxRegistrationMongoRepository.updateConfirmationReferences(registrationId, updated)
+    } yield convertAckRefToJsObject(updated.acknowledgementReference))
+      .recoverWith {
+        case e: Exception =>
+          Logger.error(s"[CompanyDetailsService] saveTxIdAndAckRef threw an exception ${e.getMessage}  for txid: $txid, regId: $registrationId")
+          throw e
+      }
   }
 
   def retrieveCompanyDetails(registrationID: String): Future[Option[CompanyDetails]] = {

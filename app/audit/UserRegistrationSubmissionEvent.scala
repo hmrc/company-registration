@@ -36,23 +36,29 @@ object SubmissionEventDetail {
     def writes(detail: SubmissionEventDetail) = {
 
       def businessAddressAuditWrites(address: BusinessAddress) = BusinessAddress.auditWrites(detail.transId, detail.addressEventType, detail.uprn, address)
+
       def businessContactAuditWrites(contact: BusinessContactDetails) = BusinessContactDetails.auditWrites(contact)
 
       def desSubmissionState: JsObject = {
         Json.obj("desSubmissionState" -> "partial")
       }
-      
+
       val address = (detail.jsSubmission \ "registration" \ "corporationTax" \ "businessAddress").
-        asOpt[BusinessAddress].fold { Json.obj() } {
-          address => if (detail.transId.isDefined) {
+        asOpt[BusinessAddress].fold {
+        Json.obj()
+      } {
+        address =>
+          if (detail.transId.isDefined) {
             Json.obj("businessAddress" -> Json.toJson(address)(businessAddressAuditWrites(address)).as[JsObject])
           } else {
             Json.obj()
           }
-        }
+      }
 
       val contactDetails = (detail.jsSubmission \ "registration" \ "corporationTax" \ "businessContactDetails").
-        asOpt[BusinessContactDetails].fold { Json.obj() } {
+        asOpt[BusinessContactDetails].fold {
+        Json.obj()
+      } {
         contact => Json.obj("businessContactDetails" -> Json.toJson(contact)(businessContactAuditWrites(contact)).as[JsObject])
       }
 
@@ -65,8 +71,8 @@ object SubmissionEventDetail {
           Json.obj("authProviderId" -> detail.authProviderId)
         ).-("sessionId").-("credentialId"),
         CORP_TAX -> corporationTax.++
-          ( address ).++
-          ( contactDetails )
+        (address).++
+        (contactDetails)
       ) ++ desSubmissionState
     }
   }

@@ -22,16 +22,16 @@ import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import services.{MetricsService, UserAccessService}
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.play.bootstrap.controller.BackendController
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class UserAccessController @Inject()(val authConnector: AuthConnector,
                                      val metricsService: MetricsService,
                                      val userAccessService: UserAccessService,
-                                     controllerComponents: ControllerComponents) extends BackendController(controllerComponents) with AuthenticatedActions {
+                                     controllerComponents: ControllerComponents
+                                    )(implicit val ec: ExecutionContext) extends BackendController(controllerComponents) with AuthenticatedActions {
 
   def checkUserAccess: Action[AnyContent] = AuthenticatedAction.retrieve(internalId).async { intId =>
     implicit request =>

@@ -23,6 +23,9 @@ import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
+
 class AuditServiceSpec extends WordSpec with Matchers with MockitoSugar {
 
   val mockAuditConnector = mock[AuditConnector]
@@ -33,6 +36,7 @@ class AuditServiceSpec extends WordSpec with Matchers with MockitoSugar {
 
     object TestService extends AuditService {
       val auditConnector = mockAuditConnector
+      implicit val ec: ExecutionContext = global
     }
 
   }

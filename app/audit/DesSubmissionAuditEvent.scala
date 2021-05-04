@@ -16,8 +16,8 @@
 
 package audit
 
+import audit.RegistrationAuditEvent.JOURNEY_ID
 import play.api.libs.json.{JsObject, JsString, Json, Writes}
-import RegistrationAuditEvent.JOURNEY_ID
 import uk.gov.hmrc.http.HeaderCarrier
 
 case class DesSubmissionAuditEventDetail(regId: String,
@@ -25,7 +25,7 @@ case class DesSubmissionAuditEventDetail(regId: String,
 
 object DesSubmissionAuditEventDetail {
 
-  import RegistrationAuditEvent.{ACK_REF, REG_METADATA, CORP_TAX}
+  import RegistrationAuditEvent.{ACK_REF, CORP_TAX, REG_METADATA}
 
   implicit val writes = new Writes[DesSubmissionAuditEventDetail] {
     def writes(detail: DesSubmissionAuditEventDetail) = {
@@ -34,15 +34,15 @@ object DesSubmissionAuditEventDetail {
         JOURNEY_ID -> detail.regId,
         ACK_REF -> (detail.jsSubmission \ "acknowledgementReference").as[JsString],
         REG_METADATA -> (detail.jsSubmission \ "registration" \ "metadata").as[JsObject]
-        .-("sessionId").-("credentialId"),
+          .-("sessionId").-("credentialId"),
         CORP_TAX -> (detail.jsSubmission \ "registration" \ "corporationTax").as[JsObject]
       )
     }
   }
 }
 
-class DesSubmissionEvent(details: DesSubmissionAuditEventDetail,isAdmin: Boolean = false)(implicit hc: HeaderCarrier)
-  extends RegistrationAuditEvent("ctRegistrationSubmission", None, Json.toJson(details).as[JsObject], if(isAdmin)TagSet.REQUEST_ONLY_WITH_ADMIN else TagSet.REQUEST_ONLY)(hc)
+class DesSubmissionEvent(details: DesSubmissionAuditEventDetail, isAdmin: Boolean = false)(implicit hc: HeaderCarrier)
+  extends RegistrationAuditEvent("ctRegistrationSubmission", None, Json.toJson(details).as[JsObject], if (isAdmin) TagSet.REQUEST_ONLY_WITH_ADMIN else TagSet.REQUEST_ONLY)(hc)
 
 class DesSubmissionEventFailure(regId: String, details: JsObject)(implicit hc: HeaderCarrier)
   extends RegistrationAuditEvent("ctRegistrationSubmissionFailed", None, Json.obj("submission" -> details, JOURNEY_ID -> regId))(hc)

@@ -17,12 +17,13 @@
 package utils
 
 import org.joda.time.DateTime
-import play.api.libs.json.{Format, JodaReads, JodaWrites, JsResult, JsValue}
+import play.api.libs.json._
 
 trait JodaDateTimeFormatter {
 
   implicit val dateFormatDefault = new Format[DateTime] {
     override def reads(json: JsValue): JsResult[DateTime] = JodaReads.DefaultJodaDateTimeReads.reads(json)
+
     override def writes(o: DateTime): JsValue = JodaWrites.JodaDateTimeNumberWrites.writes(o)
   }
 

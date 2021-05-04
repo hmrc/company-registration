@@ -34,25 +34,25 @@ object DesTopUpSubmissionEventDetail {
 
   implicit val writes = new Writes[DesTopUpSubmissionEventDetail] {
     def writes(detail: DesTopUpSubmissionEventDetail) = {
-            val dateWrites = Writes[DateTime](
-              js =>
-                Json.toJson(js.toString("yyyy-MM-dd"))
-            )
-            val successWrites = (
-                (__ \ "journeyId").write[String] and
-                (__ \ "acknowledgementReference").write[String] and
-                (__ \ "incorporationStatus").write[String] and
-                (__ \ "intendedAccountsPreparationDate").writeNullable[DateTime](dateWrites) and
-                (__ \ "startDateOfFirstAccountingPeriod").writeNullable[DateTime](dateWrites) and
-                (__ \ "companyActiveDate").writeNullable[DateTime](dateWrites) and
-                (__ \ "crn").writeNullable[String] and
-                (__ \ "rejectedAsNotPaid").writeNullable[Boolean]
-              )(unlift(DesTopUpSubmissionEventDetail.unapply))
+      val dateWrites = Writes[DateTime](
+        js =>
+          Json.toJson(js.toString("yyyy-MM-dd"))
+      )
+      val successWrites = (
+        (__ \ "journeyId").write[String] and
+          (__ \ "acknowledgementReference").write[String] and
+          (__ \ "incorporationStatus").write[String] and
+          (__ \ "intendedAccountsPreparationDate").writeNullable[DateTime](dateWrites) and
+          (__ \ "startDateOfFirstAccountingPeriod").writeNullable[DateTime](dateWrites) and
+          (__ \ "companyActiveDate").writeNullable[DateTime](dateWrites) and
+          (__ \ "crn").writeNullable[String] and
+          (__ \ "rejectedAsNotPaid").writeNullable[Boolean]
+        ) (unlift(DesTopUpSubmissionEventDetail.unapply))
 
-            Json.toJson(detail)(successWrites).as[JsObject]
-          }
-        }
-      }
+      Json.toJson(detail)(successWrites).as[JsObject]
+    }
+  }
+}
 
-      class DesTopUpSubmissionEvent(details: DesTopUpSubmissionEventDetail, auditType : String, transactionName : String)(implicit hc: HeaderCarrier)
+class DesTopUpSubmissionEvent(details: DesTopUpSubmissionEventDetail, auditType: String, transactionName: String)(implicit hc: HeaderCarrier)
   extends RegistrationAuditEvent(auditType, Some(transactionName), Json.toJson(details).as[JsObject], TagSet.REQUEST_ONLY)

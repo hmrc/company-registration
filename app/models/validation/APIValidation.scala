@@ -25,9 +25,8 @@ import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads.{maxLength, pattern}
-import play.api.libs.json.JsonValidationError
+import play.api.libs.json.{JsonValidationError, _}
 import utils.StringNormaliser
-import play.api.libs.json._
 
 import scala.util.Try
 import scala.util.matching.Regex

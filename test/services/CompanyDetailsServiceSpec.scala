@@ -24,7 +24,8 @@ import org.mockito.Mockito._
 import play.api.libs.json.Json
 import play.api.test.Helpers._
 
-import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 
 class CompanyDetailsServiceSpec extends BaseSpec with CompanyDetailsFixture {
 
@@ -35,6 +36,7 @@ class CompanyDetailsServiceSpec extends BaseSpec with CompanyDetailsFixture {
     val service = new CompanyDetailsService {
       override val corporationTaxRegistrationMongoRepository = mockCTDataRepository
       override val submissionService: SubmissionService = mockSubmissionService
+      implicit val ec: ExecutionContext = global
     }
   }
 

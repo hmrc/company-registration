@@ -30,6 +30,7 @@ import services.UserAccessService
 import uk.gov.hmrc.auth.core.MissingBearerToken
 import uk.gov.hmrc.http.HeaderCarrier
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class UserAccessControllerSpec extends BaseSpec with AuthorisationMocks {

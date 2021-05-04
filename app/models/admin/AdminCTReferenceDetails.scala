@@ -18,12 +18,12 @@ package models.admin
 
 import play.api.libs.json.{Format, JsValue, Json, Writes}
 
-case class AdminCTReferenceDetails(previousUtr: Option[String], newUtr : String, previousStatus: String, newStatus: String)
+case class AdminCTReferenceDetails(previousUtr: Option[String], newUtr: String, previousStatus: String, newStatus: String)
 
 object AdminCTReferenceDetails {
   val format: Format[AdminCTReferenceDetails] = Json.format[AdminCTReferenceDetails]
 
-  val adminAuditWrites = new Writes[AdminCTReferenceDetails]{
+  val adminAuditWrites = new Writes[AdminCTReferenceDetails] {
     override def writes(o: AdminCTReferenceDetails): JsValue = {
       val prevUtr = o.previousUtr.getOrElse("NO-UTR")
 
@@ -31,10 +31,10 @@ object AdminCTReferenceDetails {
         "previousUtr" -> prevUtr,
         "newUtr" -> o.newUtr
       ),
-      "statusChanges" -> Json.obj(
-        "previousStatus" -> o.previousStatus,
-        "newStatus" -> o.newStatus
-      ))
+        "statusChanges" -> Json.obj(
+          "previousStatus" -> o.previousStatus,
+          "newStatus" -> o.newStatus
+        ))
     }
   }
 }

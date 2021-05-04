@@ -25,8 +25,7 @@ import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NoStackTrace
 
 @Singleton
@@ -35,7 +34,7 @@ class UserAccessServiceImpl @Inject()(val throttleService: ThrottleService,
                                       val brConnector: BusinessRegistrationConnector,
                                       val repositories: Repositories,
                                       servicesConfig: ServicesConfig
-                                     ) extends UserAccessService {
+                                     )(implicit val ec: ExecutionContext) extends UserAccessService {
 
   lazy val ctRepository = repositories.cTRepository
   lazy val threshold = servicesConfig.getConfInt("throttle-threshold", throw new Exception("Could not find Threshold in config"))
@@ -45,6 +44,7 @@ private[services] class MissingRegistration(regId: String) extends NoStackTrace
 
 trait UserAccessService {
 
+  implicit val ec: ExecutionContext
   val threshold: Int
   val brConnector: BusinessRegistrationConnector
   val ctRepository: CorporationTaxRegistrationMongoRepository

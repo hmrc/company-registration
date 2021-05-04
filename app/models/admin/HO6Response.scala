@@ -25,10 +25,10 @@ case class HO6Response(success: Boolean,
 object HO6Response {
   val format: Format[HO6Response] = Json.format[HO6Response]
 
-  val adminAuditWrites = new Writes[HO6Response]{
+  val adminAuditWrites = new Writes[HO6Response] {
     override def writes(o: HO6Response): JsValue = {
       Json.obj("receivedDetails" -> Json.obj(
-        "handOffTrigger" -> (if(o.success) "Successful" else "Failed"),
+        "handOffTrigger" -> (if (o.success) "Successful" else "Failed"),
         "documentStatusBefore" -> o.statusBefore,
         "documentStatusAfter" -> o.statusAfter,
         "registrationOfInterest" -> "Not implemented yet"

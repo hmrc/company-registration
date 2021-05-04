@@ -23,12 +23,16 @@ import repositories.CorporationTaxRegistrationMongoRepository
 import services._
 import uk.gov.hmrc.lock.LockKeeper
 
+import scala.concurrent.ExecutionContext
+import scala.concurrent.ExecutionContext.Implicits.global
+
 object MockMetricsService extends MetricsService with MockitoSugar {
   override val metrics = mock[Metrics]
   val fakeCounter = mock[Counter]
   lazy val mockContext = mock[Timer.Context]
   val mockTimer = new Timer()
 
+  implicit val ec: ExecutionContext = global
   val ctRepository = mock[CorporationTaxRegistrationMongoRepository]
 
   override val ctutrConfirmationCounter: Counter = fakeCounter

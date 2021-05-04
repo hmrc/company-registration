@@ -16,30 +16,32 @@
 
 package services
 
-import javax.inject.Inject
-
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
+import javax.inject.Inject
 import models.AccountPrepDetails
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class PrepareAccountServiceImpl @Inject()(system: ActorSystem,
-                                          val repositories: Repositories) extends PrepareAccountService {
+                                          val repositories: Repositories
+                                         )(implicit val ec: ExecutionContext) extends PrepareAccountService {
 
   implicit val materializer = ActorMaterializer()(system)
 
   lazy val repository = repositories.cTRepository
 
 }
+
 trait PrepareAccountService {
 
-  val repository : CorporationTaxRegistrationMongoRepository
+  implicit val ec: ExecutionContext
+
+  val repository: CorporationTaxRegistrationMongoRepository
 
   def updateEndDate(registrationID: String): Future[Option[AccountPrepDetails]] = {
-    repository.updateCompanyEndDate(registrationID, AccountPrepDetails()).map{
+    repository.updateCompanyEndDate(registrationID, AccountPrepDetails()).map {
       case Some(res) => Some(res)
       case None => None
     }

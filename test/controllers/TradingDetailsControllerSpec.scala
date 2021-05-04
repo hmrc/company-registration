@@ -48,6 +48,7 @@ import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.TradingDetailsService
 import uk.gov.hmrc.auth.core.MissingBearerToken
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class TradingDetailsControllerSpec extends BaseSpec with MockitoSugar with SCRSMocks with AuthorisationMocks {

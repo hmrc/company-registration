@@ -35,14 +35,14 @@ import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.AnyContentAsEmpty
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import reactivemongo.api.commands.{DefaultWriteResult, UpdateWriteResult}
+import reactivemongo.api.commands.UpdateWriteResult
 import repositories._
-import uk.gov.hmrc.http.logging.SessionId
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, Upstream4xxResponse, Upstream5xxResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, SessionId, Upstream4xxResponse, Upstream5xxResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
 import utils.{LogCapturing, PagerDutyKeys}
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
 class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with CorporationTaxRegistrationFixture with LogCapturing with Eventually {
@@ -82,7 +82,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
       override val auditConnector: AuditConnector = mockAuditConnector
       override val brConnector: BusinessRegistrationConnector = mockBRConnector
       override val corpTaxRegService: CorporationTaxRegistrationService = mockCorpTaxService
-
+      implicit val ec: ExecutionContext = global
       override def currentDateTime: DateTime = dateTime
     }
   }

@@ -16,15 +16,15 @@
 
 package models
 
-import play.api.libs.json.{Writes, JsValue, Json}
+import play.api.libs.json.{JsValue, Json, Writes}
 
-case class ErrorResponse(statusCode: String, message: String){
+case class ErrorResponse(statusCode: String, message: String) {
   def toJson(implicit writes: Writes[ErrorResponse]): JsValue = {
     Json.toJson(this)
   }
 }
 
-object ErrorResponse{
+object ErrorResponse {
   implicit val formats = Json.format[ErrorResponse]
 
   lazy val MetadataNotFound = ErrorResponse("404", "Could not find metadata record").toJson

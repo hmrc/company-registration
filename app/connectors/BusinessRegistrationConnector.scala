@@ -16,33 +16,38 @@
 
 package connectors
 
-import config.MicroserviceAppConfig
 import javax.inject.{Inject, Singleton}
 import models.{BusinessRegistration, BusinessRegistrationRequest}
 import org.joda.time.DateTime
-import play.api.libs.json.JodaWrites._
 import play.api.Logger
+import play.api.libs.json.JodaWrites._
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class BusinessRegistrationConnectorImpl @Inject()(val http: HttpClient,servicesConfig:ServicesConfig) extends BusinessRegistrationConnector {
+class BusinessRegistrationConnectorImpl @Inject()(val http: HttpClient, servicesConfig: ServicesConfig
+                                                 )(implicit val ec: ExecutionContext) extends BusinessRegistrationConnector {
+
   lazy val businessRegUrl = servicesConfig.baseUrl("business-registration")
 }
 
 sealed trait BusinessRegistrationResponse
+
 case class BusinessRegistrationSuccessResponse(response: BusinessRegistration) extends BusinessRegistrationResponse
+
 case object BusinessRegistrationNotFoundResponse extends BusinessRegistrationResponse
+
 case object BusinessRegistrationForbiddenResponse extends BusinessRegistrationResponse
+
 case class BusinessRegistrationErrorResponse(err: Exception) extends BusinessRegistrationResponse
 
 trait BusinessRegistrationConnector {
 
+  implicit val ec: ExecutionContext
   val businessRegUrl: String
   val http: HttpClient
 
@@ -117,9 +122,9 @@ trait BusinessRegistrationConnector {
     }
   }
 
-  def updateLastSignedIn(registrationId: String,dateTime:DateTime)(implicit hc: HeaderCarrier): Future[String] = {
+  def updateLastSignedIn(registrationId: String, dateTime: DateTime)(implicit hc: HeaderCarrier): Future[String] = {
     val json = Json.toJson(dateTime)
-    http.PATCH[JsValue, HttpResponse](s"$businessRegUrl/business-registration/business-tax-registration/last-signed-in/$registrationId", json).map{
+    http.PATCH[JsValue, HttpResponse](s"$businessRegUrl/business-registration/business-tax-registration/last-signed-in/$registrationId", json).map {
       res => res.body
     } recover {
       case ex: HttpException =>

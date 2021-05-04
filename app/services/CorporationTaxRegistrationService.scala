@@ -16,13 +16,11 @@
 
 package services
 
-import config.MicroserviceAppConfig
 import connectors._
 import helpers.DateHelper
 import javax.inject.{Inject, Singleton}
 import jobs.{LockResponse, MongoLocked, ScheduledService, UnlockingFailed}
 import models.des.BusinessAddress
-import models.validation.APIValidation
 import models.validation.APIValidation._
 import models.{HttpResponse => _, _}
 import org.joda.time.{DateTime, DateTimeZone, Duration}
@@ -34,27 +32,27 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import utils.StringNormaliser
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NoStackTrace
 import scala.util.{Success, Try}
 
 @Singleton
-class CorporationTaxRegistrationServiceImpl @Inject()(
-                                                       val submissionCheckAPIConnector: IncorporationCheckAPIConnector,
-                                                       val brConnector: BusinessRegistrationConnector,
-                                                       val desConnector: DesConnector,
-                                                       val incorpInfoConnector: IncorporationInformationConnector,
-                                                       val repositories: Repositories,
-                                                       val auditConnector: AuditConnector,
-                                                       servicesConfig:ServicesConfig
-                                                     ) extends CorporationTaxRegistrationService {
+class CorporationTaxRegistrationServiceImpl @Inject()(val submissionCheckAPIConnector: IncorporationCheckAPIConnector,
+                                                      val brConnector: BusinessRegistrationConnector,
+                                                      val desConnector: DesConnector,
+                                                      val incorpInfoConnector: IncorporationInformationConnector,
+                                                      val repositories: Repositories,
+                                                      val auditConnector: AuditConnector,
+                                                      servicesConfig: ServicesConfig
+                                                     )(implicit val ec: ExecutionContext) extends CorporationTaxRegistrationService {
 
   lazy val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
   lazy val sequenceRepository: SequenceMongoRepository = repositories.sequenceRepository
 
   lazy val lockoutTimeout = servicesConfig.getInt("schedules.missing-incorporation-job.lockTimeout")
+
   def currentDateTime: DateTime = DateTime.now(DateTimeZone.UTC)
+
   lazy val lockKeeper: LockKeeper = new LockKeeper() {
     override val lockId = "missing-incorporation-job-lock"
     override val forceLockReleaseAfter: Duration = Duration.standardSeconds(lockoutTimeout)
@@ -66,8 +64,9 @@ sealed trait FailedPartialForLockedTopup extends NoStackTrace
 
 case object NoSessionIdentifiersInDocument extends FailedPartialForLockedTopup
 
-trait CorporationTaxRegistrationService extends ScheduledService[Either[String,LockResponse]] with DateHelper {
+trait CorporationTaxRegistrationService extends ScheduledService[Either[String, LockResponse]] with DateHelper {
 
+  implicit val ec: ExecutionContext
   val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository
   val sequenceRepository: SequenceRepository
   val brConnector: BusinessRegistrationConnector
@@ -119,8 +118,9 @@ trait CorporationTaxRegistrationService extends ScheduledService[Either[String,L
         }
       }
   }
+
   private def returnOptPostcode(rOAddress: CHROAddress): Option[String] = {
-    val postCodeOpt:Option[String] = rOAddress.postal_code map (pc => StringNormaliser.normaliseString(pc, postCodeInvert).take(20))
+    val postCodeOpt: Option[String] = rOAddress.postal_code map (pc => StringNormaliser.normaliseString(pc, postCodeInvert).take(20))
     postCodeOpt foreach { postCode =>
       if (!postCode.matches(postCodePattern.regex)) throw new Exception("Post code did not match validation")
     }
@@ -146,7 +146,7 @@ trait CorporationTaxRegistrationService extends ScheduledService[Either[String,L
     }.map { bAddress =>
       Logger.info("[convertRoToBusinessAddress] successfully converted RO to Business Address")
       Some(bAddress)
-    }.recoverWith{
+    }.recoverWith {
       case e => Logger.info(s"[convertRoToBusinessAddress] Could not convert RO address - ${e.getMessage}")
         Success(Option.empty)
     }.get
@@ -154,8 +154,8 @@ trait CorporationTaxRegistrationService extends ScheduledService[Either[String,L
 
   def convertROToPPOBAddress(rOAddress: CHROAddress): Option[PPOBAddress] = {
     Try {
-      val linesResults:Seq[Option[String]] = returnSeqAddressLinesFromCHROAddress(rOAddress)
-       val postCodeOpt: Option[String] = returnOptPostcode(rOAddress)
+      val linesResults: Seq[Option[String]] = returnSeqAddressLinesFromCHROAddress(rOAddress)
+      val postCodeOpt: Option[String] = returnOptPostcode(rOAddress)
       val countryOpt: Option[String] = returnOptCountry(rOAddress)
 
       PPOBAddress(linesResults.head.get, linesResults(1).get, linesResults(2), linesResults(3), postCodeOpt, countryOpt, None, "")

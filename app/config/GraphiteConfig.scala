@@ -19,27 +19,28 @@ package config
 import java.net.InetSocketAddress
 import java.util.concurrent.TimeUnit._
 
-import com.codahale.metrics.{MetricFilter, SharedMetricRegistries}
 import com.codahale.metrics.graphite.{Graphite, GraphiteReporter}
+import com.codahale.metrics.{MetricFilter, SharedMetricRegistries}
 import play.api.{Application, Configuration, Logger, Mode}
 
-/**
-  * Created by jackie on 16/02/17.
-  */
 class GraphiteConfig(app: Application) {
 
   private lazy val env = {
-    if (app.mode.equals(Mode.Test)) {"Test"}
-    else {app.configuration.getString("run.mode").getOrElse("Dev")}
+    if (app.mode.equals(Mode.Test)) {
+      "Test"
+    }
+    else {
+      app.configuration.getString("run.mode").getOrElse("Dev")
+    }
   }
 
   private def microserviceMetricsConfig: Option[Configuration] = app.configuration.getConfig(s"$env.microservice.metrics")
 
   def enabled: Boolean = metricsPluginEnabled && graphitePublisherEnabled
 
-  private def metricsPluginEnabled: Boolean =  app.configuration.getBoolean("metrics.enabled").getOrElse(false)
+  private def metricsPluginEnabled: Boolean = app.configuration.getBoolean("metrics.enabled").getOrElse(false)
 
-  private def graphitePublisherEnabled: Boolean =  microserviceMetricsConfig.flatMap(_.getBoolean("graphite.enabled")).getOrElse(false)
+  private def graphitePublisherEnabled: Boolean = microserviceMetricsConfig.flatMap(_.getBoolean("graphite.enabled")).getOrElse(false)
 
   private def registryName = app.configuration.getString("metrics.name").getOrElse("default")
 

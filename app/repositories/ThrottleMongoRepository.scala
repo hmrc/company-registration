@@ -16,7 +16,7 @@
 
 package repositories
 
-import javax.inject.{Inject, Singleton}
+import javax.inject.Inject
 import models.UserCount
 import play.api.Logger
 import play.api.libs.json.JsValue
@@ -24,26 +24,26 @@ import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.DB
 import reactivemongo.bson._
 import reactivemongo.play.json.ImplicitBSONHandlers.BSONDocumentWrites
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.mongo.ReactiveRepository
+import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 trait ThrottleRepository {
-  def update(date: String, threshold: Int, compensate: Boolean) : Future[Int]
+  def update(date: String, threshold: Int, compensate: Boolean): Future[Int]
+
   def compensate(date: String, threshold: Int): Future[Int]
 }
 
-class ThrottleMongoRepo @Inject()(mongo: ReactiveMongoComponent) {
+class ThrottleMongoRepo @Inject()(mongo: ReactiveMongoComponent)(implicit val ec: ExecutionContext) {
   Logger.info("Creating CorporationTaxRegistrationMongoRepository")
 
   val repo = new ThrottleMongoRepository(mongo.mongoConnector.db)
 }
 
-class ThrottleMongoRepository(mongo: () => DB)
+class ThrottleMongoRepository(mongo: () => DB)(implicit val ec: ExecutionContext)
   extends ReactiveRepository[UserCount, BSONObjectID]("throttle", mongo, UserCount.formats, ReactiveMongoFormats.objectIdFormats)
-  with ThrottleRepository {
+    with ThrottleRepository {
   Logger.info("Creating ThrottleMongoRepository")
 
   def update(date: String, threshold: Int, compensate: Boolean = false): Future[Int] = {

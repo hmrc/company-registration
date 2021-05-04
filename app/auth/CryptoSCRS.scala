@@ -17,8 +17,8 @@
 package auth
 
 import javax.inject.Inject
-import play.api.{Configuration, Logger}
 import play.api.libs.json.{JsString, Reads, Writes}
+import play.api.{Configuration, Logger}
 import uk.gov.hmrc.crypto.{ApplicationCrypto, CompositeSymmetricCrypto, Crypted, PlainText}
 
 class CryptoSCRSImpl @Inject()(config: Configuration) extends CryptoSCRS {

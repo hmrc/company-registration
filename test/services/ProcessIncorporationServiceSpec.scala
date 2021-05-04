@@ -17,7 +17,6 @@
 package services
 
 import java.util.UUID
-
 import connectors._
 import fixtures.CorporationTaxRegistrationFixture
 import models._
@@ -37,7 +36,8 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
 import utils.LogCapturing
 
-import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 
 class ProcessIncorporationServiceSpec extends WordSpec with Matchers with MockitoSugar with CorporationTaxRegistrationFixture with BeforeAndAfterEach with Eventually with LogCapturing {
 
@@ -84,13 +84,16 @@ class ProcessIncorporationServiceSpec extends WordSpec with Matchers with Mockit
   }
 
   trait Setup {
-    val service = new mockService {}
+    val service = new mockService {
+      implicit val ec: ExecutionContext = global
+    }
   }
 
   class SetupWithAddressLine4Fix(regId: String, addressLine4: String) {
     val service = new mockService {
       override val addressLine4FixRegID: String = regId
       override val amendedAddressLine4: String = addressLine4
+      implicit val ec: ExecutionContext = global
     }
   }
 
@@ -292,6 +295,7 @@ class ProcessIncorporationServiceSpec extends WordSpec with Matchers with Mockit
     trait SetupNoProcess {
       val service = new mockService {
         implicit val hc = new HeaderCarrier()
+        implicit val ec: ExecutionContext = global
 
         override def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration, journeyId: String, isAdmin: Boolean = false)(implicit hc: HeaderCarrier) = Future.successful(true)
       }
@@ -336,6 +340,7 @@ class ProcessIncorporationServiceSpec extends WordSpec with Matchers with Mockit
 
     class SetupBoolean(boole: Boolean) {
       val service = new mockService {
+        implicit val ec: ExecutionContext = global
         override def updateSubmissionWithIncorporation(item: IncorpUpdate, ctReg: CorporationTaxRegistration, isAdmin: Boolean = false)(implicit hc: HeaderCarrier) = Future.successful(boole)
       }
     }

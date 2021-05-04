@@ -21,27 +21,27 @@ import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.http.HeaderCarrier
 
-case class SuccessfulIncorporationAuditEventDetail(journeyId : String,
-                                                   companyRegistrationNumber : String,
-                                                   incorporationDate : DateTime)
+case class SuccessfulIncorporationAuditEventDetail(journeyId: String,
+                                                   companyRegistrationNumber: String,
+                                                   incorporationDate: DateTime)
 
 object SuccessfulIncorporationAuditEventDetail {
   implicit val writes = new Writes[SuccessfulIncorporationAuditEventDetail] {
     def writes(detail: SuccessfulIncorporationAuditEventDetail) = {
       val dateWrites = Writes[DateTime](
         js =>
-            Json.toJson(js.toString("yyyy-MM-dd"))
+          Json.toJson(js.toString("yyyy-MM-dd"))
       )
       val successWrites = (
         (__ \ "journeyId").write[String] and
-        (__ \ "companyRegistrationNumber").write[String] and
-        (__ \ "incorporationDate").write[DateTime](dateWrites)
-      )(unlift(SuccessfulIncorporationAuditEventDetail.unapply))
+          (__ \ "companyRegistrationNumber").write[String] and
+          (__ \ "incorporationDate").write[DateTime](dateWrites)
+        ) (unlift(SuccessfulIncorporationAuditEventDetail.unapply))
 
       Json.toJson(detail)(successWrites).as[JsObject]
     }
   }
 }
 
-class SuccessfulIncorporationAuditEvent(details: SuccessfulIncorporationAuditEventDetail, auditType : String, transactionName : String)(implicit hc : HeaderCarrier)
+class SuccessfulIncorporationAuditEvent(details: SuccessfulIncorporationAuditEventDetail, auditType: String, transactionName: String)(implicit hc: HeaderCarrier)
   extends RegistrationAuditEvent(auditType, Some(transactionName), Json.toJson(details).as[JsObject], TagSet.REQUEST_ONLY)

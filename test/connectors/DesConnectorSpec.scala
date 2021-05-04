@@ -16,20 +16,19 @@
 
 package connectors
 
-import java.util.UUID
-
 import helpers.BaseSpec
 import mocks.{MockMetricsService, WSHttpMock}
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers._
-import uk.gov.hmrc.http.logging.SessionId
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, Upstream4xxResponse, Upstream5xxResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, SessionId, Upstream4xxResponse, Upstream5xxResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
 
-import scala.concurrent.Future
+import java.util.UUID
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 
 class DesConnectorSpec extends BaseSpec with WSHttpMock {
 
@@ -43,6 +42,7 @@ class DesConnectorSpec extends BaseSpec with WSHttpMock {
       val urlHeaderAuthorization = "testAuth"
       val auditConnector = mockAuditConnector
       val metricsService = MockMetricsService
+      implicit val ec: ExecutionContext = global
     }
   }
 

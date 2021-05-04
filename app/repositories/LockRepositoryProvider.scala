@@ -24,6 +24,7 @@ class LockRepositoryProviderImpl @Inject()(reactiveMongoComponent: ReactiveMongo
 
   lazy val repo = LockMongoRepository(reactiveMongoComponent.mongoConnector.db)
 }
+
 trait LockRepositoryProvider {
   val repo: LockRepository
 }

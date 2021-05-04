@@ -25,7 +25,8 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers._
 import uk.gov.hmrc.http.{ForbiddenException, HeaderCarrier, NotFoundException}
 
-import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 
 class BusinessRegistrationConnectorSpec extends BaseSpec with BusinessRegistrationFixture {
 
@@ -33,6 +34,7 @@ class BusinessRegistrationConnectorSpec extends BaseSpec with BusinessRegistrati
 
   trait Setup {
     val connector = new BusinessRegistrationConnector {
+      implicit val ec: ExecutionContext = global
       override val businessRegUrl = busRegBaseUrl
       override val http = mockWSHttp
     }
@@ -65,21 +67,21 @@ class BusinessRegistrationConnectorSpec extends BaseSpec with BusinessRegistrati
     }
 
     "return a Not Found response when a metadata record can not be found" in new Setup {
-      when(mockWSHttp.GET[BusinessRegistration](ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockWSHttp.GET[BusinessRegistration](ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.failed(new NotFoundException("Bad request")))
 
       await(connector.retrieveMetadata) shouldBe BusinessRegistrationNotFoundResponse
     }
 
     "return a Forbidden response when a metadata record can not be accessed by the user" in new Setup {
-      when(mockWSHttp.GET[BusinessRegistration](ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockWSHttp.GET[BusinessRegistration](ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.failed(new ForbiddenException("Forbidden")))
 
       await(connector.retrieveMetadata) shouldBe BusinessRegistrationForbiddenResponse
     }
 
     "return an Exception response when an unspecified error has occurred" in new Setup {
-      when(mockWSHttp.GET[BusinessRegistration](ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockWSHttp.GET[BusinessRegistration](ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.failed(new Exception("exception")))
 
       await(connector.retrieveMetadata).getClass shouldBe BusinessRegistrationErrorResponse(new Exception).getClass
@@ -91,7 +93,7 @@ class BusinessRegistrationConnectorSpec extends BaseSpec with BusinessRegistrati
     val failureMessage = Json.parse("""{"message":"failed"}""")
 
     "return a success message upon successfully dropping the collection" in new Setup {
-      when(mockWSHttp.GET[JsValue](ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockWSHttp.GET[JsValue](ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(successMessage))
 
       val result = connector.dropMetadataCollection
@@ -100,7 +102,7 @@ class BusinessRegistrationConnectorSpec extends BaseSpec with BusinessRegistrati
     }
 
     "return a failed message upon successfully dropping the collection" in new Setup {
-      when(mockWSHttp.GET[JsValue](ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockWSHttp.GET[JsValue](ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(failureMessage))
 
       val result = connector.dropMetadataCollection

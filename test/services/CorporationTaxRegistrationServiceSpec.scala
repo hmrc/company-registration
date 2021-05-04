@@ -33,13 +33,13 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import repositories._
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.http.logging.SessionId
+import uk.gov.hmrc.http.{HeaderCarrier, SessionId}
 import uk.gov.hmrc.lock.LockKeeper
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import utils.LogCapturing
 
-import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 
 class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationMocks with LogCapturing with Eventually {
 
@@ -79,6 +79,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
       val desConnector: DesConnector = mockDesConnector
       val currentDateTime: DateTime = dateTime
       override val lockKeeper: LockKeeper = mockLockKeeper
+      implicit val ec: ExecutionContext = global
     }
   }
 

@@ -16,17 +16,18 @@
 
 package services
 
-import javax.inject.{Inject,Singleton}
+import javax.inject.{Inject, Singleton}
 import models.TradingDetails
 import play.api.mvc.ControllerComponents
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class TradingDetailsService @Inject()(val repositories: Repositories, controllerComponents: ControllerComponents) extends BackendController(controllerComponents) {
+class TradingDetailsService @Inject()(val repositories: Repositories,
+                                      controllerComponents: ControllerComponents
+                                     )(implicit val ec: ExecutionContext) extends BackendController(controllerComponents) {
   lazy val corporationTaxRegistrationMongoRepository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 
   def retrieveTradingDetails(registrationID: String): Future[Option[TradingDetails]] = {

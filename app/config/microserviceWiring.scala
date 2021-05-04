@@ -20,7 +20,6 @@ import akka.actor.ActorSystem
 import com.typesafe.config.Config
 import javax.inject.Inject
 import play.api.Configuration
-import uk.gov.hmrc.auth.core.{AuthConnector, PlayAuthConnector}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.hooks.{HttpHook, HttpHooks}
 import uk.gov.hmrc.play.audit.http.HttpAuditing
@@ -43,5 +42,5 @@ trait WSHttpSCRS extends
 abstract class WSHttpSCRSImpl @Inject()(val actorSystem: ActorSystem, val appNameConfiguration: Configuration, val auditConnector: AuditConnector) extends WSHttpSCRS with HttpClient {
   override val hooks = NoneRequired
 
-  override protected def configuration: Option[Config] = Option(appNameConfiguration.underlying)
+  override protected def configuration: Config = appNameConfiguration.underlying
 }

@@ -23,20 +23,19 @@ import play.api.Logger
 import play.api.libs.json.{JsObject, Writes}
 import services.{AuditService, MetricsService}
 import uk.gov.hmrc.http._
-import uk.gov.hmrc.http.logging.Authorization
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class DesConnectorImpl @Inject()(val metricsService: MetricsService,
                                  val http: HttpClient,
                                  microserviceAppConfig: MicroserviceAppConfig,
                                  servicesConfig: ServicesConfig,
-                                 val auditConnector: AuditConnector) extends DesConnector {
+                                 val auditConnector: AuditConnector
+                                )(implicit val ec: ExecutionContext) extends DesConnector {
 
   lazy val serviceURL = servicesConfig.baseUrl("des-service")
   lazy val urlHeaderEnvironment: String = microserviceAppConfig.getConfigString("des-service.environment")
@@ -46,6 +45,7 @@ class DesConnectorImpl @Inject()(val metricsService: MetricsService,
 }
 
 trait DesConnector extends AuditService with RawResponseReads with HttpErrorFunctions {
+  implicit val ec: ExecutionContext
   val serviceURL: String
   val baseURI = "/business-registration"
   val baseTopUpURI = "/business-incorporation"
@@ -99,13 +99,14 @@ trait DesConnector extends AuditService with RawResponseReads with HttpErrorFunc
   }
 
   @inline
-  private def cPOST[I, O](url: String, body: I, headers: Seq[(String, String)] = Seq.empty)(implicit wts: Writes[I], rds: HttpReads[O], hc: HeaderCarrier) =
-    http.POST[I, O](url, body, headers)(wts = wts, rds = rds, hc = createHeaderCarrier(hc), implicitly)
+  private def cPOST[I, O](url: String, body: I)(implicit wts: Writes[I], rds: HttpReads[O], hc: HeaderCarrier) =
+    http.POST[I, O](url, body, createHeaderCarrier())
 
-  private def createHeaderCarrier(headerCarrier: HeaderCarrier): HeaderCarrier = {
-    headerCarrier.
-      withExtraHeaders("Environment" -> urlHeaderEnvironment).
-      copy(authorization = Some(Authorization(urlHeaderAuthorization)))
+  private def createHeaderCarrier(): Seq[(String, String)] = {
+    Seq(
+      "Authorization" -> urlHeaderAuthorization,
+      "Environment" -> urlHeaderEnvironment
+    )
   }
 
   private[connectors] def customDESRead(http: String, url: String, response: HttpResponse): HttpResponse = {

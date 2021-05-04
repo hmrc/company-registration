@@ -29,6 +29,7 @@ object GroupCompanyNameEnum extends Enumeration {
 }
 
 case class GroupCompanyName(name: String, nameType: GroupCompanyNameEnum.Value)
+
 case class GroupUTR(UTR: Option[String])
 
 object GroupUTR {
@@ -38,6 +39,7 @@ object GroupUTR {
       val utr = (json \ "UTR").validateOpt[String](baseJsonFormatting.utrFormats(cryptoSCRS))
       utr.map(optUtr => GroupUTR(optUtr))
     }
+
     override def writes(o: GroupUTR): JsValue = o.UTR.fold(Json.obj())(utr
     => Json.obj("UTR" -> baseJsonFormatting.utrFormats(cryptoSCRS).writes(utr)))
   }
@@ -47,8 +49,8 @@ object GroupCompanyName {
   def formats(baseJsonFormatting: BaseJsonFormatting): Format[GroupCompanyName] = new Format[GroupCompanyName] {
     override def reads(json: JsValue): JsResult[GroupCompanyName] = {
       for {
-        name      <- (json \ "name").validate[String](baseJsonFormatting.groupNameValidation)
-        nameType  <- (json \ "nameType").validate[GroupCompanyNameEnum.Value](baseJsonFormatting.formatsForGroupCompanyNameEnum(name))
+        name <- (json \ "name").validate[String](baseJsonFormatting.groupNameValidation)
+        nameType <- (json \ "nameType").validate[GroupCompanyNameEnum.Value](baseJsonFormatting.formatsForGroupCompanyNameEnum(name))
       } yield GroupCompanyName(name, nameType)
     }
 
@@ -64,19 +66,19 @@ object GroupAddressTypeEnum extends Enumeration {
 case class GroupsAddressAndType(addressType: GroupAddressTypeEnum.Value, address: BusinessAddress)
 
 object GroupsAddressAndTypeFormats {
-   def bAddressformats(formatter: BaseJsonFormatting): Format[BusinessAddress] = (
+  def bAddressformats(formatter: BaseJsonFormatting): Format[BusinessAddress] = (
     (__ \ "line1").format[String](formatter.lineValidator) and
       (__ \ "line2").format[String](formatter.lineValidator) and
       (__ \ "line3").formatNullable[String](formatter.lineValidator) and
       (__ \ "line4").formatNullable[String](formatter.line4Validator) and
       (__ \ "postcode").formatNullable[String](formatter.postcodeValidator) and
       (__ \ "country").formatNullable[String](formatter.countryValidator)
-    )(BusinessAddress.apply, unlift(BusinessAddress.unapply))
+    ) (BusinessAddress.apply, unlift(BusinessAddress.unapply))
 
-  def groupsAddressAndTypeFormats(formatter: BaseJsonFormatting):Format[GroupsAddressAndType] = (
+  def groupsAddressAndTypeFormats(formatter: BaseJsonFormatting): Format[GroupsAddressAndType] = (
     (__ \ "addressType").format[GroupAddressTypeEnum.Value](formatter.formatsForGroupAddressType) and
       (__ \ "address").format[BusinessAddress](bAddressformats(formatter))
-  )(GroupsAddressAndType.apply, unlift(GroupsAddressAndType.unapply))
+    ) (GroupsAddressAndType.apply, unlift(GroupsAddressAndType.unapply))
 }
 
 case class Groups(
@@ -98,12 +100,13 @@ object Groups {
 object GroupNameListValidator {
   val formats = new Format[Seq[String]] {
     override def reads(json: JsValue): JsResult[Seq[String]] = {
-       val seq = json.validate[JsArray].map(js => js.value)
-      seq.map(_.collect{
+      val seq = json.validate[JsArray].map(js => js.value)
+      seq.map(_.collect {
         case jsVal if jsVal.validate[String](APIValidation.parentGroupNameValidator).isSuccess => jsVal.as[String]
       })
 
     }
+
     override def writes(o: Seq[String]): JsValue = Json.toJson(o)
   }
 }

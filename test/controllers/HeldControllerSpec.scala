@@ -28,6 +28,7 @@ import play.api.test.Helpers._
 import repositories.{CorporationTaxRegistrationMongoRepository, MissingCTDocument, Repositories}
 import uk.gov.hmrc.http.HeaderCarrier
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 

@@ -25,12 +25,12 @@ import uk.gov.hmrc.auth.core.retrieve.{Retrieval, SimpleRetrieval, ~}
 import uk.gov.hmrc.auth.core.{AuthorisationException, _}
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
 trait AuthenticatedActions extends MicroserviceAuthorisedFunctions {
   self: BackendController =>
 
+  implicit val ec: ExecutionContext
   private[auth] val predicate = ConfidenceLevel.L50 and AuthProviders(GovernmentGateway)
 
   val internalId: Retrieval[String] = SimpleRetrieval("internalId", Reads.StringReads)

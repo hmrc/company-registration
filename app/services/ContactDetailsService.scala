@@ -17,7 +17,6 @@
 package services
 
 import javax.inject.Inject
-
 import models.ContactDetails
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 
@@ -29,7 +28,7 @@ class ContactDetailsServiceImpl @Inject()(val repositories: Repositories) extend
 
 trait ContactDetailsService {
 
-  val corporationTaxRegistrationMongoRepository : CorporationTaxRegistrationMongoRepository
+  val corporationTaxRegistrationMongoRepository: CorporationTaxRegistrationMongoRepository
 
   def retrieveContactDetails(registrationID: String): Future[Option[ContactDetails]] = {
     corporationTaxRegistrationMongoRepository.retrieveContactDetails(registrationID)

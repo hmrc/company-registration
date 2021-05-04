@@ -16,32 +16,32 @@
 
 package models
 
-import play.api.libs.json._
 import play.api.libs.functional.syntax._
+import play.api.libs.json._
 
 case class Email(address: String,
                  emailType: String,
                  linkSent: Boolean,
                  verified: Boolean,
-                 returnLinkEmailSent : Boolean)
+                 returnLinkEmailSent: Boolean)
 
 object Email {
   implicit val format: Format[Email] = {
     val reads = (
       (__ \ "address").read[String] and
-      (__ \ "type").read[String] and
-      (__ \ "link-sent").read[Boolean] and
-      (__ \ "verified").read[Boolean] and
-      (__ \ "return-link-email-sent").read[Boolean].orElse(Reads.pure(true))
-    )(Email.apply _)
+        (__ \ "type").read[String] and
+        (__ \ "link-sent").read[Boolean] and
+        (__ \ "verified").read[Boolean] and
+        (__ \ "return-link-email-sent").read[Boolean].orElse(Reads.pure(true))
+      ) (Email.apply _)
 
     val writes = (
       (__ \ "address").write[String] and
-      (__ \ "type").write[String] and
-      (__ \ "link-sent").write[Boolean] and
-      (__ \ "verified").write[Boolean] and
-      (__ \ "return-link-email-sent").write[Boolean]
-    )(unlift(Email.unapply))
+        (__ \ "type").write[String] and
+        (__ \ "link-sent").write[Boolean] and
+        (__ \ "verified").write[Boolean] and
+        (__ \ "return-link-email-sent").write[Boolean]
+      ) (unlift(Email.unapply))
 
     Format(reads, writes)
   }
