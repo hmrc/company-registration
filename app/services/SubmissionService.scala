@@ -20,6 +20,7 @@ import audit.{SubmissionEventDetail, UserRegistrationSubmissionEvent}
 import cats.implicits._
 import connectors.{BusinessRegistrationConnector, BusinessRegistrationSuccessResponse, DesConnector, IncorporationInformationConnector}
 import helpers.DateHelper
+
 import javax.inject.Inject
 import models.RegistrationStatus.{ACKNOWLEDGED, DRAFT, LOCKED, SUBMITTED}
 import models._
@@ -34,15 +35,15 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import utils.{PagerDutyKeys, StringNormaliser}
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class SubmissionServiceImpl @Inject()(val repositories: Repositories,
                                       val incorpInfoConnector: IncorporationInformationConnector,
                                       val desConnector: DesConnector,
                                       val brConnector: BusinessRegistrationConnector,
                                       val corpTaxRegService: CorporationTaxRegistrationService,
-                                      val auditConnector: AuditConnector) extends SubmissionService {
+                                      val auditConnector: AuditConnector
+                                     )(implicit val ec: ExecutionContext) extends SubmissionService {
   lazy val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
   lazy val sequenceRepository: SequenceRepository = repositories.sequenceRepository
 
@@ -51,6 +52,7 @@ class SubmissionServiceImpl @Inject()(val repositories: Repositories,
 
 trait SubmissionService extends DateHelper {
 
+  implicit val ec: ExecutionContext
   val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository
   val sequenceRepository: SequenceRepository
   val incorpInfoConnector: IncorporationInformationConnector
@@ -160,8 +162,8 @@ trait SubmissionService extends DateHelper {
 
   private[services] def buildPartialDesSubmission(regId: String, ackRef: String, authProvId: String, brMetadata: BusinessRegistration, ctData: CorporationTaxRegistration)
                                                  (implicit hc: HeaderCarrier): InterimDesRegistration = {
-    val (sessionID, credID): (String, String) = hc.headers.toMap.get("X-Session-ID") match {
-      case Some(sesID) => (sesID, authProvId)
+    val (sessionID, credID): (String, String) = hc.sessionId match {
+      case Some(sesID) => (sesID.value, authProvId)
       case None => ctData.sessionIdentifiers match {
         case Some(sessionIdentifiers) => (sessionIdentifiers.sessionId, sessionIdentifiers.credId)
         case None => throw new RuntimeException(s"[buildPartialDesSubmission] No session identifiers available for DES submission")
@@ -185,8 +187,8 @@ trait SubmissionService extends DateHelper {
         BusinessAddress(
           line1 = StringNormaliser.removeIllegalCharacters(address.line1),
           line2 = StringNormaliser.removeIllegalCharacters(address.line2),
-          line3 = address.line3.map{ line3 => StringNormaliser.removeIllegalCharacters(line3) },
-          line4 = address.line4.map{ line4 => StringNormaliser.removeIllegalCharacters(line4) },
+          line3 = address.line3.map { line3 => StringNormaliser.removeIllegalCharacters(line3) },
+          line4 = address.line4.map { line4 => StringNormaliser.removeIllegalCharacters(line4) },
           postcode = address.postcode,
           country = address.country
         )
@@ -199,14 +201,14 @@ trait SubmissionService extends DateHelper {
             .getOrElse(throw new RuntimeException(s"formatGroupsForSubmission groups exists but name does not: $regId"))
           val address = og.addressAndType
             .getOrElse(throw new RuntimeException(s"formatGroupsForSubmission groups exists but address does not: $regId"))
-          val formattedGroupAddress = GroupsAddressAndType(addressType = address.addressType, address=BusinessAddress(
+          val formattedGroupAddress = GroupsAddressAndType(addressType = address.addressType, address = BusinessAddress(
             line1 = StringNormaliser.removeIllegalCharacters(address.address.line1),
             line2 = StringNormaliser.removeIllegalCharacters(address.address.line2),
-            line3 = address.address.line3.map{ line3 => StringNormaliser.removeIllegalCharacters(line3) },
-            line4 = address.address.line4.map{ line4 => StringNormaliser.removeIllegalCharacters(line4) },
+            line3 = address.address.line3.map { line3 => StringNormaliser.removeIllegalCharacters(line3) },
+            line4 = address.address.line4.map { line4 => StringNormaliser.removeIllegalCharacters(line4) },
             postcode = address.address.postcode,
             country = address.address.country
-          ) )
+          ))
           val utr = og.groupUTR.getOrElse(throw new RuntimeException(s"formatGroupsForSubmission groups exists but utr block does not: $regId"))
           val nameFormatted = APIValidation.parentGroupNameValidator.reads(JsString(nameOfComp.name))
             .getOrElse(throw new RuntimeException(s"Parent group name saved does not pass des validation: $regId"))
@@ -244,10 +246,10 @@ trait SubmissionService extends DateHelper {
                                           (implicit hc: HeaderCarrier): Future[HttpResponse] = {
     desConnector.ctSubmission(ackRef, partialSubmission, regId) recoverWith {
       case e =>
-        hc.headers.toMap.get("X-Session-ID") match {
+        hc.sessionId match {
           case Some(xSesID) =>
             Logger.warn(s"[storePartialSubmission] Saved session identifiers for regId: $regId")
-            cTRegistrationRepository.storeSessionIdentifiers(regId, xSesID, authProvId) map (throw e)
+            cTRegistrationRepository.storeSessionIdentifiers(regId, xSesID.value, authProvId) map (throw e)
           case _ =>
             Logger.warn(s"[storePartialSubmission] No session identifiers to save for regID: $regId")
             throw e

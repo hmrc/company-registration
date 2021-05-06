@@ -18,7 +18,6 @@ package services
 
 import com.codahale.metrics.{Counter, Gauge, Timer}
 import com.kenshoo.play.metrics.{Metrics, MetricsDisabledException}
-import config.MicroserviceAppConfig
 import javax.inject.{Inject, Singleton}
 import jobs.{LockResponse, MongoLocked, ScheduledService, UnlockingFailed}
 import org.joda.time.Duration
@@ -28,13 +27,13 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.lock.LockKeeper
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class MetricsServiceImpl @Inject()(metricsInstance: Metrics,
                                    servicesConfig: ServicesConfig,
-                                   val repositories: Repositories) extends MetricsService {
+                                   val repositories: Repositories
+                                  )(implicit val ec: ExecutionContext) extends MetricsService {
 
   override val metrics: Metrics = metricsInstance
   lazy val ctRepository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
@@ -78,6 +77,7 @@ class MetricsServiceImpl @Inject()(metricsInstance: Metrics,
 
 trait MetricsService extends ScheduledService[Either[Map[String, Int], LockResponse]] {
 
+  implicit val ec: ExecutionContext
   val ctutrConfirmationCounter: Counter
 
   val retrieveAccountingDetailsCRTimer: Timer

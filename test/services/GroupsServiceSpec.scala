@@ -25,7 +25,8 @@ import play.api.test.Helpers._
 import repositories.CorporationTaxRegistrationMongoRepository
 import utils.LogCapturing
 
-import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 
 class GroupsServiceSpec extends BaseSpec with LogCapturing {
 
@@ -45,6 +46,7 @@ class GroupsServiceSpec extends BaseSpec with LogCapturing {
     val service = new GroupsService {
       reset(mockCTDataRepository)
       override val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository = mockCTDataRepository
+      implicit val ec: ExecutionContext = global
     }
   }
 

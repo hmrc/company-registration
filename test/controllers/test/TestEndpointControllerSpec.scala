@@ -28,10 +28,10 @@ import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import repositories._
-import uk.gov.hmrc.http.HeaderCarrier
 import utils.LogCapturing
 
-import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 
 class TestEndpointControllerSpec extends BaseSpec with LogCapturing {
 
@@ -48,6 +48,7 @@ class TestEndpointControllerSpec extends BaseSpec with LogCapturing {
       val bRConnector = mockBusRegConnector
       val submissionService = mockSubmissionService
       val controllerComponents = stubControllerComponents()
+      implicit val ec: ExecutionContext = global
     }
   }
 

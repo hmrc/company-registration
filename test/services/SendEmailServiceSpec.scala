@@ -25,6 +25,9 @@ import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import uk.gov.hmrc.http.HeaderCarrier
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
+
 
 class SendEmailServiceSpec extends BaseSpec with AuthorisationMocks {
 
@@ -48,7 +51,7 @@ class SendEmailServiceSpec extends BaseSpec with AuthorisationMocks {
     val emailService = new SendEmailService {
       val microserviceAuthConnector = mockAuthConnector
       val emailConnector = mockSendEmailConnector
-
+      implicit val ec: ExecutionContext = global
     }
   }
 

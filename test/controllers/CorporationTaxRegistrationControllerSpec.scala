@@ -34,6 +34,7 @@ import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import uk.gov.hmrc.auth.core.InsufficientConfidenceLevel
 import utils.AlertLogging
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class CorporationTaxRegistrationControllerSpec extends BaseSpec with AuthorisationMocks with CorporationTaxRegistrationFixture {

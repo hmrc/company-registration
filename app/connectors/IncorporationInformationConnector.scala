@@ -23,12 +23,10 @@ import play.api.http.Status.{ACCEPTED, NO_CONTENT, OK}
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.Request
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, NotFoundException}
-import uk.gov.hmrc.play.http.ws.{WSDelete, WSGet, WSPost}
-import utils.{AlertLogging, PagerDutyKeys}
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import utils.{AlertLogging, PagerDutyKeys}
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NoStackTrace
 
 class SubscriptionFailure(msg: String) extends NoStackTrace {
@@ -36,7 +34,9 @@ class SubscriptionFailure(msg: String) extends NoStackTrace {
 }
 
 @Singleton
-class IncorporationInformationConnectorImpl @Inject()(config: MicroserviceAppConfig, val http: HttpClient) extends IncorporationInformationConnector {
+class IncorporationInformationConnectorImpl @Inject()(config: MicroserviceAppConfig,
+                                                      val http: HttpClient
+                                                     )(implicit val ec: ExecutionContext) extends IncorporationInformationConnector {
   lazy val iiUrl: String = config.incorpInfoUrl
   lazy val companyRegUrl = config.compRegUrl
   lazy val regime: String = config.regime
@@ -45,6 +45,7 @@ class IncorporationInformationConnectorImpl @Inject()(config: MicroserviceAppCon
 
 trait IncorporationInformationConnector extends AlertLogging {
 
+  implicit val ec: ExecutionContext
   val iiUrl: String
   val http: HttpClient
   val companyRegUrl: String
@@ -76,7 +77,7 @@ trait IncorporationInformationConnector extends AlertLogging {
         case ACCEPTED =>
           Logger.info(s"[IncorporationInformationConnector] [registerInterest] Registration forced returned 202 for regId: $regId txId: $transactionId ")
           true
-        case other    =>
+        case other =>
           Logger.error(s"[IncorporationInformationConnector] [registerInterest] returned a $other response for regId: $regId txId: $transactionId")
           throw new RuntimeException(s"forced registration of interest for regId : $regId - transactionId : $transactionId failed - reason : status code was $other instead of 202")
       }
@@ -88,11 +89,11 @@ trait IncorporationInformationConnector extends AlertLogging {
   }
 
   def cancelSubscription(regId: String, transactionId: String, useOldRegime: Boolean = false)(implicit hc: HeaderCarrier): Future[Boolean] = {
-    val cancelUri = if(useOldRegime) buildCancelUri(transactionId) else buildUri(transactionId)
+    val cancelUri = if (useOldRegime) buildCancelUri(transactionId) else buildUri(transactionId)
 
     http.DELETE[HttpResponse](s"$iiUrl$cancelUri") map { res =>
       res.status match {
-        case OK    =>
+        case OK =>
           Logger.info(s"[IncorporationInformationConnector] [cancelSubscription] Cancelled subscription for regId: $regId txId: $transactionId ")
           true
       }

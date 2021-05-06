@@ -17,10 +17,10 @@
 package audit
 
 import audit.RegistrationAuditEvent.buildTags
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.JsObject
 import play.api.mvc.{AnyContent, Request}
-import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
 
 case class TagSet(
                    clientIP: Boolean,
@@ -41,7 +41,7 @@ object TagSet {
 
 import audit.TagSet.ALL_TAGS
 
-abstract class RegistrationAuditEvent(auditType: String, transactionName : Option[String],detail: JsObject, tagSet: TagSet = ALL_TAGS)
+abstract class RegistrationAuditEvent(auditType: String, transactionName: Option[String], detail: JsObject, tagSet: TagSet = ALL_TAGS)
                                      (implicit hc: HeaderCarrier, optReq: Option[Request[AnyContent]] = None)
   extends ExtendedDataEvent(
     auditSource = "company-registration",
@@ -71,22 +71,22 @@ object RegistrationAuditEvent {
   }
 
   private def buildClientIP(tagSet: TagSet)(implicit hc: HeaderCarrier) =
-    if(tagSet.clientIP) Map("clientIP" -> hc.trueClientIp.getOrElse("-")) else Map()
+    if (tagSet.clientIP) Map("clientIP" -> hc.trueClientIp.getOrElse("-")) else Map()
 
   private def buildClientPort(tagSet: TagSet)(implicit hc: HeaderCarrier) =
-    if(tagSet.clientPort) Map("clientPort" -> hc.trueClientPort.getOrElse("-")) else Map()
+    if (tagSet.clientPort) Map("clientPort" -> hc.trueClientPort.getOrElse("-")) else Map()
 
   private def buildRequestId(tagSet: TagSet)(implicit hc: HeaderCarrier) =
-    if(tagSet.requestId) Map(hc.names.xRequestId -> hc.requestId.map(_.value).getOrElse("-")) else Map()
+    if (tagSet.requestId) Map(hc.names.xRequestId -> hc.requestId.map(_.value).getOrElse("-")) else Map()
 
   private def buildSessionId(tagSet: TagSet)(implicit hc: HeaderCarrier) =
-    if(tagSet.sessionId) Map(hc.names.xSessionId -> hc.sessionId.map(_.value).getOrElse("-")) else Map()
+    if (tagSet.sessionId) Map(hc.names.xSessionId -> hc.sessionId.map(_.value).getOrElse("-")) else Map()
 
   private def buildAuthorization(tagSet: TagSet)(implicit hc: HeaderCarrier) =
-    if(tagSet.authorisation) Map(hc.names.authorisation -> hc.authorization.map(_.value).getOrElse("-")) else Map()
+    if (tagSet.authorisation) Map(hc.names.authorisation -> hc.authorization.map(_.value).getOrElse("-")) else Map()
 
   private def buildAdmin(tagSet: TagSet)(implicit hc: HeaderCarrier) =
-    if(tagSet.admin) Map("adminSubmission" -> "true") else Map()
+    if (tagSet.admin) Map("adminSubmission" -> "true") else Map()
 
   private def buildPath(tagSet: TagSet)(implicit optReq: Option[Request[AnyContent]]) = {
     if (tagSet.path) {

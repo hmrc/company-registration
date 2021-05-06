@@ -21,25 +21,26 @@ import javax.inject.Inject
 import play.api.libs.json.JsObject
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
-import scala.concurrent.ExecutionContext.Implicits.global
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
-class AuditServiceImpl @Inject()(val auditConnector: AuditConnector) extends AuditService
+class AuditServiceImpl @Inject()(val auditConnector: AuditConnector)(implicit val ec: ExecutionContext) extends AuditService
 
 trait AuditService {
 
-  val auditConnector : AuditConnector
+  implicit val ec: ExecutionContext
 
-  def sendCTRegSubmissionEvent(event : CTRegistrationAuditEvent)(implicit hc : HeaderCarrier) : Future[AuditResult] = {
+  val auditConnector: AuditConnector
+
+  def sendCTRegSubmissionEvent(event: CTRegistrationAuditEvent)(implicit hc: HeaderCarrier): Future[AuditResult] = {
     auditConnector.sendExtendedEvent(event)
   }
 
-  def buildCTRegSubmissionEvent(detail: CTRegistrationSubmissionAuditEventDetails)(implicit hc : HeaderCarrier) : CTRegistrationAuditEvent = {
-    val auditTypeAndTransactionName : (String, String) = {
+  def buildCTRegSubmissionEvent(detail: CTRegistrationSubmissionAuditEventDetails)(implicit hc: HeaderCarrier): CTRegistrationAuditEvent = {
+    val auditTypeAndTransactionName: (String, String) = {
       detail.reason.isDefined match {
-        case true => ("ctRegistrationSubmissionFailed","CTRegistrationSubmissionFailed")
-        case false => ("ctRegistrationSubmissionSuccessful","CTRegistrationSubmission")
+        case true => ("ctRegistrationSubmissionFailed", "CTRegistrationSubmissionFailed")
+        case false => ("ctRegistrationSubmissionSuccessful", "CTRegistrationSubmission")
       }
     }
 
@@ -50,7 +51,7 @@ trait AuditService {
     )
   }
 
-  def ctRegSubmissionFromJson(journeyId : String, json : JsObject) : CTRegistrationSubmissionAuditEventDetails = {
+  def ctRegSubmissionFromJson(journeyId: String, json: JsObject): CTRegistrationSubmissionAuditEventDetails = {
     val des = json.as[DesResponse]
     CTRegistrationSubmissionAuditEventDetails(
       journeyId,

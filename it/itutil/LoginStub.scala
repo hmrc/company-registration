@@ -37,9 +37,6 @@ trait LoginStub extends SessionCookieBaker {
 
     Map(
       SessionKeys.sessionId -> SessionId,
-      SessionKeys.userId -> "/auth/oid/1234567890",
-      SessionKeys.token -> "token",
-      SessionKeys.authProvider -> "GGW",
       SessionKeys.lastRequestTimestamp -> rollbackTimestamp
     ) ++ additionalData
   }

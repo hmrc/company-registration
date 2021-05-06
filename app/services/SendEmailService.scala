@@ -22,31 +22,32 @@ import models.SendEmailRequest
 import play.api.Logger
 import uk.gov.hmrc.http.HeaderCarrier
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
-class SendEmailServiceImpl @Inject()(
-        val emailConnector: SendEmailConnector
-      ) extends SendEmailService
+class SendEmailServiceImpl @Inject()(val emailConnector: SendEmailConnector
+                                    )(implicit val ec: ExecutionContext) extends SendEmailService
 
 trait SendEmailService {
 
-    val RegisterForVATTemplate = "register_your_company_register_vat_email"
-    val emailConnector: SendEmailConnector
+  implicit val ec: ExecutionContext
 
-    private[services] def generateVATEmailRequest(emailAddress: Seq[String]): SendEmailRequest = {
-      SendEmailRequest(
-        to = emailAddress,
-        templateId = RegisterForVATTemplate,
-        parameters = Map(),
-        force = true
-      )
-    }
+  val RegisterForVATTemplate = "register_your_company_register_vat_email"
+  val emailConnector: SendEmailConnector
 
-    def sendVATEmail(emailAddress :String, regId: String)(implicit hc: HeaderCarrier): Future[Boolean] = {
-      emailConnector.requestEmail(generateVATEmailRequest(Seq(emailAddress))).map {
-        res => Logger.info("VAT email sent for journey id " + regId)
-          res
-      }
+  private[services] def generateVATEmailRequest(emailAddress: Seq[String]): SendEmailRequest = {
+    SendEmailRequest(
+      to = emailAddress,
+      templateId = RegisterForVATTemplate,
+      parameters = Map(),
+      force = true
+    )
+  }
+
+  def sendVATEmail(emailAddress: String, regId: String)(implicit hc: HeaderCarrier): Future[Boolean] = {
+    emailConnector.requestEmail(generateVATEmailRequest(Seq(emailAddress))).map {
+      res =>
+        Logger.info("VAT email sent for journey id " + regId)
+        res
     }
   }
+}

@@ -24,6 +24,7 @@ import org.mockito.Mockito._
 import play.api.test.Helpers._
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class TradingDetailsServiceSpec extends BaseSpec with CorporationTaxRegistrationFixture {

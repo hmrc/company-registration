@@ -23,7 +23,7 @@ import play.api.Configuration
 import repositories.Repositories
 import services.CorporationTaxRegistrationService
 
-class MissingIncorporationJob @Inject()(val config:Configuration,
+class MissingIncorporationJob @Inject()(val config: Configuration,
                                         val ctRegService: CorporationTaxRegistrationService,
                                         val repositories: Repositories) extends ScheduledJob {
   val jobName = "missing-incorporation-job"

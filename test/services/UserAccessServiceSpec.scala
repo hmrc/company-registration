@@ -31,7 +31,7 @@ import repositories.CorporationTaxRegistrationMongoRepository
 import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class UserAccessServiceSpec extends WordSpec with Matchers with MockitoSugar with BusinessRegistrationFixture
   with CorporationTaxRegistrationFixture with BeforeAndAfterEach with MockHelper {
@@ -52,6 +52,7 @@ class UserAccessServiceSpec extends WordSpec with Matchers with MockitoSugar wit
       val ctService = mockCTService
       val ctRepository = mockCTRepo
       val throttleService = mockThrottleService
+      implicit val ec: ExecutionContext = global
     }
   }
 
@@ -61,7 +62,7 @@ class UserAccessServiceSpec extends WordSpec with Matchers with MockitoSugar wit
 
   "UserAccessService" should {
     "use the correct threshold from config" in new Setup {
-      service.threshold shouldBe 10
+      service.threshold shouldBe 10F
     }
   }
 

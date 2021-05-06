@@ -17,12 +17,11 @@
 package jobs
 
 import akka.actor.ActorSystem
+import javax.inject.{Inject, Singleton}
 import jobs.SchedulingActor.RemoveStaleDocuments
 import play.api.Configuration
 import repositories.Repositories
 import services.admin.AdminService
-
-import javax.inject.{Inject, Singleton}
 
 @Singleton
 class RemoveStaleDocumentsJob @Inject()(val config: Configuration,

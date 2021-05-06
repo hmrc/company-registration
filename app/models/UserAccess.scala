@@ -16,8 +16,8 @@
 
 package models
 
-import play.api.libs.json.{JsPath, Json, Writes}
 import play.api.libs.functional.syntax._
+import play.api.libs.json.{JsPath, Json, Writes}
 
 case class UserAccessSuccessResponse
 (
@@ -32,12 +32,12 @@ case class UserAccessSuccessResponse
 object UserAccessSuccessResponse {
   implicit val writes: Writes[UserAccessSuccessResponse] = (
     (JsPath \ "registration-id").write[String] and
-    (JsPath \ "created").write[Boolean] and
-    (JsPath \ "confirmation-reference").write[Boolean] and
-    (JsPath \ "payment-reference").write[Boolean] and
-    (JsPath \ "email").writeNullable[Email] and
-    (JsPath \ "registration-progress").writeNullable[String]
-  )(unlift(UserAccessSuccessResponse.unapply))
+      (JsPath \ "created").write[Boolean] and
+      (JsPath \ "confirmation-reference").write[Boolean] and
+      (JsPath \ "payment-reference").write[Boolean] and
+      (JsPath \ "email").writeNullable[Email] and
+      (JsPath \ "registration-progress").writeNullable[String]
+    ) (unlift(UserAccessSuccessResponse.unapply))
 }
 
 case class UserAccessLimitReachedResponse(limitReached: Boolean)

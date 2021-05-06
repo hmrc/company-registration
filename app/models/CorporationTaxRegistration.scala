@@ -63,6 +63,7 @@ object CorporationTaxRegistration {
 
   implicit val dateFormatDefault = new Format[DateTime] {
     override def reads(json: JsValue): JsResult[DateTime] = JodaReads.DefaultJodaDateTimeReads.reads(json)
+
     override def writes(o: DateTime): JsValue = JodaDateTimeNumberWrites.writes(o)
   }
 
@@ -119,7 +120,6 @@ object CorporationTaxRegistration {
 
     Format(reads, writes)
   }
-
 
 
   def oFormat(format: Format[CorporationTaxRegistration]): OFormat[CorporationTaxRegistration] = {

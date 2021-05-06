@@ -39,6 +39,7 @@ import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 
 import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with BeforeAndAfterEach with Eventually {
 
@@ -57,7 +58,7 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
       val brConnector: BusinessRegistrationConnector = mockBusRegConnector
       val desConnector: DesConnector = mockDesConnector
       override val lockKeeper: LockKeeper = mockLockKeeper
-
+      implicit val ec: ExecutionContext = global
       override val staleAmount: Int = 10
       override val clearAfterXDays: Int = 90
       override val ignoredDocs: Set[String] = Set("1", "2", "3", "4", "5")

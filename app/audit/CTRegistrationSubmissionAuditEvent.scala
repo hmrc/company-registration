@@ -16,26 +16,25 @@
 
 package audit
 
-import models.AcknowledgementReferences
 import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.http.HeaderCarrier
 
-case class CTRegistrationSubmissionAuditEventDetails(journeyId : String,
-                                                     processingDate : Option[String],
+case class CTRegistrationSubmissionAuditEventDetails(journeyId: String,
+                                                     processingDate: Option[String],
                                                      acknowledgementReference: Option[String],
-                                                     reason : Option[String])
+                                                     reason: Option[String])
 
 object CTRegistrationSubmissionAuditEventDetails {
   implicit val format = Json.format[CTRegistrationSubmissionAuditEventDetails]
 }
 
-case class DesResponse(processingDate : Option[String],
+case class DesResponse(processingDate: Option[String],
                        acknowledgementReference: Option[String],
-                       reason : Option[String])
+                       reason: Option[String])
 
 object DesResponse {
   implicit val format = Json.format[DesResponse]
 }
 
-class CTRegistrationAuditEvent(details: CTRegistrationSubmissionAuditEventDetails, auditType : String, transactionName : String)(implicit hc : HeaderCarrier)
+class CTRegistrationAuditEvent(details: CTRegistrationSubmissionAuditEventDetails, auditType: String, transactionName: String)(implicit hc: HeaderCarrier)
   extends RegistrationAuditEvent(auditType, Some(transactionName), Json.toJson(details).as[JsObject])

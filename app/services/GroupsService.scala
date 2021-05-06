@@ -20,14 +20,15 @@ import javax.inject.Inject
 import models.Groups
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
-class GroupsServiceImpl @Inject()(val repositories: Repositories) extends GroupsService {
+class GroupsServiceImpl @Inject()(val repositories: Repositories)(implicit val ec: ExecutionContext) extends GroupsService {
   lazy val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 }
 
 trait GroupsService {
+
+  implicit val ec: ExecutionContext
 
   val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository
 
@@ -37,14 +38,17 @@ trait GroupsService {
 
   def deleteGroups(registrationID: String): Future[Boolean] = {
     cTRegistrationRepository.deleteGroupsBlock(registrationID).flatMap {
-      deleted => if(!deleted) {
-        Future.failed(new Exception(s"Groups block failed to delete successfully for regId $registrationID"))
-      } else { Future.successful(deleted)}
+      deleted =>
+        if (!deleted) {
+          Future.failed(new Exception(s"Groups block failed to delete successfully for regId $registrationID"))
+        } else {
+          Future.successful(deleted)
+        }
     }
   }
 
   def updateGroups(registrationID: String, groups: Groups): Future[Groups] = {
-    cTRegistrationRepository.updateGroups(registrationID,groups)
+    cTRegistrationRepository.updateGroups(registrationID, groups)
   }
 
 }

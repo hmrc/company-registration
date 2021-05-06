@@ -29,17 +29,17 @@ object DateCalculators {
       .now(DateTimeZone.UTC)
       .dayOfWeek()
       .getAsText()
-      .substring(0,3)
+      .substring(0, 3)
       .toUpperCase
   }
 
   def getCurrentTime: LocalTime = LocalTime.now
 
   def getTheDay(nowDateTime: DateTime): String = {
-    nowDateTime.dayOfWeek().getAsText().substring(0,3).toUpperCase
+    nowDateTime.dayOfWeek().getAsText().substring(0, 3).toUpperCase
   }
 
-  def loggingDay(validLoggingDays: String,todaysDate: String): Boolean = {
+  def loggingDay(validLoggingDays: String, todaysDate: String): Boolean = {
     validLoggingDays.split(",").contains(todaysDate)
   }
 

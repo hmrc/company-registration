@@ -33,7 +33,7 @@ import play.api.test.Helpers._
 import services._
 import utils.LogCapturing
 
-
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class ProcessIncorporationsControllerSpec extends WordSpec with Matchers with MockitoSugar with LogCapturing with Eventually {

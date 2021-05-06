@@ -25,22 +25,24 @@ import play.api.{Configuration, Logger}
 import reactivemongo.api.indexes.IndexType
 import repositories.CorporationTaxRegistrationMongoRepository
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.{ExecutionContext, Future}
 
 
-class Startup @Inject()(appStartupJobs: AppStartupJobs, actorSystem: ActorSystem) {
+class Startup @Inject()(appStartupJobs: AppStartupJobs,
+                        actorSystem: ActorSystem
+                       )(implicit val ec: ExecutionContext) {
+
   actorSystem.scheduler.scheduleOnce(FiniteDuration(1, TimeUnit.MINUTES))(appStartupJobs.runEverythingOnStartUp)
 }
 
 class AppStartupJobsImpl @Inject()(val config: Configuration,
-                                   val ctRepo: CorporationTaxRegistrationMongoRepository) extends AppStartupJobs {
-
-}
+                                   val ctRepo: CorporationTaxRegistrationMongoRepository
+                                  )(implicit val ec: ExecutionContext) extends AppStartupJobs
 
 trait AppStartupJobs {
 
+  implicit val ec: ExecutionContext
   val config: Configuration
   val ctRepo: CorporationTaxRegistrationMongoRepository
 

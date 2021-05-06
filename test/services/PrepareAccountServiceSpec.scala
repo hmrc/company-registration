@@ -23,13 +23,15 @@ import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
 import play.api.test.Helpers._
 
-import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 
 class PrepareAccountServiceSpec extends BaseSpec {
 
   class Setup {
     val prepareAccountService = new PrepareAccountService {
       override val repository = mockCTDataRepository
+      implicit val ec: ExecutionContext = global
     }
   }
 

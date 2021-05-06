@@ -29,6 +29,7 @@ import repositories.{CorporationTaxRegistrationMongoRepository, MissingCTDocumen
 import services.EmailService
 import uk.gov.hmrc.auth.core.MissingBearerToken
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class EmailControllerSpec extends BaseSpec with AuthorisationMocks {

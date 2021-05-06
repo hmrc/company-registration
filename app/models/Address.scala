@@ -19,7 +19,6 @@ package models
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{JsPath, JsonValidationError, Reads, Writes}
 import utils.StringNormaliser
-import utils.StringNormaliser.removeIllegalCharacters
 
 case class Address(line1: String,
                    line2: String,

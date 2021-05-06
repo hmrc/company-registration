@@ -38,7 +38,6 @@ import uk.gov.hmrc.lock.LockKeeper
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -48,7 +47,8 @@ class AdminServiceImpl @Inject()(val corpTaxRegRepo: CorporationTaxRegistrationM
                                  val repositories: Repositories,
                                  val incorpInfoConnector: IncorporationInformationConnector, microserviceAppConfig: MicroserviceAppConfig,
                                  val auditConnector: AuditConnector,
-                                 servicesConfig: ServicesConfig)
+                                 servicesConfig: ServicesConfig
+                                )(implicit val ec: ExecutionContext)
   extends AdminService {
   lazy val staleAmount: Int = servicesConfig.getInt("staleDocumentAmount")
   lazy val clearAfterXDays: Int = servicesConfig.getInt("clearAfterXDays")
@@ -64,6 +64,7 @@ class AdminServiceImpl @Inject()(val corpTaxRegRepo: CorporationTaxRegistrationM
 
 trait AdminService extends ScheduledService[Either[Int, LockResponse]] with DateFormatter {
 
+  implicit val ec: ExecutionContext
   val corpTaxRegRepo: CorporationTaxRegistrationMongoRepository
   val desConnector: DesConnector
   val auditConnector: AuditConnector

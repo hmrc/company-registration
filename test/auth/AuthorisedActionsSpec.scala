@@ -25,13 +25,15 @@ import repositories.MissingCTDocument
 import uk.gov.hmrc.auth.core.{BearerTokenExpired, InvalidBearerToken, MissingBearerToken, SessionRecordNotFound}
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
-import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 
 class AuthorisedActionsSpec extends BaseSpec with AuthorisationMocks {
 
   trait Setup {
 
     object AuthorisedController extends BackendController(stubControllerComponents()) with AuthorisedActions {
+      implicit val ec: ExecutionContext = global
       val authConnector = mockAuthConnector
       val resource = mockResource
     }

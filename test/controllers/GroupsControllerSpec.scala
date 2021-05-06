@@ -30,6 +30,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {

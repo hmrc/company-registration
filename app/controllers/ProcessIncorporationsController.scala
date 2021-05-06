@@ -22,17 +22,16 @@ import play.api.Logger
 import play.api.libs.json.JsValue
 import play.api.mvc.{Action, AnyContentAsJson, ControllerComponents, Request}
 import services._
-import uk.gov.hmrc.play.bootstrap.controller.BackendController
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class ProcessIncorporationsController @Inject()(val processIncorporationService: ProcessIncorporationService,
                                                 val corpTaxRegService: CorporationTaxRegistrationService,
                                                 val submissionService: SubmissionService,
                                                 controllerComponents: ControllerComponents
-                                               ) extends BackendController(controllerComponents) {
+                                               )(implicit val ec: ExecutionContext) extends BackendController(controllerComponents) {
 
   private def logFailedTopup(txId: String) = {
     Logger.error("FAILED_DES_TOPUP")

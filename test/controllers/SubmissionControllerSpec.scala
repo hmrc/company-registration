@@ -33,6 +33,7 @@ import uk.gov.hmrc.auth.core.InsufficientConfidenceLevel
 import uk.gov.hmrc.auth.core.retrieve.{Credentials, ~}
 import utils.AlertLogging
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class SubmissionControllerSpec extends BaseSpec with AuthorisationMocks with CorporationTaxRegistrationFixture {

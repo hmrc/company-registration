@@ -30,7 +30,9 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, NotFoundException, Upstream5xxResponse}
 import utils.LogCapturing
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext.Implicits.global
+
 
 class IncorporationInformationConnectorSpec extends BaseSpec with BusinessRegistrationFixture with LogCapturing {
 
@@ -44,6 +46,7 @@ class IncorporationInformationConnectorSpec extends BaseSpec with BusinessRegist
       override val regime = tRegime
       override val subscriber = tSubscriber
       override val companyRegUrl: String = "testCompanyRegistrationUrl"
+      implicit val ec: ExecutionContext = global
     }
   }
 
@@ -165,7 +168,7 @@ class IncorporationInformationConnectorSpec extends BaseSpec with BusinessRegist
     "return None" when {
       "the CRN is not there" in new Setup {
         val expectedURL = s"${connector.iiUrl}/incorporation-information/$txId/incorporation-update"
-        when(mockWSHttp.GET[HttpResponse](ArgumentMatchers.eq(expectedURL))(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
+        when(mockWSHttp.GET[HttpResponse](ArgumentMatchers.eq(expectedURL), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
           .thenReturn(Future.successful(HttpResponse(200)))
 
         await(connector.checkCompanyIncorporated(txId)) shouldBe None
@@ -173,7 +176,7 @@ class IncorporationInformationConnectorSpec extends BaseSpec with BusinessRegist
 
       "on a no content response" in new Setup {
         val expectedURL = s"${connector.iiUrl}/incorporation-information/$txId/incorporation-update"
-        when(mockWSHttp.GET[HttpResponse](ArgumentMatchers.eq(expectedURL))(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
+        when(mockWSHttp.GET[HttpResponse](ArgumentMatchers.eq(expectedURL), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
           .thenReturn(Future.successful(HttpResponse(204)))
 
         await(connector.checkCompanyIncorporated(txId)) shouldBe None
@@ -183,7 +186,7 @@ class IncorporationInformationConnectorSpec extends BaseSpec with BusinessRegist
     "return Some crn" when {
       "the CRN is there" in new Setup {
         val expectedURL = s"${connector.iiUrl}/incorporation-information/$txId/incorporation-update"
-        when(mockWSHttp.GET[HttpResponse](ArgumentMatchers.eq(expectedURL))(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
+        when(mockWSHttp.GET[HttpResponse](ArgumentMatchers.eq(expectedURL), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
           .thenReturn(Future.successful(HttpResponse(200, Some(Json.obj("crn" -> "crn")))))
 
         withCaptureOfLoggingFrom(Logger) { logs =>

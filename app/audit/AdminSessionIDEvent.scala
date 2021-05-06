@@ -19,10 +19,10 @@ package audit
 import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.http.HeaderCarrier
 
-class AdminSessionIDEvent(timestamp: JsObject, strideUsername: String, sessionIdData : JsObject, oldId : String)(implicit hc: HeaderCarrier)
+class AdminSessionIDEvent(timestamp: JsObject, strideUsername: String, sessionIdData: JsObject, oldId: String)(implicit hc: HeaderCarrier)
   extends RegistrationAuditEvent(
     auditType = "adminSessionID",
-    transactionName =  Some("admin-session-id"),
+    transactionName = Some("admin-session-id"),
     detail = {
       val strideUser = Json.obj("strideUserId" -> strideUsername)
       val oldSessionId = Json.obj("oldSessionId" -> oldId)

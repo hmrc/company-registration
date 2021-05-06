@@ -31,7 +31,8 @@ import play.api.{Configuration, Logger}
 import repositories._
 import utils.LogCapturing
 
-import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 
 class AppStartupJobsSpec extends WordSpec with Matchers with MockitoSugar with LogCapturing
   with CorporationTaxRegistrationFixture with Eventually {
@@ -64,7 +65,7 @@ class AppStartupJobsSpec extends WordSpec with Matchers with MockitoSugar with L
 
       val appStartupJobs: AppStartupJobs = new AppStartupJobs {
         override def runEverythingOnStartUp: Future[Unit] = Future.successful(())
-
+        implicit val ec: ExecutionContext = global
         override val config: Configuration = Configuration()
         override val ctRepo: CorporationTaxRegistrationMongoRepository = mockCTRepository
       }
@@ -129,7 +130,7 @@ class AppStartupJobsSpec extends WordSpec with Matchers with MockitoSugar with L
 
       val appStartupJobs: AppStartupJobs = new AppStartupJobs {
         override val config: Configuration = mockConfig
-
+        implicit val ec: ExecutionContext = global
         override val ctRepo: CorporationTaxRegistrationMongoRepository = mockCTRepository
 
         override def runEverythingOnStartUp: Future[Unit] = Future.successful(())

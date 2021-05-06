@@ -27,7 +27,7 @@ import play.api.libs.json.{JsString, Writes}
 
 trait DateFormatter extends DateHelper {
   val zonedDateTimeWrites: Writes[ZonedDateTime] = new Writes[ZonedDateTime] {
-    def writes(z:ZonedDateTime) = JsString(formatTimestamp(z))
+    def writes(z: ZonedDateTime) = JsString(formatTimestamp(z))
   }
 }
 
@@ -56,13 +56,13 @@ trait DateHelper {
     date.toString("yyyy-MM-dd")
   }
 
-  def formatTimestamp(timeStamp: DateTime) : String = {
+  def formatTimestamp(timeStamp: DateTime): String = {
     val timeStampFormat = "yyyy-MM-dd'T'HH:mm:ssXXX"
     val format: SimpleDateFormat = new SimpleDateFormat(timeStampFormat)
     format.format(new Date(timeStamp.getMillis))
   }
 
-  def formatTimestamp(timeStamp: ZonedDateTime) : String = {
+  def formatTimestamp(timeStamp: ZonedDateTime): String = {
     val utcTimeStamp = timeStamp.withZoneSameInstant(ZoneId.of("Z"))
     dtFormat.format(utcTimeStamp)
   }

@@ -22,7 +22,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 class AdminReleaseAuditEvent(timestamp: JsObject, strideUsername: String, submittedIdentifiers: JsObject, receivedDetails: JsObject)(implicit hc: HeaderCarrier)
   extends RegistrationAuditEvent(
     auditType = "adminRelease",
-    transactionName =  Some("admin-release"),
+    transactionName = Some("admin-release"),
     detail = {
       val strideUser = Json.obj("strideUserId" -> strideUsername)
       timestamp ++ strideUser ++ submittedIdentifiers ++ receivedDetails

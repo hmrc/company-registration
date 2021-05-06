@@ -17,7 +17,6 @@
 package services
 
 import javax.inject.Inject
-
 import models.Email
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 

@@ -31,6 +31,7 @@ import play.api.test.Helpers._
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.PrepareAccountService
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class AccountingDetailsControllerSpec extends BaseSpec with AccountingDetailsFixture with AuthorisationMocks {

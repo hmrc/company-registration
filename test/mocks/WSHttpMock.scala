@@ -31,7 +31,8 @@ trait WSHttpMock {
   lazy val mockWSHttp = mock[HttpClient]
 
   def mockHttpGet[T](url: String, thenReturn: T): OngoingStubbing[Future[T]] = {
-    when(mockWSHttp.GET[T](ArgumentMatchers.anyString())(ArgumentMatchers.any[HttpReads[T]](), ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any()))
+    when(mockWSHttp.GET[T](ArgumentMatchers.anyString(), ArgumentMatchers.any(), ArgumentMatchers.any())
+      (ArgumentMatchers.any[HttpReads[T]](), ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any()))
       .thenReturn(Future.successful(thenReturn))
   }
 

@@ -28,6 +28,7 @@ import repositories.{CorporationTaxRegistrationMongoRepository, MissingCTDocumen
 import services.PrepareAccountService
 import uk.gov.hmrc.auth.core.MissingBearerToken
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class CompanyDetailsControllerSpec extends BaseSpec with AuthorisationMocks with CompanyDetailsFixture {

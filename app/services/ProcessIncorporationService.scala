@@ -33,20 +33,18 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpErrorFunctions}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import utils.{DateCalculators, Logging, PagerDutyKeys}
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NoStackTrace
 
-class ProcessIncorporationServiceImpl @Inject()(
-                                                   val desConnector: DesConnector,
-                                                   val incorporationCheckAPIConnector: IncorporationCheckAPIConnector,
-                                                   val accountingService: AccountingDetailsService,
-                                                   val brConnector: BusinessRegistrationConnector,
-                                                   val sendEmailService: SendEmailService,
-                                                   val repositories: Repositories,
-                                                   val auditConnector: AuditConnector,
-                                                   val microserviceAppConfig: MicroserviceAppConfig
-                                                 ) extends ProcessIncorporationService  {
+class ProcessIncorporationServiceImpl @Inject()(val desConnector: DesConnector,
+                                                val incorporationCheckAPIConnector: IncorporationCheckAPIConnector,
+                                                val accountingService: AccountingDetailsService,
+                                                val brConnector: BusinessRegistrationConnector,
+                                                val sendEmailService: SendEmailService,
+                                                val repositories: Repositories,
+                                                val auditConnector: AuditConnector,
+                                                val microserviceAppConfig: MicroserviceAppConfig
+                                               )(implicit val ec: ExecutionContext) extends ProcessIncorporationService {
 
   lazy val ctRepository = repositories.cTRepository
   lazy val addressLine4FixRegID = microserviceAppConfig.getConfigString("address-line-4-fix.regId")
@@ -65,6 +63,7 @@ private[services] object FailedToDeleteSubmissionData extends NoStackTrace
 
 trait ProcessIncorporationService extends DateHelper with HttpErrorFunctions with Logging {
 
+  implicit val ec: ExecutionContext
   val desConnector: DesConnector
   val incorporationCheckAPIConnector: IncorporationCheckAPIConnector
   val ctRepository: CorporationTaxRegistrationMongoRepository
@@ -77,7 +76,6 @@ trait ProcessIncorporationService extends DateHelper with HttpErrorFunctions wit
   val amendedAddressLine4: String
   val blockageLoggingDay: String
   val blockageLoggingTime: String
-
 
 
   private[services] class FailedToRetrieveByAckRef extends NoStackTrace
@@ -171,10 +169,10 @@ trait ProcessIncorporationService extends DateHelper with HttpErrorFunctions wit
         (
           for {
             submission <- constructTopUpSubmission(item, ctReg, ackRef)
-            _          <- processAcceptedSubmission(item, ackRef, ctReg, submission, isAdmin)
-            submitted  <- ctRepository.updateHeldToSubmitted(ctReg.registrationID, item.crn.get, formatTimestamp(now))
+            _ <- processAcceptedSubmission(item, ackRef, ctReg, submission, isAdmin)
+            submitted <- ctRepository.updateHeldToSubmitted(ctReg.registrationID, item.crn.get, formatTimestamp(now))
           } yield submitted
-        ) recover {
+          ) recover {
           case e =>
             Logger.error(s"""[updateHeldSubmission] Submission to DES failed for ack ref $ackRef. Corresponding RegID: $journeyId and Transaction ID: ${item.transactionId}""")
             throw e
@@ -189,7 +187,7 @@ trait ProcessIncorporationService extends DateHelper with HttpErrorFunctions wit
   private[services] def processAcceptedSubmission(item: IncorpUpdate, ackRef: String, ctReg: CorporationTaxRegistration,
                                                   submission: JsObject, isAdmin: Boolean = false)(implicit hc: HeaderCarrier): Future[Boolean] = {
     for {
-      submitted <- desConnector.topUpCTSubmission(ackRef, submission, ctReg.registrationID, isAdmin) map ( _ => true )
+      submitted <- desConnector.topUpCTSubmission(ackRef, submission, ctReg.registrationID, isAdmin) map (_ => true)
       _ = auditSuccessfulTopUp(submission, item, ctReg)
     } yield submitted
   }

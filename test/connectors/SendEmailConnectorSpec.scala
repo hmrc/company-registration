@@ -24,7 +24,8 @@ import play.api.libs.json.JsValue
 import play.api.test.Helpers._
 import uk.gov.hmrc.http._
 
-import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 
 class SendEmailConnectorSpec extends BaseSpec {
 
@@ -32,7 +33,7 @@ class SendEmailConnectorSpec extends BaseSpec {
     val connector = new SendEmailConnector {
       override val sendEmailURL = "testSendEmailURL"
       override val http = mockWSHttp
-
+      implicit val ec: ExecutionContext = global
     }
   }
 

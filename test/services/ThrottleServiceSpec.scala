@@ -24,6 +24,7 @@ import org.mockito.Mockito._
 import play.api.test.Helpers._
 import repositories.{Repositories, ThrottleMongoRepository}
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class ThrottleServiceSpec extends BaseSpec {

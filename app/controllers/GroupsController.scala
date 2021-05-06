@@ -18,19 +18,17 @@ package controllers
 
 import auth._
 import javax.inject.{Inject, Singleton}
-import models.{GroupNameListValidator, Groups}
 import models.validation.APIValidation
+import models.{GroupNameListValidator, Groups}
 import play.api.Logger
 import play.api.libs.json.{JsValue, Json}
-import play.api.libs.ws.WSClient
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.GroupsService
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.play.bootstrap.controller.BackendController
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class GroupsController @Inject()(val authConnector: AuthConnector,
@@ -38,7 +36,7 @@ class GroupsController @Inject()(val authConnector: AuthConnector,
                                  val cryptoSCRS: CryptoSCRS,
                                  val repositories: Repositories,
                                  controllerComponents: ControllerComponents
-                                ) extends BackendController(controllerComponents) with AuthorisedActions {
+                                )(implicit val ec: ExecutionContext) extends BackendController(controllerComponents) with AuthorisedActions {
   lazy val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 
 

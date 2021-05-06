@@ -24,9 +24,9 @@ import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.{AccountingDetailsService, MetricsService, PrepareAccountService}
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.play.bootstrap.controller.BackendController
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
 
 
 @Singleton
@@ -35,8 +35,8 @@ class AccountingDetailsController @Inject()(val metricsService: MetricsService,
                                             val accountingDetailsService: AccountingDetailsService,
                                             val authConnector: AuthConnector,
                                             val repositories: Repositories,
-                                            controllerComponents: ControllerComponents)
-  extends BackendController(controllerComponents) with AuthorisedActions {
+                                            controllerComponents: ControllerComponents
+                                           )(implicit val ec: ExecutionContext) extends BackendController(controllerComponents) with AuthorisedActions {
   lazy val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 
 
