@@ -22,7 +22,7 @@ import models.AccountingDetails.{FUTURE_DATE => FD, NOT_PLANNING_TO_YET => NP2Y,
 import models._
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.{DateTime, DateTimeZone}
-import play.api.Logger
+import play.api.Logging
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads.{maxLength, pattern}
 import play.api.libs.json.{JsonValidationError, _}
@@ -52,7 +52,7 @@ trait APIValidation extends BaseJsonFormatting
 
 }
 
-trait GroupsValidator {
+trait GroupsValidator extends Logging {
   self: BaseJsonFormatting =>
 
   override def formatsForGroupCompanyNameEnum(name: String): Format[GroupCompanyNameEnum.Value] = new Format[GroupCompanyNameEnum.Value] {
@@ -62,7 +62,7 @@ trait GroupsValidator {
           .toOption
           .fold[JsResult[GroupCompanyNameEnum.Value]](JsError(s"String value is not an enum: $str")) { success =>
             if (name.length > 20 && success == GroupCompanyNameEnum.Other) {
-              Logger.warn("[Groups API Reads] nameOfCompany.nameType = Other but name.size > 20, could indicate frontend validation issue")
+              logger.warn("[Groups API Reads] nameOfCompany.nameType = Other but name.size > 20, could indicate frontend validation issue")
             }
             JsSuccess(success)
           })
@@ -142,7 +142,7 @@ trait DateValidator {
   )
 }
 
-trait AddressValidator {
+trait AddressValidator extends Logging {
   self: BaseJsonFormatting =>
 
   val chPremisesValidator: Format[String] = lengthFmt(120)
@@ -199,7 +199,7 @@ trait AddressValidator {
   override def groupNameValidation: Format[String] = new Format[String] {
     override def reads(json: JsValue): JsResult[String] = {
       json.validate[String](parentGroupNameValidator).fold(err => {
-        Logger.warn("[Groups API Reads] name of company invalid when normalised and trimmed this doesn't pass Regex validation")
+        logger.warn("[Groups API Reads] name of company invalid when normalised and trimmed this doesn't pass Regex validation")
         JsError(err)
       }, success => JsSuccess(json.as[String]))
     }

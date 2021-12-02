@@ -19,11 +19,9 @@ package repositories
 import auth.{AuthorisationResource, CryptoSCRS}
 import cats.data.OptionT
 import cats.implicits._
-import javax.inject.{Inject, Singleton}
 import models._
 import models.validation.MongoValidation
 import org.joda.time.{DateTime, DateTimeZone}
-import play.api.Logger
 import play.api.libs.json.JodaWrites._
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoComponent
@@ -36,6 +34,7 @@ import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NoStackTrace
 
@@ -194,14 +193,14 @@ class CorporationTaxRegistrationMongoRepository @Inject()(mongo: ReactiveMongoCo
       Json.toJson(updateTo)
     ) map { res =>
       if (res.nModified == 0) {
-        Logger.error(s"[CorporationTaxRegistrationMongoRepository] [updateTransactionId] No document with transId: $updateFrom was found")
+        logger.error(s"[CorporationTaxRegistrationMongoRepository] [updateTransactionId] No document with transId: $updateFrom was found")
         throw new RuntimeException("Did not update transaction ID")
       } else {
         updateTo
       }
     } recover {
       case e =>
-        Logger.error(s"[CorporationTaxRegistrationMongoRepository] [updateTransactionId] Unable to update transId: $updateFrom to $updateTo", e)
+        logger.error(s"[CorporationTaxRegistrationMongoRepository] [updateTransactionId] Unable to update transId: $updateFrom to $updateTo", e)
         throw e
     }
   }
@@ -213,7 +212,7 @@ class CorporationTaxRegistrationMongoRepository @Inject()(mongo: ReactiveMongoCo
   def getExistingRegistration(registrationID: String): Future[CorporationTaxRegistration] = {
     findBySelector(regIDSelector(registrationID)).map {
       _.getOrElse {
-        Logger.warn(s"[getExistingRegistration] No Document Found for RegId: $registrationID")
+        logger.warn(s"[getExistingRegistration] No Document Found for RegId: $registrationID")
         throw new MissingCTDocument(registrationID)
       }
     }
@@ -328,14 +327,14 @@ class CorporationTaxRegistrationMongoRepository @Inject()(mongo: ReactiveMongoCo
     findAndUpdate(regIDSelector(registrationId), modifier, fetchNewObject = false) map { res =>
       res.lastError.flatMap {
         _.err.map { e =>
-          Logger.warn(s"[removeUnnecessaryInformation] - an error occurred for regId: $registrationId with error: $e")
+          logger.warn(s"[removeUnnecessaryInformation] - an error occurred for regId: $registrationId with error: $e")
           false
         }
       }.getOrElse {
         if (res.value.isDefined) {
           true
         } else {
-          Logger.warn(s"[removeUnnecessaryInformation] - attempted to remove keys but no doc was found for regId: $registrationId")
+          logger.warn(s"[removeUnnecessaryInformation] - attempted to remove keys but no doc was found for regId: $registrationId")
           true
         }
       }
@@ -431,7 +430,7 @@ class CorporationTaxRegistrationMongoRepository @Inject()(mongo: ReactiveMongoCo
 
   def fetchDocumentStatus(regId: String): OptionT[Future, String] = for {
     status <- OptionT(findBySelector(regIDSelector(regId))).map(_.status)
-    _ = Logger.info(s"[FetchDocumentStatus] status for reg id $regId is $status ")
+    _ = logger.info(s"[FetchDocumentStatus] status for reg id $regId is $status ")
   } yield status
 
   def updateRegistrationToHeld(regId: String, confRefs: ConfirmationReferences): Future[Option[CorporationTaxRegistration]] = {
@@ -536,7 +535,7 @@ class CorporationTaxRegistrationMongoRepository @Inject()(mongo: ReactiveMongoCo
     )
     val ascending = Json.obj("lastSignedIn" -> 1)
     val logOnError = Cursor.ContOnError[List[CorporationTaxRegistration]]((_, ex) =>
-      Logger.error(s"[retrieveStaleDocuments] Mongo failed, problem occured in collect - ex: ${ex.getMessage}")
+      logger.error(s"[retrieveStaleDocuments] Mongo failed, problem occured in collect - ex: ${ex.getMessage}")
     )
 
     collection.find[JsObject, CorporationTaxRegistration](

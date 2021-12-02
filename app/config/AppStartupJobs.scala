@@ -16,15 +16,14 @@
 
 package config
 
-import java.util.Base64
-import java.util.concurrent.TimeUnit
-
 import akka.actor.ActorSystem
-import javax.inject.Inject
-import play.api.{Configuration, Logger}
+import play.api.{Configuration, Logging}
 import reactivemongo.api.indexes.IndexType
 import repositories.CorporationTaxRegistrationMongoRepository
 
+import java.util.Base64
+import java.util.concurrent.TimeUnit
+import javax.inject.Inject
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -40,7 +39,7 @@ class AppStartupJobsImpl @Inject()(val config: Configuration,
                                    val ctRepo: CorporationTaxRegistrationMongoRepository
                                   )(implicit val ec: ExecutionContext) extends AppStartupJobs
 
-trait AppStartupJobs {
+trait AppStartupJobs extends Logging {
 
   implicit val ec: ExecutionContext
   val config: Configuration
@@ -48,14 +47,14 @@ trait AppStartupJobs {
 
   def startupStats: Future[Unit] = {
     ctRepo.getRegistrationStats map {
-      stats => Logger.info(s"[RegStats] $stats")
+      stats => logger.info(s"[RegStats] $stats")
     }
   }
 
   def lockedRegIds: Future[Unit] = {
     ctRepo.retrieveLockedRegIDs() map { regIds =>
       val message = regIds.map(rid => s" RegId: $rid")
-      Logger.info(s"RegIds with locked status:$message")
+      logger.info(s"RegIds with locked status:$message")
     }
   }
 
@@ -63,7 +62,7 @@ trait AppStartupJobs {
     ctRepo.retrieveMultipleCorporationTaxRegistration(rid) map {
       list =>
         list foreach { ctDoc =>
-          Logger.info(s"[CompanyName] " +
+          logger.info(s"[CompanyName] " +
             s"status : ${ctDoc.status} - " +
             s"reg Id : ${ctDoc.registrationID} - " +
             s"Company Name : ${ctDoc.companyDetails.fold("")(companyDetails => companyDetails.companyName)} - " +
@@ -74,9 +73,9 @@ trait AppStartupJobs {
 
   def fetchIndexes(): Future[Unit] = {
     ctRepo.fetchIndexes().map { list =>
-      Logger.info(s"[Indexes] There are ${list.size} indexes")
+      logger.info(s"[Indexes] There are ${list.size} indexes")
       list.foreach { index =>
-        Logger.info(s"[Indexes]\n " +
+        logger.info(s"[Indexes]\n " +
           s"name : ${index.eventualName}\n " +
           s"""keys : ${
             index.key match {
@@ -100,7 +99,7 @@ trait AppStartupJobs {
     Future.sequence(regIds.map { regId =>
       ctRepo.findBySelector(ctRepo.regIDSelector(regId)).map {
         case Some(doc) =>
-          Logger.info(
+          logger.info(
             s"""
                |[StartUp] [fetchByRegID] regId: $regId,
                | status: ${doc.status},
@@ -115,7 +114,7 @@ trait AppStartupJobs {
                | verifiedEmail: ${doc.verifiedEmail.isDefined}
             """.stripMargin
           )
-        case _ => Logger.info(s"[StartUp] [fetchByRegID] No registration document found for $regId")
+        case _ => logger.info(s"[StartUp] [fetchByRegID] No registration document found for $regId")
       }
     })
   }
@@ -125,26 +124,26 @@ trait AppStartupJobs {
     for (ackRef <- ackRefs) {
       ctRepo.findBySelector(ctRepo.ackRefSelector(ackRef)).map {
         case Some(doc) =>
-          Logger.info(
+          logger.info(
             s"""
                |[StartUp] [fetchByAckRef] Ack Ref: $ackRef, RegId: ${doc.registrationID}, Status: ${doc.status}, LastSignedIn: ${doc.lastSignedIn}, ConfRefs: ${doc.confirmationReferences}
             """.stripMargin
           )
-        case _ => Logger.info(s"[StartUp] [fetchByAckRef] No registration document found for $ackRef")
+        case _ => logger.info(s"[StartUp] [fetchByAckRef] No registration document found for $ackRef")
       }
     }
   }
 
   def runEverythingOnStartUp = {
-    Logger.info("Running Startup Jobs")
-    lazy val regid = config.getString("companyNameRegID").getOrElse("")
+    logger.info("Running Startup Jobs")
+    lazy val regid = config.get[String]("companyNameRegID")
     getCTCompanyName(regid)
 
-    lazy val base64RegIds = config.getString("list-of-regids").getOrElse("")
+    lazy val base64RegIds = config.get[String]("list-of-regids")
     lazy val listOftxIDs = new String(Base64.getDecoder.decode(base64RegIds), "UTF-8").split(",").toList
     fetchDocInfoByRegId(listOftxIDs)
 
-    lazy val base64ackRefs = config.getString("list-of-ackrefs").getOrElse("")
+    lazy val base64ackRefs = config.get[String]("list-of-ackrefs")
     lazy val listOfackRefs = new String(Base64.getDecoder.decode(base64ackRefs), "UTF-8").split(",").toList
     fetchByAckRef(listOfackRefs)
 

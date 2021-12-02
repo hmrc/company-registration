@@ -69,7 +69,7 @@ class AppStartupJobsSpec extends WordSpec with Matchers with MockitoSugar with L
         override val config: Configuration = Configuration()
         override val ctRepo: CorporationTaxRegistrationMongoRepository = mockCTRepository
       }
-      withCaptureOfLoggingFrom(Logger) { logEvents =>
+      withCaptureOfLoggingFrom(Logger(appStartupJobs.getClass)) { logEvents =>
         eventually {
           await(appStartupJobs.getCTCompanyName(regId1))
           val expectedLogs = List(
@@ -137,7 +137,7 @@ class AppStartupJobsSpec extends WordSpec with Matchers with MockitoSugar with L
 
       }
 
-      withCaptureOfLoggingFrom(Logger) { logEvents =>
+      withCaptureOfLoggingFrom(Logger(appStartupJobs.getClass)) { logEvents =>
         eventually {
           await(appStartupJobs.fetchDocInfoByRegId(regIds))
 

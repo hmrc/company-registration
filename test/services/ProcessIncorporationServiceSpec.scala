@@ -16,7 +16,6 @@
 
 package services
 
-import java.util.UUID
 import connectors._
 import fixtures.CorporationTaxRegistrationFixture
 import models._
@@ -24,8 +23,8 @@ import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
 import org.scalatest.concurrent.Eventually
-import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.Logger
 import play.api.libs.json.{JsObject, JsString, Json}
 import play.api.test.Helpers._
@@ -36,6 +35,7 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
 import utils.LogCapturing
 
+import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -435,7 +435,7 @@ class ProcessIncorporationServiceSpec extends WordSpec with Matchers with Mockit
       when(mockBRConnector.removeMetadata(ArgumentMatchers.eq(validCR.registrationID))(ArgumentMatchers.any()))
         .thenReturn(Future.successful(true))
 
-      withCaptureOfLoggingFrom(Logger) { logEvents =>
+      withCaptureOfLoggingFrom(Logger(service.getClass)) { logEvents =>
         await(service.processIncorporationUpdate(incorpSuccess)) shouldBe true
 
         eventually {

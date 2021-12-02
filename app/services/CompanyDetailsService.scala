@@ -16,12 +16,12 @@
 
 package services
 
-import javax.inject.Inject
 import models.{CompanyDetails, ConfirmationReferences}
-import play.api.Logger
+import play.api.Logging
 import play.api.libs.json.{JsObject, Json}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class CompanyDetailsServiceImpl @Inject()(val repositories: Repositories,
@@ -30,7 +30,7 @@ class CompanyDetailsServiceImpl @Inject()(val repositories: Repositories,
   lazy val corporationTaxRegistrationMongoRepository = repositories.cTRepository
 }
 
-trait CompanyDetailsService {
+trait CompanyDetailsService extends Logging {
 
   implicit val ec: ExecutionContext
 
@@ -50,7 +50,7 @@ trait CompanyDetailsService {
     } yield convertAckRefToJsObject(updated.acknowledgementReference))
       .recoverWith {
         case e: Exception =>
-          Logger.error(s"[CompanyDetailsService] saveTxIdAndAckRef threw an exception ${e.getMessage}  for txid: $txid, regId: $registrationId")
+          logger.error(s"[CompanyDetailsService] saveTxIdAndAckRef threw an exception ${e.getMessage}  for txid: $txid, regId: $registrationId")
           throw e
       }
   }

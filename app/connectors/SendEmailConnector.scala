@@ -16,14 +16,14 @@
 
 package connectors
 
-import javax.inject.{Inject, Singleton}
 import models.SendEmailRequest
-import play.api.Logger
+import play.api.Logging
 import play.api.http.Status._
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NoStackTrace
 
@@ -36,21 +36,21 @@ class SendEmailConnectorImpl @Inject()(servicesConfig: ServicesConfig,
   val sendEmailURL = servicesConfig.getConfString("email.sendEmailURL", throw new Exception("email.sendEmailURL not found"))
 }
 
-trait SendEmailConnector extends HttpErrorFunctions {
+trait SendEmailConnector extends HttpErrorFunctions with Logging {
   implicit val ec: ExecutionContext
   val http: HttpClient
   val sendEmailURL: String
 
   def requestEmail(EmailRequest: SendEmailRequest)(implicit hc: HeaderCarrier): Future[Boolean] = {
     def errorMsg(status: String, ex: HttpException) = {
-      Logger.error(s"[SendEmailConnector] [sendEmail] request to send email returned a $status - email not sent - reason = ${ex.getMessage}")
+      logger.error(s"[SendEmailConnector] [sendEmail] request to send email returned a $status - email not sent - reason = ${ex.getMessage}")
       throw new EmailErrorResponse(status)
     }
 
     http.POST[SendEmailRequest, HttpResponse](s"$sendEmailURL", EmailRequest) map { r =>
       r.status match {
         case ACCEPTED => {
-          Logger.debug("[SendEmailConnector] [sendEmail] request to email service was successful")
+          logger.debug("[SendEmailConnector] [sendEmail] request to email service was successful")
           true
         }
       }

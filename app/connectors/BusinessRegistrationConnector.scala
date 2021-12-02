@@ -16,16 +16,16 @@
 
 package connectors
 
-import javax.inject.{Inject, Singleton}
 import models.{BusinessRegistration, BusinessRegistrationRequest}
 import org.joda.time.DateTime
-import play.api.Logger
+import play.api.Logging
 import play.api.libs.json.JodaWrites._
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -45,7 +45,7 @@ case object BusinessRegistrationForbiddenResponse extends BusinessRegistrationRe
 
 case class BusinessRegistrationErrorResponse(err: Exception) extends BusinessRegistrationResponse
 
-trait BusinessRegistrationConnector {
+trait BusinessRegistrationConnector extends Logging {
 
   implicit val ec: ExecutionContext
   val businessRegUrl: String
@@ -79,13 +79,13 @@ trait BusinessRegistrationConnector {
 
   private def handleMetadataResponse: PartialFunction[Throwable, BusinessRegistrationResponse] = {
     case _: NotFoundException =>
-      Logger.info(s"[BusinessRegistrationConnector] [retrieveMetadata] - Received a NotFound status code when expecting metadata from Business-Registration")
+      logger.info(s"[BusinessRegistrationConnector] [retrieveMetadata] - Received a NotFound status code when expecting metadata from Business-Registration")
       BusinessRegistrationNotFoundResponse
     case _: ForbiddenException =>
-      Logger.error(s"[BusinessRegistrationConnector] [retrieveMetadata] - Received a Forbidden status code when expecting metadata from Business-Registration")
+      logger.error(s"[BusinessRegistrationConnector] [retrieveMetadata] - Received a Forbidden status code when expecting metadata from Business-Registration")
       BusinessRegistrationForbiddenResponse
     case e: Exception =>
-      Logger.error(s"[BusinessRegistrationConnector] [retrieveMetadata] - Received error when expecting metadata from Business-Registration - Error ${e.getMessage}")
+      logger.error(s"[BusinessRegistrationConnector] [retrieveMetadata] - Received error when expecting metadata from Business-Registration - Error ${e.getMessage}")
       BusinessRegistrationErrorResponse(e)
   }
 
@@ -96,7 +96,7 @@ trait BusinessRegistrationConnector {
       }
     } recover {
       case _ =>
-        Logger.info(s"[BusinessRegistrationConnector] [removeMetadata] - Received a NotFound status code when attempting to remove a metadata document for regId - $registrationId")
+        logger.info(s"[BusinessRegistrationConnector] [removeMetadata] - Received a NotFound status code when attempting to remove a metadata document for regId - $registrationId")
         false
     }
   }
@@ -109,7 +109,7 @@ trait BusinessRegistrationConnector {
       }
     } recover {
       case _: NotFoundException =>
-        Logger.info(s"[BusinessRegistrationConnector] [adminRemoveMetadata] - Received a NotFound status code when attempting to remove a metadata document for regId - $registrationId")
+        logger.info(s"[BusinessRegistrationConnector] [adminRemoveMetadata] - Received a NotFound status code when attempting to remove a metadata document for regId - $registrationId")
         false
       case e =>
         throw e
@@ -128,7 +128,7 @@ trait BusinessRegistrationConnector {
       res => res.body
     } recover {
       case ex: HttpException =>
-        Logger.error(s"[BusinessRegistrationConnector] [updateLastSignedIn] - ${ex.responseCode} Could not update lastSignedIn for regId: $registrationId - reason: ${ex.getMessage}")
+        logger.error(s"[BusinessRegistrationConnector] [updateLastSignedIn] - ${ex.responseCode} Could not update lastSignedIn for regId: $registrationId - reason: ${ex.getMessage}")
         throw new Exception(ex.getMessage)
     }
   }

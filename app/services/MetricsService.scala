@@ -18,15 +18,15 @@ package services
 
 import com.codahale.metrics.{Counter, Gauge, Timer}
 import com.kenshoo.play.metrics.{Metrics, MetricsDisabledException}
-import javax.inject.{Inject, Singleton}
 import jobs.{LockResponse, MongoLocked, ScheduledService, UnlockingFailed}
 import org.joda.time.Duration
-import play.api.Logger
+import play.api.Logging
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.lock.LockKeeper
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -75,7 +75,7 @@ class MetricsServiceImpl @Inject()(metricsInstance: Metrics,
   }
 }
 
-trait MetricsService extends ScheduledService[Either[Map[String, Int], LockResponse]] {
+trait MetricsService extends ScheduledService[Either[Map[String, Int], LockResponse]] with Logging {
 
   implicit val ec: ExecutionContext
   val ctutrConfirmationCounter: Counter
@@ -114,14 +114,14 @@ trait MetricsService extends ScheduledService[Either[Map[String, Int], LockRespo
     implicit val hc = HeaderCarrier()
     lockKeeper.tryLock(updateDocumentMetrics()).map {
       case Some(res) =>
-        Logger.info("MetricsService acquired lock and returned results")
-        Logger.info(s"Result updateDocumentMetrics: $res")
+        logger.info("MetricsService acquired lock and returned results")
+        logger.info(s"Result updateDocumentMetrics: $res")
         Left(res)
       case None =>
-        Logger.info("MetricsService cant acquire lock")
+        logger.info("MetricsService cant acquire lock")
         Right(MongoLocked)
     }.recover {
-      case e: Exception => Logger.error(s"Error running updateDocumentMetrics with message: ${e.getMessage}")
+      case e: Exception => logger.error(s"Error running updateDocumentMetrics with message: ${e.getMessage}")
         Right(UnlockingFailed)
     }
   }
@@ -147,7 +147,7 @@ trait MetricsService extends ScheduledService[Either[Map[String, Int], LockRespo
       metrics.defaultRegistry.register(metricName, gauge)
     } catch {
       case ex: MetricsDisabledException => {
-        Logger.warn(s"[MetricsService] [recordStatusCountStat] Metrics disabled - $metricName -> $count")
+        logger.warn(s"[MetricsService] [recordStatusCountStat] Metrics disabled - $metricName -> $count")
       }
     }
   }

@@ -16,8 +16,6 @@
 
 package repositories
 
-import java.util.UUID
-
 import auth.CryptoSCRS
 import fixtures.CorporationTaxRegistrationFixture
 import fixtures.CorporationTaxRegistrationFixture.ctRegistrationJson
@@ -38,6 +36,7 @@ import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONString}
 import reactivemongo.play.json.ImplicitBSONHandlers._
 
+import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -74,8 +73,8 @@ class CorporationTaxRegistrationMongoRepositoryISpec
   }
 
   class SetupWithIndexes(indexList: List[Index]) {
-    val rmComp = fakeApplication.injector.instanceOf[ReactiveMongoComponent]
-    val crypto = fakeApplication.injector.instanceOf[CryptoSCRS]
+    val rmComp = app.injector.instanceOf[ReactiveMongoComponent]
+    val crypto = app.injector.instanceOf[CryptoSCRS]
     val repository = new CorporationTaxRegistrationMongoRepository(
       rmComp, crypto) {
       override def indexes = indexList

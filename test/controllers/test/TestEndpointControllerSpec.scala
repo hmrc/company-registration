@@ -105,7 +105,7 @@ class TestEndpointControllerSpec extends BaseSpec with LogCapturing {
   "pagerDuty" must {
     "log a pager duty with the message provided" in new Setup {
       val message: String = "test-pager-duty"
-      withCaptureOfLoggingFrom(Logger) { logs =>
+      withCaptureOfLoggingFrom(Logger(controller.getClass)) { logs =>
         val result = controller.pagerDuty(message)(FakeRequest())
         status(result) shouldBe OK
         logs.head.getMessage shouldBe message

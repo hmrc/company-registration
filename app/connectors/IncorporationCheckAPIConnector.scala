@@ -16,13 +16,13 @@
 
 package connectors
 
-import javax.inject.{Inject, Singleton}
 import models.SubmissionCheckResponse
-import play.api.Logger
+import play.api.Logging
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NoStackTrace
 
@@ -37,14 +37,14 @@ class IncorporationCheckAPIConnectorImpl @Inject()(servicesConfig: ServicesConfi
 
 }
 
-trait IncorporationCheckAPIConnector {
+trait IncorporationCheckAPIConnector extends Logging {
 
   implicit val ec: ExecutionContext
   val proxyUrl: String
   val http: HttpClient
 
   def logError(ex: HttpException, timepoint: Option[String]) = {
-    Logger.error(s"[IncorporationCheckAPIConnector] [checkSubmission]" +
+    logger.error(s"[IncorporationCheckAPIConnector] [checkSubmission]" +
       s" request to SubmissionCheckAPI returned a ${ex.responseCode}. " +
       s"No incorporations were processed for timepoint ${timepoint} - Reason = ${ex.getMessage}")
   }
@@ -61,13 +61,13 @@ trait IncorporationCheckAPIConnector {
         logError(ex, timepoint)
         throw new SubmissionAPIFailure
       case ex: Upstream4xxResponse =>
-        Logger.error("[IncorporationCheckAPIConnector] [checkSubmission]" + ex.upstreamResponseCode + " " + ex.message)
+        logger.error("[IncorporationCheckAPIConnector] [checkSubmission]" + ex.upstreamResponseCode + " " + ex.message)
         throw new SubmissionAPIFailure
       case ex: Upstream5xxResponse =>
-        Logger.error("[IncorporationCheckAPIConnector] [checkSubmission]" + ex.upstreamResponseCode + " " + ex.message)
+        logger.error("[IncorporationCheckAPIConnector] [checkSubmission]" + ex.upstreamResponseCode + " " + ex.message)
         throw new SubmissionAPIFailure
       case ex: Exception =>
-        Logger.error("[IncorporationCheckAPIConnector] [checkSubmission]" + ex)
+        logger.error("[IncorporationCheckAPIConnector] [checkSubmission]" + ex)
         throw new SubmissionAPIFailure
     }
   }
