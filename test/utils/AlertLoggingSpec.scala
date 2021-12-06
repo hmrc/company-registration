@@ -16,13 +16,13 @@
 
 package utils
 
-import java.time.LocalTime
-
 import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.spi.ILoggingEvent
 import org.scalatest.concurrent.Eventually
 import org.scalatest.{Matchers, WordSpec}
 import play.api.Logger
+
+import java.time.LocalTime
 
 class AlertLoggingSpec extends WordSpec with Matchers with LogCapturing with Eventually {
 
@@ -143,7 +143,7 @@ class AlertLoggingSpec extends WordSpec with Matchers with LogCapturing with Eve
       )
 
       validKeys foreach { key =>
-        withCaptureOfLoggingFrom(Logger) { logs =>
+        withCaptureOfLoggingFrom(Logger(alertLogging.getClass)) { logs =>
           alertLogging.pagerduty(key)
           logs.head.getMessage shouldBe key.toString
         }
@@ -152,13 +152,13 @@ class AlertLoggingSpec extends WordSpec with Matchers with LogCapturing with Eve
 
     "change error level based on working" when {
       "within working hours" in new Setup(monday, _8am) {
-        withCaptureOfLoggingFrom(Logger) { logs =>
+        withCaptureOfLoggingFrom(Logger(alertLogging.getClass)) { logs =>
           alertLogging.pagerduty(PagerDutyKeys.CT_REJECTED, message = Some("Extra Information"))
           found(logs)(1, "CT_REJECTED - Extra Information", Level.ERROR)
         }
       }
       "out of working hours" in new Setup(sunday, _9pm) {
-        withCaptureOfLoggingFrom(Logger) { logs =>
+        withCaptureOfLoggingFrom(Logger(alertLogging.getClass)) { logs =>
           alertLogging.pagerduty(PagerDutyKeys.CT_REJECTED, message = Some("Extra Information"))
           found(logs)(1, "CT_REJECTED - Extra Information", Level.INFO)
         }

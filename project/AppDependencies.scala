@@ -1,27 +1,24 @@
 
 import sbt._
-import uk.gov.hmrc.SbtAutoBuildPlugin
-import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
-import uk.gov.hmrc.versioning.SbtGitVersioning
 
 object AppDependencies {
 
   import play.core.PlayVersion
   import play.sbt.PlayImport._
 
-  private val bootstrapPlayVersion = "5.1.0"
-  private val domainVersion = "5.11.0-play-26"
-  private val reactiveMongoVersion = "8.0.0-play-26"
+  private val bootstrapPlayVersion = "5.16.0"
+  private val domainVersion = "6.2.0-play-28"
+  private val reactiveMongoVersion = "8.0.0-play-28"
   private val mockitoVersion = "3.9.0"
   private val scalatestPlusPlayVersion = "3.1.3"
-  private val mongoLockVersion = "7.0.0-play-26"
-  private val authClientVersion = "5.6.0-play-26"
+  private val mongoLockVersion = "7.0.0-play-28"
+  private val authClientVersion = "5.6.0-play-28"
 
 
   val compile = Seq(
     ws,
-    "com.enragedginger" %% "akka-quartz-scheduler" % "1.8.0-akka-2.5.x",
-    "uk.gov.hmrc" %% "bootstrap-backend-play-26" % bootstrapPlayVersion,
+    "com.enragedginger" %% "akka-quartz-scheduler" % "1.9.2-akka-2.6.x",
+    "uk.gov.hmrc" %% "bootstrap-backend-play-28" % bootstrapPlayVersion,
     "uk.gov.hmrc" %% "domain" % domainVersion,
     "uk.gov.hmrc" %% "mongo-lock" % mongoLockVersion,
     "uk.gov.hmrc" %% "simple-reactivemongo" % reactiveMongoVersion,
@@ -48,7 +45,7 @@ object AppDependencies {
         "org.pegdown" % "pegdown" % "1.6.0" % scope,
         "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
         "org.mockito" % "mockito-core" % mockitoVersion % scope,
-        "uk.gov.hmrc" %% "reactivemongo-test" % "5.0.0-play-26" % scope
+        "uk.gov.hmrc" %% "reactivemongo-test" % "5.0.0-play-28" % scope
       )
     }.test
   }

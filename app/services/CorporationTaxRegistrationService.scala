@@ -18,13 +18,12 @@ package services
 
 import connectors._
 import helpers.DateHelper
-import javax.inject.{Inject, Singleton}
 import jobs.{LockResponse, MongoLocked, ScheduledService, UnlockingFailed}
 import models.des.BusinessAddress
 import models.validation.APIValidation._
 import models.{HttpResponse => _, _}
 import org.joda.time.{DateTime, DateTimeZone, Duration}
-import play.api.Logger
+import play.api.Logging
 import repositories._
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.lock.LockKeeper
@@ -32,6 +31,7 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import utils.StringNormaliser
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NoStackTrace
 import scala.util.{Success, Try}
@@ -64,7 +64,7 @@ sealed trait FailedPartialForLockedTopup extends NoStackTrace
 
 case object NoSessionIdentifiersInDocument extends FailedPartialForLockedTopup
 
-trait CorporationTaxRegistrationService extends ScheduledService[Either[String, LockResponse]] with DateHelper {
+trait CorporationTaxRegistrationService extends ScheduledService[Either[String, LockResponse]] with DateHelper with Logging  {
 
   implicit val ec: ExecutionContext
   val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository
@@ -144,10 +144,10 @@ trait CorporationTaxRegistrationService extends ScheduledService[Either[String, 
 
       BusinessAddress(linesResults.head.get, linesResults(1).get, linesResults(2), linesResults(3), postCodeOpt, countryOpt)
     }.map { bAddress =>
-      Logger.info("[convertRoToBusinessAddress] successfully converted RO to Business Address")
+      logger.info("[convertRoToBusinessAddress] successfully converted RO to Business Address")
       Some(bAddress)
     }.recoverWith {
-      case e => Logger.info(s"[convertRoToBusinessAddress] Could not convert RO address - ${e.getMessage}")
+      case e => logger.info(s"[convertRoToBusinessAddress] Could not convert RO address - ${e.getMessage}")
         Success(Option.empty)
     }.get
   }
@@ -160,10 +160,10 @@ trait CorporationTaxRegistrationService extends ScheduledService[Either[String, 
 
       PPOBAddress(linesResults.head.get, linesResults(1).get, linesResults(2), linesResults(3), postCodeOpt, countryOpt, None, "")
     }.map { s =>
-      Logger.info(s"[convertROToPPOBAddress] Convertd RO address")
+      logger.info(s"[convertROToPPOBAddress] Convertd RO address")
       Some(s)
     }.recoverWith {
-      case e => Logger.warn(s"[convertROToPPOBAddress] Could not convert RO address - ${e.getMessage}")
+      case e => logger.warn(s"[convertROToPPOBAddress] Could not convert RO address - ${e.getMessage}")
         Success(None)
     }.get
   }
@@ -176,14 +176,14 @@ trait CorporationTaxRegistrationService extends ScheduledService[Either[String, 
     implicit val hc = HeaderCarrier()
     lockKeeper.tryLock(locateOldHeldSubmissions).map {
       case Some(res) =>
-        Logger.info("CorporationTaxRegistrationService acquired lock and returned results")
-        Logger.info(s"Result locateOldHeldSubmissions: $res")
+        logger.info("CorporationTaxRegistrationService acquired lock and returned results")
+        logger.info(s"Result locateOldHeldSubmissions: $res")
         Left(res)
       case None =>
-        Logger.info("CorporationTaxRegistrationService cant acquire lock")
+        logger.info("CorporationTaxRegistrationService cant acquire lock")
         Right(MongoLocked)
     }.recover {
-      case e: Exception => Logger.error(s"Error running locateOldHeldSubmissions with message: ${e.getMessage}")
+      case e: Exception => logger.error(s"Error running locateOldHeldSubmissions with message: ${e.getMessage}")
         Right(UnlockingFailed)
     }
   }
@@ -191,12 +191,12 @@ trait CorporationTaxRegistrationService extends ScheduledService[Either[String, 
   def locateOldHeldSubmissions(implicit hc: HeaderCarrier): Future[String] = {
     cTRegistrationRepository.retrieveAllWeekOldHeldSubmissions().map { submissions =>
       if (submissions.nonEmpty) {
-        Logger.error("ALERT_missing_incorporations")
+        logger.error("ALERT_missing_incorporations")
         submissions.map { submission =>
           val txID = submission.confirmationReferences.fold("")(cr => cr.transactionId)
           val heldTimestamp = submission.heldTimestamp.fold("")(ht => ht.toString())
 
-          Logger.warn(s"Held submission older than one week of regID: ${submission.registrationID} txID: $txID heldDate: $heldTimestamp)")
+          logger.warn(s"Held submission older than one week of regID: ${submission.registrationID} txID: $txID heldDate: $heldTimestamp)")
           true
         }
         "Week old held submissions found"

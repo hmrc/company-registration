@@ -19,12 +19,12 @@ package models.validation
 import auth.CryptoSCRS
 import models._
 import org.joda.time.DateTime
-import play.api.Logger
+import play.api.Logging
 import play.api.libs.json._
 
 import scala.util.Try
 
-object MongoValidation extends BaseJsonFormatting {
+object MongoValidation extends BaseJsonFormatting with Logging {
   val defaultStringFormat = Format(Reads.StringReads, Writes.StringWrites)
 
   override def cryptoFormat(crypto: CryptoSCRS): Format[String] = Format(crypto.rds, crypto.wts)
@@ -72,7 +72,7 @@ object MongoValidation extends BaseJsonFormatting {
         Try(GroupCompanyNameEnum.withName(str))
           .toOption
           .fold[JsResult[GroupCompanyNameEnum.Value]] {
-            Logger.warn(s"[Groups Mongo Reads] nameOfCompany.nameType was: $str, converted to ${GroupCompanyNameEnum.Other}")
+            logger.warn(s"[Groups Mongo Reads] nameOfCompany.nameType was: $str, converted to ${GroupCompanyNameEnum.Other}")
             JsSuccess(GroupCompanyNameEnum.Other)
           } { success => JsSuccess(success) })
     }
@@ -86,7 +86,7 @@ object MongoValidation extends BaseJsonFormatting {
         Try(GroupAddressTypeEnum.withName(str))
           .toOption
           .fold[JsResult[GroupAddressTypeEnum.Value]] {
-            Logger.warn(s"[Groups Mongo Reads] addressType was: $str, converted to ${GroupAddressTypeEnum.ALF}")
+            logger.warn(s"[Groups Mongo Reads] addressType was: $str, converted to ${GroupAddressTypeEnum.ALF}")
             JsSuccess(GroupAddressTypeEnum.ALF)
           } { success => JsSuccess(success) })
     }

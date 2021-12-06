@@ -16,19 +16,16 @@
 
 package services.admin
 
-import java.util.Base64
-
 import audit._
 import config.MicroserviceAppConfig
 import connectors.{BusinessRegistrationConnector, DesConnector, IncorporationInformationConnector}
 import helpers.DateFormatter
-import javax.inject.{Inject, Singleton}
 import jobs.{LockResponse, MongoLocked, ScheduledService, UnlockingFailed}
 import models.RegistrationStatus._
 import models.admin.{AdminCTReferenceDetails, HO6Identifiers, HO6Response}
 import models.{ConfirmationReferences, CorporationTaxRegistration, HO6RegistrationInformation, SessionIdData}
 import org.joda.time.{DateTime, Duration}
-import play.api.Logger
+import play.api.Logging
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.Request
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
@@ -38,6 +35,8 @@ import uk.gov.hmrc.lock.LockKeeper
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
+import java.util.Base64
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -62,7 +61,7 @@ class AdminServiceImpl @Inject()(val corpTaxRegRepo: CorporationTaxRegistrationM
   }
 }
 
-trait AdminService extends ScheduledService[Either[Int, LockResponse]] with DateFormatter {
+trait AdminService extends ScheduledService[Either[Int, LockResponse]] with DateFormatter with Logging {
 
   implicit val ec: ExecutionContext
   val corpTaxRegRepo: CorporationTaxRegistrationMongoRepository
@@ -102,7 +101,7 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
   }
 
   private[services] def fetchTransactionId(regId: String): Future[Option[String]] = corpTaxRegRepo.retrieveConfirmationReferences(regId).map(_.fold[Option[String]] {
-    Logger.error(s"[Admin] [fetchTransactionId] - Held submission found but transaction Id missing for regId $regId")
+    logger.error(s"[Admin] [fetchTransactionId] - Held submission found but transaction Id missing for regId $regId")
     None
   }(refs => Option(refs.transactionId)))
 
@@ -136,10 +135,10 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
       case Some(tId) =>
         incorpInfoConnector.cancelSubscription(info.regId, tId) recover {
           case e: NotFoundException =>
-            Logger.info(s"[processStaleDocument] Registration ${info.regId} - $tId does not have CTAX subscription. Now trying to delete CT sub.")
+            logger.info(s"[processStaleDocument] Registration ${info.regId} - $tId does not have CTAX subscription. Now trying to delete CT sub.")
             incorpInfoConnector.cancelSubscription(info.regId, tId, useOldRegime = true) recover {
               case e: NotFoundException =>
-                Logger.warn(s"[processStaleDocument] Registration ${info.regId} - $tId has no subscriptions.")
+                logger.warn(s"[processStaleDocument] Registration ${info.regId} - $tId has no subscriptions.")
                 true
             }
         }
@@ -152,7 +151,7 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
       ctDeleted <- corpTaxRegRepo.removeTaxRegistrationById(info.regId)
     } yield {
       if (ctDeleted && metadataDeleted) {
-        Logger.info(s"[processStaleDocument] Deleted stale regId: ${info.regId} timestamp: ${info.lastSignedIn}")
+        logger.info(s"[processStaleDocument] Deleted stale regId: ${info.regId} timestamp: ${info.lastSignedIn}")
         true
       } else {
         throw FailedToDeleteSubmissionData
@@ -173,14 +172,14 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
     implicit val hc = HeaderCarrier()
     lockKeeper.tryLock(deleteStaleDocuments()).map {
       case Some(res) =>
-        Logger.info("AdminService acquired lock and returned results")
-        Logger.info(s"[remove-stale-documents-job] Successfully deleted $res stale documents")
+        logger.info("AdminService acquired lock and returned results")
+        logger.info(s"[remove-stale-documents-job] Successfully deleted $res stale documents")
         Left(res)
       case None =>
-        Logger.info("AdminService cant acquire lock")
+        logger.info("AdminService cant acquire lock")
         Right(MongoLocked)
     }.recover {
-      case e: Exception => Logger.error(s"Error running deleteStaleDocuments with message: ${e.getMessage}")
+      case e: Exception => logger.error(s"Error running deleteStaleDocuments with message: ${e.getMessage}")
         Right(UnlockingFailed)
     }
   }
@@ -190,12 +189,12 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
     val startTS = System.currentTimeMillis
     for {
       documents <- corpTaxRegRepo.retrieveStaleDocuments(staleAmount, clearAfterXDays)
-      _ = Logger.info(s"[deleteStaleDocuments] Mongo query found ${documents.size} stale documents. Now processing.")
+      _ = logger.info(s"[deleteStaleDocuments] Mongo query found ${documents.size} stale documents. Now processing.")
       processed <- Future.sequence(documents filterNot (doc => ignoredDocs(doc.registrationID)) map processStaleDocument)
     } yield {
       val duration = System.currentTimeMillis - startTS
       val res = processed count (_ == true)
-      Logger.info(s"[remove-stale-documents-job] Duration to run $duration ms")
+      logger.info(s"[remove-stale-documents-job] Duration to run $duration ms")
       res
     }
   }
@@ -215,14 +214,14 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
     implicit val hc = HeaderCarrier()
     val documentInfo = DocumentInfo(doc.registrationID, doc.status, doc.lastSignedIn)
 
-    Logger.info(s"[processStaleDocument] Processing stale document of $documentInfo")
+    logger.info(s"[processStaleDocument] Processing stale document of $documentInfo")
 
     ((doc.status, doc.confirmationReferences) match {
       case ((DRAFT | HELD | LOCKED), optRefs) => removeStaleDocument(documentInfo, optRefs)
       case _ => Future.successful(false)
     }) recover {
       case e: Throwable =>
-        Logger.warn(s"[processStaleDocument] Failed to delete regId: ${documentInfo.regId} with throwable ${e.getMessage}")
+        logger.warn(s"[processStaleDocument] Failed to delete regId: ${documentInfo.regId} with throwable ${e.getMessage}")
         false
     }
   }
@@ -232,7 +231,7 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
       res.fold {
         true
       } { crn =>
-        Logger.warn(s"[processStaleDocument] Could not delete document with CRN: $crn " +
+        logger.warn(s"[processStaleDocument] Could not delete document with CRN: $crn " +
           s"regId: ${documentInfo.regId} transID: ${confRefs.transactionId} lastSignIn: ${documentInfo.lastSignedIn} status: ${documentInfo.status} paymentRefExists = ${confRefs.paymentReference.isDefined} paymentAmoutExists = ${confRefs.paymentAmount.isDefined} acknowledgmentReference is NOT empty = ${confRefs.acknowledgementReference.nonEmpty}"
         )
         throw new Exception("No deletion carried out because CRN exists")
@@ -272,7 +271,7 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
   }
 
   def updateDocSessionID(regId: String, sessionId: String, credId: String, username: String)(implicit hc: HeaderCarrier): Future[SessionIdData] = {
-    Logger.info(s"[updateDocSessionID] Updating document session id regId $regId")
+    logger.info(s"[updateDocSessionID] Updating document session id regId $regId")
 
     corpTaxRegRepo.retrieveSessionIdentifiers(regId) flatMap {
       case Some(sessionIds) =>

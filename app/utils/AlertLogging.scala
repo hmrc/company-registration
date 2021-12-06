@@ -16,13 +16,12 @@
 
 package utils
 
+import config.MicroserviceAppConfig
+import utils.DateCalculators.{getCurrentDay, getCurrentTime}
+
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
-
-import config.MicroserviceAppConfig
 import javax.inject.{Inject, Singleton}
-import play.api.Logger
-import utils.DateCalculators.{getCurrentDay, getCurrentTime}
 
 object PagerDutyKeys extends Enumeration {
   val CT_REJECTED = Value
@@ -38,14 +37,14 @@ class AlertLoggingImpl @Inject()(microserviceAppConfig: MicroserviceAppConfig) e
   override protected val loggingTimes: String = microserviceAppConfig.getConfigString("alert-config.logging-time")
 }
 
-trait AlertLogging {
+trait AlertLogging extends Logging {
 
   protected val loggingDays: String = "MON,TUE,WED,THU,FRI"
   protected val loggingTimes: String = "08:00:00_17:00:00"
 
   def pagerduty(key: PagerDutyKeys.Value, message: Option[String] = None) {
     val log = s"${key.toString}${message.fold("")(msg => s" - $msg")}"
-    if (inWorkingHours) Logger.error(log) else Logger.info(log)
+    if (inWorkingHours) logger.error(log) else logger.info(log)
   }
 
   def inWorkingHours: Boolean = isLoggingDay && isBetweenLoggingTimes

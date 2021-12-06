@@ -17,8 +17,6 @@
 package connectors
 
 import config.MicroserviceAppConfig
-import javax.inject.{Inject, Singleton}
-import play.api.Logger
 import play.api.http.Status.{ACCEPTED, NO_CONTENT, OK}
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.Request
@@ -26,6 +24,7 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, NotFoundException}
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import utils.{AlertLogging, PagerDutyKeys}
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NoStackTrace
 
@@ -55,9 +54,9 @@ trait IncorporationInformationConnector extends AlertLogging {
   private[connectors] val callBackurl = (isAdmin: Boolean) => {
     companyRegUrl + {
       if (isAdmin) {
-        controllers.routes.ProcessIncorporationsController.processAdminIncorporation().url
+        controllers.routes.ProcessIncorporationsController.processAdminIncorporation.url
       } else {
-        controllers.routes.ProcessIncorporationsController.processIncorporationNotification().url
+        controllers.routes.ProcessIncorporationsController.processIncorporationNotification.url
       }
     }
   }
@@ -75,15 +74,15 @@ trait IncorporationInformationConnector extends AlertLogging {
     http.POST[JsObject, HttpResponse](s"$iiUrl${buildUri(transactionId)}", json) map { res =>
       res.status match {
         case ACCEPTED =>
-          Logger.info(s"[IncorporationInformationConnector] [registerInterest] Registration forced returned 202 for regId: $regId txId: $transactionId ")
+          logger.info(s"[IncorporationInformationConnector] [registerInterest] Registration forced returned 202 for regId: $regId txId: $transactionId ")
           true
         case other =>
-          Logger.error(s"[IncorporationInformationConnector] [registerInterest] returned a $other response for regId: $regId txId: $transactionId")
+          logger.error(s"[IncorporationInformationConnector] [registerInterest] returned a $other response for regId: $regId txId: $transactionId")
           throw new RuntimeException(s"forced registration of interest for regId : $regId - transactionId : $transactionId failed - reason : status code was $other instead of 202")
       }
     } recover {
       case e =>
-        Logger.error(s"[IncorporationInformationConnector] [registerInterest] failure registering interest for regId: $regId txId: $transactionId", e)
+        logger.error(s"[IncorporationInformationConnector] [registerInterest] failure registering interest for regId: $regId txId: $transactionId", e)
         throw new RuntimeException(s"forced registration of interest for regId : $regId - transactionId : $transactionId failed - reason : ", e)
     }
   }
@@ -94,15 +93,15 @@ trait IncorporationInformationConnector extends AlertLogging {
     http.DELETE[HttpResponse](s"$iiUrl$cancelUri") map { res =>
       res.status match {
         case OK =>
-          Logger.info(s"[IncorporationInformationConnector] [cancelSubscription] Cancelled subscription for regId: $regId txId: $transactionId ")
+          logger.info(s"[IncorporationInformationConnector] [cancelSubscription] Cancelled subscription for regId: $regId txId: $transactionId ")
           true
       }
     } recover {
       case e: NotFoundException =>
-        Logger.info(s"[IncorporationInformationConnector] [cancelSubscription] No subscription to cancel for regId: $regId txId: $transactionId ")
+        logger.info(s"[IncorporationInformationConnector] [cancelSubscription] No subscription to cancel for regId: $regId txId: $transactionId ")
         throw e
       case e =>
-        Logger.error(s"[IncorporationInformationConnector] [cancelSubscription] Error cancelling subscription for regId: $regId txId: $transactionId", e)
+        logger.error(s"[IncorporationInformationConnector] [cancelSubscription] Error cancelling subscription for regId: $regId txId: $transactionId", e)
         throw new RuntimeException(s"Failure to cancel subscription", e)
     }
   }

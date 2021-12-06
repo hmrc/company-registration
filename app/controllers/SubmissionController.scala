@@ -17,7 +17,6 @@
 package controllers
 
 import auth.{AuthorisedActions, CryptoSCRS}
-import javax.inject.{Inject, Singleton}
 import models.validation.APIValidation
 import models.{AcknowledgementReferences, ConfirmationReferences}
 import play.api.libs.json.{JsValue, Json}
@@ -27,8 +26,9 @@ import services.{MetricsService, SubmissionService}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.auth.core.retrieve.Retrievals.credentials
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import utils.{AlertLogging, Logging, PagerDutyKeys}
+import utils.{AlertLogging, PagerDutyKeys}
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -39,7 +39,7 @@ class SubmissionController @Inject()(val metricsService: MetricsService,
                                      val alertLogging: AlertLogging,
                                      val cryptoSCRS: CryptoSCRS,
                                      controllerComponents: ControllerComponents
-                                    )(implicit val ec: ExecutionContext) extends BackendController(controllerComponents) with AuthorisedActions with Logging {
+                                    )(implicit val ec: ExecutionContext) extends BackendController(controllerComponents) with AuthorisedActions {
   lazy val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 
   def handleUserSubmission(registrationID: String): Action[JsValue] =

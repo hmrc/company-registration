@@ -17,7 +17,6 @@
 package controllers
 
 import auth._
-import javax.inject.{Inject, Singleton}
 import models._
 import models.validation.APIValidation
 import play.api.libs.json.{JsObject, JsValue, Json}
@@ -26,8 +25,9 @@ import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.{CorporationTaxRegistrationService, MetricsService}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import utils.{AlertLogging, Logging}
+import utils.AlertLogging
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -38,7 +38,7 @@ class CorporationTaxRegistrationController @Inject()(val metricsService: Metrics
                                                      val alertLogging: AlertLogging,
                                                      val cryptoSCRS: CryptoSCRS,
                                                      controllerComponents: ControllerComponents
-                                                    )(implicit val ec: ExecutionContext) extends BackendController(controllerComponents) with AuthorisedActions with Logging {
+                                                    )(implicit val ec: ExecutionContext) extends BackendController(controllerComponents) with AuthorisedActions {
 
   lazy val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 

@@ -16,14 +16,14 @@
 
 package controllers
 
-import javax.inject.{Inject, Singleton}
 import models._
-import play.api.Logger
+import play.api.Logging
 import play.api.libs.json.JsValue
 import play.api.mvc.{Action, AnyContentAsJson, ControllerComponents, Request}
 import services._
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -31,11 +31,11 @@ class ProcessIncorporationsController @Inject()(val processIncorporationService:
                                                 val corpTaxRegService: CorporationTaxRegistrationService,
                                                 val submissionService: SubmissionService,
                                                 controllerComponents: ControllerComponents
-                                               )(implicit val ec: ExecutionContext) extends BackendController(controllerComponents) {
+                                               )(implicit val ec: ExecutionContext) extends BackendController(controllerComponents) with Logging {
 
   private def logFailedTopup(txId: String) = {
-    Logger.error("FAILED_DES_TOPUP")
-    Logger.info(s"FAILED_DES_TOPUP - Topup failed for transaction ID: $txId")
+    logger.error("FAILED_DES_TOPUP")
+    logger.info(s"FAILED_DES_TOPUP - Topup failed for transaction ID: $txId")
   }
 
   def processIncorporationNotification: Action[JsValue] = Action.async[JsValue](parse.json) {
@@ -47,7 +47,7 @@ class ProcessIncorporationsController @Inject()(val processIncorporationService:
         processIncorporationService.processIncorporationUpdate(incorp.toIncorpUpdate) flatMap {
           if (_) Future.successful(Ok) else {
             submissionService.setupPartialForTopupOnLocked(incorp.transactionId)(hc, requestAsAnyContentAsJson) map { _ =>
-              Logger.info(s"[processIncorp] Sent partial submission in response to locked document on incorp update: ${incorp.transactionId}")
+              logger.info(s"[processIncorp] Sent partial submission in response to locked document on incorp update: ${incorp.transactionId}")
               Accepted
             }
           }

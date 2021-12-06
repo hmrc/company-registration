@@ -20,14 +20,12 @@ import audit.{SubmissionEventDetail, UserRegistrationSubmissionEvent}
 import cats.implicits._
 import connectors.{BusinessRegistrationConnector, BusinessRegistrationSuccessResponse, DesConnector, IncorporationInformationConnector}
 import helpers.DateHelper
-
-import javax.inject.Inject
 import models.RegistrationStatus.{ACKNOWLEDGED, DRAFT, LOCKED, SUBMITTED}
 import models._
 import models.des._
 import models.validation.APIValidation
 import org.joda.time.{DateTime, DateTimeZone}
-import play.api.Logger
+import play.api.Logging
 import play.api.libs.json.{JsObject, JsString, Json}
 import play.api.mvc.{AnyContent, Request}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories, SequenceRepository}
@@ -35,6 +33,7 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import utils.{PagerDutyKeys, StringNormaliser}
 
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class SubmissionServiceImpl @Inject()(val repositories: Repositories,
@@ -50,7 +49,7 @@ class SubmissionServiceImpl @Inject()(val repositories: Repositories,
   def currentDateTime: DateTime = DateTime.now(DateTimeZone.UTC)
 }
 
-trait SubmissionService extends DateHelper {
+trait SubmissionService extends DateHelper with Logging {
 
   implicit val ec: ExecutionContext
   val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository
@@ -81,11 +80,11 @@ trait SubmissionService extends DateHelper {
               storeConfirmationReferencesAndUpdateStatus(rID, existingRefs.copy(paymentReference = handOffRefs.paymentReference, paymentAmount = handOffRefs.paymentAmount), None)
 
             case Some(existingRefs) =>
-              Logger.info(s"[SubmissionService] [handleSubmission] - Confirmation refs for Reg ID: $rID already exist")
+              logger.info(s"[SubmissionService] [handleSubmission] - Confirmation refs for Reg ID: $rID already exist")
               Future.successful(existingRefs)
 
             case _ =>
-              Logger.error(s"[SubmissionService] [handleSubmission] - Registration status is ${doc.status} for regId: $rID but confirmation refs not found")
+              logger.error(s"[SubmissionService] [handleSubmission] - Registration status is ${doc.status} for regId: $rID but confirmation refs not found")
               throw new RuntimeException(s"Registration status is held for regId: $rID but confirmation refs not found")
           }
         }
@@ -97,7 +96,7 @@ trait SubmissionService extends DateHelper {
     crConfRefs.fold(false) {
       confRef =>
         if (confRef.transactionId != hOffTxID) {
-          Logger.error(s"${PagerDutyKeys.TXID_IN_CR_DOESNT_MATCH_HANDOFF_TXID} - CR txId: ${confRef.transactionId} hand off txId: $hOffTxID ")
+          logger.error(s"${PagerDutyKeys.TXID_IN_CR_DOESNT_MATCH_HANDOFF_TXID} - CR txId: ${confRef.transactionId} hand off txId: $hOffTxID ")
           true
         } else {
           false
@@ -112,7 +111,7 @@ trait SubmissionService extends DateHelper {
           _ => Some(record)
         }
       case None =>
-        Logger.info(s"[SubmissionService] - [updateCTRecordWithAckRefs] : No record could not be found using this ackref")
+        logger.info(s"[SubmissionService] - [updateCTRecordWithAckRefs] : No record could not be found using this ackref")
         Future.successful(None)
     }
   }
@@ -141,7 +140,7 @@ trait SubmissionService extends DateHelper {
     status.fold(cTRegistrationRepository.updateConfirmationReferences(regId, refs))(cTRegistrationRepository.updateConfirmationReferencesAndUpdateStatus(regId, refs, _)) map {
       case Some(_) => refs
       case None =>
-        Logger.error(s"[SubmissionService] [HO6] [storeConfirmationReferencesAndUpdateStatus] - Could not find a registration document for regId : $regId")
+        logger.error(s"[SubmissionService] [HO6] [storeConfirmationReferencesAndUpdateStatus] - Could not find a registration document for regId : $regId")
         throw new RuntimeException(s"[HO6] Could not update confirmation refs for regId: $regId - registration document not found")
     }
   }
@@ -248,10 +247,10 @@ trait SubmissionService extends DateHelper {
       case e =>
         hc.sessionId match {
           case Some(xSesID) =>
-            Logger.warn(s"[storePartialSubmission] Saved session identifiers for regId: $regId")
+            logger.warn(s"[storePartialSubmission] Saved session identifiers for regId: $regId")
             cTRegistrationRepository.storeSessionIdentifiers(regId, xSesID.value, authProvId) map (throw e)
           case _ =>
-            Logger.warn(s"[storePartialSubmission] No session identifiers to save for regID: $regId")
+            logger.warn(s"[storePartialSubmission] No session identifiers to save for regID: $regId")
             throw e
         }
     }
@@ -284,20 +283,20 @@ trait SubmissionService extends DateHelper {
   private def confirmationRefsAndPaymentRefsAreEmpty(refs: ConfirmationReferences): Boolean = refs.paymentReference.isEmpty && refs.paymentAmount.isEmpty
 
   def setupPartialForTopupOnLocked(transID: String)(implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[Boolean] = {
-    Logger.info(s"[setupPartialForTopup] Trying to update locked document of txId: $transID to held for topup with incorp update")
+    logger.info(s"[setupPartialForTopup] Trying to update locked document of txId: $transID to held for topup with incorp update")
 
     cTRegistrationRepository.findBySelector(cTRegistrationRepository.transIdSelector(transID)) flatMap {
       case Some(reg) =>
         (reg.sessionIdentifiers, reg.confirmationReferences) match {
           case _ if reg.status == SUBMITTED || reg.status == ACKNOWLEDGED =>
-            Logger.info(s"[setupPartialForTopup] Accepting incorporation update, registration already submitted for txID: $transID")
+            logger.info(s"[setupPartialForTopup] Accepting incorporation update, registration already submitted for txID: $transID")
             Future.successful(true)
           case _ if reg.status != RegistrationStatus.LOCKED =>
             throw new RuntimeException(s"[setupPartialForTopup] Document status of txID: $transID was not locked, was ${reg.status}")
           case (Some(sIds), Some(confRefs)) =>
             processPartialSubmission(reg.registrationID, sIds.credId, confRefs, reg, isAdmin = true)
           case _ =>
-            Logger.warn(s"[setupPartialForTopup] No session identifiers or conf refs for registration with txID: $transID")
+            logger.warn(s"[setupPartialForTopup] No session identifiers or conf refs for registration with txID: $transID")
             throw NoSessionIdentifiersInDocument
         }
       case _ => throw new RuntimeException(s"[setupPartialForTopup] Could not find registration by txID: $transID")

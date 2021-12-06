@@ -23,8 +23,8 @@ import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.concurrent.Eventually
-import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.Logger
 import play.api.libs.json.Reads._
 import play.api.libs.json.{JsObject, Json}
@@ -153,7 +153,7 @@ class ProcessIncorporationsControllerSpec extends WordSpec with Matchers with Mo
       when(mockProcessIncorporationService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.failed(new RuntimeException))
 
       val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
-      withCaptureOfLoggingFrom(Logger) { logEvents =>
+      withCaptureOfLoggingFrom(Logger(controller.getClass)) { logEvents =>
         intercept[RuntimeException](await(call(controller.processIncorporationNotification, request)))
         eventually {
           logEvents.size shouldBe 2

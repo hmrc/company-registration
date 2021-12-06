@@ -17,10 +17,9 @@
 package controllers
 
 import auth._
-import javax.inject.{Inject, Singleton}
 import models.validation.APIValidation
 import models.{GroupNameListValidator, Groups}
-import play.api.Logger
+import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
@@ -28,6 +27,7 @@ import services.GroupsService
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -36,7 +36,7 @@ class GroupsController @Inject()(val authConnector: AuthConnector,
                                  val cryptoSCRS: CryptoSCRS,
                                  val repositories: Repositories,
                                  controllerComponents: ControllerComponents
-                                )(implicit val ec: ExecutionContext) extends BackendController(controllerComponents) with AuthorisedActions {
+                                )(implicit val ec: ExecutionContext) extends BackendController(controllerComponents) with AuthorisedActions with Logging {
   lazy val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 
 
@@ -46,7 +46,7 @@ class GroupsController @Inject()(val authConnector: AuthConnector,
       case Groups(_, nameOfCompany@Some(_), None, Some(_)) => Right(new Exception("[groupsBlockValidation] address skipped"))
       case Groups(_, None, None, Some(_)) => Right(new Exception("[groupsBlockValidation] name of the company and address skipped"))
       case _ =>
-        Logger.info("Groups block in correct state to use")
+        logger.info("Groups block in correct state to use")
         Left(groups)
     }
   }
@@ -57,7 +57,7 @@ class GroupsController @Inject()(val authConnector: AuthConnector,
         if (deleted) {
           NoContent
         } else {
-          Logger.warn("[deleteBlock] groups did return true indicating deletion of block, returning 500")
+          logger.warn("[deleteBlock] groups did return true indicating deletion of block, returning 500")
           InternalServerError
         }
       }

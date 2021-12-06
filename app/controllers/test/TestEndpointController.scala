@@ -19,15 +19,15 @@ package controllers.test
 
 import connectors.BusinessRegistrationConnector
 import helpers.DateHelper
-import javax.inject.Inject
 import models.ConfirmationReferences
-import play.api.Logger
+import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import repositories._
 import services.SubmissionService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendBaseController
 
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 
@@ -40,7 +40,7 @@ class TestEndpointControllerImpl @Inject()(val submissionService: SubmissionServ
   lazy val cTMongoRepository = repositories.cTRepository
 }
 
-trait TestEndpointController extends BackendBaseController {
+trait TestEndpointController extends BackendBaseController with Logging {
   implicit val ec: ExecutionContext
   val throttleMongoRepository: ThrottleMongoRepository
   val cTMongoRepository: CorporationTaxRegistrationMongoRepository
@@ -89,7 +89,7 @@ trait TestEndpointController extends BackendBaseController {
 
   def pagerDuty(name: String) = Action.async {
     implicit request =>
-      Logger.error(name)
+      logger.error(name)
       Future.successful(Ok)
   }
 }

@@ -16,18 +16,18 @@
 
 package auth
 
-import play.api.Logger
+import play.api.Logging
 import play.api.libs.json.Reads
 import play.api.mvc.{ActionBuilder, _}
 import repositories.MissingCTDocument
 import uk.gov.hmrc.auth.core.AuthProvider.GovernmentGateway
 import uk.gov.hmrc.auth.core.retrieve.{Retrieval, SimpleRetrieval, ~}
 import uk.gov.hmrc.auth.core.{AuthorisationException, _}
-import uk.gov.hmrc.play.bootstrap.controller.BackendController
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
-trait AuthenticatedActions extends MicroserviceAuthorisedFunctions {
+trait AuthenticatedActions extends MicroserviceAuthorisedFunctions with Logging {
   self: BackendController =>
 
   implicit val ec: ExecutionContext
@@ -48,7 +48,7 @@ trait AuthenticatedActions extends MicroserviceAuthorisedFunctions {
 
     def retrieve[T](retrieval: Retrieval[T]) = new AuthenticatedWithRetrieval(retrieval)
 
-    class AuthenticatedWithRetrieval[T](retrieval: Retrieval[T]) extends AsyncRequest[T] {
+    class AuthenticatedWithRetrieval[T](retrieval: Retrieval[T]) extends AsyncRequest[T](controllerComponents) {
 
       override protected[auth] def withRetrieval[A](bodyParser: BodyParser[A])(f: T => Action[A]): Action[A] = {
         Action.async(bodyParser) {
@@ -64,15 +64,15 @@ trait AuthenticatedActions extends MicroserviceAuthorisedFunctions {
 
   private def authenticationErrorHandling[A](implicit request: Request[A]): PartialFunction[Throwable, Result] = {
     case _: NoActiveSession =>
-      Logger.error(s"User has no active session when trying to access ${request.path}")
+      logger.error(s"User has no active session when trying to access ${request.path}")
       Unauthorized
     case e: AuthorisationException =>
-      Logger.error(s"User forbidden when trying to access ${request.path}", e)
+      logger.error(s"User forbidden when trying to access ${request.path}", e)
       Forbidden
   }
 }
 
-trait AuthorisedActions extends AuthenticatedActions with AuthResource {
+trait AuthorisedActions extends AuthenticatedActions with AuthResource with Logging {
   self: BackendController =>
 
   case class AuthorisedAction(regId: String) extends ActionBuilder[Request, AnyContent] {
@@ -93,7 +93,7 @@ trait AuthorisedActions extends AuthenticatedActions with AuthResource {
 
     def retrieve[T](retrieval: Retrieval[T]) = new AuthorisedWithRetrieval(retrieval)
 
-    class AuthorisedWithRetrieval[T](retrieval: Retrieval[T]) extends AsyncRequest[T] {
+    class AuthorisedWithRetrieval[T](retrieval: Retrieval[T]) extends AsyncRequest[T](controllerComponents) {
 
       override protected[auth] def withRetrieval[A](bodyParser: BodyParser[A])(block: T => Action[A]): Action[A] = {
         Action.async(bodyParser) {
@@ -112,28 +112,27 @@ trait AuthorisedActions extends AuthenticatedActions with AuthResource {
 
   private def authorisationErrorHandling[A](regId: String)(implicit request: Request[A]): PartialFunction[Throwable, Result] = {
     case _: NoActiveSession =>
-      Logger.error(s"User with regId $regId has no active session when trying to access ${request.path}")
+      logger.error(s"User with regId $regId has no active session when trying to access ${request.path}")
       Unauthorized
     case _: MissingCTDocument =>
-      Logger.error(s"No CT document found for regId $regId when trying to access ${request.path}")
+      logger.error(s"No CT document found for regId $regId when trying to access ${request.path}")
       NotFound
     case _: UnauthorisedAccess =>
-      Logger.error(s"User with regId $regId tried to access a matching document with a different internalId  when trying to access ${request.path}")
+      logger.error(s"User with regId $regId tried to access a matching document with a different internalId  when trying to access ${request.path}")
       Forbidden
     case e: AuthorisationException =>
-      Logger.error(s"User forbidden when trying to access ${request.path}", e)
+      logger.error(s"User forbidden when trying to access ${request.path}", e)
       Forbidden
   }
 }
 
-trait AsyncRequest[T] {
-  private val IGNORE_BODY: BodyParser[AnyContent] = BodyParsers.parse.ignore(AnyContentAsEmpty: AnyContent)
+abstract class AsyncRequest[T](controllerComponents: ControllerComponents) {
+  private val IGNORE_BODY: BodyParser[AnyContent] = BodyParsers.utils.ignore(AnyContentAsEmpty: AnyContent)
 
   protected def withRetrieval[A](bodyParser: BodyParser[A])(f: T => Action[A]): Action[A]
 
   def async(body: T => Request[AnyContent] => Future[Result]): Action[AnyContent] = async(IGNORE_BODY)(body)
 
-  def async[A](parser: BodyParser[A])(body: T => Request[A] => Future[Result]): Action[A] = {
-    withRetrieval(parser)(r => Action.async(parser)(body(r)))
-  }
+  def async[A](parser: BodyParser[A])(body: T => Request[A] => Future[Result]): Action[A] =
+    withRetrieval(parser)(r => controllerComponents.actionBuilder.async(parser)(body(r)))
 }

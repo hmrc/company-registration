@@ -30,8 +30,8 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, NotFoundException, Upstream5xxResponse}
 import utils.LogCapturing
 
-import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 
 
 class IncorporationInformationConnectorSpec extends BaseSpec with BusinessRegistrationFixture with LogCapturing {
@@ -189,7 +189,7 @@ class IncorporationInformationConnectorSpec extends BaseSpec with BusinessRegist
         when(mockWSHttp.GET[HttpResponse](ArgumentMatchers.eq(expectedURL), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
           .thenReturn(Future.successful(HttpResponse(200, Some(Json.obj("crn" -> "crn")))))
 
-        withCaptureOfLoggingFrom(Logger) { logs =>
+        withCaptureOfLoggingFrom(Logger(connector.getClass)) { logs =>
           await(connector.checkCompanyIncorporated(txId)) shouldBe Some("crn")
 
           logs.size shouldBe 1

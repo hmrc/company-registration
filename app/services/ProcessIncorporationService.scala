@@ -16,23 +16,21 @@
 
 package services
 
-import java.time.LocalTime
-import java.util.Base64
-
 import audit._
 import config.MicroserviceAppConfig
 import connectors._
 import helpers.DateHelper
-import javax.inject.Inject
 import models._
 import org.joda.time.DateTime
-import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import repositories.{Repositories, _}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpErrorFunctions}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import utils.{DateCalculators, Logging, PagerDutyKeys}
 
+import java.time.LocalTime
+import java.util.Base64
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NoStackTrace
 
@@ -88,10 +86,10 @@ trait ProcessIncorporationService extends DateHelper with HttpErrorFunctions wit
       metadataDeleted <- brConnector.removeMetadata(regId)
     } yield {
       if (ctDeleted && metadataDeleted) {
-        Logger.info(s"[deleteRejectedSubmissionData] Successfully deleted registration with regId: $regId")
+        logger.info(s"[deleteRejectedSubmissionData] Successfully deleted registration with regId: $regId")
         true
       } else {
-        Logger.error(s"[deleteRejectedSubmissionData] Failed to delete registration with regId: $regId")
+        logger.error(s"[deleteRejectedSubmissionData] Failed to delete registration with regId: $regId")
         throw FailedToDeleteSubmissionData
       }
     }
@@ -108,9 +106,9 @@ trait ProcessIncorporationService extends DateHelper with HttpErrorFunctions wit
         case "accepted" =>
           oCTReg.fold {
             if (inWorkingHours) {
-              Logger.error(PagerDutyKeys.CT_ACCEPTED_NO_REG_DOC_II_SUBS_DELETED.toString)
+              logger.error(PagerDutyKeys.CT_ACCEPTED_NO_REG_DOC_II_SUBS_DELETED.toString)
             }
-            Logger.error(s"[processIncorporationUpdate] Incorporation accepted but no reg document found for txId: ${item.transactionId} - II subscription deleted")
+            logger.error(s"[processIncorporationUpdate] Incorporation accepted but no reg document found for txId: ${item.transactionId} - II subscription deleted")
             Future.successful(true)
           } { ctReg =>
             for {
@@ -120,10 +118,10 @@ trait ProcessIncorporationService extends DateHelper with HttpErrorFunctions wit
           }
         case "rejected" =>
           val reason = item.statusDescription.fold(" No reason given")(f => " Reason given: " + f)
-          Logger.info("[processIncorporationUpdate] Incorporation rejected for Transaction: " + item.transactionId + reason)
+          logger.info("[processIncorporationUpdate] Incorporation rejected for Transaction: " + item.transactionId + reason)
 
           oCTReg.fold {
-            Logger.warn(s"[processIncorporationUpdate] Rejection with no CT document for trans id ${item.transactionId}")
+            logger.warn(s"[processIncorporationUpdate] Rejection with no CT document for trans id ${item.transactionId}")
             Future.successful(true)
           } { ctReg => updateSubmissionWithRejectedIncorp(item, ctReg, isAdmin) }
       }
@@ -134,12 +132,12 @@ trait ProcessIncorporationService extends DateHelper with HttpErrorFunctions wit
     import RegistrationStatus.{ACKNOWLEDGED, HELD, LOCKED, SUBMITTED}
     ctReg.status match {
       case LOCKED =>
-        Logger.warn(s"[updateSubmissionWithIncorporation] Top-up delayed on LOCKED document. Sending partial first. TxId:${item.transactionId} regId: ${ctReg.registrationID}.")
+        logger.warn(s"[updateSubmissionWithIncorporation] Top-up delayed on LOCKED document. Sending partial first. TxId:${item.transactionId} regId: ${ctReg.registrationID}.")
         Future.successful(false)
       case HELD => updateHeldSubmission(item, ctReg, ctReg.registrationID, isAdmin)
       case SUBMITTED | ACKNOWLEDGED => Future.successful(true)
       case unknown =>
-        Logger.error(s"""Tried to process a submission (${ctReg.registrationID}/${item.transactionId}) with an unexpected status of "$unknown" """)
+        logger.error(s"""Tried to process a submission (${ctReg.registrationID}/${item.transactionId}) with an unexpected status of "$unknown" """)
         Future.failed(new UnexpectedStatus(unknown))
     }
   }
@@ -149,7 +147,7 @@ trait ProcessIncorporationService extends DateHelper with HttpErrorFunctions wit
     import RegistrationStatus.LOCKED
     ctReg.status match {
       case LOCKED =>
-        Logger.warn(s"[updateSubmissionWithRejectedIncorp] Rejection top-up delayed on LOCKED document. Sending partial first. TxId:${item.transactionId} regId: ${ctReg.registrationID}.")
+        logger.warn(s"[updateSubmissionWithRejectedIncorp] Rejection top-up delayed on LOCKED document. Sending partial first. TxId:${item.transactionId} regId: ${ctReg.registrationID}.")
         Future.successful(false)
       case _ =>
         for {
@@ -174,12 +172,12 @@ trait ProcessIncorporationService extends DateHelper with HttpErrorFunctions wit
           } yield submitted
           ) recover {
           case e =>
-            Logger.error(s"""[updateHeldSubmission] Submission to DES failed for ack ref $ackRef. Corresponding RegID: $journeyId and Transaction ID: ${item.transactionId}""")
+            logger.error(s"""[updateHeldSubmission] Submission to DES failed for ack ref $ackRef. Corresponding RegID: $journeyId and Transaction ID: ${item.transactionId}""")
             throw e
         }
       case None =>
         val errMsg = s"""Held Registration doc is missing the ack ref for tx_id "${item.transactionId}"."""
-        Logger.error(errMsg)
+        logger.error(errMsg)
         Future.failed(new MissingAckRef(errMsg))
     }
   }
@@ -206,7 +204,7 @@ trait ProcessIncorporationService extends DateHelper with HttpErrorFunctions wit
         }
       case None =>
         val errMsg = s"""Held Registration doc is missing the ack ref for tx_id "${item.transactionId}"."""
-        Logger.error(errMsg)
+        logger.error(errMsg)
         Future.failed(new MissingAckRef(errMsg))
     }
   }
@@ -332,7 +330,7 @@ trait ProcessIncorporationService extends DateHelper with HttpErrorFunctions wit
                                        accountingDetails: Option[AccountingDetails],
                                        accountsPreparation: Option[AccountPrepDetails]): Future[SubmissionDates] = {
 
-    item.incorpDate.fold(Logger.error(s"[IncorpUpdate] - Incorp update for transaction-id : ${item.transactionId} does not contain an incorp date - IncorpUpdate : $item"))(_ => ())
+    item.incorpDate.fold(logger.error(s"[IncorpUpdate] - Incorp update for transaction-id : ${item.transactionId} does not contain an incorp date - IncorpUpdate : $item"))(_ => ())
 
     accountingDetails map { details =>
       val prepDate = accountsPreparation flatMap (_.endDate)

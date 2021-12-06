@@ -56,7 +56,7 @@ class SuccessfulIncorporationAuditEventSpec extends WordSpec with Matchers {
     "construct a full successful incorporation audit event" when {
       "given a SuccessfulIncorporationAuditEventDetail case class, an audit type and a transaction name" in {
         val auditEventTest = new SuccessfulIncorporationAuditEvent(testModel, "successIncorpInformation", "successIncorpInformation")
-        val result = Json.toJson[SuccessfulIncorporationAuditEvent](auditEventTest)
+        val result = Json.toJson[ExtendedDataEvent](auditEventTest)
         result.getClass shouldBe classOf[JsObject]
         (result \ "auditSource").as[String] shouldBe "company-registration"
         (result \ "auditType").as[String] shouldBe "successIncorpInformation"

@@ -16,22 +16,23 @@
 
 package auth
 
-import javax.inject.Inject
 import play.api.libs.json.{JsString, Reads, Writes}
-import play.api.{Configuration, Logger}
+import play.api.{Configuration, Logging}
 import uk.gov.hmrc.crypto.{ApplicationCrypto, CompositeSymmetricCrypto, Crypted, PlainText}
+
+import javax.inject.Inject
 
 class CryptoSCRSImpl @Inject()(config: Configuration) extends CryptoSCRS {
   override lazy val crypto: CompositeSymmetricCrypto = new ApplicationCrypto(config.underlying).JsonCrypto
 }
 
-trait CryptoSCRS {
+trait CryptoSCRS extends Logging {
   def crypto: CompositeSymmetricCrypto
 
   val rds: Reads[String] = Reads[String](js =>
     js.validate[String].map { encryptedUtr =>
       val str = crypto.decrypt(Crypted.fromBase64(encryptedUtr)).value
-      Logger.info(s"[CryptoSCRS] decrypted string to length - ${str.length}")
+      logger.info(s"[CryptoSCRS] decrypted string to length - ${str.length}")
       str
     }
   )

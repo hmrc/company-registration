@@ -16,9 +16,8 @@
 
 package repositories
 
-import javax.inject.Inject
 import models.Sequence
-import play.api.Logger
+import play.api.Logging
 import play.api.libs.json.JsValue
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.DB
@@ -27,14 +26,15 @@ import reactivemongo.play.json.ImplicitBSONHandlers.BSONDocumentWrites
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 trait SequenceRepository {
   def getNext(sequenceID: String): Future[Int]
 }
 
-class SequenceMongoRepo @Inject()(mongo: ReactiveMongoComponent)(implicit val ec: ExecutionContext) {
-  Logger.info("Creating CorporationTaxRegistrationMongoRepository")
+class SequenceMongoRepo @Inject()(mongo: ReactiveMongoComponent)(implicit val ec: ExecutionContext) extends Logging {
+  logger.info("Creating CorporationTaxRegistrationMongoRepository")
 
   val repo = new SequenceMongoRepository(mongo.mongoConnector.db)
 }
@@ -42,7 +42,7 @@ class SequenceMongoRepo @Inject()(mongo: ReactiveMongoComponent)(implicit val ec
 class SequenceMongoRepository(mongo: () => DB)(implicit val ec: ExecutionContext)
   extends ReactiveRepository[Sequence, BSONObjectID]("sequence", mongo, Sequence.formats, ReactiveMongoFormats.objectIdFormats)
     with SequenceRepository {
-  Logger.info("Creating SequenceMongoRepository")
+  logger.info("Creating SequenceMongoRepository")
 
   def getNext(sequenceID: String): Future[Int] = {
     val selector = BSONDocument("_id" -> sequenceID)

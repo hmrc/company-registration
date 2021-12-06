@@ -16,8 +16,6 @@
 
 package jobs
 
-import java.util.UUID
-
 import auth.CryptoSCRS
 import com.google.inject.name.Names
 import itutil.WiremockHelper._
@@ -34,6 +32,7 @@ import reactivemongo.api.Cursor
 import reactivemongo.api.commands.WriteResult
 import repositories.CorporationTaxRegistrationMongoRepository
 
+import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with LogCapturing {
@@ -172,7 +171,7 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with LogCapturing
         val job = lookupJob("remove-stale-documents-job")
         val message = s"[processStaleDocument] Registration $regId - $txID does not have CTAX subscription. Now trying to delete CT sub."
         val delMess = "[remove-stale-documents-job] Successfully deleted 1 stale documents"
-        withCaptureOfLoggingFrom(Logger) { logs =>
+        withCaptureOfLoggingFrom(Logger("services.admin.AdminServiceImpl")) { logs =>
           val res = await(job.scheduledMessage.service.invoke.map(_.asInstanceOf[Either[Int, LockResponse]]))
           res.left.get shouldBe 1
 
@@ -198,7 +197,7 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with LogCapturing
         val finalMessage = s"[processStaleDocument] Registration $regId - $txID has no subscriptions."
         val delMess = "[remove-stale-documents-job] Successfully deleted 1 stale documents"
 
-        withCaptureOfLoggingFrom(Logger) { logs =>
+        withCaptureOfLoggingFrom(Logger("services.admin.AdminServiceImpl")) { logs =>
           val res = await(job.scheduledMessage.service.invoke.map(_.asInstanceOf[Either[Int, LockResponse]]))
           res.left.get shouldBe 1
 
