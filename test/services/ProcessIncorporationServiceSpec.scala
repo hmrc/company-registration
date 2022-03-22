@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -329,7 +329,7 @@ class ProcessIncorporationServiceSpec extends WordSpec with Matchers with Mockit
       when(mockCTRepository.findBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
         .thenReturn(Future.successful(Some(failCaseCR)))
 
-      intercept[UnexpectedStatus] {
+      intercept[Exception] {
         await(service.updateSubmissionWithIncorporation(incorpSuccess, failCaseCR))
       }
     }

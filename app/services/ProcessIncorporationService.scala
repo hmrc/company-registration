@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -137,8 +137,9 @@ trait ProcessIncorporationService extends DateHelper with HttpErrorFunctions wit
       case HELD => updateHeldSubmission(item, ctReg, ctReg.registrationID, isAdmin)
       case SUBMITTED | ACKNOWLEDGED => Future.successful(true)
       case unknown =>
-        logger.error(s"""Tried to process a submission (${ctReg.registrationID}/${item.transactionId}) with an unexpected status of "$unknown" """)
-        Future.failed(new UnexpectedStatus(unknown))
+        val errMsg = s"""Tried to process a submission (${ctReg.registrationID}/${item.transactionId}) with an unexpected status of $unknown"""
+        logger.error(errMsg)
+        Future.failed(new Exception(errMsg))
     }
   }
 
