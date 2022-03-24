@@ -34,7 +34,7 @@ lazy val microservice = Project(appName, file("."))
     targetJvm := "jvm-1.8",
     libraryDependencies ++= AppDependencies(),
     parallelExecution in Test := false,
-    fork in Test := true,
+    fork in Test := false,
     retrieveManaged := true,
     scalacOptions ++= List(
       "-Xlint:-missing-interpolator"
