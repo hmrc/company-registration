@@ -31,7 +31,6 @@ import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.Cursor
 import reactivemongo.api.commands.WriteResult
 import repositories.CorporationTaxRegistrationMongoRepository
-
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -62,6 +61,7 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with LogCapturing
     val crypto = app.injector.instanceOf[CryptoSCRS]
     val repository = new CorporationTaxRegistrationMongoRepository(rmc, crypto)
     await(repository.drop)
+    await(repository.ensureIndexes)
     await(repository.count) shouldBe 0
 
 
