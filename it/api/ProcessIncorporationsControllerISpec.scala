@@ -17,7 +17,7 @@
 package api
 
 import auth.CryptoSCRS
-import com.github.tomakehurst.wiremock.client.WireMock.{stubFor, _}
+import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import itutil.WiremockHelper._
 import itutil.{IntegrationSpecBase, LoginStub, MongoIntegrationSpec, WiremockHelper}
@@ -33,6 +33,7 @@ import play.api.test.Helpers._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.WriteResult
 import repositories.CorporationTaxRegistrationMongoRepository
+import uk.gov.hmrc.http.{HeaderNames => GovHeaderNames}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -73,7 +74,10 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
 
   private def client(path: String) = ws.url(s"http://localhost:$port/company-registration/corporation-tax-registration$path").
     withFollowRedirects(false).
-    withHttpHeaders("Content-Type" -> "application/json")
+    withHttpHeaders(
+      "Content-Type" -> "application/json",
+      GovHeaderNames.authorisation -> "Bearer123"
+    )
 
   class Setup {
     val rmComp = app.injector.instanceOf[ReactiveMongoComponent]

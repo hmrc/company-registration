@@ -16,8 +16,6 @@
 
 package api
 
-import java.util.UUID
-
 import auth.CryptoSCRS
 import itutil.WiremockHelper._
 import itutil.{IntegrationSpecBase, LoginStub, WiremockHelper}
@@ -28,8 +26,10 @@ import play.api.libs.json.{JsBoolean, JsObject, JsString, Json}
 import play.api.test.Helpers._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import repositories.{CorporationTaxRegistrationMongoRepository, ThrottleMongoRepo}
+import uk.gov.hmrc.http.{HeaderNames => GovHeaderNames}
 import uk.gov.hmrc.time.DateTimeUtils
 
+import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class ThrottleCheckISpec extends IntegrationSpecBase with LoginStub {
@@ -58,7 +58,10 @@ class ThrottleCheckISpec extends IntegrationSpecBase with LoginStub {
 
   private def client(path: String) = ws.url(s"http://localhost:$port/company-registration$path").
     withFollowRedirects(false).
-    withHttpHeaders("Content-Type" -> "application/json")
+    withHttpHeaders(
+      "Content-Type" -> "application/json",
+      GovHeaderNames.authorisation -> "Bearer123"
+    )
 
   class Setup {
     val rmComp = app.injector.instanceOf[ReactiveMongoComponent]

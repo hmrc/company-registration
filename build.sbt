@@ -1,17 +1,15 @@
 
-import sbt.Keys._
+import sbt.Keys.{javaOptions, parallelExecution, _}
 import sbt._
 import uk.gov.hmrc.DefaultBuildSettings._
-import uk.gov.hmrc.{SbtAutoBuildPlugin, _}
+import uk.gov.hmrc.SbtAutoBuildPlugin
+import uk.gov.hmrc.SbtBobbyPlugin.BobbyKeys.bobbyRulesURL
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin._
-import uk.gov.hmrc.versioning.SbtGitVersioning
 import uk.gov.hmrc.versioning.SbtGitVersioning.autoImport.majorVersion
 
 
 val appName = "company-registration"
-
-lazy val plugins: Seq[Plugins] = Seq(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin)
 
 lazy val scoverageSettings = {
   // Semicolon-separated list of regexs matching classes to exclude
@@ -25,24 +23,23 @@ lazy val scoverageSettings = {
 }
 
 lazy val microservice = Project(appName, file("."))
-  .enablePlugins(Seq(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin, SbtArtifactory) ++ plugins: _*)
+  .enablePlugins(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtDistributablesPlugin, SbtArtifactory)
   .settings(scalaSettings: _*)
   .settings(scoverageSettings: _*)
   .settings(publishingSettings: _*)
   .settings(defaultSettings(): _*)
+  .settings(bobbyRulesURL := Some(new URL("https://webstore.tax.service.gov.uk/bobby-config/deprecated-dependencies.json")))
   .settings(
     targetJvm := "jvm-1.8",
     libraryDependencies ++= AppDependencies(),
-    parallelExecution in Test := false,
-    fork in Test := false,
+    Test / parallelExecution := false,
+    Test / fork := false,
     retrieveManaged := true,
-    scalacOptions ++= List(
-      "-Xlint:-missing-interpolator"
-    ),
+    scalacOptions ++= List("-Xlint:-missing-interpolator"),
     resolvers += Resolver.jcenterRepo,
-    scalaVersion := "2.12.12"
+    scalaVersion := "2.12.13"
   )
   .configs(IntegrationTest)
   .settings(integrationTestSettings())
   .settings(majorVersion := 1)
-  .settings(javaOptions in IntegrationTest += "-Dlogger.resource=logback-test.xml")
+  .settings(IntegrationTest / javaOptions += "-Dlogger.resource=logback-test.xml")

@@ -22,9 +22,7 @@ import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import org.scalatest.concurrent.{Eventually, IntegrationPatience}
-import play.api.inject.{Injector, NewInstanceInjector}
 import play.api.libs.json.{JsObject, Json}
-import play.api.libs.ws.WSClient
 
 object WiremockHelper extends Eventually with IntegrationPatience {
   val wiremockPort = 11111
@@ -96,6 +94,7 @@ object WiremockHelper extends Eventually with IntegrationPatience {
   }
 
   def stubAuthorise(internalId: String): StubMapping = stubAuthorise(200, "internalId" -> internalId)
+
 }
 
 trait WiremockHelper {

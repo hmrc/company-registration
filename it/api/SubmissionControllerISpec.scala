@@ -74,9 +74,12 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
 
   private def client(path: String): WSRequest = ws.url(s"http://localhost:$port/company-registration/corporation-tax-registration$path")
     .withFollowRedirects(false)
-    .withHttpHeaders("Content-Type" -> "application/json")
-    .withHttpHeaders(HeaderNames.SET_COOKIE -> getSessionCookie())
-    .withHttpHeaders(GovHeaderNames.xSessionId -> SessionId)
+    .withHttpHeaders(
+      "Content-Type" -> "application/json",
+      HeaderNames.SET_COOKIE -> getSessionCookie(),
+      GovHeaderNames.xSessionId -> SessionId,
+      GovHeaderNames.authorisation -> "Bearer123"
+    )
 
   class Setup {
     val rmComp: ReactiveMongoComponent = app.injector.instanceOf[ReactiveMongoComponent]

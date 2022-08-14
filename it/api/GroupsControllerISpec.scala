@@ -27,11 +27,11 @@ import play.api.test.Helpers._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.play.json._
 import repositories.CorporationTaxRegistrationMongoRepository
-
+import uk.gov.hmrc.http.{HeaderNames => GovHeaderNames}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class GroupsControllerISpec extends IntegrationSpecBase  with LoginStub {
+class GroupsControllerISpec extends IntegrationSpecBase with LoginStub {
   lazy val defaultCookieSigner: DefaultCookieSigner = app.injector.instanceOf[DefaultCookieSigner]
 
   val regId: String = "123"
@@ -51,9 +51,13 @@ class GroupsControllerISpec extends IntegrationSpecBase  with LoginStub {
     .configure(additionalConfiguration)
     .build
 
-  private def client(path: String) = ws.url(s"http://localhost:$port/company-registration/corporation-tax-registration$path").
-    withFollowRedirects(false).
-    withHttpHeaders("Content-Type"->"application/json")
+  private def client(path: String) =
+    ws.url(s"http://localhost:$port/company-registration/corporation-tax-registration$path")
+      .withFollowRedirects(false)
+      .withHttpHeaders(
+        "Content-Type"->"application/json",
+        GovHeaderNames.authorisation -> "Bearer123"
+      )
 
   class Setup {
     val rmComp = app.injector.instanceOf[ReactiveMongoComponent]

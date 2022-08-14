@@ -28,6 +28,7 @@ import play.api.test.Helpers._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.WriteResult
 import repositories.CorporationTaxRegistrationMongoRepository
+import uk.gov.hmrc.http.{HeaderNames => GovHeaderNames}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -53,7 +54,10 @@ class TakeoverDetailsControllerISpec extends IntegrationSpecBase with LoginStub 
 
   private def client(path: String) = ws.url(s"http://localhost:$port/company-registration/corporation-tax-registration$path").
     withFollowRedirects(false).
-    withHttpHeaders("Content-Type" -> "application/json")
+    withHttpHeaders(
+      "Content-Type" -> "application/json",
+      GovHeaderNames.authorisation -> "Bearer123"
+    )
 
   class Setup {
     val rmComp = app.injector.instanceOf[ReactiveMongoComponent]

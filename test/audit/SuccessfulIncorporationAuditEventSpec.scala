@@ -20,12 +20,10 @@ import org.joda.time.DateTime
 import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
 
 class SuccessfulIncorporationAuditEventSpec extends WordSpec with Matchers {
 
   implicit val hc = HeaderCarrier()
-  implicit val format = Json.format[ExtendedDataEvent]
 
   val testModel = SuccessfulIncorporationAuditEventDetail(
     journeyId = "1234567890",
@@ -56,14 +54,10 @@ class SuccessfulIncorporationAuditEventSpec extends WordSpec with Matchers {
     "construct a full successful incorporation audit event" when {
       "given a SuccessfulIncorporationAuditEventDetail case class, an audit type and a transaction name" in {
         val auditEventTest = new SuccessfulIncorporationAuditEvent(testModel, "successIncorpInformation", "successIncorpInformation")
-        val result = Json.toJson[ExtendedDataEvent](auditEventTest)
-        result.getClass shouldBe classOf[JsObject]
-        (result \ "auditSource").as[String] shouldBe "company-registration"
-        (result \ "auditType").as[String] shouldBe "successIncorpInformation"
 
-        val tagSet = (result \ "tags").as[JsObject]
-
-        (tagSet \ "transactionName").as[String] shouldBe "successIncorpInformation"
+        auditEventTest.auditSource shouldBe "company-registration"
+        auditEventTest.auditType shouldBe "successIncorpInformation"
+        auditEventTest.tags.get("transactionName") shouldBe Some("successIncorpInformation")
       }
     }
   }

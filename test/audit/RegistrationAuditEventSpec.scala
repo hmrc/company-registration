@@ -17,9 +17,8 @@
 package audit
 
 import org.scalatest.{Matchers, WordSpec}
-import play.api.libs.json.{JsObject, Json, OFormat}
+import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.http.{Authorization, ForwardedFor, HeaderCarrier, RequestId, SessionId}
-import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
 
 class RegistrationAuditEventSpec extends WordSpec with Matchers {
 
@@ -30,8 +29,6 @@ class RegistrationAuditEventSpec extends WordSpec with Matchers {
     val bearer = "Bearer 12345"
     val session: String = "sess"
     val request: String = "req"
-
-    implicit val format: OFormat[ExtendedDataEvent] = Json.format[ExtendedDataEvent]
 
     val completeCarrier = HeaderCarrier(
       trueClientIp = Some(clientIP),
@@ -47,8 +44,6 @@ class RegistrationAuditEventSpec extends WordSpec with Matchers {
     "have the correct tags for a full header carrier" in {
       val event = new RegistrationAuditEvent(auditType, None, Json.obj())(completeCarrier) {}
 
-      val result = Json.toJson[ExtendedDataEvent](event)
-
       val expectedTags: JsObject = Json.obj(
         "clientIP" -> clientIP,
         "clientPort" -> clientPort,
@@ -58,13 +53,11 @@ class RegistrationAuditEventSpec extends WordSpec with Matchers {
         "Authorization" -> bearer
       )
 
-      (result \ "tags").as[JsObject] shouldBe expectedTags
+      Json.toJson(event.tags) shouldBe expectedTags
     }
 
     "have the correct tags for an empty header carrier" in {
       val event = new RegistrationAuditEvent(auditType, None, Json.obj())(emptyCarrier) {}
-
-      val result = Json.toJson[ExtendedDataEvent](event)
 
       val expectedTags: JsObject = Json.obj(
         "clientIP" -> "-",
@@ -75,26 +68,22 @@ class RegistrationAuditEventSpec extends WordSpec with Matchers {
         "Authorization" -> "-"
       )
 
-      (result \ "tags").as[JsObject] shouldBe expectedTags
+      Json.toJson(event.tags) shouldBe expectedTags
     }
 
     "Output with minimum tags" in {
       val event = new RegistrationAuditEvent(auditType, None, Json.obj(), TagSet.NO_TAGS)(completeCarrier) {}
 
-      val result = Json.toJson[ExtendedDataEvent](event)
-
       val expectedTags: JsObject = Json.obj(
         "transactionName" -> auditType
       )
 
-      (result \ "tags").as[JsObject] shouldBe expectedTags
+      Json.toJson(event.tags) shouldBe expectedTags
     }
 
     "Output with name and clientIP/Port tags" in {
       val tagSet = TagSet.NO_TAGS.copy(clientIP = true, clientPort = true)
       val event = new RegistrationAuditEvent(auditType, None, Json.obj(), tagSet)(completeCarrier) {}
-
-      val result = Json.toJson[ExtendedDataEvent](event)
 
       val expectedTags: JsObject = Json.obj(
         "transactionName" -> auditType,
@@ -102,14 +91,12 @@ class RegistrationAuditEventSpec extends WordSpec with Matchers {
         "clientPort" -> clientPort
       )
 
-      (result \ "tags").as[JsObject] shouldBe expectedTags
+      Json.toJson(event.tags) shouldBe expectedTags
     }
 
     "output with name, request, session & authz tags" in {
       val tagSet = TagSet.ALL_TAGS.copy(clientIP = false, clientPort = false)
       val event = new RegistrationAuditEvent(auditType, None, Json.obj(), tagSet)(completeCarrier) {}
-
-      val result = Json.toJson[ExtendedDataEvent](event)
 
       val expectedTags: JsObject = Json.obj(
         "X-Request-ID" -> request,
@@ -118,19 +105,16 @@ class RegistrationAuditEventSpec extends WordSpec with Matchers {
         "Authorization" -> bearer
       )
 
-      (result \ "tags").as[JsObject] shouldBe expectedTags
+      Json.toJson(event.tags) shouldBe expectedTags
     }
 
 
     "have the correct result" in {
       val event = new RegistrationAuditEvent(auditType, None, Json.obj())(completeCarrier) {}
 
-      val result = Json.toJson[ExtendedDataEvent](event)
-
-      (result \ "auditSource").as[String] shouldBe "company-registration"
-      (result \ "auditType").as[String] shouldBe auditType
-
-      (result \ "detail").as[JsObject] shouldBe Json.obj()
+      event.auditSource shouldBe "company-registration"
+      event.auditType shouldBe auditType
+      event.detail shouldBe Json.obj()
     }
   }
 }
