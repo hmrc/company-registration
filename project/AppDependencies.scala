@@ -6,13 +6,12 @@ object AppDependencies {
   import play.core.PlayVersion
   import play.sbt.PlayImport._
 
-  private val bootstrapPlayVersion = "5.16.0"
-  private val domainVersion = "6.2.0-play-28"
+  private val bootstrapPlayVersion = "6.4.0"
+  private val domainVersion = "8.1.0-play-28"
   private val reactiveMongoVersion = "8.0.0-play-28"
   private val mockitoVersion = "3.9.0"
   private val scalatestPlusPlayVersion = "3.1.3"
-  private val mongoLockVersion = "7.0.0-play-28"
-  private val authClientVersion = "5.6.0-play-28"
+  private val mongoLockVersion = "7.1.0-play-28"
 
 
   val compile = Seq(
@@ -23,7 +22,6 @@ object AppDependencies {
     "uk.gov.hmrc" %% "mongo-lock" % mongoLockVersion,
     "uk.gov.hmrc" %% "simple-reactivemongo" % reactiveMongoVersion,
     "org.typelevel" %% "cats" % "0.9.0",
-    "uk.gov.hmrc" %% "auth-client" % authClientVersion,
     "com.typesafe.play" %% "play-json-joda" % "2.6.10"
 
   )
@@ -45,7 +43,7 @@ object AppDependencies {
         "org.pegdown" % "pegdown" % "1.6.0" % scope,
         "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
         "org.mockito" % "mockito-core" % mockitoVersion % scope,
-        "uk.gov.hmrc" %% "reactivemongo-test" % "5.0.0-play-28" % scope
+        "uk.gov.hmrc" %% "reactivemongo-test" % "5.1.0-play-28" % scope
       )
     }.test
   }

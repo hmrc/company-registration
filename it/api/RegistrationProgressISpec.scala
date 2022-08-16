@@ -16,8 +16,6 @@
 
 package api
 
-import java.util.UUID
-
 import auth.CryptoSCRS
 import itutil.WiremockHelper._
 import itutil.{IntegrationSpecBase, LoginStub, WiremockHelper}
@@ -28,7 +26,9 @@ import play.api.libs.json.{JsObject, Json}
 import play.api.test.Helpers._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import repositories.CorporationTaxRegistrationMongoRepository
+import uk.gov.hmrc.http.{HeaderNames => GovHeaderNames}
 
+import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class RegistrationProgressISpec extends IntegrationSpecBase with LoginStub {
@@ -52,7 +52,9 @@ class RegistrationProgressISpec extends IntegrationSpecBase with LoginStub {
 
   private def client(path: String) = ws.url(s"http://localhost:$port/company-registration/corporation-tax-registration$path").
     withFollowRedirects(false).
-    withHttpHeaders("Content-Type" -> "application/json")
+    withHttpHeaders(
+      "Content-Type" -> "application/json",
+      GovHeaderNames.authorisation -> "Bearer123")
 
   class Setup {
     val rmComp = app.injector.instanceOf[ReactiveMongoComponent]

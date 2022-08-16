@@ -19,12 +19,10 @@ package audit
 import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
 
 class FailedIncorporationAuditEventSpec extends WordSpec with Matchers {
 
   implicit val hc = HeaderCarrier()
-  implicit val format = Json.format[ExtendedDataEvent]
 
   val testModel = FailedIncorporationAuditEventDetail(
     "1234567890",
@@ -53,14 +51,10 @@ class FailedIncorporationAuditEventSpec extends WordSpec with Matchers {
     "construct a full successful incorporation audit event" when {
       "given a FailedIncorporationAuditEventDetail case class, an audit type and a transaction name" in {
         val auditEventTest = new FailedIncorporationAuditEvent(testModel, "failedIncorpInformation", "failedIncorpInformation")
-        val result = Json.toJson[ExtendedDataEvent](auditEventTest)
-        result.getClass shouldBe classOf[JsObject]
-        (result \ "auditSource").as[String] shouldBe "company-registration"
-        (result \ "auditType").as[String] shouldBe "failedIncorpInformation"
 
-        val tagSet = (result \ "tags").as[JsObject]
-
-        (tagSet \ "transactionName").as[String] shouldBe "failedIncorpInformation"
+        auditEventTest.auditSource shouldBe "company-registration"
+        auditEventTest.auditType shouldBe "failedIncorpInformation"
+        auditEventTest.tags.get("transactionName") shouldBe Some("failedIncorpInformation")
       }
     }
   }

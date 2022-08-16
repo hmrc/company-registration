@@ -98,9 +98,12 @@ class CompanyDetailsApiISpec extends IntegrationSpecBase with LoginStub {
 
   private def client(path: String) = ws.url(s"http://localhost:$port/company-registration/corporation-tax-registration$path")
     .withFollowRedirects(false)
-    .withHttpHeaders("Content-Type" -> "application/json")
-    .withHttpHeaders(HeaderNames.SET_COOKIE -> getSessionCookie())
-    .withHttpHeaders(GovHeaderNames.xSessionId -> SessionId)
+    .withHttpHeaders(
+      "Content-Type" -> "application/json",
+      HeaderNames.SET_COOKIE -> getSessionCookie(),
+      GovHeaderNames.xSessionId -> SessionId,
+      GovHeaderNames.authorisation -> "Bearer123"
+    )
 
   class Setup {
     val rmComp = app.injector.instanceOf[ReactiveMongoComponent]

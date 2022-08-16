@@ -63,9 +63,11 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
 
   private def client(path: String) = ws.url(s"http://localhost:$port/company-registration/corporation-tax-registration$path")
     .withFollowRedirects(false)
-    .withHeaders("Content-Type" -> "application/json")
-    .withHeaders(HeaderNames.SET_COOKIE -> getSessionCookie())
-    .withHeaders(GovHeaderNames.xSessionId -> SessionId)
+    .withHttpHeaders("Content-Type" -> "application/json",
+      HeaderNames.SET_COOKIE -> getSessionCookie(),
+      GovHeaderNames.xSessionId -> SessionId,
+      GovHeaderNames.authorisation -> "Bearer123"
+    )
 
   "roAddressValid" should {
 
