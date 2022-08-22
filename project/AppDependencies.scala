@@ -6,9 +6,9 @@ object AppDependencies {
   import play.core.PlayVersion
   import play.sbt.PlayImport._
 
-  private val bootstrapPlayVersion = "6.4.0"
+  private val bootstrapPlayVersion = "7.1.0"
   private val domainVersion = "8.1.0-play-28"
-  private val reactiveMongoVersion = "8.0.0-play-28"
+  private val reactiveMongoVersion = "8.1.0-play-28"
   private val mockitoVersion = "3.9.0"
   private val scalatestPlusPlayVersion = "3.1.3"
   private val mongoLockVersion = "7.1.0-play-28"
@@ -23,12 +23,11 @@ object AppDependencies {
     "uk.gov.hmrc" %% "simple-reactivemongo" % reactiveMongoVersion,
     "org.typelevel" %% "cats" % "0.9.0",
     "com.typesafe.play" %% "play-json-joda" % "2.6.10"
-
   )
 
   def tmpMacWorkaround(): Seq[ModuleID] =
     if (sys.props.get("os.name").exists(_.toLowerCase.contains("mac")))
-      Seq("org.reactivemongo" % "reactivemongo-shaded-native" % "0.17.1-osx-x86-64" % "runtime,test,it")
+      Seq("org.reactivemongo" % "reactivemongo-shaded-native" % "0.18.8-osx-x86-64" % "runtime,test,it")
     else Seq()
 
   trait TestDependencies {

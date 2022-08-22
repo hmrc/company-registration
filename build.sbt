@@ -37,7 +37,7 @@ lazy val microservice = Project(appName, file("."))
     retrieveManaged := true,
     scalacOptions ++= List("-Xlint:-missing-interpolator"),
     resolvers += Resolver.jcenterRepo,
-    scalaVersion := "2.12.13"
+    scalaVersion := "2.12.15"
   )
   .configs(IntegrationTest)
   .settings(integrationTestSettings())
