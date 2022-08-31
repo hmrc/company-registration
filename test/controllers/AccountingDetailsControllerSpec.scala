@@ -17,7 +17,6 @@
 package controllers
 
 
-import auth.AuthorisationResource
 import fixtures.AccountingDetailsFixture
 import helpers.BaseSpec
 import mocks.{AuthorisationMocks, MockMetricsService}
@@ -60,7 +59,7 @@ class AccountingDetailsControllerSpec extends BaseSpec with AccountingDetailsFix
   "retrieveAccountingDetails" should {
 
     "return a 200 with accounting details in the js on body when authorised" in new Setup {
-      mockAuthorise(Future.successful(internalId))
+      mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
 
       AccountingDetailsServiceMocks.retrieveAccountingDetails(registrationID, Some(validAccountingDetails))
@@ -75,7 +74,7 @@ class AccountingDetailsControllerSpec extends BaseSpec with AccountingDetailsFix
 
 
     "return a 404 when the user is authorised but accounting details cannot be found" in new Setup {
-      mockAuthorise(Future.successful(internalId))
+      mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
 
       AccountingDetailsServiceMocks.retrieveAccountingDetails(registrationID, None)
@@ -94,7 +93,7 @@ class AccountingDetailsControllerSpec extends BaseSpec with AccountingDetailsFix
     val request = FakeRequest().withBody(Json.toJson(validAccountingDetails))
 
     "return a 200 with accounting details in the json body when authorised" in new Setup {
-      mockAuthorise(Future.successful(internalId))
+      mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
 
       AccountingDetailsServiceMocks.updateAccountingDetails(registrationID, Some(validAccountingDetails))
@@ -105,7 +104,7 @@ class AccountingDetailsControllerSpec extends BaseSpec with AccountingDetailsFix
     }
 
     "return a 404 when the user is authorised but accounting details cannot be found" in new Setup {
-      mockAuthorise(Future.successful(internalId))
+      mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
 
       AccountingDetailsServiceMocks.updateAccountingDetails(registrationID, None)

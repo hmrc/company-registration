@@ -24,6 +24,7 @@ import models.{UserAccessLimitReachedResponse, UserAccessSuccessResponse}
 import org.mockito.ArgumentMatchers.{any, anyString}
 import org.mockito.Mockito._
 import play.api.libs.json.Json
+import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import services.UserAccessService
@@ -63,7 +64,7 @@ class UserAccessControllerSpec extends BaseSpec with AuthorisationMocks {
     }
 
     "return a 200" in new Setup {
-      mockAuthorise(Future.successful(internalId))
+      mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
       when(mockUserAccessService.checkUserAccess(anyString())(any()))
         .thenReturn(Future.successful(Right(UserAccessSuccessResponse("123", created = false, confRefs = false, paymentRefs = false))))
@@ -74,13 +75,20 @@ class UserAccessControllerSpec extends BaseSpec with AuthorisationMocks {
     }
 
     "return a 429" in new Setup {
-      mockAuthorise(Future.successful(internalId))
+      mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
       when(mockUserAccessService.checkUserAccess(anyString())(any()))
         .thenReturn(Future.successful(Left(Json.toJson(UserAccessLimitReachedResponse(limitReached = true)))))
 
       val result = controller.checkUserAccess(FakeRequest())
       status(result) shouldBe TOO_MANY_REQUESTS
+    }
+
+    "return a 403 when no internalId retrieved from Auth" in new Setup {
+      mockAuthorise(Future.successful(None))
+
+      val result: Future[Result] = controller.checkUserAccess(FakeRequest())
+      status(result) shouldBe FORBIDDEN
     }
   }
 

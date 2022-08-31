@@ -17,12 +17,12 @@
 package auth
 
 import play.api.Logging
-import play.api.libs.json.Reads
-import play.api.mvc.{ActionBuilder, _}
+import play.api.mvc._
 import repositories.MissingCTDocument
 import uk.gov.hmrc.auth.core.AuthProvider.GovernmentGateway
-import uk.gov.hmrc.auth.core.retrieve.{Retrieval, SimpleRetrieval, ~}
-import uk.gov.hmrc.auth.core.{AuthorisationException, _}
+import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
+import uk.gov.hmrc.auth.core.retrieve.{Retrieval, ~}
+import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -33,7 +33,7 @@ trait AuthenticatedActions extends MicroserviceAuthorisedFunctions with Logging 
   implicit val ec: ExecutionContext
   private[auth] val predicate = ConfidenceLevel.L50 and AuthProviders(GovernmentGateway)
 
-  val internalId: Retrieval[String] = SimpleRetrieval("internalId", Reads.StringReads)
+  val internalId: Retrieval[Option[String]] = Retrievals.internalId
 
   object AuthenticatedAction extends ActionBuilder[Request, AnyContent] {
 
@@ -83,11 +83,13 @@ trait AuthorisedActions extends AuthenticatedActions with AuthResource with Logg
 
     override def invokeBlock[A](request: Request[A], block: (Request[A]) => Future[Result]): Future[Result] = {
       implicit val req: Request[A] = request
-      authorised(ConfidenceLevel.L50).retrieve(internalId) { authIntId =>
-        fetchInternalID(regId).flatMap {
-          case `authIntId` => block(request)
-          case _ => throw new UnauthorisedAccess
-        }
+      authorised(ConfidenceLevel.L50).retrieve(internalId) {
+        case Some(authIntId) =>
+          fetchInternalID(regId).flatMap {
+            case `authIntId` => block(request)
+            case _ => throw UnauthorisedAccess()
+          }
+        case _ => throw NoInternalIdRetrieved()
       }.recover(authorisationErrorHandling[A](regId))
     }
 
@@ -98,11 +100,13 @@ trait AuthorisedActions extends AuthenticatedActions with AuthResource with Logg
       override protected[auth] def withRetrieval[A](bodyParser: BodyParser[A])(block: T => Action[A]): Action[A] = {
         Action.async(bodyParser) {
           implicit request =>
-            authConnector.authorise(predicate, internalId and retrieval).flatMap { case (authIntId ~ retrievals) =>
-              fetchInternalID(regId).flatMap {
-                case `authIntId` => block(retrievals)(request)
-                case _ => throw new UnauthorisedAccess
-              }
+            authConnector.authorise(predicate, internalId and retrieval).flatMap {
+              case Some(authIntId) ~ retrievals =>
+                fetchInternalID(regId).flatMap {
+                  case `authIntId` => block(retrievals)(request)
+                  case _ => throw UnauthorisedAccess()
+                }
+              case _ => throw NoInternalIdRetrieved()
             }.recover(authorisationErrorHandling[A](regId))
         }
       }
@@ -119,6 +123,9 @@ trait AuthorisedActions extends AuthenticatedActions with AuthResource with Logg
       NotFound
     case _: UnauthorisedAccess =>
       logger.error(s"User with regId $regId tried to access a matching document with a different internalId  when trying to access ${request.path}")
+      Forbidden
+    case _: NoInternalIdRetrieved =>
+      logger.error(s"User with regId $regId had no internalId retrieved from call to Auth")
       Forbidden
     case e: AuthorisationException =>
       logger.error(s"User forbidden when trying to access ${request.path}", e)

@@ -77,7 +77,7 @@ class TradingDetailsControllerSpec extends BaseSpec with MockitoSugar with SCRSM
   "retrieveTradingDetails" should {
     "retrieve a 200 - Ok and a Json package of TradingDetails" in new Setup {
 
-      mockAuthorise(Future.successful(internalId))
+      mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
 
       when(mockTradingDetailsService.retrieveTradingDetails(ArgumentMatchers.eq(regID)))
@@ -92,7 +92,7 @@ class TradingDetailsControllerSpec extends BaseSpec with MockitoSugar with SCRSM
 
     "return a 404 - Not Found if the record does not exist" in new Setup {
 
-      mockAuthorise(Future.successful(internalId))
+      mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
 
       when(mockTradingDetailsService.retrieveTradingDetails(ArgumentMatchers.eq(regID)))
@@ -111,7 +111,7 @@ class TradingDetailsControllerSpec extends BaseSpec with MockitoSugar with SCRSM
     }
 
     "return a 403 - Forbidden if the user is not authorised to view this record" in new Setup {
-      mockAuthorise(Future.successful(internalId))
+      mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(otherInternalID))
 
       val result: Future[Result] = controller.retrieveTradingDetails(regID)(FakeRequest())
@@ -119,7 +119,7 @@ class TradingDetailsControllerSpec extends BaseSpec with MockitoSugar with SCRSM
     }
 
     "return a 404 - Not found when an authority is found but nothing is returned from" in new Setup {
-      mockAuthorise(Future.successful(internalId))
+      mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
 
       val result: Future[Result] = controller.retrieveTradingDetails(regID)(FakeRequest())
@@ -129,7 +129,7 @@ class TradingDetailsControllerSpec extends BaseSpec with MockitoSugar with SCRSM
 
   "updateTradingDetails" should {
     "return a 200 - Ok and a company details response if a record is updated" in new Setup {
-      mockAuthorise(Future.successful(internalId))
+      mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
 
       when(mockTradingDetailsService.updateTradingDetails(ArgumentMatchers.eq("testRegID"), ArgumentMatchers.eq(TradingDetails("true"))))
@@ -143,7 +143,7 @@ class TradingDetailsControllerSpec extends BaseSpec with MockitoSugar with SCRSM
     }
 
     "return a 404 - Not Found if the record to update does not exist" in new Setup {
-      mockAuthorise(Future.successful(internalId))
+      mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
 
       when(mockTradingDetailsService.updateTradingDetails(ArgumentMatchers.eq("testRegID"), ArgumentMatchers.eq(TradingDetails("true"))))
@@ -165,7 +165,7 @@ class TradingDetailsControllerSpec extends BaseSpec with MockitoSugar with SCRSM
     }
 
     "return a 403 - Forbidden if the user is not authorised to view the record" in new Setup {
-      mockAuthorise(Future.successful(internalId))
+      mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(otherInternalID))
 
       val request: FakeRequest[JsValue] = FakeRequest().withBody(Json.toJson(TradingDetails("true")))
@@ -176,7 +176,7 @@ class TradingDetailsControllerSpec extends BaseSpec with MockitoSugar with SCRSM
 
     "return a 404 - Not found when an authority is found but nothing is updated" in new Setup {
 
-      mockAuthorise(Future.successful(internalId))
+      mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
 
       when(mockTradingDetailsService.updateTradingDetails(ArgumentMatchers.eq(regID), ArgumentMatchers.eq(TradingDetails("true"))))

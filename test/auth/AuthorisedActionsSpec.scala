@@ -50,27 +50,34 @@ class AuthorisedActionsSpec extends BaseSpec with AuthorisationMocks {
     val request = FakeRequest()
 
     "run the block and return a 200 when the user is authorised" in new Setup {
-      mockAuthorise(Future.successful(internalId))
+      mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
 
       val result = AuthorisedController.AuthorisedAction(registrationID).async(block)(request)
-      status(result) shouldBe 200
+      status(result) shouldBe OK
     }
 
     "return a 404 when fetching the internal id from the resource returns a None" in new Setup {
-      mockAuthorise(Future.successful(internalId))
+      mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.failed(new MissingCTDocument("hfbhdbf")))
 
       val result = AuthorisedController.AuthorisedAction(registrationID).async(block)(request)
-      status(result) shouldBe 404
+      status(result) shouldBe NOT_FOUND
     }
 
     "return a 403 when the request is authorised but is not allowed to access the resource" in new Setup {
-      mockAuthorise(Future.successful(internalId))
+      mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(otherInternalID))
 
       val result = AuthorisedController.AuthorisedAction(registrationID).async(block)(request)
-      status(result) shouldBe 403
+      status(result) shouldBe FORBIDDEN
+    }
+
+    "return a 403 when the request is authorised but no internalId is retrieved from Auth" in new Setup {
+      mockAuthorise(Future.successful(None))
+
+      val result = AuthorisedController.AuthorisedAction(registrationID).async(block)(request)
+      status(result) shouldBe FORBIDDEN
     }
 
     "return a 401 when there are no active session tokens in the request" in new Setup {

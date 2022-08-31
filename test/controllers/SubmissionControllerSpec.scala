@@ -69,7 +69,7 @@ class SubmissionControllerSpec extends BaseSpec with AuthorisationMocks with Cor
     val request = FakeRequest().withBody(Json.toJson(confRefs))
 
     "return a 200 and an acknowledgement ref is one exists" in new Setup {
-      mockAuthorise(Future.successful(new ~(internalId, credentials)))
+      mockAuthorise(Future.successful(new ~(Some(internalId), Some(credentials))))
       mockGetInternalId(Future.successful(internalId))
 
       val expectedRefs: ConfirmationReferences = ConfirmationReferences("BRCT00000000123", "tx", Some("py"), Some("12.00"))
@@ -83,6 +83,23 @@ class SubmissionControllerSpec extends BaseSpec with AuthorisationMocks with Cor
       val result: Future[Result] = controller.handleUserSubmission(regId)(request)
       status(result) shouldBe OK
       contentAsJson(result) shouldBe Json.toJson(expectedRefs)
+    }
+
+    "return a forbidden if internalId not retrieved from Auth" in new Setup {
+
+      mockAuthorise(Future.successful(new ~(None, Some(credentials))))
+
+      val result: Future[Result] = controller.handleUserSubmission(regId)(request)
+      status(result) shouldBe FORBIDDEN
+    }
+
+    "return a forbidden if credentials are not retrieved from Auth" in new Setup {
+
+      mockAuthorise(Future.successful(new ~(Some(internalId), None)))
+      mockGetInternalId(Future.successful(internalId))
+
+      val result: Future[Result] = controller.handleUserSubmission(regId)(request)
+      status(result) shouldBe FORBIDDEN
     }
 
     "return a 403 when the user is not authenticated" in new Setup {

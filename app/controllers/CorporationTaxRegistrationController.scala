@@ -43,7 +43,8 @@ class CorporationTaxRegistrationController @Inject()(val metricsService: Metrics
   lazy val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 
   def createCorporationTaxRegistration(registrationId: String): Action[JsValue] =
-    AuthenticatedAction.retrieve(internalId).async(parse.json) { internalId =>
+    AuthenticatedAction.retrieve(internalId).async(parse.json) {
+      case Some(internalId) =>
       implicit request =>
         val timer = metricsService.createCorporationTaxRegistrationCRTimer.time()
         withJsonBody[CorporationTaxRegistrationRequest] { ctRequest =>
@@ -59,6 +60,10 @@ class CorporationTaxRegistrationController @Inject()(val metricsService: Metrics
             ))
           }
         }
+      case _ =>
+        implicit request =>
+          logger.error("[CorporationTaxRegistrationController][createCorporationTaxRegistration] Unable to retrieve internalId from call to Auth")
+          Future.successful(Forbidden)
     }
 
   def retrieveCorporationTaxRegistration(registrationID: String): Action[AnyContent] = AuthorisedAction(registrationID).async {

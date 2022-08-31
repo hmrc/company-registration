@@ -112,7 +112,7 @@ class HeldControllerSpec extends BaseSpec with AuthorisationMocks {
   "deleteSubmissionData" should {
 
     "return a 200 response when a user is logged in and their rejected submission data is deleted" in new Setup {
-      mockAuthorise(Future.successful(internalId))
+      mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
 
       when(controller.service.deleteRejectedSubmissionData(ArgumentMatchers.any())(ArgumentMatchers.any())).thenReturn(Future.successful(true))
@@ -122,7 +122,7 @@ class HeldControllerSpec extends BaseSpec with AuthorisationMocks {
     }
 
     "return a 404 (Not found) response when a user's rejected submission data is not found" in new Setup {
-      mockAuthorise(Future.successful(internalId))
+      mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
 
       when(controller.service.deleteRejectedSubmissionData(ArgumentMatchers.any())(ArgumentMatchers.any())).thenReturn(Future.successful(false))

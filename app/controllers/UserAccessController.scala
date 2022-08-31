@@ -17,6 +17,8 @@
 package controllers
 
 import auth._
+import play.api.Logging
+
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
@@ -31,18 +33,23 @@ class UserAccessController @Inject()(val authConnector: AuthConnector,
                                      val metricsService: MetricsService,
                                      val userAccessService: UserAccessService,
                                      controllerComponents: ControllerComponents
-                                    )(implicit val ec: ExecutionContext) extends BackendController(controllerComponents) with AuthenticatedActions {
+                                    )(implicit val ec: ExecutionContext) extends BackendController(controllerComponents) with AuthenticatedActions with Logging {
 
-  def checkUserAccess: Action[AnyContent] = AuthenticatedAction.retrieve(internalId).async { intId =>
-    implicit request =>
-      val timer = metricsService.userAccessCRTimer.time()
-      userAccessService.checkUserAccess(intId) flatMap {
-        case Right(res) => {
-          timer.stop()
-          Future.successful(Ok(Json.toJson(res)))
+  def checkUserAccess: Action[AnyContent] = AuthenticatedAction.retrieve(internalId).async {
+    case Some(intId) =>
+      implicit request =>
+        val timer = metricsService.userAccessCRTimer.time()
+        userAccessService.checkUserAccess(intId) map {
+          case Right(res) =>
+            timer.stop()
+            Ok(Json.toJson(res))
+          case Left(_) =>
+            timer.stop()
+            TooManyRequests
         }
-        case Left(_) => timer.stop()
-          Future.successful(TooManyRequests)
-      }
+    case _ =>
+      implicit request =>
+        logger.error("[UserAccessController][checkUserAccess] Unable to retrieve internalId from call to Auth")
+        Future.successful(Forbidden)
   }
 }
