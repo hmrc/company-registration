@@ -35,21 +35,22 @@ class UserAccessController @Inject()(val authConnector: AuthConnector,
                                      controllerComponents: ControllerComponents
                                     )(implicit val ec: ExecutionContext) extends BackendController(controllerComponents) with AuthenticatedActions with Logging {
 
-  def checkUserAccess: Action[AnyContent] = AuthenticatedAction.retrieve(internalId).async {
-    case Some(intId) =>
-      implicit request =>
-        val timer = metricsService.userAccessCRTimer.time()
-        userAccessService.checkUserAccess(intId) map {
-          case Right(res) =>
-            timer.stop()
-            Ok(Json.toJson(res))
-          case Left(_) =>
-            timer.stop()
-            TooManyRequests
-        }
-    case _ =>
-      implicit request =>
-        logger.error("[UserAccessController][checkUserAccess] Unable to retrieve internalId from call to Auth")
-        Future.successful(Forbidden)
+  def checkUserAccess: Action[AnyContent] = AuthenticatedAction.retrieve(internalId).async { case optIntId =>
+    implicit request =>
+      optIntId match {
+        case Some(intId) =>
+          val timer = metricsService.userAccessCRTimer.time()
+          userAccessService.checkUserAccess(intId) map {
+            case Right(res) =>
+              timer.stop()
+              Ok(Json.toJson(res))
+            case Left(_) =>
+              timer.stop()
+              TooManyRequests
+          }
+        case _ =>
+          logger.error("[UserAccessController][checkUserAccess] Unable to retrieve internalId from call to Auth")
+          Future.successful(Forbidden)
+      }
   }
 }
