@@ -16,21 +16,17 @@
 
 package repositories
 
-import auth.CryptoSCRS
-import itutil.IntegrationSpecBase
+import itutil.{IntegrationSpecBase, MongoIntegrationSpec}
 import models._
+import org.mongodb.scala.result.InsertOneResult
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, Json}
 import play.api.test.Helpers._
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.commands.WriteResult
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 
-class CRTradingDetailsRepositoryISpec
-  extends IntegrationSpecBase {
+class CRTradingDetailsRepositoryISpec extends IntegrationSpecBase with MongoIntegrationSpec {
 
   val additionalConfiguration = Map(
     "schedules.missing-incorporation-job.enabled" -> "false",
@@ -42,19 +38,16 @@ class CRTradingDetailsRepositoryISpec
     .build()
 
   class Setup {
-    val rmc = app.injector.instanceOf[ReactiveMongoComponent]
-    val crypto = app.injector.instanceOf[CryptoSCRS]
-
-    val repository = new CorporationTaxRegistrationMongoRepository(rmc,crypto)
-    await(repository.drop)
+    val repository = app.injector.instanceOf[CorporationTaxRegistrationMongoRepository]
+    repository.deleteAll
     await(repository.ensureIndexes)
   }
 
-  def setupCollection(repo: CorporationTaxRegistrationMongoRepository, ctRegistration: CorporationTaxRegistration): Future[WriteResult] = {
+  def setupCollection(repo: CorporationTaxRegistrationMongoRepository, ctRegistration: CorporationTaxRegistration): InsertOneResult = {
     repo.insert(ctRegistration)
   }
 
-  "Trading details in the CR registration" should {
+  "Trading details in the CR registration" must {
 
     val registrationId = "testRegId"
 
@@ -74,25 +67,23 @@ class CRTradingDetailsRepositoryISpec
       """.stripMargin).as[JsObject]
 
     "process with a regular payments string properly" in new Setup {
-      import reactivemongo.play.json._
 
       val tradingDetails = """ "tradingDetails":{"regularPayments":"true"}, """
-      await(repository.collection.insert(json(tradingDetails)))
+      repository.insertRaw(json(tradingDetails))
 
-      val response = await(repository.findBySelector(repository.regIDSelector(registrationId)))
+      val response = await(repository.findOneBySelector(repository.regIDSelector(registrationId)))
 
-      response.get.tradingDetails.get.regularPayments shouldBe "true"
+      response.get.tradingDetails.get.regularPayments mustBe "true"
     }
 
     "process with a regular payments boolean properly" in new Setup {
-      import reactivemongo.play.json._
 
       val tradingDetails = """ "tradingDetails":{"regularPayments":true}, """
-      await(repository.collection.insert(json(tradingDetails)))
+      repository.insertRaw(json(tradingDetails))
 
-      val response = await(repository.findBySelector(repository.regIDSelector(registrationId)))
+      val response = await(repository.findOneBySelector(repository.regIDSelector(registrationId)))
 
-      response.get.tradingDetails.get.regularPayments shouldBe "true"
+      response.get.tradingDetails.get.regularPayments mustBe "true"
     }
   }
 }

@@ -23,7 +23,8 @@ import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
 import org.scalatest.concurrent.Eventually
-import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
+import org.scalatest.BeforeAndAfterEach
+import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.Logger
 import play.api.libs.json.{JsObject, JsString, Json}
@@ -39,7 +40,7 @@ import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
-class ProcessIncorporationServiceSpec extends WordSpec with Matchers with MockitoSugar with CorporationTaxRegistrationFixture with BeforeAndAfterEach with Eventually with LogCapturing {
+class ProcessIncorporationServiceSpec extends PlaySpec with MockitoSugar with CorporationTaxRegistrationFixture with BeforeAndAfterEach with Eventually with LogCapturing {
 
   val mockIncorporationCheckAPIConnector = mock[IncorporationCheckAPIConnector]
   val mockCTRepository = mock[CorporationTaxRegistrationMongoRepository]
@@ -195,21 +196,21 @@ class ProcessIncorporationServiceSpec extends WordSpec with Matchers with Mockit
   val validTopUpDesSubmission = Json.parse(topUpSub(acceptedStatus, testAckRef, crn, exampleDate, exampleDate1, exampleDate2)).as[JsObject]
   val validRejectedTopUpDesSubmission = Json.parse(topUpRejSub(rejectedStatus, testAckRef)).as[JsObject]
 
-  "formatDate" should {
+  "formatDate" must {
     "format a DateTime timestamp into the format yyyy-mm-dd" in new Setup {
       val date = DateTime.parse("1970-01-01T00:00:00.000Z")
-      service.formatDate(date) shouldBe "1970-01-01"
+      service.formatDate(date) mustBe "1970-01-01"
     }
   }
 
-  "deleteRejectedSubmissionData" should {
+  "deleteRejectedSubmissionData" must {
     "return true if both br and ct data have been removed" in new Setup {
       when(mockCTRepository.removeTaxRegistrationById(ArgumentMatchers.eq(testRegId)))
         .thenReturn(Future.successful(true))
       when(mockBRConnector.removeMetadata(ArgumentMatchers.eq(testRegId))(ArgumentMatchers.any()))
         .thenReturn(Future.successful(true))
 
-      await(service.deleteRejectedSubmissionData(testRegId)) shouldBe true
+      await(service.deleteRejectedSubmissionData(testRegId)) mustBe true
     }
 
     "return an exception if ct data has not been fully removed" in new Setup {
@@ -250,36 +251,36 @@ class ProcessIncorporationServiceSpec extends WordSpec with Matchers with Mockit
   }
 
 
-  "activeDates" should {
+  "activeDates" must {
     "return DoNotIntendToTrade if that was selected" in new Setup {
 
       import AccountingDetails.NOT_PLANNING_TO_YET
 
-      service.activeDate(AccountingDetails(NOT_PLANNING_TO_YET, None), incorpSuccess.incorpDate.get) shouldBe DoNotIntendToTrade
+      service.activeDate(AccountingDetails(NOT_PLANNING_TO_YET, None), incorpSuccess.incorpDate.get) mustBe DoNotIntendToTrade
     }
     "return ActiveOnIncorporation if that was selected" in new Setup {
 
       import AccountingDetails.WHEN_REGISTERED
 
-      service.activeDate(AccountingDetails(WHEN_REGISTERED, None), incorpSuccess.incorpDate.get) shouldBe ActiveOnIncorporation
+      service.activeDate(AccountingDetails(WHEN_REGISTERED, None), incorpSuccess.incorpDate.get) mustBe ActiveOnIncorporation
     }
     "return ActiveOnIncorporation if the active date is before the incorporation date" in new Setup {
 
       import AccountingDetails.FUTURE_DATE
 
       val tradeDate = "2016-08-09"
-      service.activeDate(AccountingDetails(FUTURE_DATE, Some(tradeDate)), incorpSuccess.incorpDate.get) shouldBe ActiveOnIncorporation
+      service.activeDate(AccountingDetails(FUTURE_DATE, Some(tradeDate)), incorpSuccess.incorpDate.get) mustBe ActiveOnIncorporation
     }
     "return ActiveInFuture with a date if that was selected" in new Setup {
 
       import AccountingDetails.FUTURE_DATE
 
       val tradeDate = "2017-01-01"
-      service.activeDate(AccountingDetails(FUTURE_DATE, Some(tradeDate)), incorpSuccess.incorpDate.get) shouldBe ActiveInFuture(date(tradeDate))
+      service.activeDate(AccountingDetails(FUTURE_DATE, Some(tradeDate)), incorpSuccess.incorpDate.get) mustBe ActiveInFuture(date(tradeDate))
     }
   }
 
-  "calculateDates" should {
+  "calculateDates" must {
 
     "return valid dates if correct detail is passed" in new Setup {
       when(mockAccountService.calculateSubmissionDates(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
@@ -287,11 +288,11 @@ class ProcessIncorporationServiceSpec extends WordSpec with Matchers with Mockit
 
       val result = service.calculateDates(incorpSuccess, validCR.accountingDetails, validCR.accountsPreparation)
 
-      await(result) shouldBe dates
+      await(result) mustBe dates
     }
   }
 
-  "updateSubmission" should {
+  "updateSubmission" must {
     trait SetupNoProcess {
       val service = new mockService {
         implicit val hc = new HeaderCarrier()
@@ -301,32 +302,32 @@ class ProcessIncorporationServiceSpec extends WordSpec with Matchers with Mockit
       }
     }
     "return true for a DES ready submission" in new SetupNoProcess {
-      when(mockCTRepository.findBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
+      when(mockCTRepository.findOneBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
         .thenReturn(Future.successful(Some(validCR)))
 
-      await(service.updateSubmissionWithIncorporation(incorpSuccess, validCR)) shouldBe true
+      await(service.updateSubmissionWithIncorporation(incorpSuccess, validCR)) mustBe true
     }
     "return false for a Locked registration" in new SetupNoProcess {
       val lockedReg = validCR.copy(status = LOCKED)
-      when(mockCTRepository.findBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
+      when(mockCTRepository.findOneBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
         .thenReturn(Future.successful(Some(lockedReg)))
 
-      await(service.updateSubmissionWithIncorporation(incorpSuccess, lockedReg)) shouldBe false
+      await(service.updateSubmissionWithIncorporation(incorpSuccess, lockedReg)) mustBe false
     }
     "return true for a submission that is already Submitted" in new SetupNoProcess {
-      when(mockCTRepository.findBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
+      when(mockCTRepository.findOneBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
         .thenReturn(Future.successful(Some(submittedCR)))
 
-      await(service.updateSubmissionWithIncorporation(incorpSuccess, submittedCR)) shouldBe true
+      await(service.updateSubmissionWithIncorporation(incorpSuccess, submittedCR)) mustBe true
     }
     "return true for a submission that is already Acknowledged" in new SetupNoProcess {
-      when(mockCTRepository.findBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
+      when(mockCTRepository.findOneBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
         .thenReturn(Future.successful(Some(acknowledgedCR)))
 
-      await(service.updateSubmissionWithIncorporation(incorpSuccess, submittedCR)) shouldBe true
+      await(service.updateSubmissionWithIncorporation(incorpSuccess, submittedCR)) mustBe true
     }
     "throw UnexpectedStatus for a submission that is neither 'Held' nor 'Submitted'" in new SetupNoProcess {
-      when(mockCTRepository.findBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
+      when(mockCTRepository.findOneBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
         .thenReturn(Future.successful(Some(failCaseCR)))
 
       intercept[Exception] {
@@ -336,7 +337,7 @@ class ProcessIncorporationServiceSpec extends WordSpec with Matchers with Mockit
 
   }
 
-  "processIncorporationUpdate" should {
+  "processIncorporationUpdate" must {
 
     class SetupBoolean(boole: Boolean) {
       val service = new mockService {
@@ -346,29 +347,29 @@ class ProcessIncorporationServiceSpec extends WordSpec with Matchers with Mockit
     }
 
     "return a future true when processing an accepted incorporation" in new SetupBoolean(true) {
-      when(mockCTRepository.findBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
+      when(mockCTRepository.findOneBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
         .thenReturn(Future.successful(Some(validCR)))
       when(mockSendEmailService.sendVATEmail(ArgumentMatchers.eq("testemail.com"), ArgumentMatchers.any())(ArgumentMatchers.any[HeaderCarrier]())).thenReturn(Future.successful(true))
-      await(service.processIncorporationUpdate(incorpSuccess)) shouldBe true
+      await(service.processIncorporationUpdate(incorpSuccess)) mustBe true
     }
 
     "return a future true when processing an accepted incorporation and the email fails to send" in new SetupBoolean(true) {
-      when(mockCTRepository.findBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
+      when(mockCTRepository.findOneBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
         .thenReturn(Future.successful(Some(validCR)))
       when(mockSendEmailService.sendVATEmail(ArgumentMatchers.eq("testemail.com"), ArgumentMatchers.any())(ArgumentMatchers.any[HeaderCarrier]()))
         .thenReturn(Future.failed(new EmailErrorResponse("503")))
 
-      await(service.processIncorporationUpdate(incorpSuccess)) shouldBe true
+      await(service.processIncorporationUpdate(incorpSuccess)) mustBe true
     }
 
     "return a future false when processing an accepted incorporation returns a false" in new SetupBoolean(false) {
-      when(mockCTRepository.findBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
+      when(mockCTRepository.findOneBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
         .thenReturn(Future.successful(Some(validCR)))
-      await(service.processIncorporationUpdate(incorpSuccess)) shouldBe false
+      await(service.processIncorporationUpdate(incorpSuccess)) mustBe false
     }
 
     "return a future true when processing a rejected incorporation" in new Setup {
-      when(mockCTRepository.findBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
+      when(mockCTRepository.findOneBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
         .thenReturn(Future.successful(Some(validCR)))
 
       when(mockCTRepository.updateSubmissionStatus(ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(Future.successful("rejected"))
@@ -388,21 +389,21 @@ class ProcessIncorporationServiceSpec extends WordSpec with Matchers with Mockit
       when(mockCTRepository.removeUnnecessaryRegistrationInformation(ArgumentMatchers.eq(validCR.registrationID)))
         .thenReturn(Future.successful(true))
 
-      await(service.processIncorporationUpdate(incorpRejected)) shouldBe true
+      await(service.processIncorporationUpdate(incorpRejected)) mustBe true
     }
 
     "return a future false, do not top up on rejected incorporation in LOCKED state" in new Setup {
-      when(mockCTRepository.findBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
+      when(mockCTRepository.findOneBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
         .thenReturn(Future.successful(Some(validCR.copy(status = LOCKED))))
 
       when(mockAuditConnector.sendExtendedEvent(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(Success))
 
-      await(service.processIncorporationUpdate(incorpRejected)) shouldBe false
+      await(service.processIncorporationUpdate(incorpRejected)) mustBe false
     }
 
     "return an exception when processing a rejected incorporation and Des returns a 500" in new Setup {
-      when(mockCTRepository.findBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
+      when(mockCTRepository.findOneBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
         .thenReturn(Future.successful(Some(validCR)))
       when(mockCTRepository.updateSubmissionStatus(ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(Future.successful("rejected"))
       when(mockAuditConnector.sendExtendedEvent(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
@@ -421,7 +422,7 @@ class ProcessIncorporationServiceSpec extends WordSpec with Matchers with Mockit
 
     "log a pagerduty if no reg document is found" in new Setup {
 
-      when(mockCTRepository.findBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
+      when(mockCTRepository.findOneBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
         .thenReturn(Future.successful(None))
 
       when(mockCTRepository.updateSubmissionStatus(ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(Future.successful("rejected"))
@@ -436,19 +437,19 @@ class ProcessIncorporationServiceSpec extends WordSpec with Matchers with Mockit
         .thenReturn(Future.successful(true))
 
       withCaptureOfLoggingFrom(Logger(service.getClass)) { logEvents =>
-        await(service.processIncorporationUpdate(incorpSuccess)) shouldBe true
+        await(service.processIncorporationUpdate(incorpSuccess)) mustBe true
 
         eventually {
-          logEvents.size shouldBe 2
+          logEvents.size mustBe 2
           val res = logEvents.map(_.getMessage) contains "CT_ACCEPTED_NO_REG_DOC_II_SUBS_DELETED"
 
-          res shouldBe true
+          res mustBe true
         }
       }
     }
   }
 
-  "addressLine4Fix" should {
+  "addressLine4Fix" must {
 
     val regId = "reg-12345"
     val addressLine4 = "testAL4"
@@ -457,12 +458,12 @@ class ProcessIncorporationServiceSpec extends WordSpec with Matchers with Mockit
 
     "amend a held submissions' address line 4 with the one provided through config if the reg id's match" in new SetupWithAddressLine4Fix(regId, encodedAddressLine4) {
       val result = service.addressLine4Fix(regId, heldJson)
-      (result \ "registration" \ "corporationTax" \ "businessAddress" \ "line4").toOption shouldBe Some(addressLine4Json)
+      (result \ "registration" \ "corporationTax" \ "businessAddress" \ "line4").toOption mustBe Some(addressLine4Json)
     }
 
     "do not amend a held submissions' address line 4 if the reg id's do not match" in new SetupWithAddressLine4Fix("otherRegID", encodedAddressLine4) {
       val result = service.addressLine4Fix(regId, heldJson)
-      result shouldBe heldJson
+      result mustBe heldJson
     }
   }
 }

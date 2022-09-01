@@ -53,7 +53,7 @@ class ContactDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
 
   val contactDetailsJsonResponse = Json.toJson(contactDetailsResponse(registrationID))
 
-  "retrieveContactDetails" should {
+  "retrieveContactDetails" must {
 
     "return a 200 with contact details in the json body when authorised" in new Setup {
       mockAuthorise(Future.successful(Some(internalId)))
@@ -62,8 +62,8 @@ class ContactDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
       ContactDetailsServiceMocks.retrieveContactDetails(registrationID, Some(contactDetails))
 
       val result = controller.retrieveContactDetails(registrationID)(FakeRequest())
-      status(result) shouldBe OK
-      contentAsJson(result) shouldBe contactDetailsJsonResponse
+      status(result) mustBe OK
+      contentAsJson(result) mustBe contactDetailsJsonResponse
     }
 
     "return a 404 when the user is authorised but contact details cannot be found" in new Setup {
@@ -73,8 +73,8 @@ class ContactDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
       ContactDetailsServiceMocks.retrieveContactDetails(registrationID, None)
 
       val result = controller.retrieveContactDetails(registrationID)(FakeRequest())
-      status(result) shouldBe NOT_FOUND
-      contentAsJson(result) shouldBe ErrorResponse.contactDetailsNotFound
+      status(result) mustBe NOT_FOUND
+      contentAsJson(result) mustBe ErrorResponse.contactDetailsNotFound
     }
 
     "return a 404 when the CT document cannot be found" in new Setup {
@@ -82,7 +82,7 @@ class ContactDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
       mockGetInternalId(Future.failed(new MissingCTDocument("testRegId")))
 
       val result = controller.retrieveContactDetails(registrationID)(FakeRequest())
-      status(result) shouldBe NOT_FOUND
+      status(result) mustBe NOT_FOUND
     }
 
     "return a 403 when the user is unauthorised to access the record" in new Setup {
@@ -90,18 +90,18 @@ class ContactDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
       mockGetInternalId(Future.successful(otherInternalID))
 
       val result = controller.retrieveContactDetails(registrationID)(FakeRequest())
-      status(result) shouldBe FORBIDDEN
+      status(result) mustBe FORBIDDEN
     }
 
     "return a 401 when the user is not logged in" in new Setup {
       mockAuthorise(Future.failed(MissingBearerToken()))
 
       val result = controller.retrieveContactDetails(registrationID)(FakeRequest())
-      status(result) shouldBe UNAUTHORIZED
+      status(result) mustBe UNAUTHORIZED
     }
   }
 
-  "updateContactDetails" should {
+  "updateContactDetails" must {
 
     val request = FakeRequest().withBody(Json.toJson(contactDetails))
 
@@ -112,8 +112,8 @@ class ContactDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
       ContactDetailsServiceMocks.updateContactDetails(registrationID, Some(contactDetails))
 
       val result = controller.updateContactDetails(registrationID)(request)
-      status(result) shouldBe OK
-      contentAsJson(result) shouldBe Json.toJson(contactDetailsJsonResponse)
+      status(result) mustBe OK
+      contentAsJson(result) mustBe Json.toJson(contactDetailsJsonResponse)
     }
 
     "return a 404 when the user is authorised but contact details cannot be found" in new Setup {
@@ -123,7 +123,7 @@ class ContactDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
       ContactDetailsServiceMocks.updateContactDetails(registrationID, None)
 
       val result = controller.updateContactDetails(registrationID)(request)
-      status(result) shouldBe NOT_FOUND
+      status(result) mustBe NOT_FOUND
     }
 
     "return a 404 when the CT document cannot be found" in new Setup {
@@ -131,7 +131,7 @@ class ContactDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
       mockGetInternalId(Future.failed(new MissingCTDocument("testRegId")))
 
       val result = controller.updateContactDetails(registrationID)(request)
-      status(result) shouldBe NOT_FOUND
+      status(result) mustBe NOT_FOUND
     }
 
     "return a 403 when the user is unauthorised to access the record" in new Setup {
@@ -139,14 +139,14 @@ class ContactDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
       mockGetInternalId(Future.successful(otherInternalID))
 
       val result = controller.updateContactDetails(registrationID)(request)
-      status(result) shouldBe FORBIDDEN
+      status(result) mustBe FORBIDDEN
     }
 
     "return a 401 when the user is not logged in" in new Setup {
       mockAuthorise(Future.failed(MissingBearerToken()))
 
       val result = controller.updateContactDetails(registrationID)(request)
-      status(result) shouldBe UNAUTHORIZED
+      status(result) mustBe UNAUTHORIZED
     }
   }
 }

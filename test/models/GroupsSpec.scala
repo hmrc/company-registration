@@ -61,15 +61,15 @@ class GroupsSpec extends BaseSpec with LogCapturing {
       |}
     """.stripMargin)
 
-  "API Reads" should {
+  "API Reads" must {
     "read in full json object" in {
-      fullGroupJson.as[Groups](formatsOfGroupsAPI) shouldBe validGroupsModel
+      fullGroupJson.as[Groups](formatsOfGroupsAPI) mustBe validGroupsModel
     }
     "read in json with minimum data" in {
       val minimumJson = Json.parse(
         """ {"groupRelief": true }""".stripMargin)
 
-      minimumJson.as[Groups](formatsOfGroupsAPI) shouldBe Groups(groupRelief = true, None, None, None)
+      minimumJson.as[Groups](formatsOfGroupsAPI) mustBe Groups(groupRelief = true, None, None, None)
     }
     "read in json with valid data over maximum lengths for all address fields, truncates successfully" in {
       val fullGroupJsonEmptyUTRMaxLengthAddress = Json.parse(
@@ -97,7 +97,7 @@ class GroupsSpec extends BaseSpec with LogCapturing {
           |}
         """.stripMargin)
       val res = fullGroupJsonEmptyUTRMaxLengthAddress.as[Groups](formatsOfGroupsAPI)
-      res shouldBe validGroupsModel.copy(
+      res mustBe validGroupsModel.copy(
         addressAndType = Some(
           GroupsAddressAndType(
             GroupAddressTypeEnum.ALF,
@@ -137,7 +137,7 @@ class GroupsSpec extends BaseSpec with LogCapturing {
           |}
         """.stripMargin)
       val res = fullGroupJsonEmptyUTRNormalisableAddress.as[Groups](formatsOfGroupsAPI)
-      res shouldBe validGroupsModel.copy(
+      res mustBe validGroupsModel.copy(
         addressAndType = Some(
           GroupsAddressAndType(
             GroupAddressTypeEnum.ALF,
@@ -165,10 +165,10 @@ class GroupsSpec extends BaseSpec with LogCapturing {
       withCaptureOfLoggingFrom(Logger("models.validation.MongoValidation")) { logEvents =>
 
         val expectedMessage = s"[Groups API Reads] name of company invalid when normalised and trimmed this doesn't pass Regex validation"
-        logEvents.map(events => (events.getLevel.toString, events.getMessage)).contains(("WARN", expectedMessage)) shouldBe false
+        logEvents.map(events => (events.getLevel.toString, events.getMessage)).contains(("WARN", expectedMessage)) mustBe false
 
         val res = groupJsonNameOfCompanyValidButLong.as[Groups](formatsOfGroupsAPI)
-        res shouldBe Groups(
+        res mustBe Groups(
           true,
           nameOfCompany = Some(GroupCompanyName("This is longerÆ than 20 characters but thats fine because it can be normalised and trimmed to 20 chars and matches Des regex", GroupCompanyNameEnum.CohoEntered)),
           None,
@@ -201,7 +201,7 @@ class GroupsSpec extends BaseSpec with LogCapturing {
           |   }
           |}
         """.stripMargin)
-      fullGroupJsonEmptyUTR.as[Groups](formatsOfGroupsAPI) shouldBe validGroupsModel.copy(groupUTR = Some(GroupUTR(None)))
+      fullGroupJsonEmptyUTR.as[Groups](formatsOfGroupsAPI) mustBe validGroupsModel.copy(groupUTR = Some(GroupUTR(None)))
     }
     s"allow json reads to read nameOfCompany > 20 chars but log as a warn for ${GroupCompanyNameEnum.Other}" in {
       val json = Json.parse(
@@ -215,9 +215,9 @@ class GroupsSpec extends BaseSpec with LogCapturing {
          }
         """.stripMargin)
       withCaptureOfLoggingFrom(Logger("models.validation.APIValidation")) { logEvents =>
-        json.as[Groups](formatsOfGroupsAPI) shouldBe Groups(true, Some(GroupCompanyName("123456789012345678901", GroupCompanyNameEnum.Other)), None, None)
+        json.as[Groups](formatsOfGroupsAPI) mustBe Groups(true, Some(GroupCompanyName("123456789012345678901", GroupCompanyNameEnum.Other)), None, None)
         val expectedMessage = s"[Groups API Reads] nameOfCompany.nameType = ${GroupCompanyNameEnum.Other} but name.size > 20, could indicate frontend validation issue"
-        logEvents.map(events => (events.getLevel.toString, events.getMessage)).contains(("WARN", expectedMessage)) shouldBe true
+        logEvents.map(events => (events.getLevel.toString, events.getMessage)).contains(("WARN", expectedMessage)) mustBe true
 
       }
     }
@@ -233,9 +233,9 @@ class GroupsSpec extends BaseSpec with LogCapturing {
          }
         """.stripMargin)
       withCaptureOfLoggingFrom(Logger("models.validation.MongoValidation")) { logEvents =>
-        json.as[Groups](formatsOfGroupsAPI) shouldBe Groups(true, Some(GroupCompanyName("123456789012345678901", GroupCompanyNameEnum.CohoEntered)), None, None)
+        json.as[Groups](formatsOfGroupsAPI) mustBe Groups(true, Some(GroupCompanyName("123456789012345678901", GroupCompanyNameEnum.CohoEntered)), None, None)
         val expectedMessage = s"[Groups API Reads] nameOfCompany.nameType = ${GroupCompanyNameEnum.Other} but name.size > 20, could indicate frontend validation issue"
-        logEvents.map(events => (events.getLevel.toString, events.getMessage)).contains(("WARN", expectedMessage)) shouldBe false
+        logEvents.map(events => (events.getLevel.toString, events.getMessage)).contains(("WARN", expectedMessage)) mustBe false
       }
     }
     "read if UTR is 1 number" in {
@@ -248,7 +248,7 @@ class GroupsSpec extends BaseSpec with LogCapturing {
           |   }
           |}
         """.stripMargin)
-      utr1NumberInJson.validate[Groups](formatsOfGroupsAPI).isSuccess shouldBe true
+      utr1NumberInJson.validate[Groups](formatsOfGroupsAPI).isSuccess mustBe true
 
     }
 
@@ -266,7 +266,7 @@ class GroupsSpec extends BaseSpec with LogCapturing {
       val message = "UTR does not match regex"
       val resToBeSure = utrJSon11Chars.validate[Groups](formatsOfGroupsAPI).fold[Boolean](
         error => error.head._2.head.message == message, _ => false)
-      resToBeSure shouldBe true
+      resToBeSure mustBe true
     }
     "NOT read json if UTR is < 1 numbers" in {
       val jsonNoChars = Json.parse(
@@ -282,7 +282,7 @@ class GroupsSpec extends BaseSpec with LogCapturing {
       val message = "UTR does not match regex"
       val resToBeSure = jsonNoChars.validate[Groups](formatsOfGroupsAPI).fold[Boolean](
         error => error.head._2.head.message == message, _ => false)
-      resToBeSure shouldBe true
+      resToBeSure mustBe true
     }
     "NOT read json if UTR is is chars and numbers " in {
       val jsonMixOfChars = Json.parse(
@@ -298,7 +298,7 @@ class GroupsSpec extends BaseSpec with LogCapturing {
       val message = "UTR does not match regex"
       val resToBeSure = jsonMixOfChars.validate[Groups](formatsOfGroupsAPI).fold[Boolean](
         error => error.head._2.head.message == message, _ => false)
-      resToBeSure shouldBe true
+      resToBeSure mustBe true
     }
     "NOT read json if name is > 20 Chars and it does not pass the Des regex after normalisation and trim, also log a message as cohos validation is invalid" in {
       val groupJsonNameOfCompanyInvalidFor20chars = Json.parse(
@@ -313,9 +313,9 @@ class GroupsSpec extends BaseSpec with LogCapturing {
         """.stripMargin)
 
       withCaptureOfLoggingFrom(Logger("models.validation.APIValidation")) { logEvents =>
-        groupJsonNameOfCompanyInvalidFor20chars.validate[Groups](formatsOfGroupsAPI).isError shouldBe true
+        groupJsonNameOfCompanyInvalidFor20chars.validate[Groups](formatsOfGroupsAPI).isError mustBe true
         val expectedMessage = s"[Groups API Reads] name of company invalid when normalised and trimmed this doesn't pass Regex validation"
-        logEvents.map(events => (events.getLevel.toString, events.getMessage)).contains(("WARN", expectedMessage)) shouldBe true
+        logEvents.map(events => (events.getLevel.toString, events.getMessage)).contains(("WARN", expectedMessage)) mustBe true
       }
     }
     "NOT read json if name is ''" in {
@@ -331,9 +331,9 @@ class GroupsSpec extends BaseSpec with LogCapturing {
         """.stripMargin)
 
       withCaptureOfLoggingFrom(Logger("models.validation.APIValidation")) { logEvents =>
-        groupJsonNameOfCompanyInvalidFor20chars.validate[Groups](formatsOfGroupsAPI).isError shouldBe true
+        groupJsonNameOfCompanyInvalidFor20chars.validate[Groups](formatsOfGroupsAPI).isError mustBe true
         val expectedMessage = s"[Groups API Reads] name of company invalid when normalised and trimmed this doesn't pass Regex validation"
-        logEvents.map(events => (events.getLevel.toString, events.getMessage)).contains(("WARN", expectedMessage)) shouldBe true
+        logEvents.map(events => (events.getLevel.toString, events.getMessage)).contains(("WARN", expectedMessage)) mustBe true
       }
     }
     "NOT read json if name is ' '" in {
@@ -349,9 +349,9 @@ class GroupsSpec extends BaseSpec with LogCapturing {
         """.stripMargin)
 
       withCaptureOfLoggingFrom(Logger("models.validation.APIValidation")) { logEvents =>
-        groupJsonNameOfCompanyInvalidFor20chars.validate[Groups](formatsOfGroupsAPI).isError shouldBe true
+        groupJsonNameOfCompanyInvalidFor20chars.validate[Groups](formatsOfGroupsAPI).isError mustBe true
         val expectedMessage = s"[Groups API Reads] name of company invalid when normalised and trimmed this doesn't pass Regex validation"
-        logEvents.map(events => (events.getLevel.toString, events.getMessage)).contains(("WARN", expectedMessage)) shouldBe true
+        logEvents.map(events => (events.getLevel.toString, events.getMessage)).contains(("WARN", expectedMessage)) mustBe true
       }
     }
     "NOT read json if nameType is not an enum" in {
@@ -367,7 +367,7 @@ class GroupsSpec extends BaseSpec with LogCapturing {
       val resToBeSure = nameTypeWrongEnum.validate[Groups](formatsOfGroupsAPI).fold[Boolean](
         error => error.head._2.head.message == message, _ => false
       )
-      resToBeSure shouldBe true
+      resToBeSure mustBe true
     }
     "NOT read json if addressType is not an enum" in {
       val incorrectAddressType = Json.parse(
@@ -395,15 +395,15 @@ class GroupsSpec extends BaseSpec with LogCapturing {
       val resToBeSure = incorrectAddressType.validate[Groups](formatsOfGroupsAPI).fold[Boolean](
         error => error.head._2.head.message == message, _ => false
       )
-      resToBeSure shouldBe true
+      resToBeSure mustBe true
     }
   }
-  "API Writes" should {
+  "API Writes" must {
     "write Groups to json" in {
-      Json.toJson[Groups](validGroupsModel)(formatsOfGroupsAPI) shouldBe fullGroupJson
+      Json.toJson[Groups](validGroupsModel)(formatsOfGroupsAPI) mustBe fullGroupJson
     }
     "write mimimum data in groups model to json" in {
-      Json.toJson[Groups](Groups(false, None, None, None))(formatsOfGroupsAPI) shouldBe Json.obj("groupRelief" -> false)
+      Json.toJson[Groups](Groups(false, None, None, None))(formatsOfGroupsAPI) mustBe Json.obj("groupRelief" -> false)
     }
     "write group utr not entered to json" in {
       val expectedFullGroupJsonEmptyUTR = Json.parse(
@@ -430,10 +430,10 @@ class GroupsSpec extends BaseSpec with LogCapturing {
           |   }
           |}
         """.stripMargin)
-      Json.toJson[Groups](validGroupsModel.copy(groupUTR = Some(GroupUTR(None))))(formatsOfGroupsAPI) shouldBe expectedFullGroupJsonEmptyUTR
+      Json.toJson[Groups](validGroupsModel.copy(groupUTR = Some(GroupUTR(None))))(formatsOfGroupsAPI) mustBe expectedFullGroupJsonEmptyUTR
     }
   }
-  "Mongo reads" should {
+  "Mongo reads" must {
     "read full json containing encrypted utr into case class" in {
 
       val fullGroupJsonEncryptedUTR = Json.parse(
@@ -460,7 +460,7 @@ class GroupsSpec extends BaseSpec with LogCapturing {
            |   }
            |}
         """.stripMargin)
-      fullGroupJsonEncryptedUTR.as[Groups](formatsOfGroupsMongo) shouldBe validGroupsModel
+      fullGroupJsonEncryptedUTR.as[Groups](formatsOfGroupsMongo) mustBe validGroupsModel
     }
     "convert nameType To 'Other' if nameType is not an enum in db, and log this as a warn" in {
       val json = Json.parse(
@@ -474,9 +474,9 @@ class GroupsSpec extends BaseSpec with LogCapturing {
            |}
           """.stripMargin)
       withCaptureOfLoggingFrom(Logger("models.validation.MongoValidation")) { logEvents =>
-        json.as[Groups](formatsOfGroupsMongo) shouldBe Groups(true, Some(GroupCompanyName("testGroupName", GroupCompanyNameEnum.Other)), None, None)
+        json.as[Groups](formatsOfGroupsMongo) mustBe Groups(true, Some(GroupCompanyName("testGroupName", GroupCompanyNameEnum.Other)), None, None)
         val expectedMessage = "[Groups Mongo Reads] nameOfCompany.nameType was: TEST, converted to Other"
-        logEvents.map(events => (events.getLevel.toString, events.getMessage)).contains(("WARN", expectedMessage)) shouldBe true
+        logEvents.map(events => (events.getLevel.toString, events.getMessage)).contains(("WARN", expectedMessage)) mustBe true
       }
     }
 
@@ -506,7 +506,7 @@ class GroupsSpec extends BaseSpec with LogCapturing {
           |}
         """.stripMargin)
       val res = fullGroupJsonEmptyUTRMaxLengthAddress.as[Groups](formatsOfGroupsMongo)
-      res shouldBe validGroupsModel.copy(
+      res mustBe validGroupsModel.copy(
         addressAndType = Some(
           GroupsAddressAndType(
             GroupAddressTypeEnum.CohoEntered,
@@ -543,7 +543,7 @@ class GroupsSpec extends BaseSpec with LogCapturing {
            |}
         """.stripMargin)
       withCaptureOfLoggingFrom(Logger("models.validation.MongoValidation")) { logEvents =>
-        jsonUhOh.as[Groups](formatsOfGroupsMongo) shouldBe Groups(
+        jsonUhOh.as[Groups](formatsOfGroupsMongo) mustBe Groups(
           true,
           Some(GroupCompanyName("testGroupName", GroupCompanyNameEnum.Other)),
           Some(GroupsAddressAndType(
@@ -551,7 +551,7 @@ class GroupsSpec extends BaseSpec with LogCapturing {
             BusinessAddress("1 abc", "2 abc", Some("3 abc"), Some("4 abc"), Some("ZZ1 1ZZ"), Some("country A")))),
           None)
         val expectedMessage = "[Groups Mongo Reads] addressType was: Uh Oh, converted to ALF"
-        logEvents.map(events => (events.getLevel.toString, events.getMessage)).contains(("WARN", expectedMessage)) shouldBe true
+        logEvents.map(events => (events.getLevel.toString, events.getMessage)).contains(("WARN", expectedMessage)) mustBe true
       }
     }
     "read invalid chars successfully" in {
@@ -581,7 +581,7 @@ class GroupsSpec extends BaseSpec with LogCapturing {
            |}
         """.stripMargin)
       val res = fullGroupJsonEncrypted.as[Groups](formatsOfGroupsMongo)
-      res shouldBe Groups(
+      res mustBe Groups(
         groupRelief = true,
         nameOfCompany = Some(GroupCompanyName(
           "Æ", GroupCompanyNameEnum.Other
@@ -593,7 +593,7 @@ class GroupsSpec extends BaseSpec with LogCapturing {
       )
     }
   }
-  "Mongo Writes" should {
+  "Mongo Writes" must {
     "write full model to json encrypting the UTR" in {
       val fullGroupJsonEncrypted = Json.parse(
         s"""
@@ -619,11 +619,11 @@ class GroupsSpec extends BaseSpec with LogCapturing {
            |   }
            |}
         """.stripMargin)
-      Json.toJson[Groups](validGroupsModel)(formatsOfGroupsMongo) shouldBe fullGroupJsonEncrypted
+      Json.toJson[Groups](validGroupsModel)(formatsOfGroupsMongo) mustBe fullGroupJsonEncrypted
     }
     "write minimum model to json" in {
       val expected = Json.obj("groupRelief" -> true)
-      Json.toJson[Groups](Groups(true, None, None, None))(formatsOfGroupsMongo) shouldBe expected
+      Json.toJson[Groups](Groups(true, None, None, None))(formatsOfGroupsMongo) mustBe expected
     }
     "write utr block with empty utr correctly" in {
 
@@ -651,10 +651,10 @@ class GroupsSpec extends BaseSpec with LogCapturing {
           |   }
           |}
         """.stripMargin)
-      Json.toJson[Groups](validGroupsModel.copy(groupUTR = Some(GroupUTR(None))))(formatsOfGroupsMongo) shouldBe expectedFullGroupJsonEmptyUTR
+      Json.toJson[Groups](validGroupsModel.copy(groupUTR = Some(GroupUTR(None))))(formatsOfGroupsMongo) mustBe expectedFullGroupJsonEmptyUTR
     }
   }
-  "GroupNameListValidator reads" should {
+  "GroupNameListValidator reads" must {
     "successfully read a list of names that are all valid" in {
       val jsonToTest = Json.parse(
         """
@@ -664,7 +664,7 @@ class GroupsSpec extends BaseSpec with LogCapturing {
         """.stripMargin)
 
       val res = jsonToTest.as[Seq[String]](GroupNameListValidator.formats)
-      res shouldBe Seq("testName1", "testName2", "testName3", "testName4")
+      res mustBe Seq("testName1", "testName2", "testName3", "testName4")
     }
     "successfully filter out a name that is not valid" in {
       val jsonToTest = Json.parse(
@@ -675,7 +675,7 @@ class GroupsSpec extends BaseSpec with LogCapturing {
         """.stripMargin)
 
       val res = jsonToTest.as[Seq[String]](GroupNameListValidator.formats)
-      res shouldBe Seq("testName1", "testName3", "testName4")
+      res mustBe Seq("testName1", "testName3", "testName4")
     }
     "successfully return nothing when no names are valid" in {
       val jsonToTest = Json.parse(
@@ -686,7 +686,7 @@ class GroupsSpec extends BaseSpec with LogCapturing {
         """.stripMargin)
 
       val res = jsonToTest.as[Seq[String]](GroupNameListValidator.formats)
-      res shouldBe Seq.empty
+      res mustBe Seq.empty
     }
     "successfully return original name when normalisation can occur" in {
       val jsonToTest = Json.parse(
@@ -696,7 +696,7 @@ class GroupsSpec extends BaseSpec with LogCapturing {
           |]
         """.stripMargin)
       val res = jsonToTest.as[Seq[String]](GroupNameListValidator.formats)
-      res shouldBe Seq("Æ", "Æ", "testName3", "testName4")
+      res mustBe Seq("Æ", "Æ", "testName3", "testName4")
     }
     "successfully return a name over the maximum char limit because this can be trimmed after on des submission" in {
       val jsonToTest = Json.parse(
@@ -706,7 +706,7 @@ class GroupsSpec extends BaseSpec with LogCapturing {
           |]
         """.stripMargin)
       val res = jsonToTest.as[Seq[String]](GroupNameListValidator.formats)
-      res shouldBe Seq("abcdefg hijklmnop qrs tuv wxyz abcdefg hijklmnop qrs tuv wxyz", "testName2")
+      res mustBe Seq("abcdefg hijklmnop qrs tuv wxyz abcdefg hijklmnop qrs tuv wxyz", "testName2")
     }
     "can handle non strings in array, these are filtered out" in {
       val jsonToTest = Json.parse(
@@ -716,7 +716,7 @@ class GroupsSpec extends BaseSpec with LogCapturing {
           |]
         """.stripMargin)
       val res = jsonToTest.as[Seq[String]](GroupNameListValidator.formats)
-      res shouldBe Seq("testName2")
+      res mustBe Seq("testName2")
     }
     "can handle an empty array" in {
       val jsonToTest = Json.parse(
@@ -725,7 +725,7 @@ class GroupsSpec extends BaseSpec with LogCapturing {
           |]
         """.stripMargin)
       val res = jsonToTest.as[Seq[String]](GroupNameListValidator.formats)
-      res shouldBe Seq.empty
+      res mustBe Seq.empty
     }
     "can handle an array with one empty string in" in {
       val jsonToTest = Json.parse(
@@ -735,19 +735,19 @@ class GroupsSpec extends BaseSpec with LogCapturing {
           |]
         """.stripMargin)
       val res = jsonToTest.as[Seq[String]](GroupNameListValidator.formats)
-      res shouldBe Seq.empty
+      res mustBe Seq.empty
     }
   }
-  "GroupNameListValidator writes" should {
+  "GroupNameListValidator writes" must {
     "write an empty seq to array" in {
-      Json.toJson(Seq.empty[String])(GroupNameListValidator.formats) shouldBe Json.parse(
+      Json.toJson(Seq.empty[String])(GroupNameListValidator.formats) mustBe Json.parse(
         """
           |[
           |]
         """.stripMargin)
     }
     "write a seq of strings to array" in {
-      Json.toJson(Seq("testName1", "testName2", "testName3", "testName4"))(GroupNameListValidator.formats) shouldBe Json.parse(
+      Json.toJson(Seq("testName1", "testName2", "testName3", "testName4"))(GroupNameListValidator.formats) mustBe Json.parse(
         """
           |[
           |"testName1","testName2","testName3","testName4"

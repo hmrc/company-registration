@@ -18,7 +18,6 @@ package config
 
 import akka.actor.ActorSystem
 import play.api.{Configuration, Logging}
-import reactivemongo.api.indexes.IndexType
 import repositories.CorporationTaxRegistrationMongoRepository
 
 import java.util.Base64
@@ -71,33 +70,10 @@ trait AppStartupJobs extends Logging {
     }
   }
 
-  def fetchIndexes(): Future[Unit] = {
-    ctRepo.fetchIndexes().map { list =>
-      logger.info(s"[Indexes] There are ${list.size} indexes")
-      list.foreach { index =>
-        logger.info(s"[Indexes]\n " +
-          s"name : ${index.eventualName}\n " +
-          s"""keys : ${
-            index.key match {
-              case s: Seq[(String, IndexType)] if s.nonEmpty => s"$s\n "
-              case Nil => "None\n "
-            }
-          }""" +
-          s"unique : ${index.unique}\n " +
-          s"background : ${index.background}\n " +
-          s"dropDups : ${index.dropDups}\n " +
-          s"sparse : ${index.sparse}\n " +
-          s"version : ${index.version}\n " +
-          s"partialFilter : ${index.partialFilter.map(_.values)}\n " +
-          s"options : ${index.options.values}")
-      }
-    }
-  }
-
   def fetchDocInfoByRegId(regIds: Seq[String]): Future[Seq[Unit]] = {
 
     Future.sequence(regIds.map { regId =>
-      ctRepo.findBySelector(ctRepo.regIDSelector(regId)).map {
+      ctRepo.findOneBySelector(ctRepo.regIDSelector(regId)).map {
         case Some(doc) =>
           logger.info(
             s"""
@@ -122,7 +98,7 @@ trait AppStartupJobs extends Logging {
   def fetchByAckRef(ackRefs: Seq[String]): Unit = {
 
     for (ackRef <- ackRefs) {
-      ctRepo.findBySelector(ctRepo.ackRefSelector(ackRef)).map {
+      ctRepo.findOneBySelector(ctRepo.ackRefSelector(ackRef)).map {
         case Some(doc) =>
           logger.info(
             s"""
@@ -147,7 +123,6 @@ trait AppStartupJobs extends Logging {
     lazy val listOfackRefs = new String(Base64.getDecoder.decode(base64ackRefs), "UTF-8").split(",").toList
     fetchByAckRef(listOfackRefs)
 
-    fetchIndexes()
     startupStats
     lockedRegIds
 

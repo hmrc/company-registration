@@ -17,10 +17,10 @@
 package models
 
 import models.validation.APIValidation
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.play.PlaySpec
 import play.api.libs.json._
 
-class PPOBAddressSpec extends WordSpec with Matchers with JsonFormatValidation {
+class PPOBAddressSpec extends PlaySpec with JsonFormatValidation {
 
   type OS = Option[String]
   type S = String
@@ -53,7 +53,7 @@ class PPOBAddressSpec extends WordSpec with Matchers with JsonFormatValidation {
      """.stripMargin
   }
 
-  "PPOBAddress Model - line 1" should {
+  "PPOBAddress Model - line 1" must {
     "Be able to be parsed from JSON" in {
       val line1 = "123456789012345678901234567"
       val json = j(line1 = line1, pc = Some("ZZ1 1ZZ"))
@@ -61,7 +61,7 @@ class PPOBAddressSpec extends WordSpec with Matchers with JsonFormatValidation {
 
       val result = Json.parse(json).validate[PPOBAddress](PPOBAddress.normalisingReads(APIValidation))
 
-      shouldBeSuccess(expected, result)
+      mustBeSuccess(expected, result)
     }
 
     "fail to be read from JSON if is empty string" in {
@@ -77,11 +77,11 @@ class PPOBAddressSpec extends WordSpec with Matchers with JsonFormatValidation {
       val expected = PPOBAddress(line1.take(27), "2", None, Some("4"), Some("ZZ1 1ZZ"), None, None, "txid")
       val result = Json.parse(json).validate[PPOBAddress](PPOBAddress.normalisingReads(APIValidation))
 
-      shouldBeSuccess(expected, result)
+      mustBeSuccess(expected, result)
     }
   }
 
-  "PPOBAddress Model - line 2" should {
+  "PPOBAddress Model - line 2" must {
     "Be able to be parsed from JSON" in {
       val line3 = Some("123456789012345678901234567")
       val json = j(line3 = line3, country = Some("c"), uprn = Some("xxx"))
@@ -89,7 +89,7 @@ class PPOBAddressSpec extends WordSpec with Matchers with JsonFormatValidation {
 
       val result = Json.parse(json).validate[PPOBAddress](PPOBAddress.normalisingReads(APIValidation))
 
-      shouldBeSuccess(expected, result)
+      mustBeSuccess(expected, result)
     }
 
     "Be able to be parsed from JSON with no line3" in {
@@ -98,7 +98,7 @@ class PPOBAddressSpec extends WordSpec with Matchers with JsonFormatValidation {
 
       val result = Json.parse(json).validate[PPOBAddress](PPOBAddress.normalisingReads(APIValidation))
 
-      shouldBeSuccess(expected, result)
+      mustBeSuccess(expected, result)
     }
 
     "Be able to be parsed from JSON - 18 chars in line 4" in {
@@ -107,7 +107,7 @@ class PPOBAddressSpec extends WordSpec with Matchers with JsonFormatValidation {
       val json = j(line3 = line3, line4 = addressLine4, country = Some("c"), uprn = Some("xxx"))
       val expected = PPOBAddress("1", "2", line3, Some("18charsinaddLine4x"), None, Some("c"), Some("xxx"), "txid")
       val result = Json.parse(json).validate[PPOBAddress](PPOBAddress.normalisingReads(APIValidation))
-      shouldBeSuccess(expected, result)
+      mustBeSuccess(expected, result)
     }
 
     "be able to parse if 19chars in Address Line 4, returning 18 characters" in {
@@ -117,7 +117,7 @@ class PPOBAddressSpec extends WordSpec with Matchers with JsonFormatValidation {
       val expected = PPOBAddress("1", "2", line3, Some("19charsinaddLine4x"), None, Some("c"), Some("xxx"), "txid")
       val result = Json.parse(json).validate[PPOBAddress](PPOBAddress.normalisingReads(APIValidation))
 
-      shouldBeSuccess(expected, result)
+      mustBeSuccess(expected, result)
     }
 
     "fail to be read from JSON if line2 is empty string" in {
@@ -134,18 +134,18 @@ class PPOBAddressSpec extends WordSpec with Matchers with JsonFormatValidation {
       val expected = PPOBAddress("1", "2", line3.map(_.take(27)), Some("4"), None, Some("c"), None, "txid")
       val result = Json.parse(json).validate[PPOBAddress](PPOBAddress.normalisingReads(APIValidation))
 
-      shouldBeSuccess(expected, result)
+      mustBeSuccess(expected, result)
     }
   }
 
-  "reading from json into a PPOBAddress case class" should {
+  "reading from json into a PPOBAddress case class" must {
 
     "return a PPOBAddress case class" in {
       val ppobAddress = PPOBAddress("1", "2", None, Some("4"), Some("ZZ1 1ZZ"), None, Some("xxx"), "txid")
       val json = Json.parse("""{"houseNameNumber":"hnn","addressLine1":"1","addressLine2":"2","addressLine4":"4","postCode":"ZZ1 1ZZ", "uprn": "xxx", "txid": "txid"}""")
 
       val result = Json.fromJson[PPOBAddress](json)(PPOBAddress.normalisingReads(APIValidation))
-      result shouldBe JsSuccess(ppobAddress)
+      result mustBe JsSuccess(ppobAddress)
     }
 
     "throw a json validation error when a postcode and country do not exist" in {

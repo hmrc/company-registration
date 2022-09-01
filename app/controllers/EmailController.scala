@@ -48,10 +48,9 @@ class EmailController @Inject()(val emailService: EmailService,
   }
 
   def retrieveEmail(registrationId: String): Action[AnyContent] = AuthorisedAction(registrationId).async {
-    implicit request =>
-      emailService.retrieveEmail(registrationId).map {
-        case Some(email) => Ok(Json.toJson(email))
-        case None => NotFound
-      }
+    emailService.retrieveEmail(registrationId).map {
+      case Some(email) => Ok(Json.toJson(email))
+      case None => NotFound
+    }
   }
 }

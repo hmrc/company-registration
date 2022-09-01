@@ -18,23 +18,23 @@ package models.des
 
 import models._
 import org.joda.time.{DateTime, DateTimeZone}
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsObject, Json}
 
 
-class InterimDesRegistrationSpec extends WordSpec with Matchers {
+class InterimDesRegistrationSpec extends PlaySpec {
 
-  "CompletionCapacity" should {
-    "Construct a director" in { CompletionCapacity("Director") shouldBe Director }
-    "Construct an agent" in { CompletionCapacity("Agent") shouldBe Agent }
-    "Construct a secretary" in { CompletionCapacity("Company secretary") shouldBe Secretary }
-    "Construct a direct from an other" in { CompletionCapacity("director") shouldBe Director }
-    "Construct an agent from an other" in { CompletionCapacity("agent") shouldBe Agent }
-    "Construct a secretary from an other" in { CompletionCapacity("company secretary") shouldBe Secretary }
-    "Construct an other" in { CompletionCapacity("other") shouldBe Other("other") }
+  "CompletionCapacity" must {
+    "Construct a director" in { CompletionCapacity("Director") mustBe Director }
+    "Construct an agent" in { CompletionCapacity("Agent") mustBe Agent }
+    "Construct a secretary" in { CompletionCapacity("Company secretary") mustBe Secretary }
+    "Construct a direct from an other" in { CompletionCapacity("director") mustBe Director }
+    "Construct an agent from an other" in { CompletionCapacity("agent") mustBe Agent }
+    "Construct a secretary from an other" in { CompletionCapacity("company secretary") mustBe Secretary }
+    "Construct an other" in { CompletionCapacity("other") mustBe Other("other") }
   }
 
-  "Registration metadata model" should {
+  "Registration metadata model" must {
 
     "Simple model should produce valid JSON for a director" in {
       val expectedJson : String = s"""{
@@ -51,8 +51,8 @@ class InterimDesRegistrationSpec extends WordSpec with Matchers {
       val desModel = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), CompletionCapacity(Director.text) )
 
       val result = Json.toJson[Metadata](desModel)
-      result.getClass shouldBe classOf[JsObject]
-      result shouldBe Json.parse(expectedJson)
+      result.getClass mustBe classOf[JsObject]
+      result mustBe Json.parse(expectedJson)
     }
 
     "Simple model should produce valid JSON for an agent" in {
@@ -70,8 +70,8 @@ class InterimDesRegistrationSpec extends WordSpec with Matchers {
       val desModel = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), CompletionCapacity(Agent.text) )
 
       val result = Json.toJson[Metadata](desModel)
-      result.getClass shouldBe classOf[JsObject]
-      result shouldBe Json.parse(expectedJson)
+      result.getClass mustBe classOf[JsObject]
+      result mustBe Json.parse(expectedJson)
     }
 
     "Simple model should produce valid JSON for an secretary" in {
@@ -89,8 +89,8 @@ class InterimDesRegistrationSpec extends WordSpec with Matchers {
       val desModel = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), CompletionCapacity(Secretary.text) )
 
       val result = Json.toJson[Metadata](desModel)
-      result.getClass shouldBe classOf[JsObject]
-      result shouldBe Json.parse(expectedJson)
+      result.getClass mustBe classOf[JsObject]
+      result mustBe Json.parse(expectedJson)
     }
 
     "Unexpected completion capacity should produce the other fields" in {
@@ -109,8 +109,8 @@ class InterimDesRegistrationSpec extends WordSpec with Matchers {
       val desModel = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), CompletionCapacity("other") )
 
       val result = Json.toJson[Metadata](desModel)
-      result.getClass shouldBe classOf[JsObject]
-      result shouldBe Json.parse(expectedJson)
+      result.getClass mustBe classOf[JsObject]
+      result mustBe Json.parse(expectedJson)
     }
 
     "Putting Director in Other should return Director" in {
@@ -128,13 +128,13 @@ class InterimDesRegistrationSpec extends WordSpec with Matchers {
       val desModel = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), CompletionCapacity("Director") )
 
       val result = Json.toJson[Metadata](desModel)
-      result.getClass shouldBe classOf[JsObject]
-      result shouldBe Json.parse(expectedJson)
+      result.getClass mustBe classOf[JsObject]
+      result mustBe Json.parse(expectedJson)
     }
 
   }
 
-  "The Interim Registration corporationTax model" should {
+  "The Interim Registration corporationTax model" must {
     "Produce valid JSON for a fuller model" in {
       val expectedJson : String = s"""{
                                       |  "companyOfficeNumber" : "623",
@@ -179,13 +179,13 @@ class InterimDesRegistrationSpec extends WordSpec with Matchers {
                                   desBusinessContactContactDetails
                                 )
       val result = Json.toJson[InterimCorporationTax](desModel)
-      result.getClass shouldBe classOf[JsObject]
-      result shouldBe Json.parse(expectedJson)
+      result.getClass mustBe classOf[JsObject]
+      result mustBe Json.parse(expectedJson)
     }
 
   }
 
-  "The Interim Des Registration model" should {
+  "The Interim Des Registration model" must {
 
     "Be able to be parsed into JSON when groups is NONE" in {
 
@@ -252,8 +252,8 @@ class InterimDesRegistrationSpec extends WordSpec with Matchers {
       val testModel1 = InterimDesRegistration( "ackRef1", testMetadata, testInterimCorporationTax)
 
       val result = Json.toJson[InterimDesRegistration](testModel1)
-      result.getClass shouldBe classOf[JsObject]
-      result shouldBe Json.parse(expectedJson)
+      result.getClass mustBe classOf[JsObject]
+      result mustBe Json.parse(expectedJson)
     }
     "Be able to be parsed into JSON when groups is Some and full" in {
       val expectedJson : String = s"""{  "acknowledgementReference" : "ackRef1",
@@ -342,8 +342,8 @@ class InterimDesRegistrationSpec extends WordSpec with Matchers {
       val testModel1 = InterimDesRegistration( "ackRef1", testMetadata, testInterimCorporationTax)
 
       val result = Json.toJson[InterimDesRegistration](testModel1)
-      result.getClass shouldBe classOf[JsObject]
-      result shouldBe Json.parse(expectedJson)
+      result.getClass mustBe classOf[JsObject]
+      result mustBe Json.parse(expectedJson)
     }
 
     "Be able to be parsed into JSON when groups is Some but the group relief has been selected as false by the user" in {
@@ -411,8 +411,8 @@ class InterimDesRegistrationSpec extends WordSpec with Matchers {
       val testModel1 = InterimDesRegistration( "ackRef1", testMetadata, testInterimCorporationTax)
 
       val result = Json.toJson[InterimDesRegistration](testModel1)
-      result.getClass shouldBe classOf[JsObject]
-      result shouldBe Json.parse(expectedJson)
+      result.getClass mustBe classOf[JsObject]
+      result mustBe Json.parse(expectedJson)
     }
     "output valid json but group utr was empty" in {
       val expectedJson : String = s"""{  "acknowledgementReference" : "ackRef1",
@@ -501,8 +501,8 @@ class InterimDesRegistrationSpec extends WordSpec with Matchers {
       val testModel1 = InterimDesRegistration( "ackRef1", testMetadata, testInterimCorporationTax)
 
       val result = Json.toJson[InterimDesRegistration](testModel1)
-      result.getClass shouldBe classOf[JsObject]
-      result shouldBe Json.parse(expectedJson)
+      result.getClass mustBe classOf[JsObject]
+      result mustBe Json.parse(expectedJson)
     }
 
 
@@ -636,8 +636,8 @@ class InterimDesRegistrationSpec extends WordSpec with Matchers {
       val testModel1 = InterimDesRegistration( "ackRef1", testMetadata, testInterimCorporationTax)
 
       val result = Json.toJson[InterimDesRegistration](testModel1)
-      result.getClass shouldBe classOf[JsObject]
-      result shouldBe Json.parse(expectedJson)
+      result.getClass mustBe classOf[JsObject]
+      result mustBe Json.parse(expectedJson)
     }
 
 
@@ -692,8 +692,8 @@ class InterimDesRegistrationSpec extends WordSpec with Matchers {
       val testModel1 = InterimDesRegistration( "ackRef1", testMetadata, testInterimCorporationTax)
 
       val result = Json.toJson[InterimDesRegistration](testModel1)
-      result.getClass shouldBe classOf[JsObject]
-      result shouldBe Json.parse(expectedJson)
+      result.getClass mustBe classOf[JsObject]
+      result mustBe Json.parse(expectedJson)
     }
     "replace diacritics with equivalent alpha characters for company name" in {
             val expectedJson : String = s"""{  "acknowledgementReference" : "ackRef1",
@@ -739,8 +739,8 @@ class InterimDesRegistrationSpec extends WordSpec with Matchers {
               val testModel1 = InterimDesRegistration( "ackRef1", testMetadata, testInterimCorporationTax)
       
               val result = Json.toJson[InterimDesRegistration](testModel1)
-            result.getClass shouldBe classOf[JsObject]
-            result shouldBe Json.parse(expectedJson)
+            result.getClass mustBe classOf[JsObject]
+            result mustBe Json.parse(expectedJson)
           }
     
           "strip  punctuation characters for company name" in {
@@ -789,8 +789,8 @@ class InterimDesRegistrationSpec extends WordSpec with Matchers {
               val testModel1 = InterimDesRegistration( "ackRef1", testMetadata, testInterimCorporationTax)
       
               val result = Json.toJson[InterimDesRegistration](testModel1)
-            result.getClass shouldBe classOf[JsObject]
-            result shouldBe Json.parse(expectedJson)
+            result.getClass mustBe classOf[JsObject]
+            result mustBe Json.parse(expectedJson)
           }
   }
 }

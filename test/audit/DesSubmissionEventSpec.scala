@@ -18,12 +18,12 @@ package audit
 
 import models.des._
 import org.joda.time.DateTime
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsObject, Json}
 
-class DesSubmissionEventSpec extends WordSpec with Matchers {
+class DesSubmissionEventSpec extends PlaySpec {
 
-  "DesSubmissionEventDetail" should {
+  "DesSubmissionEventDetail" must {
 
     val regId = "123456789"
     val ackRef = "BRCT1234"
@@ -84,7 +84,7 @@ class DesSubmissionEventSpec extends WordSpec with Matchers {
           )
         )).as[JsObject]
       )
-      Json.toJson(testModel)(DesSubmissionAuditEventDetail.writes) shouldBe expected
+      Json.toJson(testModel)(DesSubmissionAuditEventDetail.writes) mustBe expected
     }
 
     "construct full json as per definition when company name has characters allowed by companies house but not DES" in {
@@ -105,7 +105,7 @@ class DesSubmissionEventSpec extends WordSpec with Matchers {
           )
         )).as[JsObject]
       )
-      Json.toJson(testModel)(DesSubmissionAuditEventDetail.writes) shouldBe expected
+      Json.toJson(testModel)(DesSubmissionAuditEventDetail.writes) mustBe expected
     }
   }
 }

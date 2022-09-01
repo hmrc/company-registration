@@ -18,7 +18,7 @@ package services
 
 import audit.CTRegistrationSubmissionAuditEventDetails
 import org.scalatestplus.mockito.MockitoSugar
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -26,7 +26,7 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.ExecutionContext
 
-class AuditServiceSpec extends WordSpec with Matchers with MockitoSugar {
+class AuditServiceSpec extends PlaySpec with MockitoSugar {
 
   val mockAuditConnector = mock[AuditConnector]
 
@@ -41,7 +41,7 @@ class AuditServiceSpec extends WordSpec with Matchers with MockitoSugar {
 
   }
 
-  "buildCTRegSubmissionEvent" should {
+  "buildCTRegSubmissionEvent" must {
     "construct a successful AuditEvent" when {
       "given a details model that has processingDate and ackReg defined" in new Setup {
         val testModel = CTRegistrationSubmissionAuditEventDetails(
@@ -53,11 +53,11 @@ class AuditServiceSpec extends WordSpec with Matchers with MockitoSugar {
 
         val result = TestService.buildCTRegSubmissionEvent(testModel)
 
-        result.auditSource shouldBe "company-registration"
-        result.auditType shouldBe "ctRegistrationSubmissionSuccessful"
-        result.tags("transactionName") shouldBe "CTRegistrationSubmission"
-        result.detail.\("processingDate").as[JsValue] shouldBe Json.toJson("testProcessingDate")
-        result.detail.\("acknowledgementReference").as[JsValue] shouldBe Json.toJson("testAckRef")
+        result.auditSource mustBe "company-registration"
+        result.auditType mustBe "ctRegistrationSubmissionSuccessful"
+        result.tags("transactionName") mustBe "CTRegistrationSubmission"
+        result.detail.\("processingDate").as[JsValue] mustBe Json.toJson("testProcessingDate")
+        result.detail.\("acknowledgementReference").as[JsValue] mustBe Json.toJson("testAckRef")
       }
     }
 
@@ -72,15 +72,15 @@ class AuditServiceSpec extends WordSpec with Matchers with MockitoSugar {
 
         val result = TestService.buildCTRegSubmissionEvent(testModel2)
 
-        result.auditSource shouldBe "company-registration"
-        result.auditType shouldBe "ctRegistrationSubmissionFailed"
-        result.tags("transactionName") shouldBe "CTRegistrationSubmissionFailed"
-        result.detail.\("reason").as[JsValue] shouldBe Json.toJson("testReason")
+        result.auditSource mustBe "company-registration"
+        result.auditType mustBe "ctRegistrationSubmissionFailed"
+        result.tags("transactionName") mustBe "CTRegistrationSubmissionFailed"
+        result.detail.\("reason").as[JsValue] mustBe Json.toJson("testReason")
       }
     }
   }
 
-  "ctRegSubmissionFromJson" should {
+  "ctRegSubmissionFromJson" must {
     "construct a CTRegistrationSubmissionAuditEventDetails with ackRef and processingDate defined" when {
       "given a successful DES Response" in new Setup {
         val desResponse = Json.obj(
@@ -90,9 +90,9 @@ class AuditServiceSpec extends WordSpec with Matchers with MockitoSugar {
 
         val result = TestService.ctRegSubmissionFromJson("testJourneyId", desResponse)
 
-        result.processingDate shouldBe Some("testDate")
-        result.acknowledgementReference shouldBe Some("testAckRef")
-        result.reason shouldBe None
+        result.processingDate mustBe Some("testDate")
+        result.acknowledgementReference mustBe Some("testAckRef")
+        result.reason mustBe None
       }
     }
 
@@ -104,9 +104,9 @@ class AuditServiceSpec extends WordSpec with Matchers with MockitoSugar {
 
         val result = TestService.ctRegSubmissionFromJson("testJourneyId", desResponse)
 
-        result.processingDate shouldBe None
-        result.acknowledgementReference shouldBe None
-        result.reason shouldBe Some("testReason")
+        result.processingDate mustBe None
+        result.acknowledgementReference mustBe None
+        result.reason mustBe Some("testReason")
       }
     }
   }

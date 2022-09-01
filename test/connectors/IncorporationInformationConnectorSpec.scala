@@ -86,23 +86,23 @@ class IncorporationInformationConnectorSpec extends BaseSpec with BusinessRegist
 
   val expected = IncorpStatus(txId, status, Some(crn), Some(description), Some(DateTime.parse(incorpDate)))
 
-  "callBackUrl" should {
+  "callBackUrl" must {
     "return admin url when admin is true" in new Setup {
-      connector.callBackurl(true) shouldBe "testCompanyRegistrationUrl/corporation-tax-registration/process-admin-incorp"
+      connector.callBackurl(true) mustBe "testCompanyRegistrationUrl/corporation-tax-registration/process-admin-incorp"
     }
     "return non admin url when admin is false" in new Setup {
-      connector.callBackurl(false) shouldBe "testCompanyRegistrationUrl/corporation-tax-registration/process-incorp"
+      connector.callBackurl(false) mustBe "testCompanyRegistrationUrl/corporation-tax-registration/process-incorp"
 
     }
   }
 
-  "createMetadataEntry" should {
+  "createMetadataEntry" must {
     "make a http POST request to Incorporation Information micro-service to register an interest and return 202" in new Setup {
       when(mockWSHttp.POST[JsValue, HttpResponse](ArgumentMatchers.anyString(), ArgumentMatchers.any[JsValue](), ArgumentMatchers.any())
         (ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any()))
         .thenReturn(Future.successful(HttpResponse(202)))
 
-      await(connector.registerInterest(regId, txId)) shouldBe true
+      await(connector.registerInterest(regId, txId)) mustBe true
     }
     "not make a http POST request to Incorporation Information micro-service to register an interest and return any other 2xx" in new Setup {
       when(mockWSHttp.POST[JsValue, HttpResponse](ArgumentMatchers.anyString(), ArgumentMatchers.any[JsValue](), ArgumentMatchers.any())
@@ -127,13 +127,13 @@ class IncorporationInformationConnectorSpec extends BaseSpec with BusinessRegist
     }
   }
 
-  "cancelSubscription" should {
+  "cancelSubscription" must {
     "make a http DELETE request to Incorporation Information micro-service to register an interest and return 200" in new Setup {
       val expectedURL = s"${connector.iiUrl}/incorporation-information/subscribe/$txId/regime/$tRegime/subscriber/$tSubscriber?force=true"
       when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.eq(expectedURL), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(HttpResponse(200)))
 
-      await(connector.cancelSubscription(regId, txId)) shouldBe true
+      await(connector.cancelSubscription(regId, txId)) mustBe true
     }
     "make a http DELETE request to Incorporation Information micro-service to register an interest and return a 404" in new Setup {
       when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.anyString(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
@@ -160,18 +160,18 @@ class IncorporationInformationConnectorSpec extends BaseSpec with BusinessRegist
       when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.eq(expectedURL), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(HttpResponse(200)))
 
-      await(connector.cancelSubscription(regId, txId, useOldRegime = true)) shouldBe true
+      await(connector.cancelSubscription(regId, txId, useOldRegime = true)) mustBe true
     }
   }
 
-  "checkNotIncorporated" should {
+  "checkNotIncorporated" must {
     "return None" when {
       "the CRN is not there" in new Setup {
         val expectedURL = s"${connector.iiUrl}/incorporation-information/$txId/incorporation-update"
         when(mockWSHttp.GET[HttpResponse](ArgumentMatchers.eq(expectedURL), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
           .thenReturn(Future.successful(HttpResponse(200)))
 
-        await(connector.checkCompanyIncorporated(txId)) shouldBe None
+        await(connector.checkCompanyIncorporated(txId)) mustBe None
       }
 
       "on a no content response" in new Setup {
@@ -179,7 +179,7 @@ class IncorporationInformationConnectorSpec extends BaseSpec with BusinessRegist
         when(mockWSHttp.GET[HttpResponse](ArgumentMatchers.eq(expectedURL), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
           .thenReturn(Future.successful(HttpResponse(204)))
 
-        await(connector.checkCompanyIncorporated(txId)) shouldBe None
+        await(connector.checkCompanyIncorporated(txId)) mustBe None
       }
     }
 
@@ -190,10 +190,10 @@ class IncorporationInformationConnectorSpec extends BaseSpec with BusinessRegist
           .thenReturn(Future.successful(HttpResponse(200, Some(Json.obj("crn" -> "crn")))))
 
         withCaptureOfLoggingFrom(Logger(connector.getClass)) { logs =>
-          await(connector.checkCompanyIncorporated(txId)) shouldBe Some("crn")
+          await(connector.checkCompanyIncorporated(txId)) mustBe Some("crn")
 
-          logs.size shouldBe 1
-          logs.head.getMessage shouldBe "STALE_DOCUMENTS_DELETE_WARNING_CRN_FOUND"
+          logs.size mustBe 1
+          logs.head.getMessage mustBe "STALE_DOCUMENTS_DELETE_WARNING_CRN_FOUND"
         }
       }
     }

@@ -20,7 +20,7 @@ import models.{IncorpUpdate, SubmissionCheckResponse}
 import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.test.Helpers._
 import uk.gov.hmrc.http._
@@ -31,7 +31,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
 
-class SubmissionCheckAPIConnectorSpec extends WordSpec with Matchers with MockitoSugar {
+class SubmissionCheckAPIConnectorSpec extends PlaySpec with MockitoSugar {
 
   val testProxyUrl = "testBusinessRegUrl"
   implicit val hc = HeaderCarrier()
@@ -58,7 +58,7 @@ class SubmissionCheckAPIConnectorSpec extends WordSpec with Matchers with Mockit
     "testNextLink")
 
 
-  "checkSubmission" should {
+  "checkSubmission" must {
 
     val testTimepoint = UUID.randomUUID().toString
 
@@ -66,7 +66,7 @@ class SubmissionCheckAPIConnectorSpec extends WordSpec with Matchers with Mockit
       when(mockWSHttp.GET[SubmissionCheckResponse](ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any)(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(validSubmissionResponse))
 
-      await(connector.checkSubmission()) shouldBe validSubmissionResponse
+      await(connector.checkSubmission()) mustBe validSubmissionResponse
     }
 
     "return a submission status response when a timepoint is provided" in new Setup {
@@ -75,7 +75,7 @@ class SubmissionCheckAPIConnectorSpec extends WordSpec with Matchers with Mockit
       when(mockWSHttp.GET[SubmissionCheckResponse](ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any)(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(validSubmissionResponse))
 
-      await(connector.checkSubmission(Some(testTimepoint))) shouldBe validSubmissionResponse
+      await(connector.checkSubmission(Some(testTimepoint))) mustBe validSubmissionResponse
     }
 
     "verify a timepoint is appended as a query string to the url when one is supplied" in new Setup {
@@ -84,7 +84,7 @@ class SubmissionCheckAPIConnectorSpec extends WordSpec with Matchers with Mockit
       when(mockWSHttp.GET[SubmissionCheckResponse](ArgumentMatchers.eq(url), ArgumentMatchers.any(), ArgumentMatchers.any)(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(validSubmissionResponse))
 
-      await(connector.checkSubmission(Some(testTimepoint))) shouldBe validSubmissionResponse
+      await(connector.checkSubmission(Some(testTimepoint))) mustBe validSubmissionResponse
 
     }
 
@@ -94,7 +94,7 @@ class SubmissionCheckAPIConnectorSpec extends WordSpec with Matchers with Mockit
       when(mockWSHttp.GET[SubmissionCheckResponse](ArgumentMatchers.eq(url), ArgumentMatchers.any(), ArgumentMatchers.any)(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(validSubmissionResponse))
 
-      await(connector.checkSubmission(None)) shouldBe validSubmissionResponse
+      await(connector.checkSubmission(None)) mustBe validSubmissionResponse
 
     }
 

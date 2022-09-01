@@ -56,7 +56,7 @@ class AccountingDetailsControllerSpec extends BaseSpec with AccountingDetailsFix
 
   val accountingDetailsResponseJson: JsValue = Json.toJson(validAccountingDetailsResponse)
 
-  "retrieveAccountingDetails" should {
+  "retrieveAccountingDetails" must {
 
     "return a 200 with accounting details in the js on body when authorised" in new Setup {
       mockAuthorise(Future.successful(Some(internalId)))
@@ -68,8 +68,8 @@ class AccountingDetailsControllerSpec extends BaseSpec with AccountingDetailsFix
         .thenReturn(Future.successful(Some(AccountPrepDetails())))
 
       val result: Future[Result] = controller.retrieveAccountingDetails(registrationID)(FakeRequest())
-      status(result) shouldBe OK
-      contentAsJson(result) shouldBe accountingDetailsResponseJson
+      status(result) mustBe OK
+      contentAsJson(result) mustBe accountingDetailsResponseJson
     }
 
 
@@ -83,12 +83,12 @@ class AccountingDetailsControllerSpec extends BaseSpec with AccountingDetailsFix
         .thenReturn(Future.successful(Some(AccountPrepDetails())))
 
       val result: Future[Result] = controller.retrieveAccountingDetails(registrationID)(FakeRequest())
-      status(result) shouldBe NOT_FOUND
-      contentAsJson(result) shouldBe ErrorResponse.accountingDetailsNotFound
+      status(result) mustBe NOT_FOUND
+      contentAsJson(result) mustBe ErrorResponse.accountingDetailsNotFound
     }
   }
 
-  "updateAccountingDetails" should {
+  "updateAccountingDetails" must {
 
     val request = FakeRequest().withBody(Json.toJson(validAccountingDetails))
 
@@ -99,8 +99,8 @@ class AccountingDetailsControllerSpec extends BaseSpec with AccountingDetailsFix
       AccountingDetailsServiceMocks.updateAccountingDetails(registrationID, Some(validAccountingDetails))
 
       val result: Future[Result] = controller.updateAccountingDetails(registrationID)(request)
-      status(result) shouldBe OK
-      contentAsJson(result) shouldBe accountingDetailsResponseJson
+      status(result) mustBe OK
+      contentAsJson(result) mustBe accountingDetailsResponseJson
     }
 
     "return a 404 when the user is authorised but accounting details cannot be found" in new Setup {
@@ -110,7 +110,7 @@ class AccountingDetailsControllerSpec extends BaseSpec with AccountingDetailsFix
       AccountingDetailsServiceMocks.updateAccountingDetails(registrationID, None)
 
       val result: Future[Result] = controller.updateAccountingDetails(registrationID)(request)
-      status(result) shouldBe NOT_FOUND
+      status(result) mustBe NOT_FOUND
     }
   }
 }

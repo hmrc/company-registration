@@ -29,31 +29,31 @@ class ContactDetailsServiceSpec extends BaseSpec with ContactDetailsFixture {
   }
 
 
-  "retrieveContactDetails" should {
+  "retrieveContactDetails" must {
     "return a contact details response if a contact details record exists" in new Setup {
       CTDataRepositoryMocks.retrieveContactDetails(Some(contactDetails))
 
-      await(service.retrieveContactDetails("12345")) shouldBe Some(contactDetails)
+      await(service.retrieveContactDetails("12345")) mustBe Some(contactDetails)
     }
 
     "returns None if a contact details record is not found" in new Setup {
       CTDataRepositoryMocks.retrieveContactDetails(None)
 
-      await(service.retrieveContactDetails("12345")) shouldBe None
+      await(service.retrieveContactDetails("12345")) mustBe None
     }
   }
 
-  "updateContactDetails" should {
+  "updateContactDetails" must {
     "return a contact details response if a contact details record exists" in new Setup {
       CTDataRepositoryMocks.updateContactDetails(Some(contactDetails))
 
-      await(service.updateContactDetails("12345", contactDetails)) shouldBe Some(contactDetails)
+      await(service.updateContactDetails("12345", contactDetails)) mustBe Some(contactDetails)
     }
 
     "returns None if a contact details record is not found" in new Setup {
       CTDataRepositoryMocks.updateContactDetails(None)
 
-      await(service.updateContactDetails("12345", contactDetails)) shouldBe None
+      await(service.updateContactDetails("12345", contactDetails)) mustBe None
     }
   }
 }

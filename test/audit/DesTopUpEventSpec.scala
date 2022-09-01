@@ -18,12 +18,12 @@ package audit
 
 
 import org.joda.time.DateTime
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.Json
 
-class DesTopUpEventSpec extends WordSpec with Matchers {
+class DesTopUpEventSpec extends PlaySpec {
 
-  "DesTopUpEventDetail" should {
+  "DesTopUpEventDetail" must {
 
     val regId = "123456789"
     val crn = "0123456789"
@@ -56,7 +56,7 @@ class DesTopUpEventSpec extends WordSpec with Matchers {
         Some(crn)
       )
 
-      Json.toJson(testModel)(DesTopUpSubmissionEventDetail.writes) shouldBe expected
+      Json.toJson(testModel)(DesTopUpSubmissionEventDetail.writes) mustBe expected
     }
 
 
@@ -79,7 +79,7 @@ class DesTopUpEventSpec extends WordSpec with Matchers {
         None,
         None
       )
-      Json.toJson(testModel)(DesTopUpSubmissionEventDetail.writes) shouldBe expected
+      Json.toJson(testModel)(DesTopUpSubmissionEventDetail.writes) mustBe expected
     }
   }
 }

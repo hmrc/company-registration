@@ -16,11 +16,11 @@
 
 package audit
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.http.HeaderCarrier
 
-class FailedIncorporationAuditEventSpec extends WordSpec with Matchers {
+class FailedIncorporationAuditEventSpec extends PlaySpec {
 
   implicit val hc = HeaderCarrier()
 
@@ -29,7 +29,7 @@ class FailedIncorporationAuditEventSpec extends WordSpec with Matchers {
     "testReason"
   )
 
-  "FailedIncorporationAuditEventDetail" should {
+  "FailedIncorporationAuditEventDetail" must {
     "construct valid data as per confluence" when {
       "converting a case class to JSON for a successful incorp" in {
         val expected =
@@ -41,20 +41,20 @@ class FailedIncorporationAuditEventSpec extends WordSpec with Matchers {
           """.stripMargin
 
         val result = Json.toJson[FailedIncorporationAuditEventDetail](testModel)
-        result.getClass shouldBe classOf[JsObject]
-        result shouldBe Json.parse(expected)
+        result.getClass mustBe classOf[JsObject]
+        result mustBe Json.parse(expected)
       }
     }
   }
 
-  "FailedIncorporationAuditEvent" should {
+  "FailedIncorporationAuditEvent" must {
     "construct a full successful incorporation audit event" when {
       "given a FailedIncorporationAuditEventDetail case class, an audit type and a transaction name" in {
         val auditEventTest = new FailedIncorporationAuditEvent(testModel, "failedIncorpInformation", "failedIncorpInformation")
 
-        auditEventTest.auditSource shouldBe "company-registration"
-        auditEventTest.auditType shouldBe "failedIncorpInformation"
-        auditEventTest.tags.get("transactionName") shouldBe Some("failedIncorpInformation")
+        auditEventTest.auditSource mustBe "company-registration"
+        auditEventTest.auditType mustBe "failedIncorpInformation"
+        auditEventTest.tags.get("transactionName") mustBe Some("failedIncorpInformation")
       }
     }
   }

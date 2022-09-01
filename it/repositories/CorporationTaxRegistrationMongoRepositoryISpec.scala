@@ -19,29 +19,27 @@ package repositories
 import auth.CryptoSCRS
 import fixtures.CorporationTaxRegistrationFixture
 import fixtures.CorporationTaxRegistrationFixture.ctRegistrationJson
-import itutil.IntegrationSpecBase
 import itutil.ItTestConstants.CorporationTaxRegistration.corpTaxRegModel
 import itutil.ItTestConstants.TakeoverDetails.{testTakeoverDetails, testTakeoverDetailsModel}
+import itutil.{IntegrationSpecBase, MongoIntegrationSpec}
 import models.RegistrationStatus._
 import models._
 import models.des.BusinessAddress
+import models.validation.MongoValidation
 import org.joda.time.{DateTime, DateTimeZone}
+import org.mongodb.scala.model.Filters
+import org.mongodb.scala.result.InsertOneResult
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, Json, OWrites}
 import play.api.test.Helpers._
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.commands.WriteResult
-import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.bson.{BSONDocument, BSONString}
-import reactivemongo.play.json.ImplicitBSONHandlers._
 
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class CorporationTaxRegistrationMongoRepositoryISpec
-  extends IntegrationSpecBase {
+  extends IntegrationSpecBase with MongoIntegrationSpec {
 
   val additionalConfiguration = Map(
     "schedules.missing-incorporation-job.enabled" -> "false",
@@ -54,33 +52,20 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
   class Setup {
     val repository = app.injector.instanceOf[CorporationTaxRegistrationMongoRepository]
-    await(repository.drop)
+    repository.deleteAll
     await(repository.ensureIndexes)
 
     implicit val jsObjWts: OWrites[JsObject] = OWrites(identity)
 
     def insert(reg: CorporationTaxRegistration) = {
       val currentCount = count
-      await(repository.insert(reg))
-      count shouldBe currentCount + 1
+      repository.insert(reg)
+      count mustBe currentCount + 1
     }
 
-    def insertRaw(reg: JsObject) = repository.collection.insert(reg)
+    def count = repository.count
 
-    def count = await(repository.count)
-
-    def retrieve(regId: String) = await(repository.findBySelector(repository.regIDSelector(regId)))
-  }
-
-  class SetupWithIndexes(indexList: List[Index]) {
-    val rmComp = app.injector.instanceOf[ReactiveMongoComponent]
-    val crypto = app.injector.instanceOf[CryptoSCRS]
-    val repository = new CorporationTaxRegistrationMongoRepository(
-      rmComp, crypto) {
-      override def indexes = indexList
-    }
-    await(repository.drop)
-    await(repository.ensureIndexes)
+    def retrieve(regId: String) = await(repository.findOneBySelector(repository.regIDSelector(regId)))
   }
 
   val validGroupsModel = Groups(
@@ -89,7 +74,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     addressAndType = Some(GroupsAddressAndType(GroupAddressTypeEnum.ALF, BusinessAddress("1 abc", "2 abc", Some("3 abc"), Some("4 abc"), Some("ZZ1 1ZZ"), Some("country A")))),
     groupUTR = Some(GroupUTR(Some("1234567890"))))
 
-  def setupCollection(repo: CorporationTaxRegistrationMongoRepository, ctRegistration: CorporationTaxRegistration): Future[WriteResult] = {
+  def setupCollection(repo: CorporationTaxRegistrationMongoRepository, ctRegistration: CorporationTaxRegistration): InsertOneResult = {
     repo.insert(ctRegistration)
   }
 
@@ -132,7 +117,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
   val testRoAddress = CHROAddress("premises", "address line 1", None, "uk", "local", None, None, None)
 
-  "retrieveCorporationTaxRegistration" should {
+  "retrieveCorporationTaxRegistration" must {
     "retrieve a registration with an invalid phone number" in new Setup {
       val registrationId = "testRegId"
 
@@ -147,20 +132,20 @@ class CorporationTaxRegistrationMongoRepositoryISpec
           email = None))
       )
 
-      await(setupCollection(repository, corporationTaxRegistration))
-      val response = repository.findBySelector(repository.regIDSelector(registrationId))
-      await(response).flatMap(_.contactDetails) shouldBe corporationTaxRegistration.contactDetails
+      setupCollection(repository, corporationTaxRegistration)
+      val response = repository.findOneBySelector(repository.regIDSelector(registrationId))
+      await(response).flatMap(_.contactDetails) mustBe corporationTaxRegistration.contactDetails
     }
     "retrieve ctdoc with new groups block" in new Setup {
       val ctDoc = corporationTaxRegistration(regId = "123").copy(groups = Some(validGroupsModel))
       val resOfInsert = await(repository.createCorporationTaxRegistration(ctDoc))
-      count shouldBe 1
-      val response = await(repository.findBySelector(repository.regIDSelector(resOfInsert.registrationID)))
-      response.get.groups.get shouldBe validGroupsModel
+      count mustBe 1
+      val response = await(repository.findOneBySelector(repository.regIDSelector(resOfInsert.registrationID)))
+      response.get.groups.get mustBe validGroupsModel
     }
   }
 
-  "getExistingRegistration" should {
+  "getExistingRegistration" must {
     "throw an exception if no document is found" in new Setup {
       intercept[MissingCTDocument](await(repository.getExistingRegistration(registrationId)))
     }
@@ -180,29 +165,29 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       val now = DateTime.now()
       insert(corporationTaxRegistration)
       val response = await(repository.getExistingRegistration(registrationId))
-      response.copy(createdTime = now, lastSignedIn = now) shouldBe corporationTaxRegistration.copy(createdTime = now, lastSignedIn = now)
+      response.copy(createdTime = now, lastSignedIn = now) mustBe corporationTaxRegistration.copy(createdTime = now, lastSignedIn = now)
     }
   }
 
-  "updateAccountingDetails" should {
+  "updateAccountingDetails" must {
     "return some updated company details if document exists" in new Setup {
 
       val accountingDetails: AccountingDetails = AccountingDetails("some-status", Some("some-date"))
 
       insert(newCTDoc)
       val response = await(repository.updateAccountingDetails(registrationId, accountingDetails))
-      response shouldBe Some(accountingDetails)
+      response mustBe Some(accountingDetails)
     }
 
     "return None if no document exists" in new Setup {
       val accountingDetails: AccountingDetails = AccountingDetails("some-status", Some("some-date"))
 
       val response = await(repository.updateAccountingDetails(registrationId, accountingDetails))
-      response shouldBe None
+      response mustBe None
     }
   }
 
-  "retrieveAccountingDetails" should {
+  "retrieveAccountingDetails" must {
     "return some company details if document exists" in new Setup {
       val accountingDetails: AccountingDetails = AccountingDetails("some-status", Some("some-date"))
 
@@ -212,39 +197,39 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
       insert(corporationTaxRegistrationModel)
       val response = await(repository.retrieveAccountingDetails(registrationId))
-      response shouldBe Some(accountingDetails)
+      response mustBe Some(accountingDetails)
     }
 
     "return None if no accounting details are present in the ct doc" in new Setup {
       insert(newCTDoc)
       val response = await(repository.retrieveAccountingDetails(registrationId))
-      response shouldBe None
+      response mustBe None
     }
 
     "return None if no document exists" in new Setup {
       val response = await(repository.retrieveAccountingDetails(registrationId))
-      response shouldBe None
+      response mustBe None
     }
   }
 
-  "updateCompanyDetails" should {
+  "updateCompanyDetails" must {
     "return some updated company details if document exists" in new Setup {
       val companyDetails: CompanyDetails = CompanyDetails("company-name", testRoAddress, PPOB("RO", None), "jurisdiction")
 
       insert(newCTDoc)
       val response = await(repository.updateCompanyDetails(registrationId, companyDetails))
-      response shouldBe Some(companyDetails)
+      response mustBe Some(companyDetails)
     }
 
     "return None if no document exists" in new Setup {
       val companyDetails: CompanyDetails = CompanyDetails("company-name", testRoAddress, PPOB("RO", None), "jurisdiction")
 
       val response = await(repository.updateCompanyDetails(registrationId, companyDetails))
-      response shouldBe None
+      response mustBe None
     }
   }
 
-  "retrieveCompanyDetails" should {
+  "retrieveCompanyDetails" must {
     "return some company details if document exists" in new Setup {
       val registrationId = "testRegId"
 
@@ -256,28 +241,28 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
       insert(corporationTaxRegistrationModel)
       val response = await(repository.retrieveCompanyDetails(registrationId))
-      response shouldBe Some(companyDetails)
+      response mustBe Some(companyDetails)
     }
 
     "return None if no company details are present in the ct doc" in new Setup {
       insert(newCTDoc)
       val response = await(repository.retrieveCompanyDetails(registrationId))
-      response shouldBe None
+      response mustBe None
     }
 
     "return None if no document exists" in new Setup {
       val response = await(repository.retrieveCompanyDetails(registrationId))
-      response shouldBe None
+      response mustBe None
     }
   }
 
-  "updateTradingDetails" should {
+  "updateTradingDetails" must {
     "return some updated trading details if document exists" in new Setup {
       val tradingDetails: TradingDetails = TradingDetails("yes")
 
       insert(newCTDoc)
       val response = await(repository.updateTradingDetails(registrationId, tradingDetails))
-      response shouldBe Some(tradingDetails)
+      response mustBe Some(tradingDetails)
     }
 
     "return override trading details if document already has trading details" in new Setup {
@@ -286,18 +271,18 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
       insert(newCTDoc.copy(tradingDetails = Some(tradingDetails)))
       val response = await(repository.updateTradingDetails(registrationId, newTradingDetails))
-      response shouldBe Some(newTradingDetails)
+      response mustBe Some(newTradingDetails)
     }
 
     "return None if no document exists" in new Setup {
       val tradingDetails: TradingDetails = TradingDetails("yes")
 
       val response = await(repository.updateTradingDetails(registrationId, tradingDetails))
-      response shouldBe None
+      response mustBe None
     }
   }
 
-  "retrieveTradingDetails" should {
+  "retrieveTradingDetails" must {
     "return some trading details if document exists" in new Setup {
       val registrationId = "testRegId"
 
@@ -309,20 +294,20 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
       insert(corporationTaxRegistrationModel)
       val response = await(repository.retrieveTradingDetails(registrationId))
-      response shouldBe Some(tradingDetails)
+      response mustBe Some(tradingDetails)
     }
 
     "return None if no trading details are present in the ct doc" in new Setup {
       insert(newCTDoc)
-      await(repository.retrieveTradingDetails(registrationId)) shouldBe None
+      await(repository.retrieveTradingDetails(registrationId)) mustBe None
     }
 
     "return None if no document exists" in new Setup {
-      await(repository.retrieveTradingDetails(registrationId)) shouldBe None
+      await(repository.retrieveTradingDetails(registrationId)) mustBe None
     }
   }
 
-  "updateContactDetails" should {
+  "updateContactDetails" must {
     "return some updated contact details if document exists" in new Setup {
       val testContactDetails: ContactDetails = ContactDetails(
         phone = None,
@@ -331,7 +316,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       )
 
       insert(newCTDoc)
-      await(repository.updateContactDetails(registrationId, testContactDetails)) shouldBe Some(testContactDetails)
+      await(repository.updateContactDetails(registrationId, testContactDetails)) mustBe Some(testContactDetails)
     }
 
     "return override contact details if document already has contact details" in new Setup {
@@ -343,7 +328,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       val newContactDetails: ContactDetails = contactDetails.copy(phone = Some("12333334234234"))
 
       insert(newCTDoc.copy(contactDetails = Some(contactDetails)))
-      await(repository.updateContactDetails(registrationId, newContactDetails)) shouldBe Some(newContactDetails)
+      await(repository.updateContactDetails(registrationId, newContactDetails)) mustBe Some(newContactDetails)
     }
 
     "return None if no document exists" in new Setup {
@@ -353,17 +338,17 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         mobile = None
       )
 
-      await(repository.updateContactDetails(registrationId, contactDetails)) shouldBe None
+      await(repository.updateContactDetails(registrationId, contactDetails)) mustBe None
     }
   }
 
   "retrieveContactDetails" must {
     "return none when there is no document" in new Setup {
-      await(repository.retrieveContactDetails(registrationId)) shouldBe None
+      await(repository.retrieveContactDetails(registrationId)) mustBe None
     }
     "return none when there are no contact details" in new Setup {
       insert(newCTDoc)
-      await(repository.retrieveContactDetails(registrationId)) shouldBe None
+      await(repository.retrieveContactDetails(registrationId)) mustBe None
     }
     "return some when there are contact details" in new Setup {
       val testContactDetails: ContactDetails = ContactDetails(
@@ -372,11 +357,11 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         mobile = None
       )
       insert(newCTDoc.copy(contactDetails = Some(testContactDetails)))
-      await(repository.retrieveContactDetails(registrationId)) shouldBe Some(testContactDetails)
+      await(repository.retrieveContactDetails(registrationId)) mustBe Some(testContactDetails)
     }
   }
 
-  "updateConfirmationReferences" should {
+  "updateConfirmationReferences" must {
     "return some confirmation references if document exists" in new Setup {
       val confirmationReferences: ConfirmationReferences = ConfirmationReferences(
         acknowledgementReference = "some-ackref",
@@ -386,7 +371,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       )
 
       insert(newCTDoc)
-      await(repository.updateConfirmationReferences(registrationId, confirmationReferences)) shouldBe Some(confirmationReferences)
+      await(repository.updateConfirmationReferences(registrationId, confirmationReferences)) mustBe Some(confirmationReferences)
     }
 
     "return override confirmation references if document already has confirmation references" in new Setup {
@@ -399,7 +384,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       val newConfirmationReferences: ConfirmationReferences = confirmationReferences.copy(paymentReference = Some("Some-pay-ref"), paymentAmount = Some("12333334234234"))
 
       insert(newCTDoc.copy(confirmationReferences = Some(confirmationReferences)))
-      await(repository.updateConfirmationReferences(registrationId, newConfirmationReferences)) shouldBe Some(newConfirmationReferences)
+      await(repository.updateConfirmationReferences(registrationId, newConfirmationReferences)) mustBe Some(newConfirmationReferences)
     }
 
     "return None if no document exists" in new Setup {
@@ -410,17 +395,17 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         paymentAmount = None
       )
 
-      await(repository.updateConfirmationReferences(registrationId, confirmationReferences)) shouldBe None
+      await(repository.updateConfirmationReferences(registrationId, confirmationReferences)) mustBe None
     }
   }
 
   "retrieveConfirmationReferences" must {
     "return none when there is no document" in new Setup {
-      await(repository.retrieveConfirmationReferences(registrationId)) shouldBe None
+      await(repository.retrieveConfirmationReferences(registrationId)) mustBe None
     }
     "return none when there are no confirmation references" in new Setup {
       insert(newCTDoc)
-      await(repository.retrieveConfirmationReferences(registrationId)) shouldBe None
+      await(repository.retrieveConfirmationReferences(registrationId)) mustBe None
     }
     "return some when there are confirmation references" in new Setup {
       val confirmationReferences: ConfirmationReferences = ConfirmationReferences(
@@ -431,11 +416,11 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       )
 
       insert(newCTDoc.copy(confirmationReferences = Some(confirmationReferences)))
-      await(repository.retrieveConfirmationReferences(registrationId)) shouldBe Some(confirmationReferences)
+      await(repository.retrieveConfirmationReferences(registrationId)) mustBe Some(confirmationReferences)
     }
   }
 
-  "updateConfirmationReferencesAndStatus" should {
+  "updateConfirmationReferencesAndStatus" must {
     "return some confirmation references if document exists" in new Setup {
       val confirmationReferences: ConfirmationReferences = ConfirmationReferences(
         acknowledgementReference = "some-ackref",
@@ -445,8 +430,8 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       )
 
       insert(newCTDoc)
-      await(repository.updateConfirmationReferencesAndUpdateStatus(registrationId, confirmationReferences, "passed")) shouldBe Some(confirmationReferences)
-      retrieve(registrationId).get.status shouldBe "passed"
+      await(repository.updateConfirmationReferencesAndUpdateStatus(registrationId, confirmationReferences, "passed")) mustBe Some(confirmationReferences)
+      retrieve(registrationId).get.status mustBe "passed"
     }
 
     "return override confirmation references if document already has confirmation references and status" in new Setup {
@@ -459,8 +444,8 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       val newConfirmationReferences: ConfirmationReferences = confirmationReferences.copy(paymentReference = Some("Some-pay-ref"), paymentAmount = Some("12333334234234"))
 
       insert(newCTDoc.copy(confirmationReferences = Some(confirmationReferences), status = "passed"))
-      await(repository.updateConfirmationReferencesAndUpdateStatus(registrationId, newConfirmationReferences, "unpassed")) shouldBe Some(newConfirmationReferences)
-      retrieve(registrationId).get.status shouldBe "unpassed"
+      await(repository.updateConfirmationReferencesAndUpdateStatus(registrationId, newConfirmationReferences, "unpassed")) mustBe Some(newConfirmationReferences)
+      retrieve(registrationId).get.status mustBe "unpassed"
     }
 
     "return None if no document exists" in new Setup {
@@ -471,11 +456,11 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         paymentAmount = None
       )
 
-      await(repository.updateConfirmationReferencesAndUpdateStatus(registrationId, confirmationReferences, "passed")) shouldBe None
+      await(repository.updateConfirmationReferencesAndUpdateStatus(registrationId, confirmationReferences, "passed")) mustBe None
     }
   }
 
-  "updateCompanyEndDate" should {
+  "updateCompanyEndDate" must {
     "return some Accounting Details prep if document exists" in new Setup {
       val accountingPrepDetails: AccountPrepDetails = AccountPrepDetails(
         status = "end",
@@ -483,7 +468,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       )
 
       insert(newCTDoc)
-      await(repository.updateCompanyEndDate(registrationId, accountingPrepDetails)) shouldBe Some(accountingPrepDetails)
+      await(repository.updateCompanyEndDate(registrationId, accountingPrepDetails)) mustBe Some(accountingPrepDetails)
     }
 
     "return override accounting Details prep if document already has Accounting Details prep" in new Setup {
@@ -494,7 +479,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       val newAccountingPrepDetails: AccountPrepDetails = accountingPrepDetails.copy(endDate = Some(DateTime.now()))
 
       insert(newCTDoc.copy(accountsPreparation = Some(accountingPrepDetails)))
-      await(repository.updateCompanyEndDate(registrationId, newAccountingPrepDetails)) shouldBe Some(newAccountingPrepDetails)
+      await(repository.updateCompanyEndDate(registrationId, newAccountingPrepDetails)) mustBe Some(newAccountingPrepDetails)
     }
 
     "return None if no document exists" in new Setup {
@@ -503,11 +488,11 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         endDate = None
       )
 
-      await(repository.updateCompanyEndDate(registrationId, accountingPrepDetails)) shouldBe None
+      await(repository.updateCompanyEndDate(registrationId, accountingPrepDetails)) mustBe None
     }
   }
 
-  "updateEmail" should {
+  "updateEmail" must {
     "return some email if document exists" in new Setup {
       val email: Email = Email(
         address = "end@end.end",
@@ -518,7 +503,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       )
 
       insert(newCTDoc)
-      await(repository.updateEmail(registrationId, email)) shouldBe Some(email)
+      await(repository.updateEmail(registrationId, email)) mustBe Some(email)
     }
 
     "return override email if document already has email" in new Setup {
@@ -532,7 +517,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       val newEmail: Email = email.copy(linkSent = true, returnLinkEmailSent = true)
 
       insert(newCTDoc.copy(verifiedEmail = Some(email)))
-      await(repository.updateEmail(registrationId, newEmail)) shouldBe Some(newEmail)
+      await(repository.updateEmail(registrationId, newEmail)) mustBe Some(newEmail)
     }
 
     "return None if no document exists" in new Setup {
@@ -544,17 +529,17 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         returnLinkEmailSent = false
       )
 
-      await(repository.updateEmail(registrationId, email)) shouldBe None
+      await(repository.updateEmail(registrationId, email)) mustBe None
     }
   }
 
   "retrieveEmail" must {
     "return none when there is no document" in new Setup {
-      await(repository.retrieveEmail(registrationId)) shouldBe None
+      await(repository.retrieveEmail(registrationId)) mustBe None
     }
     "return none when there is no email block" in new Setup {
       insert(newCTDoc)
-      await(repository.retrieveEmail(registrationId)) shouldBe None
+      await(repository.retrieveEmail(registrationId)) mustBe None
     }
 
     "return some when there is an email block" in new Setup {
@@ -567,15 +552,15 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       )
 
       insert(newCTDoc.copy(verifiedEmail = Some(email)))
-      await(repository.retrieveEmail(registrationId)) shouldBe Some(email)
+      await(repository.retrieveEmail(registrationId)) mustBe Some(email)
     }
   }
 
-  "updateRegistrationProgress" should {
+  "updateRegistrationProgress" must {
     "return some registrationPrgoress if document exists" in new Setup {
       val registrationPrgoress: String = "progress"
       insert(newCTDoc)
-      await(repository.updateRegistrationProgress(registrationId, registrationPrgoress)) shouldBe Some(registrationPrgoress)
+      await(repository.updateRegistrationProgress(registrationId, registrationPrgoress)) mustBe Some(registrationPrgoress)
     }
 
     "return override registration progress if document already has registration progress" in new Setup {
@@ -583,16 +568,16 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       val newRegistrationProgress: String = "stopped"
 
       insert(newCTDoc.copy(registrationProgress = Some(registrationProgress)))
-      await(repository.updateRegistrationProgress(registrationId, newRegistrationProgress)) shouldBe Some(newRegistrationProgress)
+      await(repository.updateRegistrationProgress(registrationId, newRegistrationProgress)) mustBe Some(newRegistrationProgress)
     }
 
     "return None if no document exists" in new Setup {
       val registrationProgress: String = "progress"
 
-      await(repository.updateRegistrationProgress(registrationId, registrationProgress)) shouldBe None
+      await(repository.updateRegistrationProgress(registrationId, registrationProgress)) mustBe None
     }
   }
-  "removeUnnecessaryRegistrationInformation" should {
+  "removeUnnecessaryRegistrationInformation" must {
     "clear all un-needed data" when {
       "mongo statement executes with no errors" in new Setup {
         val registrationId = "testRegId"
@@ -605,16 +590,16 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         )
 
 
-        await(setupCollection(repository, corporationTaxRegistrationModel))
-        await(repository.removeUnnecessaryRegistrationInformation(registrationId)) shouldBe true
+        setupCollection(repository, corporationTaxRegistrationModel)
+        await(repository.removeUnnecessaryRegistrationInformation(registrationId)) mustBe true
 
-        val corporationTaxRegistration: CorporationTaxRegistration = await(repository.findBySelector(repository.regIDSelector(registrationId))).get
-        corporationTaxRegistration.verifiedEmail.isEmpty shouldBe true
-        corporationTaxRegistration.companyDetails.isEmpty shouldBe true
-        corporationTaxRegistration.accountingDetails.isEmpty shouldBe true
-        corporationTaxRegistration.registrationID shouldBe corporationTaxRegistrationModel.registrationID
-        corporationTaxRegistration.status shouldBe corporationTaxRegistrationModel.status
-        corporationTaxRegistration.lastSignedIn shouldBe corporationTaxRegistrationModel.lastSignedIn
+        val corporationTaxRegistration: CorporationTaxRegistration = await(repository.findOneBySelector(repository.regIDSelector(registrationId))).get
+        corporationTaxRegistration.verifiedEmail.isEmpty mustBe true
+        corporationTaxRegistration.companyDetails.isEmpty mustBe true
+        corporationTaxRegistration.accountingDetails.isEmpty mustBe true
+        corporationTaxRegistration.registrationID mustBe corporationTaxRegistrationModel.registrationID
+        corporationTaxRegistration.status mustBe corporationTaxRegistrationModel.status
+        corporationTaxRegistration.lastSignedIn mustBe corporationTaxRegistrationModel.lastSignedIn
       }
 
       "mongo statement execeutes with the document having missing fields" in new Setup {
@@ -628,16 +613,16 @@ class CorporationTaxRegistrationMongoRepositoryISpec
           companyDetails = None
         )
 
-        await(setupCollection(repository, corporationTaxRegistrationModel))
-        await(repository.removeUnnecessaryRegistrationInformation(registrationId)) shouldBe true
+        setupCollection(repository, corporationTaxRegistrationModel)
+        await(repository.removeUnnecessaryRegistrationInformation(registrationId)) mustBe true
 
-        val corporationTaxRegistration: CorporationTaxRegistration = await(repository.findBySelector(repository.regIDSelector(registrationId))).get
-        corporationTaxRegistration.verifiedEmail.isEmpty shouldBe true
-        corporationTaxRegistration.companyDetails.isEmpty shouldBe true
-        corporationTaxRegistration.accountingDetails.isEmpty shouldBe true
-        corporationTaxRegistration.registrationID shouldBe corporationTaxRegistrationModel.registrationID
-        corporationTaxRegistration.status shouldBe corporationTaxRegistrationModel.status
-        corporationTaxRegistration.lastSignedIn shouldBe corporationTaxRegistrationModel.lastSignedIn
+        val corporationTaxRegistration: CorporationTaxRegistration = await(repository.findOneBySelector(repository.regIDSelector(registrationId))).get
+        corporationTaxRegistration.verifiedEmail.isEmpty mustBe true
+        corporationTaxRegistration.companyDetails.isEmpty mustBe true
+        corporationTaxRegistration.accountingDetails.isEmpty mustBe true
+        corporationTaxRegistration.registrationID mustBe corporationTaxRegistrationModel.registrationID
+        corporationTaxRegistration.status mustBe corporationTaxRegistrationModel.status
+        corporationTaxRegistration.lastSignedIn mustBe corporationTaxRegistrationModel.lastSignedIn
       }
     }
     "should not update document" when {
@@ -653,14 +638,14 @@ class CorporationTaxRegistrationMongoRepositoryISpec
           companyDetails = None
         )
 
-        await(setupCollection(repository, corporationTaxRegistrationModel))
-        await(repository.removeUnnecessaryRegistrationInformation(incorrectRegistrationId)) shouldBe true
+        setupCollection(repository, corporationTaxRegistrationModel)
+        await(repository.removeUnnecessaryRegistrationInformation(incorrectRegistrationId)) mustBe true
       }
     }
   }
 
 
-  "updateSubmissionStatus" should {
+  "updateSubmissionStatus" must {
 
     val registrationId = "testRegId"
 
@@ -677,14 +662,14 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       insert(corporationTaxRegistration)
 
       val response = repository.updateSubmissionStatus(registrationId, status)
-      await(response) shouldBe "held"
+      await(response) mustBe "held"
     }
     "return an exception when document is missing because mapping on result will not contain status" in new Setup {
-      intercept[Exception](await(repository.updateSubmissionStatus(registrationId, "testStatus")))
+      intercept[MissingCTDocument](await(repository.updateSubmissionStatus(registrationId, "testStatus")))
     }
   }
 
-  "removeTaxRegistrationInformation" should {
+  "removeTaxRegistrationInformation" must {
 
     val registrationId = "testRegId"
 
@@ -705,32 +690,32 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     )
 
     "remove companyDetails, contactDetails and tradingDetails objects from the collection" in new Setup {
-      await(setupCollection(repository, corporationTaxRegistration))
+      setupCollection(repository, corporationTaxRegistration)
 
       val response = repository.removeTaxRegistrationInformation(registrationId)
-      await(response) shouldBe true
+      await(response) mustBe true
     }
     "remove just company details when contact details and trading details are already empty" in new Setup {
-      await(setupCollection(repository, corporationTaxRegistration.copy(tradingDetails = None, contactDetails = None)))
+      setupCollection(repository, corporationTaxRegistration.copy(tradingDetails = None, contactDetails = None))
 
       val response = repository.removeTaxRegistrationInformation(registrationId)
-      await(response) shouldBe true
+      await(response) mustBe true
     }
     "throw a MissingCTDocument exception when document does not exist" in new Setup {
       intercept[MissingCTDocument](await(repository.removeTaxRegistrationInformation("testRegId")))
     }
   }
-  "getInternalId" should {
+  "getInternalId" must {
     "return None when no CT Doc exists" in new Setup {
       intercept[MissingCTDocument](await(repository.getInternalId("testInternalId")))
     }
     "return Some(regId, InternalId) when ct doc exists" in new Setup {
       insert(newCTDoc)
-      await(repository.getInternalId(registrationId)) shouldBe(newCTDoc.registrationID, newCTDoc.internalId)
+      await(repository.getInternalId(registrationId)) mustBe(newCTDoc.registrationID, newCTDoc.internalId)
     }
   }
 
-  "updateCTRecordWithAcknowledgments" should {
+  "updateCTRecordWithAcknowledgments" must {
 
     val ackRef = "BRCT12345678910"
 
@@ -763,11 +748,11 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
     "return a WriteResult with no errors" in new Setup {
       val result = await(repository.updateCTRecordWithAcknowledgments(ackRef, validHeldCorporationTaxRegistration))
-      result.writeErrors shouldBe Seq()
+      result.getModifiedCount mustBe 0
     }
   }
 
-  "retrieveByAckRef" should {
+  "retrieveByAckRef" must {
 
     val ackRef = "BRCT12345678910"
 
@@ -787,15 +772,15 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     "return an optional ct record" when {
 
       "given an ack ref" in new Setup {
-        await(setupCollection(repository, validHeldCorporationTaxRegistration))
+        setupCollection(repository, validHeldCorporationTaxRegistration)
 
-        val result = await(repository.findBySelector(repository.ackRefSelector(ackRef))).get
-        result shouldBe validHeldCorporationTaxRegistration
+        val result = await(repository.findOneBySelector(repository.ackRefSelector(ackRef))).get
+        result mustBe validHeldCorporationTaxRegistration
       }
     }
   }
 
-  "Update registration to submitted (with data)" should {
+  "Update registration to submitted (with data)" must {
 
     val ackRef = "BRCT12345678910"
 
@@ -811,28 +796,28 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     )
 
     "update the CRN and timestamp" in new Setup {
-      await(setupCollection(repository, heldReg))
+      setupCollection(repository, heldReg)
 
       val crn = "crn1234"
       val submissionTS = "2001-12-31T12:00:00Z"
 
       val result = await(repository.updateHeldToSubmitted(heldReg.registrationID, crn, submissionTS))
 
-      result shouldBe true
+      result mustBe true
 
-      val someActual = await(repository.findBySelector(repository.regIDSelector(heldReg.registrationID)))
-      someActual shouldBe defined
+      val someActual = await(repository.findOneBySelector(repository.regIDSelector(heldReg.registrationID)))
+      someActual mustBe defined
       val actual = someActual.get
-      actual.status shouldBe RegistrationStatus.SUBMITTED
-      actual.crn shouldBe Some(crn)
-      actual.submissionTimestamp shouldBe Some(submissionTS)
-      actual.accountingDetails shouldBe None
-      actual.accountsPreparation shouldBe None
+      actual.status mustBe RegistrationStatus.SUBMITTED
+      actual.crn mustBe Some(crn)
+      actual.submissionTimestamp mustBe Some(submissionTS)
+      actual.accountingDetails mustBe None
+      actual.accountsPreparation mustBe None
     }
 
     "fail to update the CRN" in new Setup {
 
-      await(setupCollection(repository, heldReg.copy(registrationID = "ABC")))
+      setupCollection(repository, heldReg.copy(registrationID = "ABC"))
 
       val crn = "crn1234"
       val submissionTS = "2001-12-31T12:00:00Z"
@@ -845,7 +830,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
   }
 
-  "removeTaxRegistrationById" should {
+  "removeTaxRegistrationById" must {
     val regId = UUID.randomUUID.toString
 
     val corporationTaxRegistration = CorporationTaxRegistration(
@@ -867,26 +852,26 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     )
 
     "remove all details under that RegId from the collection" in new Setup {
-      await(setupCollection(repository, corporationTaxRegistration))
+      setupCollection(repository, corporationTaxRegistration)
 
       lazy val response = repository.removeTaxRegistrationById(regId)
 
-      retrieve(regId) shouldBe Some(corporationTaxRegistration)
-      await(response) shouldBe true
-      retrieve(regId) shouldBe None
+      retrieve(regId) mustBe Some(corporationTaxRegistration)
+      await(response) mustBe true
+      retrieve(regId) mustBe None
     }
 
     "remove only the data associated with the supplied regId" in new Setup {
-      count shouldBe 0
+      count mustBe 0
       insert(corporationTaxRegistration)
       insert(corporationTaxRegistration.copy(registrationID = "otherRegId"))
-      count shouldBe 2
+      count mustBe 2
 
       val result = await(repository.removeTaxRegistrationById(regId))
 
-      count shouldBe 1
-      retrieve(regId) shouldBe None
-      retrieve("otherRegId") shouldBe Some(corporationTaxRegistration.copy(registrationID = "otherRegId"))
+      count mustBe 1
+      retrieve(regId) mustBe None
+      retrieve("otherRegId") mustBe Some(corporationTaxRegistration.copy(registrationID = "otherRegId"))
     }
 
     "experience an missing ct doc exception if not document exists" in new Setup {
@@ -894,7 +879,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     }
   }
 
-  "Registration Progress" should {
+  "Registration Progress" must {
     val registrationId = UUID.randomUUID.toString
 
     val corporationTaxRegistration = CorporationTaxRegistration(
@@ -906,20 +891,20 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     )
 
     "be stored in the document correctly" in new Setup {
-      await(setupCollection(repository, corporationTaxRegistration))
+      setupCollection(repository, corporationTaxRegistration)
 
-      def retrieve = await(repository.findBySelector(repository.regIDSelector(registrationId)))
+      def retrieve = await(repository.findOneBySelector(repository.regIDSelector(registrationId)))
 
-      retrieve.get.registrationProgress shouldBe None
+      retrieve.get.registrationProgress mustBe None
 
       val progress = "In progress"
       await(repository.updateRegistrationProgress(registrationId, progress))
 
-      retrieve.get.registrationProgress shouldBe Some(progress)
+      retrieve.get.registrationProgress mustBe Some(progress)
     }
   }
 
-  "updateRegistrationToHeld" should {
+  "updateRegistrationToHeld" must {
 
     val regId = "reg-12345"
     val dateTime = DateTime.parse("2017-09-04T14:49:48.261")
@@ -965,7 +950,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
     "update registration status to held, set confirmation refs and remove trading details, contact details and company details" in new Setup {
 
-      await(setupCollection(repository, corporationTaxRegistration))
+      setupCollection(repository, corporationTaxRegistration)
 
       val Some(result): Option[CorporationTaxRegistration] = await(repository.updateRegistrationToHeld(regId, validConfirmationReferences))
 
@@ -987,11 +972,11 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         groups = None
       ))
 
-      result shouldBe expected
+      result mustBe expected
     }
   }
 
-  "retrieveLockedRegIds" should {
+  "retrieveLockedRegIds" must {
 
     val regId = "reg-12345"
     val lockedRegId = "reg-54321"
@@ -1045,16 +1030,16 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
     "retrieve only regids with the status of LOCKED" in new Setup {
 
-      await(setupCollection(repository, corporationTaxRegistration))
-      await(setupCollection(repository, lockedCorporationTaxRegistration))
+      setupCollection(repository, corporationTaxRegistration)
+      setupCollection(repository, lockedCorporationTaxRegistration)
 
       val result = await(repository.retrieveLockedRegIDs())
 
-      result shouldBe List(lockedRegId)
+      result mustBe List(lockedRegId)
     }
   }
 
-  "retrieveStatusAndExistenceOfCTUTRByAckRef" should {
+  "retrieveStatusAndExistenceOfCTUTRByAckRef" must {
 
     val ackRef = "BRCT09876543210"
 
@@ -1081,23 +1066,23 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
     "retrieve nothing when registration is not found" in new Setup {
       val result = await(repository.retrieveStatusAndExistenceOfCTUTR("Non-existent AckRef"))
-      result shouldBe None
+      result mustBe None
     }
     "retrieve a CTUTR (as a Boolean) when the ackref status is 04" in new Setup {
-      await(setupCollection(repository, corporationTaxRegistration("04", ctutr = true)))
+      setupCollection(repository, corporationTaxRegistration("04", ctutr = true))
 
       val result = await(repository.retrieveStatusAndExistenceOfCTUTR(ackRef))
-      result shouldBe Option("04" -> true)
+      result mustBe Option("04" -> true)
     }
     "retrieve no CTUTR (as a Boolean) when the ackref status is 06" in new Setup {
-      await(setupCollection(repository, corporationTaxRegistration("06", ctutr = false)))
+      setupCollection(repository, corporationTaxRegistration("06", ctutr = false))
 
       val result = await(repository.retrieveStatusAndExistenceOfCTUTR(ackRef))
-      result shouldBe Option("06" -> false)
+      result mustBe Option("06" -> false)
     }
   }
 
-  "updateRegistrationWithAdminCTReference" should {
+  "updateRegistrationWithAdminCTReference" must {
 
     val ackRef = "BRCT09876543210"
     val dateTime = DateTime.parse("2017-09-04T14:49:48.261")
@@ -1130,11 +1115,11 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       val newUtr = "newUtr"
       val newStatus = "04"
 
-      await(setupCollection(repository, corporationTaxRegistration("06", ctutr = false)))
+      setupCollection(repository, corporationTaxRegistration("06", ctutr = false))
 
       val Some(result): Option[CorporationTaxRegistration] = await(repository.updateRegistrationWithAdminCTReference(ackRef, newUtr))
 
-      result shouldBe corporationTaxRegistration("06", ctutr = false)
+      result mustBe corporationTaxRegistration("06", ctutr = false)
     }
 
     "not update a registration that does not exist" in new Setup {
@@ -1144,11 +1129,11 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       val result: Option[CorporationTaxRegistration] = await(repository.updateRegistrationWithAdminCTReference(ackRef, newUtr))
       val expected: Option[CorporationTaxRegistration] = None
 
-      result shouldBe expected
+      result mustBe expected
     }
   }
 
-  "retrieveSessionIdentifiers" should {
+  "retrieveSessionIdentifiers" must {
     val regId = "12345"
     val (defaultSID, defaultCID) = ("oldSessID", "oldCredId")
 
@@ -1176,25 +1161,25 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
     "retrieve session identifiers" when {
       "a document exists and has identifiers" in new Setup {
-        await(setupCollection(repository, corporationTaxRegistration(regId, alreadyHasSessionIds = true)))
+        setupCollection(repository, corporationTaxRegistration(regId, alreadyHasSessionIds = true))
 
-        await(repository.retrieveSessionIdentifiers(regId)) shouldBe Some(SessionIds(defaultSID, defaultCID))
+        await(repository.retrieveSessionIdentifiers(regId)) mustBe Some(SessionIds(defaultSID, defaultCID))
       }
 
     }
     "return a None" when {
       "a document exists and does not have identifiers" in new Setup {
-        await(setupCollection(repository, corporationTaxRegistration(regId)))
+        setupCollection(repository, corporationTaxRegistration(regId))
 
-        await(repository.retrieveSessionIdentifiers(regId)) shouldBe None
+        await(repository.retrieveSessionIdentifiers(regId)) mustBe None
       }
       "there is no Document" in new Setup {
-        await(repository.retrieveSessionIdentifiers(regId)) shouldBe None
+        await(repository.retrieveSessionIdentifiers(regId)) mustBe None
       }
     }
   }
 
-  "storeSessionIdentifiers" should {
+  "storeSessionIdentifiers" must {
     val regId = "132"
     val sessionId = "sessionId-12345"
     val credId = "authorisedId"
@@ -1225,30 +1210,30 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     "successfully write encrpyted identifiers to mongo" when {
 
       "a document exists" in new Setup {
-        await(setupCollection(repository, corporationTaxRegistration(regId)))
-        await(repository.findBySelector(repository.regIDSelector(regId))) map {
+        setupCollection(repository, corporationTaxRegistration(regId))
+        await(repository.findOneBySelector(repository.regIDSelector(regId))) map {
           doc => doc.sessionIdentifiers
-        } shouldBe Some(None)
+        } mustBe Some(None)
 
         await(repository.storeSessionIdentifiers(regId, sessionId, credId))
 
-        await(repository.findBySelector(repository.regIDSelector(regId))) map {
+        await(repository.findOneBySelector(repository.regIDSelector(regId))) map {
           doc => doc.sessionIdentifiers
-        } shouldBe Some(Some(SessionIds(sessionId, credId)))
+        } mustBe Some(Some(SessionIds(sessionId, credId)))
       }
       "a document exists and already has old session Ids" in new Setup {
 
-        await(setupCollection(repository, corporationTaxRegistration(regId, alreadyHasSessionIds = true)))
-        await(repository.findBySelector(repository.regIDSelector(regId))) map {
+        setupCollection(repository, corporationTaxRegistration(regId, alreadyHasSessionIds = true))
+        await(repository.findOneBySelector(repository.regIDSelector(regId))) map {
           doc => doc.sessionIdentifiers
-        } shouldBe Some(Some(SessionIds(defaultSID, defaultCID)))
+        } mustBe Some(Some(SessionIds(defaultSID, defaultCID)))
 
 
         await(repository.storeSessionIdentifiers(regId, sessionId, credId))
 
-        await(repository.findBySelector(repository.regIDSelector(regId))) map {
+        await(repository.findOneBySelector(repository.regIDSelector(regId))) map {
           doc => doc.sessionIdentifiers
-        } shouldBe Some(Some(SessionIds(sessionId, credId)))
+        } mustBe Some(Some(SessionIds(sessionId, credId)))
       }
     }
 
@@ -1259,15 +1244,15 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     }
   }
 
-  "transactionIdSelector" should {
+  "transactionIdSelector" must {
     "return a mapping between a documents transaction id and the value provided" in new Setup {
       val transactionId = "fakeTransId"
-      val mapping = BSONDocument("confirmationReferences.transaction-id" -> BSONString(transactionId))
-      repository.transIdSelector(transactionId) shouldBe mapping
+      val mapping = Filters.equal("confirmationReferences.transaction-id", transactionId)
+      repository.transIdSelector(transactionId) mustBe mapping
     }
   }
 
-  "updateTransactionId" should {
+  "updateTransactionId" must {
     "update a document with the new transaction id" when {
       "a document is present in the database" in new Setup {
         val regId = "registrationId"
@@ -1283,11 +1268,11 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         val updateFrom = "updateFrom"
         val updateTo = "updateTo"
 
-        await(repository.insert(corporationTaxRegistration(updateFrom)))
-        await(repository.updateTransactionId(updateFrom, updateTo)) shouldBe updateTo
-        await(repository.findBySelector(repository.regIDSelector(regId))) flatMap {
+        repository.insert(corporationTaxRegistration(updateFrom))
+        await(repository.updateTransactionId(updateFrom, updateTo)) mustBe updateTo
+        await(repository.findOneBySelector(repository.regIDSelector(regId))) flatMap {
           doc => doc.confirmationReferences
-        } shouldBe Some(ConfirmationReferences("ackRef", updateTo, None, None))
+        } mustBe Some(ConfirmationReferences("ackRef", updateTo, None, None))
       }
     }
     "fail to update a document" when {
@@ -1298,51 +1283,9 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         val updateTo = "updateTo"
 
         intercept[RuntimeException](await(repository.updateTransactionId(updateFrom, updateTo)))
-        await(repository.findBySelector(repository.regIDSelector(regId))) flatMap {
+        await(repository.findOneBySelector(repository.regIDSelector(regId))) flatMap {
           doc => doc.confirmationReferences
-        } shouldBe None
-      }
-    }
-  }
-
-  "fetchIndexes" ignore {
-
-    val indexes = List(
-      Index(
-        key = Seq("indexKey" -> IndexType.Ascending),
-        name = Some("indexName"),
-        unique = true,
-        sparse = false,
-        version = Some(1)
-      ),
-      Index(
-        key = Seq("indexKey2" -> IndexType.Ascending),
-        name = Some("indexName2"),
-        unique = true,
-        sparse = false,
-        version = Some(1)
-      )
-    )
-
-    val _idIndex = Index(
-      key = Seq("_id" -> IndexType.Ascending),
-      name = Some("_id_"),
-      unique = false,
-      sparse = false,
-      version = Some(1)
-    )
-
-    val indexesWith_idIndex = _idIndex :: indexes
-
-    "return 3 indexes from the collection" when {
-      "2 indexes are initially created, excluding the _id index" in new SetupWithIndexes(indexes) {
-        val fetchedIndexes = await(repository.fetchIndexes())
-        fetchedIndexes should contain theSameElementsAs indexesWith_idIndex
-      }
-
-      "3 indexes are created, including the _id index" in new SetupWithIndexes(indexesWith_idIndex) {
-        val fetchedIndexes = await(repository.fetchIndexes())
-        fetchedIndexes should contain theSameElementsAs indexesWith_idIndex
+        } mustBe None
       }
     }
   }
@@ -1396,25 +1339,25 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
     "return 0 documents" when {
       "trying to fetch 1 but the database contains no documents" in new Setup {
-        await(repository.retrieveStaleDocuments(1, 90)) shouldBe Nil
+        await(repository.retrieveStaleDocuments(1, 90)) mustBe Nil
       }
 
       "the database contains 0 documents matching the query when trying to fetch 1" in new Setup {
         insert(registration90DaysOldSubmitted)
 
-        await(repository.retrieveStaleDocuments(1, 91)) shouldBe Nil
+        await(repository.retrieveStaleDocuments(1, 91)) mustBe Nil
       }
       "the database contains documents not matching the query - held/locked with payment reference" in new Setup {
         insert(registration90DaysOldHeldWithPaymentRef)
         insert(registration90DaysOldLockedWithPaymentRef)
 
-        await(repository.retrieveStaleDocuments(1, 91)) shouldBe Nil
+        await(repository.retrieveStaleDocuments(1, 91)) mustBe Nil
       }
       "the database contains documents not matching the query - held/locked without payment reference and held timestamp is 90 days old" in new Setup {
         insert(registration90DaysOldHeld.copy(heldTimestamp = Some(DateTime.now(DateTimeZone.UTC).minusDays(90))))
         insert(registration90DaysOldLocked.copy(heldTimestamp = Some(DateTime.now(DateTimeZone.UTC).minusDays(90))))
 
-        await(repository.retrieveStaleDocuments(1, 91)) shouldBe Nil
+        await(repository.retrieveStaleDocuments(1, 91)) mustBe Nil
       }
     }
 
@@ -1422,14 +1365,14 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       "the database contains 1 document matching the query" in new Setup {
         insert(registration91DaysOldDraft)
 
-        await(repository.retrieveStaleDocuments(1, 90)).head.lastSignedIn.getChronology shouldBe List(registration90DaysOldDraft).head.lastSignedIn.getChronology
+        await(repository.retrieveStaleDocuments(1, 90)).head.lastSignedIn.getChronology mustBe List(registration90DaysOldDraft).head.lastSignedIn.getChronology
       }
 
       "the database contains multiple documents matching the query but the batch size was set to 1" in new Setup {
         insert(registration90DaysOldDraft)
         insert(registration91DaysOldDraft)
 
-        await(repository.retrieveStaleDocuments(1, 90)) shouldBe List(registration91DaysOldDraft)
+        await(repository.retrieveStaleDocuments(1, 90)) mustBe List(registration91DaysOldDraft)
       }
     }
 
@@ -1438,27 +1381,27 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         insert(registration91DaysOldDraft)
         insert(registration91DaysOldLocked)
 
-        await(repository.retrieveStaleDocuments(2, 90)).toSet shouldBe Set(registration91DaysOldLocked, registration91DaysOldDraft)
+        await(repository.retrieveStaleDocuments(2, 90)).toSet mustBe Set(registration91DaysOldLocked, registration91DaysOldDraft)
       }
 
       "the database contains multiple documents with the same time matching the query" in new Setup {
         insert(registration91DaysOldDraft)
         insert(registration91DaysOldLocked)
 
-        await(repository.retrieveStaleDocuments(2, 90)) should contain theSameElementsAs List(registration91DaysOldDraft, registration91DaysOldLocked)
+        await(repository.retrieveStaleDocuments(2, 90)) must contain theSameElementsAs List(registration91DaysOldDraft, registration91DaysOldLocked)
       }
 
       "1 of the documents match the query and 3 do not" in new Setup {
-        count shouldBe 0
+        count mustBe 0
         insert(registration90DaysOldDraft)
         insert(registration91DaysOldLocked)
         insert(registration30DaysOldDraft)
         insert(registration90DaysOldSubmitted)
 
         val res = await(repository.retrieveStaleDocuments(5, 90))
-        res.map(_.status) shouldBe List("draft")
-        res.size shouldBe 1
-        res shouldBe List(registration91DaysOldLocked)
+        res.map(_.status) mustBe List("draft")
+        res.size mustBe 1
+        res mustBe List(registration91DaysOldLocked)
       }
     }
 
@@ -1469,15 +1412,15 @@ class CorporationTaxRegistrationMongoRepositoryISpec
           lastSignedIn = registration91DaysOldDraft.lastSignedIn.getMillis,
           malform = Some(Json.obj("registrationID" -> true))
         )
-        await(insertRaw(incorrectRegistration))
+        repository.insertRaw(incorrectRegistration)
         insert(registration91DaysOldDraft)
 
-        await(repository.retrieveStaleDocuments(2, 90)) shouldBe List(registration91DaysOldDraft)
+        await(repository.retrieveStaleDocuments(2, 90)) mustBe List(registration91DaysOldDraft)
       }
     }
   }
 
-  "returnGroupsBlock" should {
+  "returnGroupsBlock" must {
     "return some of groups when it exists in ct" in new Setup {
       val encryptedUTR = CorporationTaxRegistrationFixture.instanceOfCrypto.wts.writes("1234567890")
 
@@ -1511,25 +1454,25 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         regId = "123",
         malform = Some(fullGroupJsonEncryptedUTR.as[JsObject])
       )
-      await(insertRaw(regWithGroups))
-      count shouldBe 1
+      repository.insertRaw(regWithGroups)
+      count mustBe 1
       val res = await(repository.returnGroupsBlock("123"))
-      res.get shouldBe validGroupsModel
+      res.get mustBe validGroupsModel
 
     }
     "return nothing when no groups block exists in ct doc" in new Setup {
-      await(insertRaw(ctRegistrationJson(regId = "123")))
-      count shouldBe 1
+      repository.insertRaw(ctRegistrationJson(regId = "123"))
+      count mustBe 1
       val res = await(repository.returnGroupsBlock("123"))
-      res shouldBe None
+      res mustBe None
     }
     "return exception when no ctDoc exists" in new Setup {
-      count shouldBe 0
+      count mustBe 0
       intercept[Exception](await(repository.returnGroupsBlock("123")))
 
     }
   }
-  "deleteGroupsBlock" should {
+  "deleteGroupsBlock" must {
     "return true if no exception occurred" in new Setup {
       val encryptedUTR = CorporationTaxRegistrationFixture.instanceOfCrypto.wts.writes("1234567890")
 
@@ -1563,30 +1506,30 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         malform = Some(fullGroupJsonEncryptedUTR.as[JsObject])
       )
 
-      await(insertRaw(regWithGroups))
-      count shouldBe 1
+      repository.insertRaw(regWithGroups)
+      count mustBe 1
       val res = await(repository.deleteGroupsBlock("123"))
-      res shouldBe true
-      count shouldBe 1
-      await(repository.returnGroupsBlock("123")) shouldBe None
+      res mustBe true
+      count mustBe 1
+      await(repository.returnGroupsBlock("123")) mustBe None
     }
     "return true if no groups block existed in the first place and a delete occurs" in new Setup {
       val regWithoutGroups = ctRegistrationJson(
         regId = "123"
       )
-      await(insertRaw(regWithoutGroups))
-      count shouldBe 1
+      repository.insertRaw(regWithoutGroups)
+      count mustBe 1
       val res = await(repository.deleteGroupsBlock("123"))
-      res shouldBe true
-      await(repository.returnGroupsBlock("123")) shouldBe None
+      res mustBe true
+      await(repository.returnGroupsBlock("123")) mustBe None
     }
     "throw exception if no doc is found" in new Setup {
-      count shouldBe 0
+      count mustBe 0
       intercept[Exception](await(repository.deleteGroupsBlock("123")))
     }
   }
 
-  "updateGroupsBlock" should {
+  "updateGroupsBlock" must {
     "return updated group and update block if one exists already" in new Setup {
       val encryptedUTR = CorporationTaxRegistrationFixture.instanceOfCrypto.wts.writes("1234567890")
 
@@ -1619,12 +1562,12 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         regId = "123",
         malform = Some(fullGroupJsonEncryptedUTR.as[JsObject])
       )
-      await(insertRaw(regWithGroups))
-      count shouldBe 1
+      repository.insertRaw(regWithGroups)
+      count mustBe 1
       val res = await(repository.returnGroupsBlock("123"))
-      res shouldBe Some(validGroupsModel)
+      res mustBe Some(validGroupsModel)
       val resOfUpdate = await(repository.updateGroups("123", Groups(false, None, None, None)))
-      resOfUpdate shouldBe Groups(false, None, None, None)
+      resOfUpdate mustBe Groups(false, None, None, None)
     }
 
     "return groups when an upsert occurs of the block" in new Setup {
@@ -1654,12 +1597,13 @@ class CorporationTaxRegistrationMongoRepositoryISpec
            |}
         """.stripMargin)
       insert(corporationTaxRegistration(regId = "123").copy(groups = None))
-      count shouldBe 1
-      await(repository.returnGroupsBlock("123")) shouldBe None
+      count mustBe 1
+      await(repository.returnGroupsBlock("123")) mustBe None
       val resOfUpdate = await(repository.updateGroups("123", validGroupsModel))
-      resOfUpdate shouldBe validGroupsModel
-      val res = repository.collection.find(repository.regIDSelector("123"), BSONDocument("groups" -> 1))
-      (await(res.one[JsObject]).get \ "groups").as[JsObject] shouldBe fullGroupJsonEncryptedUTR.as[JsObject]
+      resOfUpdate mustBe validGroupsModel
+      val groups = await(repository.findOneBySelector(repository.regIDSelector("123"))).get.groups.get
+      val groupJson = Json.toJson(groups)(Groups.formats(MongoValidation, app.injector.instanceOf[CryptoSCRS]))
+      groupJson mustBe fullGroupJsonEncryptedUTR
     }
     "return groups when same data is inserted twice" in new Setup {
       val encryptedUTR = CorporationTaxRegistrationFixture.instanceOfCrypto.wts.writes("1234567890")
@@ -1693,19 +1637,19 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         regId = "123",
         malform = Some(fullGroupJsonEncryptedUTR.as[JsObject])
       )
-      await(insertRaw(regWithGroups))
-      count shouldBe 1
+      repository.insertRaw(regWithGroups)
+      count mustBe 1
       val resOfUpdate = await(repository.updateGroups("123", validGroupsModel))
-      resOfUpdate shouldBe validGroupsModel
+      resOfUpdate mustBe validGroupsModel
     }
 
     "return exception if regDoc doesnt exist" in new Setup {
-      count shouldBe 0
+      count mustBe 0
       intercept[Exception](await(repository.updateGroups("123", validGroupsModel)))
     }
   }
 
-  "update" should {
+  "update" must {
     "update a document with the specified updates" when {
       "the document exists" in new Setup {
         val key = "takeoverDetails"
@@ -1715,12 +1659,12 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         val testJson = Json.toJson(testData).as[JsObject]
 
         val res = for {
-          _ <- insertRaw(testJson)
+          _ <- Future.successful(repository.insertRaw(testJson))
           _ <- repository.update(repository.regIDSelector(regId), key, testTakeoverDetails)
-          model <- repository.findBySelector(repository.regIDSelector(regId))
+          model <- repository.findOneBySelector(repository.regIDSelector(regId))
         } yield model
 
-        await(res).get.takeoverDetails shouldBe Some(testTakeoverDetailsModel)
+        await(res).get.takeoverDetails mustBe Some(testTakeoverDetailsModel)
       }
     }
 
@@ -1728,7 +1672,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       "the document doesn't exist" in new Setup {
         val key = "takeoverDetails"
         val regId = "0123456789"
-        count shouldBe 0
+        count mustBe 0
 
         intercept[NoSuchElementException](
           await(repository.update(repository.regIDSelector(regId), key, testTakeoverDetails))

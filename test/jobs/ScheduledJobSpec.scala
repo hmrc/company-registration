@@ -21,12 +21,12 @@ import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 import jobs.SchedulingActor.MissingIncorporation
 import org.mockito.Mockito.reset
 import org.quartz.CronExpression
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.Configuration
 import services.CorporationTaxRegistrationService
 
-class ScheduledJobSpec extends WordSpec with Matchers with MockitoSugar {
+class ScheduledJobSpec extends PlaySpec with MockitoSugar {
   val jobNameTest = "testJobName"
   val mockActorSystem = mock[ActorSystem]
   val mockService = mock[CorporationTaxRegistrationService]
@@ -55,29 +55,29 @@ class ScheduledJobSpec extends WordSpec with Matchers with MockitoSugar {
   }
 
   "expression should read from string correctly with underscores" in new Setup("0_0/10_0-23_?_*_*_*") {
-    job.expression shouldBe "0 0/10 0-23 ? * * *"
+    job.expression mustBe "0 0/10 0-23 ? * * *"
   }
 
   "expression should read from string correctly with underscores with a different value we will also be using" in new Setup("0/59_0_0-23_?_*_*_*") {
-    job.expression shouldBe "0/59 0 0-23 ? * * *"
+    job.expression mustBe "0/59 0 0-23 ? * * *"
   }
 
   "isValid should return true if valid cron config returned" in new Setup("0_0/2_0-23_?_*_*_*") {
-    job.expressionValid shouldBe true
+    job.expressionValid mustBe true
   }
 
   "isValid should return false if an invalid cron config is returned" in new Setup("testInvalidCronString") {
-    job.expressionValid shouldBe false
+    job.expressionValid mustBe false
   }
 
   "isValid should return false if empty string is returned" in new Setup("") {
-    job.expressionValid shouldBe false
+    job.expressionValid mustBe false
   }
 
   "expression once converted should convert to a cron expression success" in new Setup("0/10_0_0-23_?_*_*_*") {
     val parsed = new CronExpression(job.expression)
-    parsed.getCronExpression shouldBe "0/10 0 0-23 ? * * *"
-    parsed.getExpressionSummary shouldBe
+    parsed.getCronExpression mustBe "0/10 0 0-23 ? * * *"
+    parsed.getExpressionSummary mustBe
       """seconds: 0,10,20,30,40,50
         |minutes: 0
         |hours: 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23
@@ -93,14 +93,14 @@ class ScheduledJobSpec extends WordSpec with Matchers with MockitoSugar {
   }
 
   "scheduler called if enabled and valid cron config" in new Setup("0/10_0_0-23_?_*_*_*", true) {
-    job.schedule shouldBe true
+    job.schedule mustBe true
   }
 
   "scheduler NOT called if not enabled and cron config invalid" in new Setup("testInvalidCronString", false) {
-    job.schedule shouldBe false
+    job.schedule mustBe false
 
   }
   "scheduler NOT called if enabled and cron config invalid" in new Setup("testInvalidCronString", true) {
-    job.schedule shouldBe false
+    job.schedule mustBe false
   }
 }

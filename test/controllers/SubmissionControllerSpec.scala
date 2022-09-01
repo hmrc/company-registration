@@ -61,7 +61,7 @@ class SubmissionControllerSpec extends BaseSpec with AuthorisationMocks with Cor
   val internalId = "int-12345"
   val authProviderId = "auth-prov-id-12345"
 
-  "handleUserSubmission" should {
+  "handleUserSubmission" must {
 
     val credentials = Credentials(authProviderId, "testProviderType")
 
@@ -81,8 +81,8 @@ class SubmissionControllerSpec extends BaseSpec with AuthorisationMocks with Cor
         .thenReturn(Future.successful(Some(expectedRefs)))
 
       val result: Future[Result] = controller.handleUserSubmission(regId)(request)
-      status(result) shouldBe OK
-      contentAsJson(result) shouldBe Json.toJson(expectedRefs)
+      status(result) mustBe OK
+      contentAsJson(result) mustBe Json.toJson(expectedRefs)
     }
 
     "return a forbidden if internalId not retrieved from Auth" in new Setup {
@@ -106,11 +106,11 @@ class SubmissionControllerSpec extends BaseSpec with AuthorisationMocks with Cor
       mockAuthorise(Future.failed(InsufficientConfidenceLevel()))
 
       val result: Future[Result] = controller.handleUserSubmission(regId)(request)
-      status(result) shouldBe FORBIDDEN
+      status(result) mustBe FORBIDDEN
     }
   }
 
-  "acknowledgementConfirmation" should {
+  "acknowledgementConfirmation" must {
 
     def request(ctutr: Boolean, code: String): FakeRequest[JsValue] = FakeRequest().withBody(
       Json.toJson(AcknowledgementReferences(if (ctutr) Some("testCtutr") else None, "testTimestamp", code))(AcknowledgementReferences.format(APIValidation, mockInstanceOfCrypto))
@@ -120,14 +120,14 @@ class SubmissionControllerSpec extends BaseSpec with AuthorisationMocks with Cor
       "given invalid json" in new Setup {
         val request: FakeRequest[JsValue] = FakeRequest().withBody(Json.toJson(""))
         val result: Future[Result] = controller.acknowledgementConfirmation("TestAckRef")(request)
-        status(result) shouldBe BAD_REQUEST
+        status(result) mustBe BAD_REQUEST
       }
       "given an Accepted response without a CTUTR" in new Setup {
         val json: JsValue = Json.toJson(AcknowledgementReferences(None, "testTimestamp", "04"))(AcknowledgementReferences.format(MongoValidation, mockInstanceOfCrypto))
 
         val request: FakeRequest[JsValue] = FakeRequest().withBody(Json.toJson(json))
         val result: Future[Result] = controller.acknowledgementConfirmation("TestAckRef")(request)
-        status(result) shouldBe BAD_REQUEST
+        status(result) mustBe BAD_REQUEST
       }
     }
 
@@ -141,7 +141,7 @@ class SubmissionControllerSpec extends BaseSpec with AuthorisationMocks with Cor
 
         accepted foreach { code =>
           val result = controller.acknowledgementConfirmation(ackRef)(request(ctutr = true, code))
-          status(result) shouldBe OK
+          status(result) mustBe OK
         }
       }
 
@@ -158,7 +158,7 @@ class SubmissionControllerSpec extends BaseSpec with AuthorisationMocks with Cor
             .thenReturn(Future.successful(rejected))
 
           val ctutrExists: Future[Result] = controller.acknowledgementConfirmation(ackRef)(request(ctutr = true, rejections.head))
-          status(ctutrExists) shouldBe OK
+          status(ctutrExists) mustBe OK
         }
 
         "has no CTUTR" in new Setup {
@@ -166,7 +166,7 @@ class SubmissionControllerSpec extends BaseSpec with AuthorisationMocks with Cor
             .thenReturn(Future.successful(rejected))
           rejections.tail foreach { code =>
             val result = controller.acknowledgementConfirmation(ackRef)(request(ctutr = false, code))
-            status(result) shouldBe OK
+            status(result) mustBe OK
           }
         }
       }
@@ -179,7 +179,7 @@ class SubmissionControllerSpec extends BaseSpec with AuthorisationMocks with Cor
             .thenReturn(Future.successful(None))
 
           val result: Future[Result] = controller.acknowledgementConfirmation(ackRef)(request(ctutr = true, "04"))
-          status(result) shouldBe NOT_FOUND
+          status(result) mustBe NOT_FOUND
         }
       }
 

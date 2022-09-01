@@ -17,40 +17,40 @@
 package models
 
 import assets.TestConstants.TakeoverDetails._
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsError, JsSuccess, Json}
 
-class AddressSpec extends WordSpec with Matchers {
+class AddressSpec extends PlaySpec {
 
-  "address" should {
+  "address" must {
     "return JsSuccess" when {
       "all values have been provided" in {
         val addressJson = testTakeoverAddress.toJson
         val expected = JsSuccess(testTakeoverAddressModel)
         val actual = Json.fromJson[Address](addressJson)
 
-        actual shouldBe expected
+        actual mustBe expected
       }
       "lines 3 and 4 of the address are not provided" in {
         val addressJson = testTakeoverAddress.copy(optLine3 = None, optLine4 = None).toJson
         val expected = JsSuccess(testTakeoverAddressModel.copy(line3 = None, line4 = None))
         val actual = Json.fromJson[Address](addressJson)
 
-        actual shouldBe expected
+        actual mustBe expected
       }
       "postcode is not provided, but country is provided" in {
         val addressJson = testTakeoverAddress.copy(optPostcode = None).toJson
         val expected = JsSuccess(testTakeoverAddressModel.copy(postcode = None))
         val actual = Json.fromJson[Address](addressJson)
 
-        actual shouldBe expected
+        actual mustBe expected
       }
       "country is not provided, but postcode is provided" in {
         val addressJson = testTakeoverAddress.copy(optCountry = None).toJson
         val expected = JsSuccess(testTakeoverAddressModel.copy(country = None))
         val actual = Json.fromJson[Address](addressJson)
 
-        actual shouldBe expected
+        actual mustBe expected
       }
     }
     "return JsError" when {
@@ -60,7 +60,7 @@ class AddressSpec extends WordSpec with Matchers {
         val expected = JsError(addressValidationMessage)
         val actual = Json.fromJson[Address](addressJson)
 
-        actual shouldBe expected
+        actual mustBe expected
       }
     }
   }

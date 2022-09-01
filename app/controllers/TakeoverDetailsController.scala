@@ -38,13 +38,12 @@ class TakeoverDetailsController @Inject()(val repositories: Repositories,
 
   def getBlock(registrationID: String): Action[AnyContent] =
     AuthorisedAction(registrationID).async {
-      implicit request =>
-        takeoverDetailsService.retrieveTakeoverDetailsBlock(registrationID).map {
-          case Some(takeoverDetails) =>
-            Ok(Json.toJson(takeoverDetails)(TakeoverDetails.format))
-          case None =>
-            NoContent
-        }
+      takeoverDetailsService.retrieveTakeoverDetailsBlock(registrationID).map {
+        case Some(takeoverDetails) =>
+          Ok(Json.toJson(takeoverDetails)(TakeoverDetails.format))
+        case None =>
+          NoContent
+      }
     }
 
   def saveBlock(registrationID: String): Action[JsValue] =

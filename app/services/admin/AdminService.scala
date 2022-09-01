@@ -24,19 +24,20 @@ import jobs.{LockResponse, MongoLocked, ScheduledService, UnlockingFailed}
 import models.RegistrationStatus._
 import models.admin.{AdminCTReferenceDetails, HO6Identifiers, HO6Response}
 import models.{ConfirmationReferences, CorporationTaxRegistration, HO6RegistrationInformation, SessionIdData}
-import org.joda.time.{DateTime, Duration}
+import org.joda.time.DateTime
 import play.api.Logging
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.Request
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.FailedToDeleteSubmissionData
 import uk.gov.hmrc.http.{HeaderCarrier, NotFoundException}
-import uk.gov.hmrc.lock.LockKeeper
+import uk.gov.hmrc.mongo.lock.LockService
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import java.util.Base64
 import javax.inject.{Inject, Singleton}
+import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -54,11 +55,7 @@ class AdminServiceImpl @Inject()(val corpTaxRegRepo: CorporationTaxRegistrationM
   lazy val ignoredDocs: Set[String] = new String(Base64.getDecoder.decode(microserviceAppConfig.getConfigString("skipStaleDocs")), "UTF-8").split(",").toSet
 
   lazy val lockoutTimeout = servicesConfig.getInt("schedules.remove-stale-documents-job.lockTimeout")
-  lazy val lockKeeper: LockKeeper = new LockKeeper() {
-    override val lockId = "remove-stale-documents-job-lock"
-    override val forceLockReleaseAfter: Duration = Duration.standardSeconds(lockoutTimeout)
-    override lazy val repo = repositories.lockRepository
-  }
+  lazy val lockKeeper: LockService = LockService(repositories.lockRepository, "remove-stale-documents-job-lock", lockoutTimeout.seconds)
 }
 
 trait AdminService extends ScheduledService[Either[Int, LockResponse]] with DateFormatter with Logging {
@@ -69,7 +66,7 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
   val auditConnector: AuditConnector
   val incorpInfoConnector: IncorporationInformationConnector
   val brConnector: BusinessRegistrationConnector
-  val lockKeeper: LockKeeper
+  val lockKeeper: LockService
 
   val staleAmount: Int
   val clearAfterXDays: Int
@@ -78,7 +75,7 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
   def fetchHO6RegistrationInformation(regId: String): Future[Option[HO6RegistrationInformation]] = corpTaxRegRepo.fetchHO6Information(regId)
 
   def fetchSessionIdData(regId: String): Future[Option[SessionIdData]] = {
-    corpTaxRegRepo.findBySelector(corpTaxRegRepo.regIDSelector(regId)) map (_.map { reg =>
+    corpTaxRegRepo.findOneBySelector(corpTaxRegRepo.regIDSelector(regId)) map (_.map { reg =>
       SessionIdData(
         reg.sessionIdentifiers.map(_.sessionId),
         reg.sessionIdentifiers.map(_.credId),
@@ -170,7 +167,7 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
 
   def invoke(implicit ec: ExecutionContext): Future[Either[Int, LockResponse]] = {
     implicit val hc = HeaderCarrier()
-    lockKeeper.tryLock(deleteStaleDocuments()).map {
+    lockKeeper.withLock(deleteStaleDocuments()).map {
       case Some(res) =>
         logger.info("AdminService acquired lock and returned results")
         logger.info(s"[remove-stale-documents-job] Successfully deleted $res stale documents")

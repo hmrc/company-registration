@@ -65,7 +65,7 @@ class TakeoverDetailsControllerSpec extends BaseSpec with AuthorisationMocks {
     }
   }
 
-  "getBlock" should {
+  "getBlock" must {
     "successfully retrieve a json with a valid TakeoverDetails and a 200 status if the data exists" in new Setup {
       mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
@@ -73,8 +73,8 @@ class TakeoverDetailsControllerSpec extends BaseSpec with AuthorisationMocks {
       when(mockTakeoverDetailsService.retrieveTakeoverDetailsBlock(registrationId)).thenReturn(Future.successful(Some(validTakeoverDetailsModel)))
 
       val result: Future[Result] = controller.getBlock(registrationId)(FakeRequest())
-      status(result) shouldBe OK
-      contentAsJson(result) shouldBe Json.obj(
+      status(result) mustBe OK
+      contentAsJson(result) mustBe Json.obj(
         "replacingAnotherBusiness" -> true,
         "businessName" -> "business",
         "businessTakeoverAddress" -> Json.obj(
@@ -103,11 +103,11 @@ class TakeoverDetailsControllerSpec extends BaseSpec with AuthorisationMocks {
       when(mockTakeoverDetailsService.retrieveTakeoverDetailsBlock(registrationId)).thenReturn(Future.successful(None))
 
       val result: Future[Result] = controller.getBlock(registrationId)(FakeRequest())
-      status(result) shouldBe NO_CONTENT
+      status(result) mustBe NO_CONTENT
     }
   }
 
-  "putSubmission" should {
+  "putSubmission" must {
     "return a 200 response if the TakeoverDetails json is valid" in new Setup {
       mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
@@ -136,7 +136,7 @@ class TakeoverDetailsControllerSpec extends BaseSpec with AuthorisationMocks {
       when(mockTakeoverDetailsService.updateTakeoverDetailsBlock(eqTo(registrationId), any())).thenReturn(Future.successful(validTakeoverDetailsModel))
 
       val result: Future[Result] = controller.saveBlock(registrationId)(request)
-      status(result) shouldBe OK
+      status(result) mustBe OK
     }
 
     "return a 400 response if the TakeoverDetails json is invalid" in new Setup {
@@ -165,7 +165,7 @@ class TakeoverDetailsControllerSpec extends BaseSpec with AuthorisationMocks {
       ))
 
       val result: Future[Result] = controller.saveBlock(registrationId)(request)
-      status(result) shouldBe BAD_REQUEST
+      status(result) mustBe BAD_REQUEST
     }
     "return an exception if the request is missing fields" in new Setup {
       mockAuthorise(Future.successful(Some(internalId)))

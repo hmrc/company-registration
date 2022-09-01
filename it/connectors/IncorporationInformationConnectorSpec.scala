@@ -45,13 +45,13 @@ class IncorporationInformationConnectorSpec extends IntegrationSpecBase {
     .build
   implicit val hc: HeaderCarrier = HeaderCarrier()
   val connector = app.injector.instanceOf[IncorporationInformationConnector]
-  "callBackUrl" should {
+  "callBackUrl" must {
     "be the correct url" in {
-      connector.callBackurl(true) shouldBe "https://test.host:1234/company-registration/corporation-tax-registration/process-admin-incorp"
+      connector.callBackurl(true) mustBe "https://test.host:1234/company-registration/corporation-tax-registration/process-admin-incorp"
     }
   }
 
-  "registerInterest" should {
+  "registerInterest" must {
     "return future successful true if admin is false" in {
       stubFor(post(urlEqualTo("/incorporation-information/subscribe/123/regime/ctax/subscriber/SCRS?force=true"))
         .withRequestBody(equalToJson(Json.obj("SCRSIncorpSubscription" -> Json.obj("callbackUrl" -> connector.callBackurl(false))).toString()))

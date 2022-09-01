@@ -17,14 +17,11 @@
 package repositories
 
 import itutil.IntegrationSpecBase
+import org.mongodb.scala.bson.BsonDocument
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.Helpers._
-import play.modules.reactivemongo.ReactiveMongoComponent
 import services.ThrottleService
-import uk.gov.hmrc.time.DateTimeUtils
-
-import scala.concurrent.ExecutionContext.Implicits.global
 
 class ThrottleMongoRepositoryISpec extends IntegrationSpecBase {
 
@@ -39,35 +36,30 @@ class ThrottleMongoRepositoryISpec extends IntegrationSpecBase {
 
   class Setup {
     val service = app.injector.instanceOf[ThrottleService]
-
-    val repository = service.throttleMongoRepository
-    await(repository.drop)
+    val repository = app.injector.instanceOf[ThrottleMongoRepository]
+    await(repository.collection.deleteMany(BsonDocument()).toFuture())
     await(repository.ensureIndexes)
     }
 
-  override def afterAll() = new Setup {
-    await(repository.drop)
-  }
-  DateTimeUtils.now
   val testKey = "testKey"
 
-  "Throttle repository" should {
+  "Throttle repository" must {
     "should be able to get an _id" in new Setup {
       val response = await(repository.update(testKey, 10))
-      response shouldBe 1
+      response mustBe 1
     }
 
     "get sequences, one after another from 1 to the end" in new Setup {
       val inputs = 1 to 7
       val outputs = inputs map { _ => await(repository.update(testKey, 10)) }
-      outputs shouldBe inputs
+      outputs mustBe inputs
     }
   }
 
-  "Throttle service" should {
+  "Throttle service" must {
 
     "return true when the user count collection is inserted" in new Setup {
-      await(service.checkUserAccess) shouldBe true
+      await(service.checkUserAccess) mustBe true
     }
 
     "return a true when the user count is updated and is at the limit and then return a false on the next update" in new Setup {
@@ -75,24 +67,26 @@ class ThrottleMongoRepositoryISpec extends IntegrationSpecBase {
         await(service.checkUserAccess)
       }
 
-      await(service.checkUserAccess) shouldBe true
-      await(service.checkUserAccess) shouldBe false
+      await(service.checkUserAccess) mustBe true
+      await(service.checkUserAccess) mustBe false
     }
 
     "return false when the user count is over the limit" in new Setup {
       for(i <- 0 to 15){await(service.checkUserAccess)}
 
-      await(service.checkUserAccess) shouldBe false
+      await(service.checkUserAccess) mustBe false
     }
   }
 
-  "modifyThrottledUsers" should {
+  "modifyThrottledUsers" must {
 
     "return the modified users_in value" in new Setup {
       val date = "20-12-2000"
       val usersIn = 10
 
-      await(repository.modifyThrottledUsers(date, usersIn)) shouldBe 10
+      await(repository.update(date, 500))
+
+      await(repository.modifyThrottledUsers(date, usersIn)) mustBe 10
     }
   }
 }

@@ -23,7 +23,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import repositories.MissingCTDocument
 import uk.gov.hmrc.auth.core.{BearerTokenExpired, InvalidBearerToken, MissingBearerToken, SessionRecordNotFound}
-import uk.gov.hmrc.play.bootstrap.controller.BackendController
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
@@ -44,7 +44,7 @@ class AuthorisedActionsSpec extends BaseSpec with AuthorisationMocks {
   val internalId = "int-12345"
   val otherInternalID = "other-int-12345"
 
-  "AuthorisedAction" should {
+  "AuthorisedAction" must {
 
     val block = Future.successful(Ok)
     val request = FakeRequest()
@@ -54,7 +54,7 @@ class AuthorisedActionsSpec extends BaseSpec with AuthorisationMocks {
       mockGetInternalId(Future.successful(internalId))
 
       val result = AuthorisedController.AuthorisedAction(registrationID).async(block)(request)
-      status(result) shouldBe OK
+      status(result) mustBe OK
     }
 
     "return a 404 when fetching the internal id from the resource returns a None" in new Setup {
@@ -62,7 +62,7 @@ class AuthorisedActionsSpec extends BaseSpec with AuthorisationMocks {
       mockGetInternalId(Future.failed(new MissingCTDocument("hfbhdbf")))
 
       val result = AuthorisedController.AuthorisedAction(registrationID).async(block)(request)
-      status(result) shouldBe NOT_FOUND
+      status(result) mustBe NOT_FOUND
     }
 
     "return a 403 when the request is authorised but is not allowed to access the resource" in new Setup {
@@ -70,14 +70,14 @@ class AuthorisedActionsSpec extends BaseSpec with AuthorisationMocks {
       mockGetInternalId(Future.successful(otherInternalID))
 
       val result = AuthorisedController.AuthorisedAction(registrationID).async(block)(request)
-      status(result) shouldBe FORBIDDEN
+      status(result) mustBe FORBIDDEN
     }
 
     "return a 403 when the request is authorised but no internalId is retrieved from Auth" in new Setup {
       mockAuthorise(Future.successful(None))
 
       val result = AuthorisedController.AuthorisedAction(registrationID).async(block)(request)
-      status(result) shouldBe FORBIDDEN
+      status(result) mustBe FORBIDDEN
     }
 
     "return a 401 when there are no active session tokens in the request" in new Setup {
@@ -91,7 +91,7 @@ class AuthorisedActionsSpec extends BaseSpec with AuthorisationMocks {
         mockAuthorise(Future.failed(ex))
 
         val result = AuthorisedController.AuthorisedAction(registrationID).async(block)(request)
-        status(result) shouldBe 401
+        status(result) mustBe UNAUTHORIZED
       }
     }
   }

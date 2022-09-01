@@ -17,19 +17,19 @@
 package models
 
 import helpers.DateHelper
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsonValidationError, _}
 
-class AccountPrepDetailsSpec extends WordSpec with Matchers with JsonFormatValidation with DateHelper {
+class AccountPrepDetailsSpec extends PlaySpec with JsonFormatValidation with DateHelper {
 
   import AccountPrepDetails.COMPANY_DEFINED
 
-  "AccountPrepDetails Model" should {
+  "AccountPrepDetails Model" must {
     "Be able to be parsed from JSON" in {
       val json = """{"businessEndDateChoice":"COMPANY_DEFINED","businessEndDate":"2017-02-01"}"""
       val expected = AccountPrepDetails(COMPANY_DEFINED, Some(yyyymmdd("2017-02-01")))
       val result = Json.parse(json).validate[AccountPrepDetails]
-      shouldBeSuccess(expected, result)
+      mustBeSuccess(expected, result)
     }
 
     "fail if choice is not valid" in {
@@ -45,14 +45,14 @@ class AccountPrepDetailsSpec extends WordSpec with Matchers with JsonFormatValid
     }
   }
 
-  "reading from json into a AccountPrepDetails case class" should {
+  "reading from json into a AccountPrepDetails case class" must {
 
     "return a AccountPrepDetails case class" in {
       val accountPrepDetails = AccountPrepDetails(COMPANY_DEFINED, Some(yyyymmdd("2017-02-01")))
       val json = Json.parse("""{"businessEndDateChoice":"COMPANY_DEFINED","businessEndDate":"2017-02-01"}""")
 
       val result = Json.fromJson[AccountPrepDetails](json)
-      result shouldBe JsSuccess(accountPrepDetails)
+      result mustBe JsSuccess(accountPrepDetails)
     }
 
     "throw a json validation error when the status is company defined but a date is not provided" in {

@@ -64,51 +64,51 @@ class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
       }
   }
 
-  "private method groupsBlockValidation" should {
+  "private method groupsBlockValidation" must {
 
     "return Left groups when group block is in the correct state to be inserted (everything exists)" in new Setup {
-      controller.groupsBlockValidation(validGroupsModel).left.get shouldBe validGroupsModel
+      controller.groupsBlockValidation(validGroupsModel).left.get mustBe validGroupsModel
     }
     "return Left groups when group block has everything apart from utr filled in" in new Setup {
       val noneUTRGroupsModel: Groups = validGroupsModel.copy(groupUTR = None)
-      controller.groupsBlockValidation(noneUTRGroupsModel).left.get shouldBe noneUTRGroupsModel
+      controller.groupsBlockValidation(noneUTRGroupsModel).left.get mustBe noneUTRGroupsModel
     }
     "return Left groups when group block has everything apart from utr + address filled in" in new Setup {
       val noneUTRAndAddressGroupsModel: Groups = validGroupsModel.copy(groupUTR = None, addressAndType = None)
-      controller.groupsBlockValidation(noneUTRAndAddressGroupsModel).left.get shouldBe noneUTRAndAddressGroupsModel
+      controller.groupsBlockValidation(noneUTRAndAddressGroupsModel).left.get mustBe noneUTRAndAddressGroupsModel
     }
     "return Left groups when group block has everything apart from utr + address + name filled in" in new Setup {
       val noneUTRAndAddressAndNameGroupsModel: Groups = validGroupsModel.copy(groupUTR = None, addressAndType = None, nameOfCompany = None)
-      controller.groupsBlockValidation(noneUTRAndAddressAndNameGroupsModel).left.get shouldBe noneUTRAndAddressAndNameGroupsModel
+      controller.groupsBlockValidation(noneUTRAndAddressAndNameGroupsModel).left.get mustBe noneUTRAndAddressAndNameGroupsModel
     }
     "return Right when UTR just filled in" in new Setup {
       val justUTR: Groups = validGroupsModel.copy(nameOfCompany = None, addressAndType = None)
-      controller.groupsBlockValidation(justUTR).right.get.isInstanceOf[Exception] shouldBe true
+      controller.groupsBlockValidation(justUTR).right.get.isInstanceOf[Exception] mustBe true
     }
     "return Right when address just filled in" in new Setup {
       val justAddress: Groups = validGroupsModel.copy(groupUTR = None, nameOfCompany = None)
-      controller.groupsBlockValidation(justAddress).right.get.isInstanceOf[Exception] shouldBe true
+      controller.groupsBlockValidation(justAddress).right.get.isInstanceOf[Exception] mustBe true
     }
     "return Right when UTR and address just filled in" in new Setup {
       val justUTRAndAddress: Groups = validGroupsModel.copy(nameOfCompany = None)
-      controller.groupsBlockValidation(justUTRAndAddress).right.get.isInstanceOf[Exception] shouldBe true
+      controller.groupsBlockValidation(justUTRAndAddress).right.get.isInstanceOf[Exception] mustBe true
     }
   }
 
-  "deleteBlock" should {
+  "deleteBlock" must {
     "return 204 if groups deleted successfully" in new Setup {
       mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
       when(mockGroupsService.deleteGroups(eqTo(regId))).thenReturn(Future.successful(true))
       val res: Future[Result] = controller.deleteBlock(regId)(FakeRequest())
-      status(res) shouldBe NO_CONTENT
+      status(res) mustBe NO_CONTENT
     }
     "return 500 if false is returned from deleteGroups" in new Setup {
       mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
       when(mockGroupsService.deleteGroups(eqTo(regId))).thenReturn(Future.successful(false))
       val res: Future[Result] = controller.deleteBlock(regId)(FakeRequest())
-      status(res) shouldBe INTERNAL_SERVER_ERROR
+      status(res) mustBe INTERNAL_SERVER_ERROR
     }
     "return exception if groups returns future failed" in new Setup {
       mockAuthorise(Future.successful(Some(internalId)))
@@ -117,15 +117,15 @@ class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
       intercept[Exception](await(controller.deleteBlock(regId)(FakeRequest())))
     }
   }
-  "getBlock" should {
+  "getBlock" must {
 
     "return 200 with json body of group if group complete" in new Setup {
       mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
       when(mockGroupsService.returnGroups(eqTo(regId))).thenReturn(Future.successful(Some(validGroupsModel)))
       val res: Future[Result] = controller.getBlock(regId)(FakeRequest())
-      status(res) shouldBe OK
-      contentAsJson(res) shouldBe Json.parse(
+      status(res) mustBe OK
+      contentAsJson(res) mustBe Json.parse(
         """
           |{
           |   "groupRelief": true,
@@ -155,8 +155,8 @@ class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
       mockGetInternalId(Future.successful(internalId))
       when(mockGroupsService.returnGroups(eqTo(regId))).thenReturn(Future.successful(Some(Groups(groupRelief = false, None, None, None))))
       val res: Future[Result] = controller.getBlock(regId)(FakeRequest())
-      status(res) shouldBe OK
-      contentAsJson(res) shouldBe Json.parse(
+      status(res) mustBe OK
+      contentAsJson(res) mustBe Json.parse(
         """
           |{
           |   "groupRelief": false
@@ -168,7 +168,7 @@ class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
       mockGetInternalId(Future.successful(internalId))
       when(mockGroupsService.returnGroups(eqTo(regId))).thenReturn(Future.successful(None))
       val res: Future[Result] = controller.getBlock(regId)(FakeRequest())
-      status(res) shouldBe NO_CONTENT
+      status(res) mustBe NO_CONTENT
     }
     "return exception if returnGroups returns an exception" in new Setup {
       mockAuthorise(Future.successful(Some(internalId)))
@@ -178,7 +178,7 @@ class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
 
     }
   }
-  "saveBlock" should {
+  "saveBlock" must {
     "return 200 if save is successful and group is in correct state" in new Setup {
       val request: FakeRequest[JsValue] = FakeRequest().withBody(Json.parse(
         """
@@ -232,8 +232,8 @@ class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
       mockGetInternalId(Future.successful(internalId))
       when(mockGroupsService.updateGroups(eqTo(regId), any())).thenReturn(Future.successful(validGroupsModel.copy(groupRelief = false)))
       val res: Future[Result] = controller.saveBlock(regId)(request)
-      status(res) shouldBe 200
-      contentAsJson(res) shouldBe expected
+      status(res) mustBe 200
+      contentAsJson(res) mustBe expected
 
     }
     "return exception if user has skipped pages and data is in incorrect state" in new Setup {
@@ -291,10 +291,10 @@ class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
       mockGetInternalId(Future.successful(internalId))
 
       val res: Future[Result] = controller.saveBlock(regId)(request)
-      status(res) shouldBe 400
+      status(res) mustBe 400
     }
   }
-  "validateListOfNamesAgainstGroupNameValidation" should {
+  "validateListOfNamesAgainstGroupNameValidation" must {
     "return a reduced list of names based on group name validation" in new Setup {
 
       val request: FakeRequest[JsValue] = FakeRequest().withBody(Json.parse(
@@ -304,8 +304,8 @@ class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
           ]
         """.stripMargin))
       val res: Future[Result] = controller.validateListOfNamesAgainstGroupNameValidation(request)
-      status(res) shouldBe 200
-      contentAsJson(res) shouldBe Json.parse(
+      status(res) mustBe 200
+      contentAsJson(res) mustBe Json.parse(
         """
           |[
           | "testGroupName1", "testGroupName2"
@@ -320,7 +320,7 @@ class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
           ]
         """.stripMargin))
       val res: Future[Result] = controller.validateListOfNamesAgainstGroupNameValidation(request)
-      status(res) shouldBe 204
+      status(res) mustBe 204
     }
     "return 204 if empty array passed in" in new Setup {
       val request: FakeRequest[JsValue] = FakeRequest().withBody(Json.parse(
@@ -329,7 +329,7 @@ class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
           ]
         """.stripMargin))
       val res: Future[Result] = controller.validateListOfNamesAgainstGroupNameValidation(request)
-      status(res) shouldBe 204
+      status(res) mustBe 204
     }
   }
 }

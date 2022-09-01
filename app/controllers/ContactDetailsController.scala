@@ -49,14 +49,13 @@ class ContactDetailsController @Inject()(val metricsService: MetricsService,
   }
 
   def retrieveContactDetails(registrationID: String): Action[AnyContent] = AuthorisedAction(registrationID).async {
-    implicit request =>
-      val timer = metricsService.retrieveContactDetailsCRTimer.time()
-      contactDetailsService.retrieveContactDetails(registrationID).map {
-        case Some(details) => timer.stop()
-          Ok(mapToResponse(registrationID, details))
-        case None => timer.stop()
-          NotFound(ErrorResponse.contactDetailsNotFound)
-      }
+    val timer = metricsService.retrieveContactDetailsCRTimer.time()
+    contactDetailsService.retrieveContactDetails(registrationID).map {
+      case Some(details) => timer.stop()
+        Ok(mapToResponse(registrationID, details))
+      case None => timer.stop()
+        NotFound(ErrorResponse.contactDetailsNotFound)
+    }
   }
 
   def updateContactDetails(registrationID: String): Action[JsValue] = AuthorisedAction(registrationID).async(parse.json) {

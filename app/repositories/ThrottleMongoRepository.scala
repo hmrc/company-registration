@@ -17,63 +17,61 @@
 package repositories
 
 import models.UserCount
-import play.api.Logging
-import play.api.libs.json.JsValue
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.DB
-import reactivemongo.bson._
-import reactivemongo.play.json.ImplicitBSONHandlers.BSONDocumentWrites
-import uk.gov.hmrc.mongo.ReactiveRepository
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
+import org.mongodb.scala.bson.conversions.Bson
+import org.mongodb.scala.model.Filters.equal
+import org.mongodb.scala.model.Updates.set
+import org.mongodb.scala.model.{FindOneAndUpdateOptions, ReturnDocument, Updates}
+import play.api.libs.json.{Format, JsNumber}
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
-trait ThrottleRepository {
-  def update(date: String, threshold: Int, compensate: Boolean): Future[Int]
+@Singleton
+class ThrottleMongoRepository @Inject()(mongo: MongoComponent)(implicit val ec: ExecutionContext)
+  extends PlayMongoRepository[UserCount](
+    mongoComponent = mongo,
+    collectionName = "throttle",
+    domainFormat = UserCount.formats,
+    indexes = Seq()
+  ) {
 
-  def compensate(date: String, threshold: Int): Future[Int]
-}
-
-class ThrottleMongoRepo @Inject()(mongo: ReactiveMongoComponent)(implicit val ec: ExecutionContext) extends Logging {
-  logger.info("Creating CorporationTaxRegistrationMongoRepository")
-
-  val repo = new ThrottleMongoRepository(mongo.mongoConnector.db)
-}
-
-class ThrottleMongoRepository(mongo: () => DB)(implicit val ec: ExecutionContext)
-  extends ReactiveRepository[UserCount, BSONObjectID]("throttle", mongo, UserCount.formats, ReactiveMongoFormats.objectIdFormats)
-    with ThrottleRepository {
-  logger.info("Creating ThrottleMongoRepository")
+  private def update(selector: Bson, modifier: Bson): Future[UserCount] =
+    collection.findOneAndUpdate(
+      selector,
+      modifier,
+      FindOneAndUpdateOptions()
+        .upsert(true)
+        .returnDocument(ReturnDocument.AFTER)
+    ).toFuture()
 
   def update(date: String, threshold: Int, compensate: Boolean = false): Future[Int] = {
-    val selector = BSONDocument("_id" -> date)
+    val selector = equal("_id", date)
     val modifier = compensate match {
-      case true => BSONDocument("$inc" -> BSONDocument("users_in" -> -1, "users_blocked" -> 1), "$set" -> BSONDocument("threshold" -> threshold))
-      case false => BSONDocument("$inc" -> BSONDocument("users_in" -> 1), "$set" -> BSONDocument("threshold" -> threshold))
+      case true =>
+        Updates.combine(
+          Updates.inc("users_in", -1),
+          Updates.inc("users_blocked", 1),
+          Updates.set("threshold", threshold)
+        )
+      case false =>
+        Updates.combine(
+          Updates.inc("users_in", 1),
+          Updates.set("threshold", threshold)
+        )
     }
 
-    collection.findAndUpdate(selector, modifier, fetchNewObject = true, upsert = true) map {
-      _.result[JsValue] match {
-        case None => -1
-        case Some(res) => (res \ "users_in").as[Int]
-      }
-    }
+    update(selector, modifier).map(_.users_in)
   }
 
-  def compensate(date: String, threshold: Int): Future[Int] = {
+  def compensate(date: String, threshold: Int): Future[Int] =
     update(date, threshold, compensate = true)
-  }
 
   def modifyThrottledUsers(date: String, usersIn: Int): Future[Int] = {
-    val selector = BSONDocument("_id" -> date)
-    val modifier = BSONDocument("$set" -> BSONDocument("users_in" -> usersIn))
+    val selector = equal("_id", date)
+    val modifier = set("users_in", usersIn)
 
-    collection.findAndUpdate(selector, modifier, fetchNewObject = true, upsert = true) map {
-      _.result[JsValue] match {
-        case None => -1
-        case Some(res) => (res \ "users_in").as[Int]
-      }
-    }
+    update(selector, modifier).map(_.users_in)
   }
 }

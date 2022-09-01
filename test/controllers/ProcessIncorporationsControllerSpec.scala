@@ -23,7 +23,7 @@ import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.concurrent.Eventually
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.Logger
 import play.api.libs.json.Reads._
@@ -36,7 +36,7 @@ import utils.LogCapturing
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class ProcessIncorporationsControllerSpec extends WordSpec with Matchers with MockitoSugar with LogCapturing with Eventually {
+class ProcessIncorporationsControllerSpec extends PlaySpec with MockitoSugar with LogCapturing with Eventually {
 
   implicit val as = ActorSystem()
   implicit val mat = ActorMaterializer()
@@ -109,14 +109,14 @@ class ProcessIncorporationsControllerSpec extends WordSpec with Matchers with Mo
 
   val acceptedIncorpStatus = IncorpStatus(transactionId, "accepted", Some(crn), None, Some(incDate))
 
-  "ProcessAdminIncorp" should {
+  "ProcessAdminIncorp" must {
 
     "read rejected json from request into IncorpStatus case class" in {
-      rejectedIncorpJson.as[IncorpStatus](IncorpStatus.reads) shouldBe rejectedIncorpStatus
+      rejectedIncorpJson.as[IncorpStatus](IncorpStatus.reads) mustBe rejectedIncorpStatus
     }
 
     "read accepted json from request into IncorpStatus case class" in {
-      acceptedIncorpJson.as[IncorpStatus](IncorpStatus.reads) shouldBe acceptedIncorpStatus
+      acceptedIncorpJson.as[IncorpStatus](IncorpStatus.reads) mustBe acceptedIncorpStatus
     }
 
     "return a 200 response " in new Setup {
@@ -127,15 +127,15 @@ class ProcessIncorporationsControllerSpec extends WordSpec with Matchers with Mo
 
       val result = call(controller.processAdminIncorporation, request)
 
-      status(result) shouldBe 200
+      status(result) mustBe 200
 
     }
   }
 
-  "ProcessIncorp" should {
+  "ProcessIncorp" must {
 
     "read json from request into IncorpStatus case class" in {
-      rejectedIncorpJson.as[IncorpStatus](IncorpStatus.reads) shouldBe rejectedIncorpStatus
+      rejectedIncorpJson.as[IncorpStatus](IncorpStatus.reads) mustBe rejectedIncorpStatus
     }
 
     "return a 200 response " in new Setup {
@@ -144,11 +144,11 @@ class ProcessIncorporationsControllerSpec extends WordSpec with Matchers with Mo
       val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
       val result = call(controller.processIncorporationNotification, request)
 
-      status(result) shouldBe 200
+      status(result) mustBe 200
     }
   }
 
-  "Failing Topup" should {
+  "Failing Topup" must {
     "log the correct error message" in new Setup {
       when(mockProcessIncorporationService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.failed(new RuntimeException))
 
@@ -156,16 +156,16 @@ class ProcessIncorporationsControllerSpec extends WordSpec with Matchers with Mo
       withCaptureOfLoggingFrom(Logger(controller.getClass)) { logEvents =>
         intercept[RuntimeException](await(call(controller.processIncorporationNotification, request)))
         eventually {
-          logEvents.size shouldBe 2
+          logEvents.size mustBe 2
           val res = logEvents.map(_.getMessage) contains "FAILED_DES_TOPUP"
 
-          res shouldBe true
+          res mustBe true
         }
       }
     }
   }
 
-  "Invalid Data" should {
+  "Invalid Data" must {
 
     "return a 202 response for non admin flow" in new Setup {
       when(mockProcessIncorporationService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.successful(false))
@@ -173,7 +173,7 @@ class ProcessIncorporationsControllerSpec extends WordSpec with Matchers with Mo
       val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
       val result = call(controller.processIncorporationNotification, request)
 
-      status(result) shouldBe 202
+      status(result) mustBe 202
     }
 
 
@@ -182,7 +182,7 @@ class ProcessIncorporationsControllerSpec extends WordSpec with Matchers with Mo
       val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
       val result = call(controller.processAdminIncorporation, request)
 
-      status(result) shouldBe 400
+      status(result) mustBe 400
 
     }
   }

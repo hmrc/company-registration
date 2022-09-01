@@ -38,14 +38,14 @@ class TradingDetailsServiceSpec extends BaseSpec with CorporationTaxRegistration
 
   }
 
-  "retrieveTradingDetails" should {
+  "retrieveTradingDetails" must {
     "fetch trading details if a record exists against the given registration ID" in new Setup {
       CTDataRepositoryMocks.retrieveCorporationTaxRegistration(Some(validDraftCorporationTaxRegistration))
 
       when(mockCTDataRepository.retrieveTradingDetails(ArgumentMatchers.anyString())).thenReturn(Future.successful(Some(TradingDetails("true"))))
 
       val result = TestService.retrieveTradingDetails("testRegID")
-      await(result) shouldBe Some(TradingDetails("true"))
+      await(result) mustBe Some(TradingDetails("true"))
     }
 
     "return an 'empty' trading details model if no record exists against the given registration ID" in new Setup {
@@ -55,11 +55,11 @@ class TradingDetailsServiceSpec extends BaseSpec with CorporationTaxRegistration
         .thenReturn(Future.successful(None))
 
       val result = TestService.retrieveTradingDetails("testRegID")
-      await(result) shouldBe None
+      await(result) mustBe None
     }
   }
 
-  "updateTradingDetails" should {
+  "updateTradingDetails" must {
     "update the trading details record against a given regID" in new Setup {
       CTDataRepositoryMocks.retrieveCorporationTaxRegistration(Some(validDraftCorporationTaxRegistration))
 
@@ -67,7 +67,7 @@ class TradingDetailsServiceSpec extends BaseSpec with CorporationTaxRegistration
         .thenReturn(Future.successful(Some(TradingDetails("true"))))
 
       val result = TestService.updateTradingDetails("testRegID", TradingDetails("true"))
-      await(result) shouldBe Some(TradingDetails("true"))
+      await(result) mustBe Some(TradingDetails("true"))
     }
   }
 }

@@ -16,13 +16,13 @@
 
 package models
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsObject, Json}
 
 
-class UserAccessSpec extends WordSpec with Matchers {
+class UserAccessSpec extends PlaySpec {
 
-  "UserAccessModel" should {
+  "UserAccessModel" must {
     "With no email, be able to be parsed into JSON" in {
 
       val json: String =
@@ -44,8 +44,8 @@ class UserAccessSpec extends WordSpec with Matchers {
         )
 
       val result = Json.toJson[UserAccessSuccessResponse](testModel)
-      result.getClass shouldBe classOf[JsObject]
-      result shouldBe Json.parse(json)
+      result.getClass mustBe classOf[JsObject]
+      result mustBe Json.parse(json)
     }
 
     "With email, be able to be parsed into JSON" in {
@@ -71,8 +71,8 @@ class UserAccessSpec extends WordSpec with Matchers {
         )
 
       val result = Json.toJson[UserAccessSuccessResponse](testModel)
-      result.getClass shouldBe classOf[JsObject]
-      result shouldBe Json.parse(json)
+      result.getClass mustBe classOf[JsObject]
+      result mustBe Json.parse(json)
     }
   }
 }

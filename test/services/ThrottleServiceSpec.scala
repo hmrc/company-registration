@@ -41,19 +41,19 @@ class ThrottleServiceSpec extends BaseSpec {
     }
   }
 
-  "getCurrentDay" should {
+  "getCurrentDay" must {
     "return the current day" in new Setup {
-      service.getCurrentDay shouldBe "2000-02-01"
+      service.getCurrentDay mustBe "2000-02-01"
     }
   }
 
-  "updateUserCount" should {
+  "updateUserCount" must {
 
     "return true when updating user count on a new collection" in new Setup {
       when(mockThrottleMongoRepository.update(ArgumentMatchers.eq("2000-02-01"), ArgumentMatchers.eq(10), ArgumentMatchers.eq(false)))
         .thenReturn(Future.successful(1))
 
-      await(service.checkUserAccess) shouldBe true
+      await(service.checkUserAccess) mustBe true
     }
 
     "return true when user threshold is reached" in new Setup {
@@ -62,7 +62,7 @@ class ThrottleServiceSpec extends BaseSpec {
       when(mockThrottleMongoRepository.compensate(ArgumentMatchers.eq("2000-02-01"), ArgumentMatchers.eq(10)))
         .thenReturn(Future.successful(10))
 
-      await(service.checkUserAccess) shouldBe true
+      await(service.checkUserAccess) mustBe true
     }
 
     "return false when user threshold is over the limit" in new Setup {
@@ -71,7 +71,7 @@ class ThrottleServiceSpec extends BaseSpec {
       when(mockThrottleMongoRepository.compensate(ArgumentMatchers.eq("2000-02-01"), ArgumentMatchers.eq(10)))
         .thenReturn(Future.successful(10))
 
-      await(service.checkUserAccess) shouldBe false
+      await(service.checkUserAccess) mustBe false
     }
   }
 }

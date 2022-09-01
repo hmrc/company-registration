@@ -39,14 +39,13 @@ class TradingDetailsController @Inject()(val metricsService: MetricsService,
   lazy val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 
   def retrieveTradingDetails(registrationID: String): Action[AnyContent] = AuthorisedAction(registrationID).async {
-    implicit request =>
-      val timer = metricsService.retrieveTradingDetailsCRTimer.time()
-      tradingDetailsService.retrieveTradingDetails(registrationID).map {
-        case Some(res) => timer.stop()
-          Ok(Json.toJson(res))
-        case _ => timer.stop()
-          NotFound(ErrorResponse.tradingDetailsNotFound)
-      }
+    val timer = metricsService.retrieveTradingDetailsCRTimer.time()
+    tradingDetailsService.retrieveTradingDetails(registrationID).map {
+      case Some(res) => timer.stop()
+        Ok(Json.toJson(res))
+      case _ => timer.stop()
+        NotFound(ErrorResponse.tradingDetailsNotFound)
+    }
   }
 
   def updateTradingDetails(registrationID: String): Action[JsValue] = AuthorisedAction(registrationID).async(parse.json) {

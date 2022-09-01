@@ -35,7 +35,7 @@ class PrepareAccountServiceSpec extends BaseSpec {
     }
   }
 
-  "updateEndDate" should {
+  "updateEndDate" must {
 
     val rID = "testRegID"
 
@@ -46,7 +46,7 @@ class PrepareAccountServiceSpec extends BaseSpec {
         .thenReturn(Future.successful(Some(prepareAccountModel)))
 
       val result = prepareAccountService.updateEndDate(rID)
-      await(result) shouldBe Some(prepareAccountModel)
+      await(result) mustBe Some(prepareAccountModel)
     }
 
     "return None when a None is returned from the repository" in new Setup {
@@ -54,7 +54,7 @@ class PrepareAccountServiceSpec extends BaseSpec {
         .thenReturn(Future.successful(None))
 
       val result = prepareAccountService.updateEndDate(rID)
-      await(result) shouldBe None
+      await(result) mustBe None
     }
   }
 }

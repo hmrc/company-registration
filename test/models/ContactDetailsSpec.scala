@@ -17,11 +17,11 @@
 package models
 
 import models.validation.MongoValidation
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.play.PlaySpec
 import play.api.libs.json._
 import play.api.libs.json.JsonValidationError
 
-class ContactDetailsSpec extends WordSpec with Matchers with JsonFormatValidation {
+class ContactDetailsSpec extends PlaySpec with JsonFormatValidation {
 
   type OS = Option[String]
   type S = String
@@ -43,25 +43,25 @@ class ContactDetailsSpec extends WordSpec with Matchers with JsonFormatValidatio
      """.stripMargin
   }
 
-  "ContactDetails Model - phone number" should {
+  "ContactDetails Model - phone number" must {
     "build from JSON" when {
       "valid phone numbers are supplied" in {
         val json = j(p = Some("1234567890"), m = Some("1234567890"), e = None)
         val expected = ContactDetails(Some("1234567890"), Some("1234567890"), None)
         val result = Json.parse(json).validate[ContactDetails]
-        shouldBeSuccess(expected, result)
+        mustBeSuccess(expected, result)
       }
       "valid phone numbers with spaces are supplied" in {
         val json = j(p = Some("12345   67890"), m = Some("1234567890"), e = None)
         val expected = ContactDetails(Some("12345   67890"), Some("1234567890"), None)
         val result = Json.parse(json).validate[ContactDetails]
-        shouldBeSuccess(expected, result)
+        mustBeSuccess(expected, result)
       }
       "invalid phone number is read from mongo" in {
         val json = j(p = Some("12345"), m = Some("1234567890"), e = None)
         val expected = ContactDetails(Some("12345"), Some("1234567890"), None)
         val result = Json.parse(json).validate[ContactDetails](ContactDetails.format(MongoValidation))
-        shouldBeSuccess(expected, result)
+        mustBeSuccess(expected, result)
       }
     }
     "fail from JSON" when {
@@ -78,19 +78,19 @@ class ContactDetailsSpec extends WordSpec with Matchers with JsonFormatValidatio
     }
   }
 
-  "ContactDetails Model - one detail supplied" should {
+  "ContactDetails Model - one detail supplied" must {
 
     "build from JSON - phone" in {
       val json = j(p = Some("1234567890"), e = None)
       val expected = ContactDetails(Some("1234567890"), None, None)
       val result = Json.parse(json).validate[ContactDetails]
-      shouldBeSuccess(expected, result)
+      mustBeSuccess(expected, result)
     }
     "build from JSON - mobile" in {
       val json = j(m = Some("1234567890"), e = None)
       val expected = ContactDetails(None, Some("1234567890"), None)
       val result = Json.parse(json).validate[ContactDetails]
-      shouldBeSuccess(expected, result)
+      mustBeSuccess(expected, result)
     }
 
     "fail if email is invalid" ignore { // ignored for now due to regex clarification!
@@ -104,7 +104,7 @@ class ContactDetailsSpec extends WordSpec with Matchers with JsonFormatValidatio
       val jsonNoContact = Json.parse("""{"contactEmail":"xxx@xxx.com"}""")
 
       val result = Json.fromJson[ContactDetails](jsonNoContact)
-      result shouldBe JsSuccess(contactDetails)
+      result mustBe JsSuccess(contactDetails)
     }
 
     "check with a valid email address containing a hyphen" in {
@@ -112,7 +112,7 @@ class ContactDetailsSpec extends WordSpec with Matchers with JsonFormatValidatio
       val json = """{"contactMobileNumber":"1234567890", "contactEmail":"xxx@xxx-xxx.com"}"""
       val result = Json.parse(json).validate[ContactDetails]
 
-      result shouldBe JsSuccess(contactDetails)
+      result mustBe JsSuccess(contactDetails)
     }
 
     "check with an email address containing a plus - that DES can't accept" in {
@@ -123,14 +123,14 @@ class ContactDetailsSpec extends WordSpec with Matchers with JsonFormatValidatio
     }
   }
 
-  "reading from json into a ContactDetails case class" should {
+  "reading from json into a ContactDetails case class" must {
 
     "return a ContactDetails case class" in {
       val contactDetails = ContactDetails(None, Some("1234567890"), None)
       val jsonNoContact = Json.parse("""{"contactMobileNumber":"1234567890"}""")
 
       val result = Json.fromJson[ContactDetails](jsonNoContact)
-      result shouldBe JsSuccess(contactDetails)
+      result mustBe JsSuccess(contactDetails)
     }
 
     "throw a json validation error" in {

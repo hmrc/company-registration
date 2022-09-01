@@ -59,14 +59,13 @@ class CompanyDetailsController @Inject()(val metricsService: MetricsService,
   }
 
   def retrieveCompanyDetails(registrationID: String): Action[AnyContent] = AuthorisedAction(registrationID).async {
-    implicit request =>
-      val timer = metricsService.retrieveCompanyDetailsCRTimer.time()
-      companyDetailsService.retrieveCompanyDetails(registrationID).map {
-        case Some(details) => timer.stop()
-          Ok(mapToResponse(registrationID, details))
-        case None => timer.stop()
-          NotFound(ErrorResponse.companyDetailsNotFound)
-      }
+    val timer = metricsService.retrieveCompanyDetailsCRTimer.time()
+    companyDetailsService.retrieveCompanyDetails(registrationID).map {
+      case Some(details) => timer.stop()
+        Ok(mapToResponse(registrationID, details))
+      case None => timer.stop()
+        NotFound(ErrorResponse.companyDetailsNotFound)
+    }
   }
 
   def updateCompanyDetails(registrationID: String): Action[JsValue] = AuthorisedAction(registrationID).async[JsValue](parse.json) {

@@ -16,25 +16,23 @@
 
 package jobs
 
-import auth.CryptoSCRS
 import com.google.inject.name.Names
 import itutil.WiremockHelper._
-import itutil.{IntegrationSpecBase, LogCapturing, WiremockHelper}
+import itutil.{IntegrationSpecBase, LogCapturing, MongoIntegrationSpec, WiremockHelper}
 import models._
 import org.joda.time.{DateTime, DateTimeZone}
+import org.mongodb.scala.result.InsertOneResult
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.inject.{BindingKey, QualifierInstance}
 import play.api.libs.json.{JsObject, Json, OWrites}
 import play.api.test.Helpers._
 import play.api.{Application, Logger}
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.Cursor
-import reactivemongo.api.commands.WriteResult
 import repositories.CorporationTaxRegistrationMongoRepository
+
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with LogCapturing {
+class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with MongoIntegrationSpec with LogCapturing {
 
   val mockHost = WiremockHelper.wiremockHost
   val mockPort = WiremockHelper.wiremockPort
@@ -57,21 +55,17 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with LogCapturing
     .build()
 
   class Setup {
-    val rmc = app.injector.instanceOf[ReactiveMongoComponent]
-    val crypto = app.injector.instanceOf[CryptoSCRS]
-    val repository = new CorporationTaxRegistrationMongoRepository(rmc, crypto)
-    await(repository.drop)
+    val repository = app.injector.instanceOf[CorporationTaxRegistrationMongoRepository]
+    repository.deleteAll
     await(repository.ensureIndexes)
-    await(repository.count) shouldBe 0
+    repository.count mustBe 0
 
 
     implicit val jsObjWts: OWrites[JsObject] = OWrites(identity)
 
-    def insert(reg: CorporationTaxRegistration): WriteResult = await(repository.insert(reg))
+    def insert(reg: CorporationTaxRegistration): InsertOneResult = repository.insert(reg)
 
-    def count: Int = await(repository.count)
-
-    def retrieve(regId: String): List[JsObject] = await(repository.collection.find(Json.obj()).cursor[JsObject]().collect[List](-1, Cursor.FailOnError()))
+    def count: Int = repository.count
   }
 
   val txID = "txId"
@@ -114,7 +108,7 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with LogCapturing
     app.injector.instanceOf[ScheduledJob](key)
   }
 
-  "Remove Stale Documents Job" should {
+  "Remove Stale Documents Job" must {
     "delete 2 documents" when {
       "there are two stale document and 1 non-stale" in new Setup {
         stubGet(s"/incorporation-information/$txID/incorporation-update", 200, s"""{}""")
@@ -131,12 +125,12 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with LogCapturing
         insert(corporationTaxRegistration(lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(92), regId = regId2, txID = txID2))
         insert(corporationTaxRegistration(lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(93), regId = regId3, txID = txID3))
 
-        count shouldBe 3
+        count mustBe 3
         val job = lookupJob("remove-stale-documents-job")
         val res = await(job.scheduledMessage.service.invoke.map(_.asInstanceOf[Either[Int, LockResponse]]))
 
-        res.left.get shouldBe 2
-        count shouldBe 1
+        res.left.get mustBe 2
+        count mustBe 1
       }
     }
 
@@ -148,14 +142,14 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with LogCapturing
 
         insert(corporationTaxRegistration(lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(93), regId = regId))
 
-        count shouldBe 1
+        count mustBe 1
 
         val job = lookupJob("remove-stale-documents-job")
         val res = await(job.scheduledMessage.service.invoke.map(_.asInstanceOf[Either[Int, LockResponse]]))
 
-        res.left.get shouldBe 1
+        res.left.get mustBe 1
 
-        count shouldBe 0
+        count mustBe 0
       }
 
       "there is one stale document using an old regime" in new Setup {
@@ -166,19 +160,19 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with LogCapturing
 
         insert(corporationTaxRegistration(lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(93), regId = regId))
 
-        count shouldBe 1
+        count mustBe 1
 
         val job = lookupJob("remove-stale-documents-job")
         val message = s"[processStaleDocument] Registration $regId - $txID does not have CTAX subscription. Now trying to delete CT sub."
         val delMess = "[remove-stale-documents-job] Successfully deleted 1 stale documents"
         withCaptureOfLoggingFrom(Logger("services.admin.AdminServiceImpl")) { logs =>
           val res = await(job.scheduledMessage.service.invoke.map(_.asInstanceOf[Either[Int, LockResponse]]))
-          res.left.get shouldBe 1
+          res.left.get mustBe 1
 
-          count shouldBe 0
+          count mustBe 0
 
-          logs.find(event => event.getMessage == message).get.getMessage shouldBe message
-          logs.find(event => event.getMessage == delMess).get.getMessage shouldBe delMess
+          logs.find(event => event.getMessage == message).get.getMessage mustBe message
+          logs.find(event => event.getMessage == delMess).get.getMessage mustBe delMess
         }
       }
 
@@ -190,7 +184,7 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with LogCapturing
 
         insert(corporationTaxRegistration(lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(93), regId = regId))
 
-        count shouldBe 1
+        count mustBe 1
 
         val job = lookupJob("remove-stale-documents-job")
         val message = s"[processStaleDocument] Registration $regId - $txID does not have CTAX subscription. Now trying to delete CT sub."
@@ -199,13 +193,13 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with LogCapturing
 
         withCaptureOfLoggingFrom(Logger("services.admin.AdminServiceImpl")) { logs =>
           val res = await(job.scheduledMessage.service.invoke.map(_.asInstanceOf[Either[Int, LockResponse]]))
-          res.left.get shouldBe 1
+          res.left.get mustBe 1
 
-          count shouldBe 0
+          count mustBe 0
 
-          logs.find(event => event.getMessage.contains(message)).get.getMessage shouldBe message
-          logs.find(event => event.getMessage.contains(finalMessage)).get.getMessage shouldBe finalMessage
-          logs.find(event => event.getMessage.contains(delMess)).get.getMessage shouldBe delMess
+          logs.find(event => event.getMessage.contains(message)).get.getMessage mustBe message
+          logs.find(event => event.getMessage.contains(finalMessage)).get.getMessage mustBe finalMessage
+          logs.find(event => event.getMessage.contains(delMess)).get.getMessage mustBe delMess
         }
       }
 
@@ -219,13 +213,13 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with LogCapturing
         insert(corporationTaxRegistration(lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(100), regId = "3"))
         insert(corporationTaxRegistration(lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(100), regId = "1"))
 
-        count shouldBe 4
+        count mustBe 4
 
         val job = lookupJob("remove-stale-documents-job")
         val res = await(job.scheduledMessage.service.invoke.map(_.asInstanceOf[Either[Int, LockResponse]])).left.get
 
-        res shouldBe 1
-        count shouldBe 3
+        res mustBe 1
+        count mustBe 3
       }
 
       "there is one stale document and 2 non-stale" in new Setup {
@@ -240,13 +234,13 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with LogCapturing
         insert(corporationTaxRegistration(lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(85), regId = regId2, txID = txID2))
         insert(corporationTaxRegistration(lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(93), regId = regId3, txID = txID3))
 
-        count shouldBe 3
+        count mustBe 3
 
         val job = lookupJob("remove-stale-documents-job")
         val res = await(job.scheduledMessage.service.invoke.map(_.asInstanceOf[Either[Int, LockResponse]])).left.get
 
-        res shouldBe 1
-        count shouldBe 2
+        res mustBe 1
+        count mustBe 2
       }
 
       "there is one stale document in held status" in new Setup {
@@ -258,16 +252,16 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with LogCapturing
 
         insert(corporationTaxRegistration(status = "held", lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(93), regId = regId))
 
-        count shouldBe 1
+        count mustBe 1
 
         val job = lookupJob("remove-stale-documents-job")
         val res = await(job.scheduledMessage.service.invoke.map(_.asInstanceOf[Either[Int, LockResponse]])).left.get
 
-        res shouldBe 1
-        count shouldBe 0
+        res mustBe 1
+        count mustBe 0
 
         val auditJson = Json.obj("journeyId" -> regId, "acknowledgementReference" -> "ackRef", "incorporationStatus" -> "Rejected", "rejectedAsNotPaid" -> true)
-        verifyPOSTRequestBody("/write/audit", auditJson.toString) shouldBe true
+        verifyPOSTRequestBody("/write/audit", auditJson.toString) mustBe true
       }
     }
 
@@ -278,13 +272,13 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with LogCapturing
 
         insert(corporationTaxRegistration(lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(93), regId = regId))
 
-        count shouldBe 1
+        count mustBe 1
 
         val job = lookupJob("remove-stale-documents-job")
         val res = await(job.scheduledMessage.service.invoke.map(_.asInstanceOf[Either[Int, LockResponse]])).left.get
 
-        res shouldBe 0
-        count shouldBe 1
+        res mustBe 0
+        count mustBe 1
       }
 
       "there is one stale document of which it's BR document failed to delete" in new Setup {
@@ -293,14 +287,14 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with LogCapturing
 
         insert(corporationTaxRegistration(lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(93), regId = regId))
 
-        count shouldBe 1
+        count mustBe 1
 
         val job = lookupJob("remove-stale-documents-job")
         val res = await(job.scheduledMessage.service.invoke.map(_.asInstanceOf[Either[Int, LockResponse]])).left.get
 
-        res shouldBe 0
+        res mustBe 0
 
-        count shouldBe 1
+        count mustBe 1
       }
 
       "there are no stale documents" in new Setup {
@@ -309,14 +303,14 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with LogCapturing
 
         insert(corporationTaxRegistration(lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(85), regId = regId))
 
-        count shouldBe 1
+        count mustBe 1
 
         val job = lookupJob("remove-stale-documents-job")
         val res = await(job.scheduledMessage.service.invoke.map(_.asInstanceOf[Either[Int, LockResponse]])).left.get
 
-        res shouldBe 0
+        res mustBe 0
 
-        count shouldBe 1
+        count mustBe 1
       }
 
       "there is an old submitted document" in new Setup {
@@ -325,14 +319,14 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with LogCapturing
 
         insert(corporationTaxRegistration(status = "submitted", lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(100), regId = regId))
 
-        count shouldBe 1
+        count mustBe 1
 
         val job = lookupJob("remove-stale-documents-job")
         val res = await(job.scheduledMessage.service.invoke.map(_.asInstanceOf[Either[Int, LockResponse]])).left.get
 
-        res shouldBe 0
+        res mustBe 0
 
-        count shouldBe 1
+        count mustBe 1
       }
 
       "the documents are on the allow list" in new Setup {
@@ -340,14 +334,14 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with LogCapturing
         insert(corporationTaxRegistration(lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(100), regId = "3"))
         insert(corporationTaxRegistration(lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(100), regId = "1"))
 
-        count shouldBe 3
+        count mustBe 3
 
         val job = lookupJob("remove-stale-documents-job")
         val res = await(job.scheduledMessage.service.invoke.map(_.asInstanceOf[Either[Int, LockResponse]])).left.get
 
-        res shouldBe 0
+        res mustBe 0
 
-        count shouldBe 3
+        count mustBe 3
       }
     }
   }

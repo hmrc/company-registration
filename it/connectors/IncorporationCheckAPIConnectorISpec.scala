@@ -49,7 +49,7 @@ class IncorporationCheckAPIConnectorISpec extends IntegrationSpecBase {
 
   val incorporationCheckAPIConnector: IncorporationCheckAPIConnector = app.injector.instanceOf[IncorporationCheckAPIConnector]
 
-  "IncorporationCheckAPIConnector" should {
+  "IncorporationCheckAPIConnector" must {
     "process a full response as expected" in {
       stubGet("/internal/check-submission.*", 200,
         s"""{
@@ -71,7 +71,7 @@ class IncorporationCheckAPIConnectorISpec extends IntegrationSpecBase {
       )
       val actual = await(incorporationCheckAPIConnector.checkSubmission(None))
 
-      actual shouldBe expected
+      actual mustBe expected
     }
 
     "process a minimal single response" in {
@@ -89,7 +89,7 @@ class IncorporationCheckAPIConnectorISpec extends IntegrationSpecBase {
       )
       val actual = await(incorporationCheckAPIConnector.checkSubmission(None))
 
-      actual shouldBe expected
+      actual mustBe expected
     }
 
     "process a couple of results" in {
@@ -109,7 +109,7 @@ class IncorporationCheckAPIConnectorISpec extends IntegrationSpecBase {
 
       val actual = await(incorporationCheckAPIConnector.checkSubmission(None))
 
-      actual shouldBe expected
+      actual mustBe expected
     }
 
     "process with no results" in {
@@ -118,7 +118,7 @@ class IncorporationCheckAPIConnectorISpec extends IntegrationSpecBase {
       val expected = SubmissionCheckResponse(Seq(), "testLink")
       val actual = await(incorporationCheckAPIConnector.checkSubmission(None))
 
-      actual shouldBe expected
+      actual mustBe expected
     }
 
   }

@@ -16,23 +16,20 @@
 
 package api
 
-import auth.CryptoSCRS
 import itutil.WiremockHelper._
-import itutil.{IntegrationSpecBase, LoginStub, WiremockHelper}
+import itutil.{IntegrationSpecBase, LoginStub, MongoIntegrationSpec, WiremockHelper}
 import models.{Address, CorporationTaxRegistration, RegistrationStatus, TakeoverDetails}
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.crypto.DefaultCookieSigner
 import play.api.libs.json.Json
 import play.api.test.Helpers._
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.commands.WriteResult
 import repositories.CorporationTaxRegistrationMongoRepository
 import uk.gov.hmrc.http.{HeaderNames => GovHeaderNames}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class TakeoverDetailsControllerISpec extends IntegrationSpecBase with LoginStub {
+class TakeoverDetailsControllerISpec extends IntegrationSpecBase with MongoIntegrationSpec with LoginStub {
 
   val registrationId = "reg-12345"
   val internalId = "int-12345"
@@ -60,14 +57,11 @@ class TakeoverDetailsControllerISpec extends IntegrationSpecBase with LoginStub 
     )
 
   class Setup {
-    val rmComp = app.injector.instanceOf[ReactiveMongoComponent]
-    val crypto = app.injector.instanceOf[CryptoSCRS]
-    val repository = new CorporationTaxRegistrationMongoRepository(
-      rmComp, crypto)
-    await(repository.drop)
+    val repository = app.injector.instanceOf[CorporationTaxRegistrationMongoRepository]
+    repository.deleteAll
     await(repository.ensureIndexes)
 
-    def setupCTRegistration(reg: CorporationTaxRegistration): WriteResult = await(repository.insert(reg))
+    def setupCTRegistration(reg: CorporationTaxRegistration) = repository.insert(reg)
   }
 
   private def ctDoc(details: Option[TakeoverDetails] = None): CorporationTaxRegistration = CorporationTaxRegistration(
@@ -132,38 +126,38 @@ class TakeoverDetailsControllerISpec extends IntegrationSpecBase with LoginStub 
 
   val unfilledTakeoverDetailsJson = Json.obj()
 
-  s"GET /corporation-tax-registration/$registrationId/takeover-details" should {
+  s"GET /corporation-tax-registration/$registrationId/takeover-details" must {
     "successfully retrieve a json with a valid TakeoverDetails and a 200 status if the data exists" in new Setup {
       stubAuthorise(OK, "internalId" -> internalId)
       setupCTRegistration(ctDoc(Some(validTakeoverDetailsModel)))
 
       val response = await(client(s"/$registrationId/takeover-details").get())
-      response.status shouldBe OK
+      response.status mustBe OK
     }
     "retrieve an empty json and a 204 response if the data is not found" in new Setup {
       stubAuthorise(OK, "internalId" -> internalId)
       setupCTRegistration(ctDoc())
 
       val response = await(client(s"/$registrationId/takeover-details").get())
-      response.status shouldBe NO_CONTENT
+      response.status mustBe NO_CONTENT
     }
   }
 
-  s"PUT /corporation-tax-registration/$registrationId/takeover-details" should {
+  s"PUT /corporation-tax-registration/$registrationId/takeover-details" must {
     "return a 200 response with json body if the TakeoverDetails json is valid" in new Setup {
       stubAuthorise(OK, "internalId" -> internalId)
       setupCTRegistration(ctDoc(Some(validTakeoverDetailsModel)))
 
       val response = await(client(s"/$registrationId/takeover-details").put(validTakeoverDetailsJson))
-      response.status shouldBe OK
-      response.body shouldBe validTakeoverDetailsJson.toString()
+      response.status mustBe OK
+      response.body mustBe validTakeoverDetailsJson.toString()
     }
     "return a 400 response if the TakeoverDetails json is invalid" in new Setup {
       stubAuthorise(OK, "internalId" -> internalId)
       setupCTRegistration(ctDoc(Some(validTakeoverDetailsModel)))
 
       val response = await(client(s"/$registrationId/takeover-details").put(invalidTakeoverDetailsJson))
-      response.status shouldBe BAD_REQUEST
+      response.status mustBe BAD_REQUEST
     }
   }
 

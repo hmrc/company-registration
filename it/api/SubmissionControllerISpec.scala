@@ -19,10 +19,11 @@ package api
 import auth.CryptoSCRS
 import com.github.tomakehurst.wiremock.client.WireMock._
 import itutil.WiremockHelper._
-import itutil.{IntegrationSpecBase, LoginStub, RequestFinder, WiremockHelper}
+import itutil._
 import models.RegistrationStatus._
 import models._
 import models.des.BusinessAddress
+import org.mongodb.scala.result.InsertOneResult
 import play.api.Application
 import play.api.http.HeaderNames
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -30,15 +31,12 @@ import play.api.libs.crypto.DefaultCookieSigner
 import play.api.libs.json._
 import play.api.libs.ws.{WSRequest, WSResponse}
 import play.api.test.Helpers._
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.commands.WriteResult
-import reactivemongo.play.json._
-import repositories.{CorporationTaxRegistrationMongoRepository, SequenceMongoRepo, SequenceMongoRepository}
+import repositories.{CorporationTaxRegistrationMongoRepository, SequenceMongoRepository}
 import uk.gov.hmrc.http.{HeaderNames => GovHeaderNames}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with RequestFinder {
+class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with RequestFinder with MongoIntegrationSpec {
   val mockHost: String = WiremockHelper.wiremockHost
   val mockPort: Int = WiremockHelper.wiremockPort
   val mockUrl: String = s"http://$mockHost:$mockPort"
@@ -82,18 +80,17 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
     )
 
   class Setup {
-    val rmComp: ReactiveMongoComponent = app.injector.instanceOf[ReactiveMongoComponent]
-    val crypto: CryptoSCRS = app.injector.instanceOf[CryptoSCRS]
-    val ctRepository: CorporationTaxRegistrationMongoRepository = new CorporationTaxRegistrationMongoRepository(rmComp, crypto)
-    val seqRepo: SequenceMongoRepository = app.injector.instanceOf[SequenceMongoRepo].repo
+    val crypto = app.injector.instanceOf[CryptoSCRS]
+    val ctRepository: CorporationTaxRegistrationMongoRepository = app.injector.instanceOf[CorporationTaxRegistrationMongoRepository]
+    val seqRepo: SequenceMongoRepository = app.injector.instanceOf[SequenceMongoRepository]
 
-    await(ctRepository.drop)
+    ctRepository.deleteAll
     await(ctRepository.ensureIndexes)
 
-    await(seqRepo.drop)
+    seqRepo.deleteAll
     await(seqRepo.ensureIndexes)
 
-    def setupCTRegistration(reg: CorporationTaxRegistration): WriteResult = await(ctRepository.insert(reg))
+    def setupCTRegistration(reg: CorporationTaxRegistration): InsertOneResult = ctRepository.insert(reg)
 
     stubAuthorise(internalId)
   }
@@ -220,7 +217,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
     json.toString
   }
 
-  "handleUserSubmission" should {
+  "handleUserSubmission" must {
 
     val authProviderId: String = "testAuthProviderId"
     val authorisedRetrievals: JsObject = Json.obj(
@@ -230,23 +227,23 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
     "return Confirmation References when registration is in Held status" in new Setup {
       stubAuthorise(200, authorisedRetrievals)
 
-      await(ctRepository.insert(heldRegistration.copy(confirmationReferences = Some(confRefsWithPayment))))
+      ctRepository.insert(heldRegistration.copy(confirmationReferences = Some(confRefsWithPayment)))
 
       val response: WSResponse = await(client(s"/$regId/confirmation-references").put(jsonConfirmationRefs(ackRef, Some(payRef), Some(payAmount))))
-      response.status shouldBe 200
-      response.json shouldBe Json.toJson(confRefsWithPayment)
+      response.status mustBe 200
+      response.json mustBe Json.toJson(confRefsWithPayment)
     }
 
     "update Confirmation References when registration is in Held status (new HO6)" in new Setup {
       stubAuthorise(200, authorisedRetrievals)
 
-      await(ctRepository.insert(heldRegistration))
+      ctRepository.insert(heldRegistration)
 
       val response: WSResponse = await(client(s"/$regId/confirmation-references").put(jsonConfirmationRefs(ackRef, Some(payRef), Some(payAmount))))
-      response.status shouldBe 200
-      response.json shouldBe Json.toJson(confRefsWithPayment)
+      response.status mustBe 200
+      response.json mustBe Json.toJson(confRefsWithPayment)
 
-      await(ctRepository.findAll()).head.confirmationReferences shouldBe Some(confRefsWithPayment)
+      ctRepository.findAll.head.confirmationReferences mustBe Some(confRefsWithPayment)
     }
 
     "submit to DES" when {
@@ -260,7 +257,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
       "registration is in Draft status and update Confirmation References with Ack Ref and Payment infos (old HO6)" in new Setup {
         stubAuthorise(200, authorisedRetrievals)
 
-        await(ctRepository.insert(draftRegistration))
+        ctRepository.insert(draftRegistration)
 
         stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
         stubPost(s"/business-registration/corporation-tax", 200, """{"a": "b"}""")
@@ -273,19 +270,19 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
         )
 
         val response: WSResponse = await(client(s"/$regId/confirmation-references").put(jsonConfirmationRefs("", Some(payRef), Some(payAmount))))
-        response.status shouldBe 200
-        response.json shouldBe Json.toJson(confRefsWithPayment)
+        response.status mustBe 200
+        response.json mustBe Json.toJson(confRefsWithPayment)
 
-        val reg: CorporationTaxRegistration = await(ctRepository.findAll()).head
-        reg.confirmationReferences shouldBe Some(confRefsWithPayment)
-        reg.sessionIdentifiers shouldBe None
-        reg.status shouldBe HELD
+        val reg: CorporationTaxRegistration = ctRepository.findAll.head
+        reg.confirmationReferences mustBe Some(confRefsWithPayment)
+        reg.sessionIdentifiers mustBe None
+        reg.status mustBe HELD
       }
 
       "registration is in Draft status and update Confirmation References but DES submission failed 403 (old HO6)" in new Setup {
         stubAuthorise(200, authorisedRetrievals)
 
-        await(ctRepository.insert(draftRegistration))
+        ctRepository.insert(draftRegistration)
 
         stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
         stubPost(s"/business-registration/corporation-tax", 403, "")
@@ -298,18 +295,18 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
         )
 
         val response: WSResponse = await(client(s"/$regId/confirmation-references").put(jsonConfirmationRefs("", Some(payRef), Some(payAmount))))
-        response.status shouldBe 400
+        response.status mustBe 400
 
-        val reg: CorporationTaxRegistration = await(ctRepository.findAll()).head
-        reg.confirmationReferences shouldBe Some(confRefsWithPayment)
-        reg.sessionIdentifiers shouldBe Some(SessionIds(SessionId, authProviderId))
-        reg.status shouldBe RegistrationStatus.LOCKED
+        val reg: CorporationTaxRegistration = ctRepository.findAll.head
+        reg.confirmationReferences mustBe Some(confRefsWithPayment)
+        reg.sessionIdentifiers mustBe Some(SessionIds(SessionId, authProviderId))
+        reg.status mustBe RegistrationStatus.LOCKED
       }
 
       "registration is in Draft status and update Confirmation References but DES submission failed 429 (old HO6)" in new Setup {
         stubAuthorise(200, authorisedRetrievals)
 
-        await(ctRepository.insert(draftRegistration))
+        ctRepository.insert(draftRegistration)
 
         stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
         stubPost(s"/business-registration/corporation-tax", 429, "")
@@ -322,12 +319,12 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
         )
 
         val response: WSResponse = await(client(s"/$regId/confirmation-references").put(jsonConfirmationRefs("", Some(payRef), Some(payAmount))))
-        response.status shouldBe 503
+        response.status mustBe 503
 
-        val reg: CorporationTaxRegistration = await(ctRepository.findAll()).head
-        reg.confirmationReferences shouldBe Some(confRefsWithPayment)
-        reg.sessionIdentifiers shouldBe Some(SessionIds(SessionId, authProviderId))
-        reg.status shouldBe RegistrationStatus.LOCKED
+        val reg: CorporationTaxRegistration = ctRepository.findAll.head
+        reg.confirmationReferences mustBe Some(confRefsWithPayment)
+        reg.sessionIdentifiers mustBe Some(SessionIds(SessionId, authProviderId))
+        reg.status mustBe RegistrationStatus.LOCKED
       }
 
       "registration is in Locked status (old HO6)" in new Setup {
@@ -349,19 +346,19 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
           )
         )
 
-        await(ctRepository.insert(lockedRegistration))
+        ctRepository.insert(lockedRegistration)
 
         stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
         stubPost(s"/business-registration/corporation-tax", 200, """{"a": "b"}""")
 
         val response: WSResponse = await(client(s"/$regId/confirmation-references").put(jsonConfirmationRefs(ackRef, Some(payRef), Some(payAmount))))
-        response.status shouldBe 200
-        response.json shouldBe Json.toJson(confRefsWithPayment)
+        response.status mustBe 200
+        response.json mustBe Json.toJson(confRefsWithPayment)
 
-        val reg: CorporationTaxRegistration = await(ctRepository.findAll()).head
-        reg.confirmationReferences shouldBe Some(confRefsWithPayment)
-        reg.sessionIdentifiers shouldBe None
-        reg.status shouldBe HELD
+        val reg: CorporationTaxRegistration = ctRepository.findAll.head
+        reg.confirmationReferences mustBe Some(confRefsWithPayment)
+        reg.sessionIdentifiers mustBe None
+        reg.status mustBe HELD
       }
 
       "registration is in Draft status and update Confirmation References with Ack Ref (new HO5-1)" in new Setup {
@@ -374,7 +371,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
           paymentAmount = None
         )
 
-        await(ctRepository.insert(draftRegistration))
+        ctRepository.insert(draftRegistration)
 
         stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
         stubPost(s"/business-registration/corporation-tax", 200, """{"a": "b"}""")
@@ -387,13 +384,13 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
         )
 
         val response: WSResponse = await(client(s"/$regId/confirmation-references").put(jsonConfirmationRefs()))
-        response.status shouldBe 200
-        response.json shouldBe Json.toJson(confRefsWithoutPayment)
+        response.status mustBe 200
+        response.json mustBe Json.toJson(confRefsWithoutPayment)
 
-        val reg: CorporationTaxRegistration = await(ctRepository.findAll()).head
-        reg.confirmationReferences shouldBe Some(confRefsWithoutPayment)
-        reg.sessionIdentifiers shouldBe None
-        reg.status shouldBe HELD
+        val reg: CorporationTaxRegistration = ctRepository.findAll.head
+        reg.confirmationReferences mustBe Some(confRefsWithoutPayment)
+        reg.sessionIdentifiers mustBe None
+        reg.status mustBe HELD
       }
 
       "registration is in Draft status, at 5-1, sending the RO address as the PPOB" in new Setup {
@@ -406,14 +403,14 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
           paymentAmount = None
         )
 
-        await(ctRepository.insert(draftRegistration.copy(companyDetails =
+        ctRepository.insert(draftRegistration.copy(companyDetails =
           Some(CompanyDetails(
             companyName = "testCompanyName",
             CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("ZZ1 1ZZ"), Some("Region")),
             PPOB("RO", None),
             jurisdiction = "testJurisdiction"
           ))
-        )))
+        ))
 
         stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
         stubPost(s"/business-registration/corporation-tax", 200, """{"a": "b"}""")
@@ -426,13 +423,13 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
         )
 
         val response: WSResponse = await(client(s"/$regId/confirmation-references").put(jsonConfirmationRefs()))
-        response.status shouldBe 200
-        response.json shouldBe Json.toJson(confRefsWithoutPayment)
+        response.status mustBe 200
+        response.json mustBe Json.toJson(confRefsWithoutPayment)
 
-        val reg: CorporationTaxRegistration = await(ctRepository.findAll()).head
-        reg.confirmationReferences shouldBe Some(confRefsWithoutPayment)
-        reg.sessionIdentifiers shouldBe None
-        reg.status shouldBe HELD
+        val reg: CorporationTaxRegistration = ctRepository.findAll.head
+        reg.confirmationReferences mustBe Some(confRefsWithoutPayment)
+        reg.sessionIdentifiers mustBe None
+        reg.status mustBe HELD
       }
 
       "registration is in Draft status, at 5-1, sending the RO address as the PPOB, RO and takeover addresses have unormalised characters" in new Setup {
@@ -462,7 +459,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
           prevOwnersAddress = Some(invalidAddress)
         )
 
-        await(ctRepository.insert(draftRegistration.copy(companyDetails =
+        ctRepository.insert(draftRegistration.copy(companyDetails =
           Some(CompanyDetails(
             companyName = "testCompanyName",
             CHROAddress("<123> {ABC} !*^%$£", "BDT & CFD /|@", Some("A¥€ 1 «»;:"), "D£q|l", ":~#Rts!2", Some("B~ ¬` 2^ -+=_:;"), Some("XX1 1ØZ"), Some("test coûntry")),
@@ -470,7 +467,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
             jurisdiction = "testJurisdiction"
           )),
           takeoverDetails = Some(takeoverWithInvalidAddress)
-        )))
+        ))
 
         stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
         stubPost(s"/business-registration/corporation-tax", 200, """{"a": "b"}""")
@@ -483,13 +480,13 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
         )
 
         val response: WSResponse = await(client(s"/$regId/confirmation-references").put(jsonConfirmationRefs()))
-        response.status shouldBe 200
-        response.json shouldBe Json.toJson(confRefsWithoutPayment)
+        response.status mustBe 200
+        response.json mustBe Json.toJson(confRefsWithoutPayment)
 
-        val reg: CorporationTaxRegistration = await(ctRepository.findAll()).head
-        reg.confirmationReferences shouldBe Some(confRefsWithoutPayment)
-        reg.sessionIdentifiers shouldBe None
-        reg.status shouldBe HELD
+        val reg: CorporationTaxRegistration = ctRepository.findAll.head
+        reg.confirmationReferences mustBe Some(confRefsWithoutPayment)
+        reg.sessionIdentifiers mustBe None
+        reg.status mustBe HELD
 
         val requestBody: JsObject = getPOSTRequestJsonBody("/business-registration/corporation-tax").as[JsObject]
         val registration: JsObject = (requestBody \ "registration" \ "metadata").as[JsObject] - "sessionId" - "formCreationTimestamp"
@@ -552,7 +549,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
             )
           )
 
-        res shouldBe expectedJsonBody
+        res mustBe expectedJsonBody
 
       }
 
@@ -566,14 +563,14 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
           paymentAmount = None
         )
 
-        await(ctRepository.insert(draftRegistration.copy(companyDetails =
+        ctRepository.insert(draftRegistration.copy(companyDetails =
           Some(CompanyDetails(
             companyName = "testCompanyName",
             CHROAddress("<123> {ABC} !*^%$£", "BDT & CFD /|@", Some("A¥€ 1 «»;:"), "D£q|l", ":~#Rts!2", Some("B~ ¬` 2^ -+=_:;"), Some("XX1 1ØZ"), Some("test coûntry")),
             PPOB("PPOB", Some(PPOBAddress("line1:", "line2;", Some("line3:;"), Some("line4\\"), Some("ZZ1 1ZZ"), Some("Country"), None, "txid"))),
             jurisdiction = "testJurisdiction"
           ))
-        )))
+        ))
 
         stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
         stubPost(s"/business-registration/corporation-tax", 200, """{"a": "b"}""")
@@ -586,13 +583,13 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
         )
 
         val response: WSResponse = await(client(s"/$regId/confirmation-references").put(jsonConfirmationRefs()))
-        response.status shouldBe 200
-        response.json shouldBe Json.toJson(confRefsWithoutPayment)
+        response.status mustBe 200
+        response.json mustBe Json.toJson(confRefsWithoutPayment)
 
-        val reg: CorporationTaxRegistration = await(ctRepository.findAll()).head
-        reg.confirmationReferences shouldBe Some(confRefsWithoutPayment)
-        reg.sessionIdentifiers shouldBe None
-        reg.status shouldBe HELD
+        val reg: CorporationTaxRegistration = ctRepository.findAll.head
+        reg.confirmationReferences mustBe Some(confRefsWithoutPayment)
+        reg.sessionIdentifiers mustBe None
+        reg.status mustBe HELD
 
         val requestBody: JsObject = getPOSTRequestJsonBody("/business-registration/corporation-tax").as[JsObject]
         val registration: JsObject = (requestBody \ "registration" \ "metadata").as[JsObject] - "sessionId" - "formCreationTimestamp"
@@ -635,7 +632,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
             )
           )
 
-        res shouldBe expectedJsonBody
+        res mustBe expectedJsonBody
       }
 
       "registration is in Draft status, at 5-1, sending groups block" in new Setup {
@@ -661,7 +658,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
           Some(GroupUTR(Some("1234567890")))
         ))
 
-        await(ctRepository.insert(
+        ctRepository.insert(
           draftRegistration.copy(
             companyDetails =
               Some(CompanyDetails(
@@ -670,7 +667,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
                 PPOB("RO", None),
                 jurisdiction = "testJurisdiction"
               )), groups = validGroups
-          )))
+          ))
 
         stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
         stubPost(s"/business-registration/corporation-tax", 200, """{"a": "b"}""")
@@ -683,13 +680,13 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
         )
 
         val response: WSResponse = await(client(s"/$regId/confirmation-references").put(jsonConfirmationRefs()))
-        response.status shouldBe 200
-        response.json shouldBe Json.toJson(confRefsWithoutPayment)
+        response.status mustBe 200
+        response.json mustBe Json.toJson(confRefsWithoutPayment)
 
-        val reg: CorporationTaxRegistration = await(ctRepository.findAll()).head
-        reg.confirmationReferences shouldBe Some(confRefsWithoutPayment)
-        reg.sessionIdentifiers shouldBe None
-        reg.status shouldBe HELD
+        val reg: CorporationTaxRegistration = ctRepository.findAll.head
+        reg.confirmationReferences mustBe Some(confRefsWithoutPayment)
+        reg.sessionIdentifiers mustBe None
+        reg.status mustBe HELD
 
         val requestBody: JsObject = getPOSTRequestJsonBody("/business-registration/corporation-tax").as[JsObject]
         val registration: JsObject = (requestBody \ "registration" \ "metadata").as[JsObject] - "sessionId" - "formCreationTimestamp"
@@ -743,7 +740,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
             )
           )
 
-        res shouldBe expectedJsonBody
+        res mustBe expectedJsonBody
       }
 
       "registration is in Draft status, at Handoff 5-1, sending takeovers block" in new Setup {
@@ -779,7 +776,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
         ))
 
 
-        await(ctRepository.insert(
+        ctRepository.insert(
           draftRegistration.copy(
             companyDetails =
               Some(CompanyDetails(
@@ -788,7 +785,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
                 PPOB("RO", None),
                 jurisdiction = "testJurisdiction"
               )), takeoverDetails = validTakeover
-          )))
+          ))
 
 
         stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
@@ -802,13 +799,13 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
         )
 
         val response: WSResponse = await(client(s"/$regId/confirmation-references").put(jsonConfirmationRefs()))
-        response.status shouldBe 200
-        response.json shouldBe Json.toJson(confRefsWithoutPayment)
+        response.status mustBe 200
+        response.json mustBe Json.toJson(confRefsWithoutPayment)
 
-        val reg: CorporationTaxRegistration = await(ctRepository.findAll()).head
-        reg.confirmationReferences shouldBe Some(confRefsWithoutPayment)
-        reg.sessionIdentifiers shouldBe None
-        reg.status shouldBe HELD
+        val reg: CorporationTaxRegistration = ctRepository.findAll.head
+        reg.confirmationReferences mustBe Some(confRefsWithoutPayment)
+        reg.sessionIdentifiers mustBe None
+        reg.status mustBe HELD
 
         val requestBody: JsObject = getPOSTRequestJsonBody("/business-registration/corporation-tax").as[JsObject]
         val registration: JsObject = (requestBody \ "registration" \ "metadata").as[JsObject] - "sessionId" - "formCreationTimestamp"
@@ -870,7 +867,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
           )
         )
 
-        res shouldBe expectedJsonBody
+        res mustBe expectedJsonBody
       }
 
       "registration is in Draft status, at Handoff 5-1, sending empty takeovers block" in new Setup {
@@ -891,7 +888,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
           prevOwnersAddress = None
         ))
 
-        await(ctRepository.insert(
+        ctRepository.insert(
           draftRegistration.copy(
             companyDetails =
               Some(CompanyDetails(
@@ -900,7 +897,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
                 PPOB("RO", None),
                 jurisdiction = "testJurisdiction"
               )), takeoverDetails = validTakeover
-          )))
+          ))
 
 
         stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
@@ -914,13 +911,13 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
         )
 
         val response: WSResponse = await(client(s"/$regId/confirmation-references").put(jsonConfirmationRefs()))
-        response.status shouldBe 200
-        response.json shouldBe Json.toJson(confRefsWithoutPayment)
+        response.status mustBe 200
+        response.json mustBe Json.toJson(confRefsWithoutPayment)
 
-        val reg: CorporationTaxRegistration = await(ctRepository.findAll()).head
-        reg.confirmationReferences shouldBe Some(confRefsWithoutPayment)
-        reg.sessionIdentifiers shouldBe None
-        reg.status shouldBe HELD
+        val reg: CorporationTaxRegistration = ctRepository.findAll.head
+        reg.confirmationReferences mustBe Some(confRefsWithoutPayment)
+        reg.sessionIdentifiers mustBe None
+        reg.status mustBe HELD
 
         val requestBody: JsObject = getPOSTRequestJsonBody("/business-registration/corporation-tax").as[JsObject]
         val registration: JsObject = (requestBody \ "registration" \ "metadata").as[JsObject] - "sessionId" - "formCreationTimestamp"
@@ -962,7 +959,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
           )
         )
 
-        res shouldBe expectedJsonBody
+        res mustBe expectedJsonBody
       }
 
       "registration is in Draft status and update Confirmation References with Ack Ref but DES submission FAILED 403 (new HO5-1)" in new Setup {
@@ -975,7 +972,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
           paymentAmount = None
         )
 
-        await(ctRepository.insert(draftRegistration))
+        ctRepository.insert(draftRegistration)
 
         stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
         stubPost(s"/business-registration/corporation-tax", 403, "")
@@ -988,12 +985,12 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
         )
 
         val response: WSResponse = await(client(s"/$regId/confirmation-references").put(jsonConfirmationRefs()))
-        response.status shouldBe 400
+        response.status mustBe 400
 
-        val reg: CorporationTaxRegistration = await(ctRepository.findAll()).head
-        reg.confirmationReferences shouldBe Some(confRefsWithoutPayment)
-        reg.sessionIdentifiers shouldBe Some(SessionIds(SessionId, authProviderId))
-        reg.status shouldBe RegistrationStatus.LOCKED
+        val reg: CorporationTaxRegistration = ctRepository.findAll.head
+        reg.confirmationReferences mustBe Some(confRefsWithoutPayment)
+        reg.sessionIdentifiers mustBe Some(SessionIds(SessionId, authProviderId))
+        reg.status mustBe RegistrationStatus.LOCKED
       }
 
       "registration is in Draft status and update Confirmation References with Ack Ref but DES submission FAILED 429 (new HO5-1)" in new Setup {
@@ -1006,7 +1003,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
           paymentAmount = None
         )
 
-        await(ctRepository.insert(draftRegistration))
+        ctRepository.insert(draftRegistration)
 
         stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
         stubPost(s"/business-registration/corporation-tax", 429, "")
@@ -1019,12 +1016,12 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
         )
 
         val response: WSResponse = await(client(s"/$regId/confirmation-references").put(jsonConfirmationRefs()))
-        response.status shouldBe 503
+        response.status mustBe 503
 
-        val reg: CorporationTaxRegistration = await(ctRepository.findAll()).head
-        reg.confirmationReferences shouldBe Some(confRefsWithoutPayment)
-        reg.sessionIdentifiers shouldBe Some(SessionIds(SessionId, authProviderId))
-        reg.status shouldBe RegistrationStatus.LOCKED
+        val reg: CorporationTaxRegistration = ctRepository.findAll.head
+        reg.confirmationReferences mustBe Some(confRefsWithoutPayment)
+        reg.sessionIdentifiers mustBe Some(SessionIds(SessionId, authProviderId))
+        reg.status mustBe RegistrationStatus.LOCKED
       }
 
       "registration is in Locked status and update Confirmation References with Payment infos (new HO6)" in new Setup {
@@ -1038,7 +1035,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
         )
         val lockedRegistration: CorporationTaxRegistration = draftRegistration.copy(status = RegistrationStatus.LOCKED, confirmationReferences = Some(confRefsWithoutPayment))
 
-        await(ctRepository.insert(lockedRegistration))
+        ctRepository.insert(lockedRegistration)
 
         stubGet(s"/business-registration/business-tax-registration/$regId", 200, businessRegistrationResponse)
         stubPost(s"/business-registration/corporation-tax", 200, """{"a": "b"}""")
@@ -1051,31 +1048,31 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
         )
 
         val response: WSResponse = await(client(s"/$regId/confirmation-references").put(jsonConfirmationRefs(ackRef, Some(payRef), Some(payAmount))))
-        response.status shouldBe 200
-        response.json shouldBe Json.toJson(confRefsWithPayment)
+        response.status mustBe 200
+        response.json mustBe Json.toJson(confRefsWithPayment)
 
-        val reg: CorporationTaxRegistration = await(ctRepository.findAll()).head
-        reg.confirmationReferences shouldBe Some(confRefsWithPayment)
-        reg.sessionIdentifiers shouldBe None
-        reg.status shouldBe HELD
+        val reg: CorporationTaxRegistration = ctRepository.findAll.head
+        reg.confirmationReferences mustBe Some(confRefsWithPayment)
+        reg.sessionIdentifiers mustBe None
+        reg.status mustBe HELD
       }
 
-      "GET /corporation-tax-registration" should {
+      "GET /corporation-tax-registration" must {
         "return a 200 and an unencrypted CT-UTR" in new Setup {
           stubAuthorise(200, authorisedRetrievals)
 
-          await(ctRepository.insert(fullCorporationTaxRegistration))
+          ctRepository.insert(fullCorporationTaxRegistration)
 
-          val ctRegJson: JsObject = await(ctRepository.collection.find(Json.obj()).one[JsObject]).get
+          val ctRegJson = await(ctRepository.collection.find[JsObject]().head())
 
           val encryptedCtUtr: JsLookupResult = ctRegJson \ "acknowledgementReferences" \ "ct-utr"
 
-          encryptedCtUtr.get shouldBe app.injector.instanceOf[CryptoSCRS].wts.writes(ctutr)
+          encryptedCtUtr.get mustBe crypto.wts.writes(ctutr)
 
           val response: WSResponse = await(client(s"/$regId/corporation-tax-registration").get())
 
-          response.status shouldBe 200
-          (response.json \ "acknowledgementReferences" \ "ctUtr").get.as[String] shouldBe ctutr
+          response.status mustBe 200
+          (response.json \ "acknowledgementReferences" \ "ctUtr").get.as[String] mustBe ctutr
         }
       }
     }

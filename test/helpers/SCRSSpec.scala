@@ -18,18 +18,19 @@ package helpers
 
 import mocks.SCRSMocks
 import org.mockito.Mockito.reset
+import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar
-import org.scalatest.{BeforeAndAfterEach, WordSpec}
+import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 
-trait SCRSSpec extends WordSpec with MockitoSugar with GuiceOneAppPerSuite with SCRSMocks with BeforeAndAfterEach {
+trait SCRSSpec extends PlaySpec with MockitoSugar with GuiceOneAppPerSuite with SCRSMocks with BeforeAndAfterEach {
 
 	override def beforeEach() {
 		reset(mockCTDataService)
 		reset(mockCTDataRepository)
 		reset(mockContactDetailsService)
 		reset(mockCompanyDetailsService)
-		reset(mockSequenceRepository)
+		reset(mockSequenceMongoRepository)
 		reset(mockWSHttp)
 		reset(mockProcessIncorporationService)
 

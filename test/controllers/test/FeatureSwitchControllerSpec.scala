@@ -22,14 +22,14 @@ import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
 import org.scalatestplus.mockito.MockitoSugar
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.play.PlaySpec
 import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 
 import scala.concurrent.Future
 
-class FeatureSwitchControllerSpec extends WordSpec with Matchers with MockitoSugar {
+class FeatureSwitchControllerSpec extends PlaySpec with MockitoSugar {
 
   implicit val system: ActorSystem = ActorSystem("CR")
   implicit val materializer: ActorMaterializer = ActorMaterializer()
@@ -42,27 +42,27 @@ class FeatureSwitchControllerSpec extends WordSpec with Matchers with MockitoSug
     }
   }
 
-  "show" should {
+  "show" must {
 
     "return a 200 and display all feature flags and their status " in new Setup {
       val result: Future[Result] = controller.show(FakeRequest())
-      status(result) shouldBe 200
-      contentAsString(result) shouldBe ""
+      status(result) mustBe 200
+      contentAsString(result) mustBe ""
     }
   }
 
-  "switch" should {
+  "switch" must {
 
     "enable scheduledJob successfully" in new Setup {
       when(mockQuartz.resumeJob(ArgumentMatchers.any())).thenReturn(true)
       val result: Future[Result] = controller.switch("missing-incorporation-job", "enable")(FakeRequest())
-      status(result) shouldBe OK
+      status(result) mustBe OK
       verify(mockQuartz, times(1)).resumeJob(ArgumentMatchers.any())
     }
     "disable scheduledJob successfully" in new Setup {
       when(mockQuartz.suspendJob(ArgumentMatchers.any())).thenReturn(true)
       val result: Future[Result] = controller.switch("missing-incorporation-job", "disable")(FakeRequest())
-      status(result) shouldBe OK
+      status(result) mustBe OK
       verify(mockQuartz, times(1)).suspendJob(ArgumentMatchers.any())
     }
   }

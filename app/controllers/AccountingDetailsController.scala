@@ -51,14 +51,13 @@ class AccountingDetailsController @Inject()(val metricsService: MetricsService,
   }
 
   def retrieveAccountingDetails(registrationID: String): Action[AnyContent] = AuthorisedAction(registrationID).async {
-    implicit request =>
-      val timer = metricsService.retrieveAccountingDetailsCRTimer.time()
-      accountingDetailsService.retrieveAccountingDetails(registrationID) map {
-        case Some(details) => timer.stop()
-          Ok(mapToResponse(registrationID, details))
-        case None => timer.stop()
-          NotFound(ErrorResponse.accountingDetailsNotFound)
-      }
+    val timer = metricsService.retrieveAccountingDetailsCRTimer.time()
+    accountingDetailsService.retrieveAccountingDetails(registrationID) map {
+      case Some(details) => timer.stop()
+        Ok(mapToResponse(registrationID, details))
+      case None => timer.stop()
+        NotFound(ErrorResponse.accountingDetailsNotFound)
+    }
   }
 
   def updateAccountingDetails(registrationID: String): Action[JsValue] = AuthorisedAction(registrationID).async[JsValue](parse.json) {

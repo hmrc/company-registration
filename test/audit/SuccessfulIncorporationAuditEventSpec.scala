@@ -17,11 +17,11 @@
 package audit
 
 import org.joda.time.DateTime
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.http.HeaderCarrier
 
-class SuccessfulIncorporationAuditEventSpec extends WordSpec with Matchers {
+class SuccessfulIncorporationAuditEventSpec extends PlaySpec {
 
   implicit val hc = HeaderCarrier()
 
@@ -31,7 +31,7 @@ class SuccessfulIncorporationAuditEventSpec extends WordSpec with Matchers {
     incorporationDate = DateTime.parse("2017-01-01")
   )
 
-  "successfulIncorporationAuditEventDetail" should {
+  "successfulIncorporationAuditEventDetail" must {
     "construct valid data as per confluence" when {
       "converting a case class to JSON for a successful incorp" in {
         val expected =
@@ -44,20 +44,20 @@ class SuccessfulIncorporationAuditEventSpec extends WordSpec with Matchers {
           """.stripMargin
 
         val result = Json.toJson[SuccessfulIncorporationAuditEventDetail](testModel)
-        result.getClass shouldBe classOf[JsObject]
-        result shouldBe Json.parse(expected)
+        result.getClass mustBe classOf[JsObject]
+        result mustBe Json.parse(expected)
       }
     }
   }
 
-  "SuccessfulIncorporationAuditEvent" should {
+  "SuccessfulIncorporationAuditEvent" must {
     "construct a full successful incorporation audit event" when {
       "given a SuccessfulIncorporationAuditEventDetail case class, an audit type and a transaction name" in {
         val auditEventTest = new SuccessfulIncorporationAuditEvent(testModel, "successIncorpInformation", "successIncorpInformation")
 
-        auditEventTest.auditSource shouldBe "company-registration"
-        auditEventTest.auditType shouldBe "successIncorpInformation"
-        auditEventTest.tags.get("transactionName") shouldBe Some("successIncorpInformation")
+        auditEventTest.auditSource mustBe "company-registration"
+        auditEventTest.auditType mustBe "successIncorpInformation"
+        auditEventTest.tags.get("transactionName") mustBe Some("successIncorpInformation")
       }
     }
   }

@@ -16,23 +16,21 @@
 
 package api
 
-import auth.CryptoSCRS
 import itutil.WiremockHelper._
-import itutil.{IntegrationSpecBase, LoginStub, WiremockHelper}
+import itutil.{IntegrationSpecBase, LoginStub, MongoIntegrationSpec, WiremockHelper}
+import org.joda.time.DateTime
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.crypto.DefaultCookieSigner
 import play.api.libs.json.{JsBoolean, JsObject, JsString, Json}
 import play.api.test.Helpers._
-import play.modules.reactivemongo.ReactiveMongoComponent
-import repositories.{CorporationTaxRegistrationMongoRepository, ThrottleMongoRepo}
+import repositories.{CorporationTaxRegistrationMongoRepository, ThrottleMongoRepository}
 import uk.gov.hmrc.http.{HeaderNames => GovHeaderNames}
-import uk.gov.hmrc.time.DateTimeUtils
 
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class ThrottleCheckISpec extends IntegrationSpecBase with LoginStub {
+class ThrottleCheckISpec extends IntegrationSpecBase with MongoIntegrationSpec with LoginStub {
 
   val mockHost = WiremockHelper.wiremockHost
   val mockPort = WiremockHelper.wiremockPort
@@ -64,24 +62,19 @@ class ThrottleCheckISpec extends IntegrationSpecBase with LoginStub {
     )
 
   class Setup {
-    val rmComp = app.injector.instanceOf[ReactiveMongoComponent]
-    val crypto = app.injector.instanceOf[CryptoSCRS]
-    val crRepo = new CorporationTaxRegistrationMongoRepository(
-      rmComp, crypto)
-    await(crRepo.drop)
+    val crRepo = app.injector.instanceOf[CorporationTaxRegistrationMongoRepository]
+    crRepo.deleteAll
     await(crRepo.ensureIndexes)
 
-    val throttleRepo = app.injector.instanceOf[ThrottleMongoRepo].repo
-    await(throttleRepo.drop)
+    val throttleRepo = app.injector.instanceOf[ThrottleMongoRepository]
+    throttleRepo.deleteAll
     await(throttleRepo.ensureIndexes)
   }
 
-  "Company registration throttle / footprint check" should {
+  "Company registration throttle / footprint check" must {
 
     val registrationId = UUID.randomUUID().toString
     val internalId = UUID.randomUUID().toString
-
-    import reactivemongo.play.json._
 
     def crDoc(progressJson: String = "") = Json.parse(
       s"""
@@ -95,7 +88,7 @@ class ThrottleCheckISpec extends IntegrationSpecBase with LoginStub {
     def throttleDoc(current: Int) = Json.parse(
       s"""
          |{
-         |"_id": "${DateTimeUtils.now.toString("yyyy-MM-dd")}",
+         |"_id": "${DateTime.now.toString("yyyy-MM-dd")}",
          |"users_in": ${current},
          |"threshold": 0
          |}
@@ -105,7 +98,7 @@ class ThrottleCheckISpec extends IntegrationSpecBase with LoginStub {
       stubAuthorise(internalId)
 
       val progress = "HO5"
-      await(crRepo.collection.insert(crDoc(s""" "registrationProgress":"${progress}",""")))
+      crRepo.insertRaw(crDoc(s""" "registrationProgress":"${progress}","""))
 
       private val brURL = "/business-registration/business-tax-registration"
       stubGet(brURL, 200, s"""{"registrationID":"${registrationId}","formCreationTimestamp":"xxx", "language": "xxx"}""")
@@ -113,8 +106,8 @@ class ThrottleCheckISpec extends IntegrationSpecBase with LoginStub {
 
       val response = client(s"/throttle/check-user-access").get.futureValue
 
-      response.status shouldBe 200
-      response.json shouldBe Json.obj(
+      response.status mustBe 200
+      response.json mustBe Json.obj(
         "registration-id" -> JsString(registrationId),
         "created" -> JsBoolean(false),
         "confirmation-reference" -> JsBoolean(false),
@@ -134,8 +127,8 @@ class ThrottleCheckISpec extends IntegrationSpecBase with LoginStub {
       val progress = "HO5"
       val response = client(s"/throttle/check-user-access").get.futureValue
 
-      response.status shouldBe 200
-      response.json shouldBe Json.obj(
+      response.status mustBe 200
+      response.json mustBe Json.obj(
         "registration-id" -> JsString(registrationId),
         "created" -> JsBoolean(true),
         "confirmation-reference" -> JsBoolean(false),
@@ -146,7 +139,7 @@ class ThrottleCheckISpec extends IntegrationSpecBase with LoginStub {
     "prevent a user through if we're at the limit" in new Setup {
       stubAuthorise(internalId)
 
-      await(throttleRepo.collection.insert(throttleDoc(throttleThreshold)))
+      throttleRepo.insertRaw(throttleDoc(throttleThreshold))
 
       private val brURL = "/business-registration/business-tax-registration"
       stubGet(brURL, 404, "")
@@ -154,7 +147,7 @@ class ThrottleCheckISpec extends IntegrationSpecBase with LoginStub {
       val progress = "HO5"
       val response = client(s"/throttle/check-user-access").get.futureValue
 
-      response.status shouldBe 429
+      response.status mustBe 429
     }
   }
 }

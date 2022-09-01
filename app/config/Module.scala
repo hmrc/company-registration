@@ -85,9 +85,9 @@ class Module extends AbstractModule {
   }
 
   private def bindRepositories() = {
-    bind(classOf[LockRepositoryProvider]).to(classOf[LockRepositoryProviderImpl]).asEagerSingleton()
-    bind(classOf[SequenceMongoRepo]).asEagerSingleton()
-    bind(classOf[ThrottleMongoRepo]).asEagerSingleton()
+    bind(classOf[CorporationTaxRegistrationMongoRepository]).asEagerSingleton()
+    bind(classOf[SequenceMongoRepository]).asEagerSingleton()
+    bind(classOf[ThrottleMongoRepository]).asEagerSingleton()
     bind(classOf[Repositories]).asEagerSingleton()
   }
 }

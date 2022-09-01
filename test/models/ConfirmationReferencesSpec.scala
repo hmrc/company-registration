@@ -16,11 +16,11 @@
 
 package models
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.play.PlaySpec
 import play.api.libs.json._
 
 
-class ConfirmationReferencesSpec extends WordSpec with Matchers with JsonFormatValidation {
+class ConfirmationReferencesSpec extends PlaySpec with JsonFormatValidation {
 
   def j(ackRef: String) = {
     s"""
@@ -33,7 +33,7 @@ class ConfirmationReferencesSpec extends WordSpec with Matchers with JsonFormatV
      """.stripMargin
   }
 
-  "Refactored ConfirmationReferences Model" should {
+  "Refactored ConfirmationReferences Model" must {
     "Be able to be parsed from JSON" in {
       val ackRef = "1234567890123456789012345678901"
       val json = j(ackRef)
@@ -41,7 +41,7 @@ class ConfirmationReferencesSpec extends WordSpec with Matchers with JsonFormatV
 
       val result = Json.parse(json).validate[ConfirmationReferences]
 
-      shouldBeSuccess(expected, result)
+      mustBeSuccess(expected, result)
     }
 
     "fail to be read from JSON if the ack ref is longer than 31 characters" in {

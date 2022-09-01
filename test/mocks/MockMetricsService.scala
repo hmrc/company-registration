@@ -21,7 +21,7 @@ import com.kenshoo.play.metrics.Metrics
 import org.scalatestplus.mockito.MockitoSugar
 import repositories.CorporationTaxRegistrationMongoRepository
 import services._
-import uk.gov.hmrc.lock.LockKeeper
+import uk.gov.hmrc.mongo.lock.LockService
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -61,5 +61,5 @@ object MockMetricsService extends MetricsService with MockitoSugar {
   val userAccessCRTimer: Timer = mockTimer
 
   val desSubmissionCRTimer: Timer = mockTimer
-  override val lockKeeper: LockKeeper = mock[LockKeeper]
+  override val lockKeeper: LockService = mock[LockService]
 }

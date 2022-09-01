@@ -19,14 +19,14 @@ package services
 import com.codahale.metrics.{Counter, Gauge, Timer}
 import com.kenshoo.play.metrics.{Metrics, MetricsDisabledException}
 import jobs.{LockResponse, MongoLocked, ScheduledService, UnlockingFailed}
-import org.joda.time.Duration
 import play.api.Logging
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.lock.LockKeeper
+import uk.gov.hmrc.mongo.lock.LockService
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import javax.inject.{Inject, Singleton}
+import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -68,11 +68,7 @@ class MetricsServiceImpl @Inject()(metricsInstance: Metrics,
 
   lazy val lockoutTimeout = servicesConfig.getInt("schedules.metrics-job.lockTimeout")
 
-  lazy val lockKeeper: LockKeeper = new LockKeeper() {
-    override val lockId = "metrics-job-lock"
-    override val forceLockReleaseAfter: Duration = Duration.standardSeconds(lockoutTimeout)
-    override lazy val repo = repositories.lockRepository
-  }
+  lazy val lockKeeper: LockService = LockService(repositories.lockRepository, "metrics-job-lock", lockoutTimeout.seconds)
 }
 
 trait MetricsService extends ScheduledService[Either[Map[String, Int], LockResponse]] with Logging {
@@ -106,13 +102,13 @@ trait MetricsService extends ScheduledService[Either[Map[String, Int], LockRespo
   val desSubmissionCRTimer: Timer
 
   val ctRepository: CorporationTaxRegistrationMongoRepository
-  val lockKeeper: LockKeeper
+  val lockKeeper: LockService
 
   protected val metrics: Metrics
 
   def invoke(implicit ec: ExecutionContext): Future[Either[Map[String, Int], LockResponse]] = {
     implicit val hc = HeaderCarrier()
-    lockKeeper.tryLock(updateDocumentMetrics()).map {
+    lockKeeper.withLock(updateDocumentMetrics()).map {
       case Some(res) =>
         logger.info("MetricsService acquired lock and returned results")
         logger.info(s"Result updateDocumentMetrics: $res")

@@ -16,25 +16,23 @@
 
 package api
 
-import auth.CryptoSCRS
 import controllers.routes
 import itutil.WiremockHelper._
-import itutil.{IntegrationSpecBase, LoginStub, WiremockHelper}
+import itutil.{IntegrationSpecBase, LoginStub, MongoIntegrationSpec, WiremockHelper}
 import models._
+import org.mongodb.scala.result.InsertOneResult
 import play.api.Application
 import play.api.http.HeaderNames
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.crypto.DefaultCookieSigner
 import play.api.libs.json.{JsObject, Json}
 import play.api.test.Helpers._
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.commands.WriteResult
-import repositories.{CorporationTaxRegistrationMongoRepository, SequenceMongoRepo}
+import repositories.{CorporationTaxRegistrationMongoRepository, SequenceMongoRepository}
 import uk.gov.hmrc.http.{HeaderNames => GovHeaderNames}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class CompanyDetailsApiISpec extends IntegrationSpecBase with LoginStub {
+class CompanyDetailsApiISpec extends IntegrationSpecBase with MongoIntegrationSpec with LoginStub {
   lazy val defaultCookieSigner: DefaultCookieSigner = app.injector.instanceOf[DefaultCookieSigner]
   val mockHost = WiremockHelper.wiremockHost
   val mockPort = WiremockHelper.wiremockPort
@@ -106,66 +104,63 @@ class CompanyDetailsApiISpec extends IntegrationSpecBase with LoginStub {
     )
 
   class Setup {
-    val rmComp = app.injector.instanceOf[ReactiveMongoComponent]
-    val crypto = app.injector.instanceOf[CryptoSCRS]
-    val ctRepository = new CorporationTaxRegistrationMongoRepository(
-      rmComp, crypto)
-    val seqRepo = app.injector.instanceOf[SequenceMongoRepo].repo
+    val ctRepository = app.injector.instanceOf[CorporationTaxRegistrationMongoRepository]
+    val seqRepo = app.injector.instanceOf[SequenceMongoRepository]
 
-    await(ctRepository.drop)
+    ctRepository.deleteAll
     await(ctRepository.ensureIndexes)
 
-    await(seqRepo.drop)
+    seqRepo.deleteAll
     await(seqRepo.ensureIndexes)
 
     System.clearProperty("feature.registerInterest")
 
-    def setupCTRegistration(reg: CorporationTaxRegistration): WriteResult = await(ctRepository.insert(reg))
+    def setupCTRegistration(reg: CorporationTaxRegistration): InsertOneResult = ctRepository.insert(reg)
 
   }
 
-  s"GET ${controllers.routes.CompanyDetailsController.retrieveCompanyDetails(regId).url}" should {
+  s"GET ${controllers.routes.CompanyDetailsController.retrieveCompanyDetails(regId).url}" must {
 
     "return 404 when company details does not exist" in new Setup {
       stubAuthorise(internalId)
       setupCTRegistration(ctDoc)
       val response = await(client(s"/$regId/company-details").get())
-      response.status shouldBe 404
+      response.status mustBe 404
     }
 
     "return 200 when company details exists" in new Setup {
       stubAuthorise(internalId)
       setupCTRegistration(ctDocWithCompDetails)
       val response = await(client(s"/$regId/company-details").get())
-      response.status shouldBe 200
-      response.json shouldBe validCompanyDetailsResponse(ctDocWithCompDetails.companyDetails.get)
+      response.status mustBe 200
+      response.json mustBe validCompanyDetailsResponse(ctDocWithCompDetails.companyDetails.get)
     }
   }
 
-  s"POST ${controllers.routes.CompanyDetailsController.updateCompanyDetails(regId).url}" should {
+  s"POST ${controllers.routes.CompanyDetailsController.updateCompanyDetails(regId).url}" must {
 
     "return 200 and normalise ppob with invalid characters" in new Setup {
       stubAuthorise(internalId)
       setupCTRegistration(ctDoc)
 
       val response = await(client(s"/$regId/company-details").put(validPostData(defaulPPOBAddress).toString()))
-      response.status shouldBe 200
-      response.json shouldBe validCompanyDetailsResponse(ctDocWithCompDetails.companyDetails.get.copy(ppob = normalisedDefaultPPOBAddress))
+      response.status mustBe 200
+      response.json mustBe validCompanyDetailsResponse(ctDocWithCompDetails.companyDetails.get.copy(ppob = normalisedDefaultPPOBAddress))
     }
 
     "return 200 with no normalising needed with an address type of manual" in new Setup {
       stubAuthorise(internalId)
       setupCTRegistration(ctDocWithCompDetails)
       val response = await(client(s"/$regId/company-details").put(validPostData(validPPOBAddress).toString()))
-      response.status shouldBe 200
-      response.json shouldBe validCompanyDetailsResponse(ctDocWithCompDetails.companyDetails.get.copy(ppob = validPPOBAddress))
+      response.status mustBe 200
+      response.json mustBe validCompanyDetailsResponse(ctDocWithCompDetails.companyDetails.get.copy(ppob = validPPOBAddress))
     }
     "return 200 with unnormalisable ppob because characters are trimmed to max length" in new Setup {
       stubAuthorise(internalId)
       setupCTRegistration(ctDocWithCompDetails)
       val response = await(client(s"/$regId/company-details").put(validPostData(nonNormalisedAddressMaxLengthCheck).toString()))
-      response.status shouldBe 200
-      response.json shouldBe validCompanyDetailsResponse(ctDocWithCompDetails.companyDetails.get.copy(ppob = normalisedAddressMaxLengthCheck))
+      response.status mustBe 200
+      response.json mustBe validCompanyDetailsResponse(ctDocWithCompDetails.companyDetails.get.copy(ppob = normalisedAddressMaxLengthCheck))
     }
 
     "return 200 and normalise ppob with special characters" in new Setup {
@@ -173,45 +168,45 @@ class CompanyDetailsApiISpec extends IntegrationSpecBase with LoginStub {
       setupCTRegistration(ctDoc)
 
       val response = await(client(s"/$regId/company-details").put(validPostData(defaultSpecialCharCheck).toString()))
-      response.status shouldBe 200
-      response.json shouldBe validCompanyDetailsResponse(ctDocWithCompDetails.companyDetails.get.copy(ppob = normalisedSpecialCharCheck1))
+      response.status mustBe 200
+      response.json mustBe validCompanyDetailsResponse(ctDocWithCompDetails.companyDetails.get.copy(ppob = normalisedSpecialCharCheck1))
     }
 
     "return 200 with normalised ppob special char test" in new Setup {
       stubAuthorise(internalId)
       setupCTRegistration(ctDocWithCompDetails)
       val response = await(client(s"/$regId/company-details").put(validPostData(nonNormalisedSpecialCharCheck).toString()))
-      response.status shouldBe 200
-      response.json shouldBe validCompanyDetailsResponse(ctDocWithCompDetails.companyDetails.get.copy(ppob = normalisedSpecialCharCheck2))
+      response.status mustBe 200
+      response.json mustBe validCompanyDetailsResponse(ctDocWithCompDetails.companyDetails.get.copy(ppob = normalisedSpecialCharCheck2))
     }
   }
 
-  s"PUT ${controllers.routes.CompanyDetailsController.saveHandOff2ReferenceAndGenerateAckRef("").url}" should {
+  s"PUT ${controllers.routes.CompanyDetailsController.saveHandOff2ReferenceAndGenerateAckRef("").url}" must {
     "return 200 with json body containing ackref if conf refs dont exist in ct" in new Setup {
       stubAuthorise(internalId)
       setupCTRegistration(ctDoc)
-      await(ctRepository.count) shouldBe 1
-      await(seqRepo.count) shouldBe 0
+      ctRepository.count mustBe 1
+      seqRepo.count mustBe 0
       val response = await(client(s"/$regId/handOff2Reference-ackRef-save")
         .put(Json.obj("transaction_id" -> "testTransactionId").toString()))
-      response.status shouldBe 200
-      response.json.as[JsObject] shouldBe Json.obj("acknowledgement-reference" -> "BRCT00000000001")
-      await(seqRepo.count) shouldBe 1
+      response.status mustBe 200
+      response.json.as[JsObject] mustBe Json.obj("acknowledgement-reference" -> "BRCT00000000001")
+      seqRepo.count mustBe 1
       val res = await(ctRepository.getExistingRegistration(regId)).confirmationReferences.get
-      res shouldBe ConfirmationReferences("BRCT00000000001", "testTransactionId", None, None)
+      res mustBe ConfirmationReferences("BRCT00000000001", "testTransactionId", None, None)
     }
     "return 200 with json body containing existing ackref in db but updated txid" in new Setup {
       stubAuthorise(internalId)
       setupCTRegistration(ctDoc.copy(confirmationReferences = Some(ConfirmationReferences("testAckRef", "testTransactionId", None, None))))
-      await(ctRepository.count) shouldBe 1
-      await(seqRepo.count) shouldBe 0
+      ctRepository.count mustBe 1
+      seqRepo.count mustBe 0
       val response = await(client(s"/$regId/handOff2Reference-ackRef-save")
         .put(Json.obj("transaction_id" -> "testTxId").toString()))
-      response.status shouldBe 200
-      await(seqRepo.count) shouldBe 0
-      response.json.as[JsObject] shouldBe Json.obj("acknowledgement-reference" -> "testAckRef")
+      response.status mustBe 200
+      seqRepo.count mustBe 0
+      response.json.as[JsObject] mustBe Json.obj("acknowledgement-reference" -> "testAckRef")
       val res = await(ctRepository.getExistingRegistration(regId)).confirmationReferences.get
-      res shouldBe ConfirmationReferences("testAckRef", "testTxId", None, None)
+      res mustBe ConfirmationReferences("testAckRef", "testTxId", None, None)
     }
   }
 }

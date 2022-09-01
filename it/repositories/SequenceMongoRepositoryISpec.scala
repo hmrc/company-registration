@@ -16,15 +16,14 @@
 
 package repositories
 
-import itutil.IntegrationSpecBase
+import itutil.{IntegrationSpecBase, MongoIntegrationSpec}
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.Helpers._
-import play.modules.reactivemongo.ReactiveMongoComponent
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class SequenceMongoRepositoryISpec extends IntegrationSpecBase {
+class SequenceMongoRepositoryISpec extends IntegrationSpecBase with MongoIntegrationSpec {
 
   val additionalConfiguration = Map(
     "schedules.missing-incorporation-job.enabled" -> "false",
@@ -36,28 +35,23 @@ class SequenceMongoRepositoryISpec extends IntegrationSpecBase {
     .build()
 
   class Setup {
-    val rmc = app.injector.instanceOf[ReactiveMongoComponent]
-    val repository = new SequenceMongoRepository(rmc.mongoConnector.db)
-    await(repository.drop)
+    val repository = app.injector.instanceOf[SequenceMongoRepository]
+    repository.deleteAll
     await(repository.ensureIndexes)
-  }
-
-  override def afterAll() = new Setup {
-    await(repository.drop)
   }
 
   val testSequence = "testSequence"
 
-  "Sequence repository" should {
+  "Sequence repository" must {
     "should be able to get a sequence ID" in new Setup {
       val response = await(repository.getNext(testSequence))
-      response shouldBe 1
+      response mustBe 1
     }
 
     "get sequences, one after another from 1 to the end" in new Setup {
       val inputs = 1 to 25
       val outputs = inputs map { _ => await(repository.getNext(testSequence)) }
-      outputs shouldBe inputs
+      outputs mustBe inputs
     }
   }
 }

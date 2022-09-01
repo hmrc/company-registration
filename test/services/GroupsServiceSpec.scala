@@ -50,25 +50,25 @@ class GroupsServiceSpec extends BaseSpec with LogCapturing {
     }
   }
 
-  "returnGroups" should {
+  "returnGroups" must {
     "return groups if they exist in db" in new Setup {
       when(mockCTDataRepository.returnGroupsBlock(eqTo(regId))).thenReturn(Future.successful(Some(validGroupsModel)))
       val res = await(service.returnGroups(regId))
-      res shouldBe Some(validGroupsModel)
+      res mustBe Some(validGroupsModel)
     }
     "return None if db returns nothing" in new Setup {
       when(mockCTDataRepository.returnGroupsBlock(eqTo(regId))).thenReturn(Future.successful(None))
       val res = await(service.returnGroups(regId))
-      res shouldBe None
+      res mustBe None
     }
 
   }
 
-  "deleteGroups" should {
+  "deleteGroups" must {
     "return true if delete was successful" in new Setup {
       when(mockCTDataRepository.deleteGroupsBlock(eqTo(regId))).thenReturn(Future.successful(true))
       val res = await(service.deleteGroups(regId))
-      res shouldBe true
+      res mustBe true
     }
     "return future failed if delete was unsuccessful db returned an exception" in new Setup {
       when(mockCTDataRepository.deleteGroupsBlock(eqTo(regId))).thenReturn(Future.failed(new Exception("failure reason")))
@@ -76,11 +76,11 @@ class GroupsServiceSpec extends BaseSpec with LogCapturing {
     }
   }
 
-  "updateGroups" should {
+  "updateGroups" must {
     "return success of groups when db returns a success" in new Setup {
       when(mockCTDataRepository.updateGroups(eqTo(regId), eqTo(validGroupsModel))).thenReturn(Future.successful(validGroupsModel))
       val res = await(service.updateGroups(regId, validGroupsModel))
-      res shouldBe validGroupsModel
+      res mustBe validGroupsModel
     }
     "return a future failed if db returns an exception" in new Setup {
       when(mockCTDataRepository.updateGroups(eqTo(regId), eqTo(validGroupsModel))).thenReturn(Future.failed(new Exception("failure reason")))
