@@ -67,7 +67,7 @@ class TakeoverDetailsControllerSpec extends BaseSpec with AuthorisationMocks {
 
   "getBlock" should {
     "successfully retrieve a json with a valid TakeoverDetails and a 200 status if the data exists" in new Setup {
-      mockAuthorise(Future.successful(internalId))
+      mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
 
       when(mockTakeoverDetailsService.retrieveTakeoverDetailsBlock(registrationId)).thenReturn(Future.successful(Some(validTakeoverDetailsModel)))
@@ -97,7 +97,7 @@ class TakeoverDetailsControllerSpec extends BaseSpec with AuthorisationMocks {
       )
     }
     "retrieve an empty json and a 204 response if the data is not found" in new Setup {
-      mockAuthorise(Future.successful(internalId))
+      mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
 
       when(mockTakeoverDetailsService.retrieveTakeoverDetailsBlock(registrationId)).thenReturn(Future.successful(None))
@@ -109,7 +109,7 @@ class TakeoverDetailsControllerSpec extends BaseSpec with AuthorisationMocks {
 
   "putSubmission" should {
     "return a 200 response if the TakeoverDetails json is valid" in new Setup {
-      mockAuthorise(Future.successful(internalId))
+      mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
       val request: FakeRequest[JsObject] = FakeRequest().withBody(Json.obj(
         "replacingAnotherBusiness" -> true,
@@ -140,7 +140,7 @@ class TakeoverDetailsControllerSpec extends BaseSpec with AuthorisationMocks {
     }
 
     "return a 400 response if the TakeoverDetails json is invalid" in new Setup {
-      mockAuthorise(Future.successful(internalId))
+      mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
       val request: FakeRequest[JsObject] = FakeRequest().withBody(Json.obj(
         "replacingAnotherBusiness" -> true,
@@ -168,7 +168,7 @@ class TakeoverDetailsControllerSpec extends BaseSpec with AuthorisationMocks {
       status(result) shouldBe BAD_REQUEST
     }
     "return an exception if the request is missing fields" in new Setup {
-      mockAuthorise(Future.successful(internalId))
+      mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
       val request: FakeRequest[JsObject] = FakeRequest().withBody(Json.obj(
         "replacingAnotherBusiness" -> true,

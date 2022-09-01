@@ -19,3 +19,4 @@ package auth
 import uk.gov.hmrc.auth.core.AuthorisationException
 
 case class UnauthorisedAccess(msg: String = "Unauthorised Access") extends AuthorisationException(msg)
+case class NoInternalIdRetrieved(msg: String = "No Internal ID retrieved from call to Auth") extends AuthorisationException(msg)

@@ -225,7 +225,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
     val authProviderId: String = "testAuthProviderId"
     val authorisedRetrievals: JsObject = Json.obj(
       "internalId" -> internalId,
-      "credentials" -> Json.obj("providerId" -> authProviderId, "providerType" -> "testType"))
+      "optionalCredentials" -> Json.obj("providerId" -> authProviderId, "providerType" -> "testType"))
 
     "return Confirmation References when registration is in Held status" in new Setup {
       stubAuthorise(200, authorisedRetrievals)
@@ -364,8 +364,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
         reg.status shouldBe HELD
       }
 
-      "registration is in Draft sta" +
-        "tus and update Confirmation References with Ack Ref (new HO5-1)" in new Setup {
+      "registration is in Draft status and update Confirmation References with Ack Ref (new HO5-1)" in new Setup {
         stubAuthorise(200, authorisedRetrievals)
 
         val confRefsWithoutPayment: ConfirmationReferences = ConfirmationReferences(

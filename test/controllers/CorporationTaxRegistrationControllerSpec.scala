@@ -68,7 +68,7 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
     val request = FakeRequest().withBody(Json.toJson(validCorporationTaxRegistrationRequest))
 
     "return a 201 when a new entry is created from the parsed json" in new Setup {
-      mockAuthorise(Future.successful(internalId))
+      mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
 
       when(mockCTDataService.createCorporationTaxRegistrationRecord(eqTo(internalId), eqTo(regId), eqTo("en")))
@@ -78,6 +78,13 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
       val result: Future[Result] = controller.createCorporationTaxRegistration(regId)(request)
       status(result) shouldBe CREATED
       contentAsJson(result) shouldBe Json.toJson(response)
+    }
+
+    "return a 403 when no internalId retrieved from Auth" in new Setup {
+      mockAuthorise(Future.successful(None))
+
+      val result: Future[Result] = controller.createCorporationTaxRegistration(regId)(request)
+      status(result) shouldBe FORBIDDEN
     }
 
     "return a 403 when the user is not authorised" in new Setup {
@@ -93,7 +100,7 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
     val ctRegistrationResponse = buildCTRegistrationResponse(regId)
 
     "return a 200 and a CorporationTaxRegistration model is one is found" in new Setup {
-      mockAuthorise(Future.successful(internalId))
+      mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
 
       when(mockCTDataService.retrieveCorporationTaxRegistrationRecord(eqTo(regId), any()))
@@ -105,7 +112,7 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
     }
 
     "return a 404 if a CT registration record cannot be found" in new Setup {
-      mockAuthorise(Future.successful(internalId))
+      mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
 
       CTServiceMocks.retrieveCTDataRecord(regId, None)
@@ -125,7 +132,7 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
   "retrieveFullCorporationTaxRegistration" should {
 
     "return a 200 and a CorporationTaxRegistration model is found" in new Setup {
-      mockAuthorise(Future.successful(internalId))
+      mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
 
       CTServiceMocks.retrieveCTDataRecord(regId, Some(validDraftCorporationTaxRegistration))
@@ -136,7 +143,7 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
     }
 
     "return a 404 if a CT registration record cannot be found" in new Setup {
-      mockAuthorise(Future.successful(internalId))
+      mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
 
       CTServiceMocks.retrieveCTDataRecord(regId, None)
@@ -156,7 +163,7 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
   "retrieveConfirmationReference" should {
 
     "return a 200 and an acknowledgement ref is one exists" in new Setup {
-      mockAuthorise(Future.successful(internalId))
+      mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
 
       val expected: ConfirmationReferences = ConfirmationReferences("BRCT00000000123", "tx", Some("py"), Some("12.00"))
@@ -169,7 +176,7 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
     }
 
     "return a 404 if a record cannot be found" in new Setup {
-      mockAuthorise(Future.successful(internalId))
+      mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
 
       when(mockCTDataService.retrieveConfirmationReferences(ArgumentMatchers.eq(regId)))
@@ -192,7 +199,7 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
     def progressRequest(progress: String): JsValue = Json.parse(s"""{"registration-progress":"$progress"}""")
 
     "Extract the progress correctly from the message and request doc is updated" in new Setup {
-      mockAuthorise(Future.successful(internalId))
+      mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
 
       val progress: String = "HO5"
@@ -209,7 +216,7 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
     }
 
     "Return not found is the doc couldn't be updated" in new Setup {
-      mockAuthorise(Future.successful(internalId))
+      mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
 
       val progress = "N/A"
