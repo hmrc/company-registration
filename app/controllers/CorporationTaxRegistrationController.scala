@@ -43,27 +43,28 @@ class CorporationTaxRegistrationController @Inject()(val metricsService: Metrics
   lazy val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 
   def createCorporationTaxRegistration(registrationId: String): Action[JsValue] =
-    AuthenticatedAction.retrieve(internalId).async(parse.json) {
-      case Some(internalId) =>
+    AuthenticatedAction.retrieve(internalId).async(parse.json) { optInternalId =>
       implicit request =>
-        val timer = metricsService.createCorporationTaxRegistrationCRTimer.time()
-        withJsonBody[CorporationTaxRegistrationRequest] { ctRequest =>
-          ctService.createCorporationTaxRegistrationRecord(internalId, registrationId, ctRequest.language).map { res =>
-            timer.stop()
-            Created(Json.obj(
-              "registrationID" -> res.registrationID,
-              "status" -> res.status,
-              "formCreationTimestamp" -> res.formCreationTimestamp,
-              "links" -> Json.obj(
-                "self" -> routes.CorporationTaxRegistrationController.retrieveCorporationTaxRegistration(registrationId).url
-              )
-            ))
-          }
+        optInternalId match {
+          case Some(internalId) =>
+            val timer = metricsService.createCorporationTaxRegistrationCRTimer.time()
+            withJsonBody[CorporationTaxRegistrationRequest] { ctRequest =>
+              ctService.createCorporationTaxRegistrationRecord(internalId, registrationId, ctRequest.language).map { res =>
+                timer.stop()
+                Created(Json.obj(
+                  "registrationID" -> res.registrationID,
+                  "status" -> res.status,
+                  "formCreationTimestamp" -> res.formCreationTimestamp,
+                  "links" -> Json.obj(
+                    "self" -> routes.CorporationTaxRegistrationController.retrieveCorporationTaxRegistration(registrationId).url
+                  )
+                ))
+              }
+            }
+          case _ =>
+            logger.error("[CorporationTaxRegistrationController][createCorporationTaxRegistration] Unable to retrieve internalId from call to Auth")
+            Future.successful(Forbidden)
         }
-      case _ =>
-        implicit request =>
-          logger.error("[CorporationTaxRegistrationController][createCorporationTaxRegistration] Unable to retrieve internalId from call to Auth")
-          Future.successful(Forbidden)
     }
 
   def retrieveCorporationTaxRegistration(registrationID: String): Action[AnyContent] = AuthorisedAction(registrationID).async {

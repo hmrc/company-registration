@@ -43,24 +43,25 @@ class SubmissionController @Inject()(val metricsService: MetricsService,
   lazy val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 
   def handleUserSubmission(registrationID: String): Action[JsValue] =
-    AuthorisedAction(registrationID).retrieve(credentials).async(parse.json) {
-      case Some(credentials) =>
-        implicit request =>
-          val requestAsAnyContentAsJson: Request[AnyContentAsJson] = request.map(AnyContentAsJson)
-          withJsonBody[ConfirmationReferences] { refs =>
-            val timer = metricsService.updateReferencesCRTimer.time()
-            submissionService.handleSubmission(registrationID, credentials.providerId, refs, isAdmin = false)(
-              hc, requestAsAnyContentAsJson) map { references =>
-              timer.stop()
-              logger.info(s"[Confirmation Refs] Acknowledgement ref:${references.acknowledgementReference} " +
-                s"- Transaction id:${references.transactionId} - Payment ref:${references.paymentReference}")
-              Ok(Json.toJson[ConfirmationReferences](references))
+    AuthorisedAction(registrationID).retrieve(credentials).async(parse.json) { optCredentials =>
+      implicit request =>
+        optCredentials match {
+          case Some(credentials) =>
+            val requestAsAnyContentAsJson: Request[AnyContentAsJson] = request.map(AnyContentAsJson)
+            withJsonBody[ConfirmationReferences] { refs =>
+              val timer = metricsService.updateReferencesCRTimer.time()
+              submissionService.handleSubmission(registrationID, credentials.providerId, refs, isAdmin = false)(
+                hc, requestAsAnyContentAsJson) map { references =>
+                timer.stop()
+                logger.info(s"[Confirmation Refs] Acknowledgement ref:${references.acknowledgementReference} " +
+                  s"- Transaction id:${references.transactionId} - Payment ref:${references.paymentReference}")
+                Ok(Json.toJson[ConfirmationReferences](references))
+              }
             }
-          }
-      case _ =>
-        implicit request =>
-          logger.error(s"[CorporationTaxRegistrationController][handleUserSubmission] For registrationId $registrationID no Credentials were retrieved from call to Auth")
-          Future.successful(Forbidden("No credentials retrieved from call to Auth"))
+          case _ =>
+            logger.error(s"[CorporationTaxRegistrationController][handleUserSubmission] For registrationId $registrationID no Credentials were retrieved from call to Auth")
+            Future.successful(Forbidden("No credentials retrieved from call to Auth"))
+        }
     }
 
   def acknowledgementConfirmation(ackRef: String): Action[JsValue] = Action.async[JsValue](parse.json) {
