@@ -88,7 +88,7 @@ class UserAccessControllerSpec extends BaseSpec with AuthorisationMocks {
       mockAuthorise(Future.successful(None))
 
       val result: Future[Result] = controller.checkUserAccess(FakeRequest())
-      status(result) shouldBe FORBIDDEN
+      status(result) mustBe FORBIDDEN
     }
   }
 

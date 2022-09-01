@@ -84,7 +84,7 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
       mockAuthorise(Future.successful(None))
 
       val result: Future[Result] = controller.createCorporationTaxRegistration(regId)(request)
-      status(result) shouldBe FORBIDDEN
+      status(result) mustBe FORBIDDEN
     }
 
     "return a 403 when the user is not authorised" in new Setup {

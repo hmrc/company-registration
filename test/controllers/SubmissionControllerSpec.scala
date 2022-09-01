@@ -90,7 +90,7 @@ class SubmissionControllerSpec extends BaseSpec with AuthorisationMocks with Cor
       mockAuthorise(Future.successful(new ~(None, Some(credentials))))
 
       val result: Future[Result] = controller.handleUserSubmission(regId)(request)
-      status(result) shouldBe FORBIDDEN
+      status(result) mustBe FORBIDDEN
     }
 
     "return a forbidden if credentials are not retrieved from Auth" in new Setup {
@@ -99,7 +99,7 @@ class SubmissionControllerSpec extends BaseSpec with AuthorisationMocks with Cor
       mockGetInternalId(Future.successful(internalId))
 
       val result: Future[Result] = controller.handleUserSubmission(regId)(request)
-      status(result) shouldBe FORBIDDEN
+      status(result) mustBe FORBIDDEN
     }
 
     "return a 403 when the user is not authenticated" in new Setup {
