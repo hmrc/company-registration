@@ -20,7 +20,7 @@ import javax.inject.{Inject, Singleton}
 import models.TradingDetails
 import play.api.mvc.ControllerComponents
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
-import uk.gov.hmrc.play.bootstrap.controller.BackendController
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 

@@ -76,7 +76,7 @@ class HeldControllerSpec extends BaseSpec with AuthorisationMocks {
 
   }
 
-  "fetchHeldTimestamp" should {
+  "fetchHeldTimestamp" must {
     "return a 200 and a held time stamp" in new Setup {
       mockAuthorise()
       val now: DateTime = DateTime.now()
@@ -85,8 +85,8 @@ class HeldControllerSpec extends BaseSpec with AuthorisationMocks {
         .thenReturn(Future.successful(doc(Some(now))))
 
       val result: Future[Result] = controller.fetchHeldSubmissionTime(regId)(FakeRequest())
-      status(result) shouldBe OK
-      contentAsString(result) shouldBe s"${now.getMillis}"
+      status(result) mustBe OK
+      contentAsString(result) mustBe s"${now.getMillis}"
     }
     "return 404 If no date exists" in new Setup {
       mockAuthorise()
@@ -95,8 +95,8 @@ class HeldControllerSpec extends BaseSpec with AuthorisationMocks {
         .thenReturn(Future.successful(doc(None)))
 
       val result: Future[Result] = controller.fetchHeldSubmissionTime(regId)(FakeRequest())
-      status(result) shouldBe 404
-      contentAsString(result) shouldBe ""
+      status(result) mustBe 404
+      contentAsString(result) mustBe ""
     }
 
     "return an exception if experieced" in new Setup {
@@ -109,7 +109,7 @@ class HeldControllerSpec extends BaseSpec with AuthorisationMocks {
     }
   }
 
-  "deleteSubmissionData" should {
+  "deleteSubmissionData" must {
 
     "return a 200 response when a user is logged in and their rejected submission data is deleted" in new Setup {
       mockAuthorise(Future.successful(Some(internalId)))
@@ -118,7 +118,7 @@ class HeldControllerSpec extends BaseSpec with AuthorisationMocks {
       when(controller.service.deleteRejectedSubmissionData(ArgumentMatchers.any())(ArgumentMatchers.any())).thenReturn(Future.successful(true))
 
       val result: Future[Result] = controller.deleteSubmissionData(regId)(FakeRequest())
-      status(result) shouldBe OK
+      status(result) mustBe OK
     }
 
     "return a 404 (Not found) response when a user's rejected submission data is not found" in new Setup {
@@ -128,7 +128,7 @@ class HeldControllerSpec extends BaseSpec with AuthorisationMocks {
       when(controller.service.deleteRejectedSubmissionData(ArgumentMatchers.any())(ArgumentMatchers.any())).thenReturn(Future.successful(false))
 
       val result: Future[Result] = controller.deleteSubmissionData(regId)(FakeRequest())
-      status(result) shouldBe NOT_FOUND
+      status(result) mustBe NOT_FOUND
     }
   }
 }

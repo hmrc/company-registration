@@ -24,7 +24,7 @@ import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
 import org.scalatest.concurrent.Eventually
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.test.Helpers._
 import play.api.{Configuration, Logger}
@@ -34,16 +34,16 @@ import utils.LogCapturing
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
-class AppStartupJobsSpec extends WordSpec with Matchers with MockitoSugar with LogCapturing
+class AppStartupJobsSpec extends PlaySpec with MockitoSugar with LogCapturing
   with CorporationTaxRegistrationFixture with Eventually {
 
   val mockConfig: Configuration = Configuration.empty
   val mockCTRepository: CorporationTaxRegistrationMongoRepository = mock[CorporationTaxRegistrationMongoRepository]
 
   val expectedLockedReg = List()
-  val expectedRegStats = Map.empty[String, Int]
+  val expectedRegStats = Map.empty[String,  Int]
 
-  "get Company Name" should {
+  "get Company Name" must {
 
     val regId1 = "reg-1"
     val companyName1 = "ACME1 ltd"
@@ -76,13 +76,13 @@ class AppStartupJobsSpec extends WordSpec with Matchers with MockitoSugar with L
             s"[CompanyName] status : held - reg Id : $regId1 - Company Name : $companyName1 - Trans ID : $testTransactionId",
             s"[CompanyName] status : held - reg Id : $regId1 - Company Name : $companyName2 - Trans ID : $testTransactionId"
           )
-          expectedLogs.diff(logEvents.map(_.getMessage)) shouldBe List.empty
+          expectedLogs.diff(logEvents.map(_.getMessage)) mustBe List.empty
         }
       }
     }
 
   }
-  "fetch Reg Ids" should {
+  "fetch Reg Ids" must {
 
     val dateTime: DateTime = DateTime.parse("2016-10-27T16:28:59.000")
 
@@ -121,11 +121,11 @@ class AppStartupJobsSpec extends WordSpec with Matchers with MockitoSugar with L
 
       when(mockCTRepository.getRegistrationStats)
         .thenReturn(Future.successful(expectedRegStats))
-      when(mockCTRepository.findBySelector(mockCTRepository.regIDSelector("regId1")))
+      when(mockCTRepository.findOneBySelector(mockCTRepository.regIDSelector("regId1")))
         .thenReturn(Future.successful(Some(corporationTaxRegistration("regId1", "TestStatus", "transid-1"))))
-      when(mockCTRepository.findBySelector(mockCTRepository.regIDSelector("regId2")))
+      when(mockCTRepository.findOneBySelector(mockCTRepository.regIDSelector("regId2")))
         .thenReturn(Future.successful(Some(corporationTaxRegistration("regId2", "TestStatus2", "transid-2"))))
-      when(mockCTRepository.findBySelector(mockCTRepository.regIDSelector("regId3")))
+      when(mockCTRepository.findOneBySelector(mockCTRepository.regIDSelector("regId3")))
         .thenReturn(Future.successful(None))
 
       val appStartupJobs: AppStartupJobs = new AppStartupJobs {
@@ -141,7 +141,7 @@ class AppStartupJobsSpec extends WordSpec with Matchers with MockitoSugar with L
         eventually {
           await(appStartupJobs.fetchDocInfoByRegId(regIds))
 
-          logEvents.size shouldBe 3
+          logEvents.size mustBe 3
         }
       }
     }

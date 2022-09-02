@@ -52,15 +52,14 @@ class GroupsController @Inject()(val authConnector: AuthConnector,
   }
 
   def deleteBlock(registrationID: String): Action[AnyContent] = AuthorisedAction(registrationID).async {
-    implicit request =>
-      groupsService.deleteGroups(registrationID).map { deleted =>
-        if (deleted) {
-          NoContent
-        } else {
-          logger.warn("[deleteBlock] groups did return true indicating deletion of block, returning 500")
-          InternalServerError
-        }
+    groupsService.deleteGroups(registrationID).map { deleted =>
+      if (deleted) {
+        NoContent
+      } else {
+        logger.warn("[deleteBlock] groups did return true indicating deletion of block, returning 500")
+        InternalServerError
       }
+    }
   }
 
   def saveBlock(registrationID: String): Action[JsValue] = AuthorisedAction(registrationID).async[JsValue](parse.json) {
@@ -75,13 +74,12 @@ class GroupsController @Inject()(val authConnector: AuthConnector,
   }
 
   def getBlock(registrationID: String): Action[AnyContent] = AuthorisedAction(registrationID).async {
-    implicit request =>
-      groupsService.returnGroups(registrationID).map {
-        optGroupsReturned =>
-          optGroupsReturned
-            .fold[Result](NoContent)(groups =>
-              Ok(Json.toJson(groups)(Groups.formats(APIValidation, cryptoSCRS))))
-      }
+    groupsService.returnGroups(registrationID).map {
+      optGroupsReturned =>
+        optGroupsReturned
+          .fold[Result](NoContent)(groups =>
+            Ok(Json.toJson(groups)(Groups.formats(APIValidation, cryptoSCRS))))
+    }
   }
 
 

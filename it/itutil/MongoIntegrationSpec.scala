@@ -16,16 +16,39 @@
 
 package itutil
 
-import org.scalatest.WordSpec
+import org.bson.codecs.configuration.{CodecRegistries, CodecRegistry}
+import org.mongodb.scala.MongoClient.DEFAULT_CODEC_REGISTRY
+import org.mongodb.scala.bson.BsonDocument
+import org.mongodb.scala.result.{DeleteResult, InsertOneResult}
+import org.scalatestplus.play.PlaySpec
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import play.api.libs.json.{Format, JsObject}
 import play.api.test.Helpers._
-import uk.gov.hmrc.mongo.ReactiveRepository
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
 import scala.concurrent.ExecutionContext
+import scala.reflect.ClassTag
 
-trait MongoIntegrationSpec {
-  expects: WordSpec =>
+trait MongoIntegrationSpec extends GuiceOneAppPerSuite {
+  expects: PlaySpec =>
 
-  implicit class RichReactiveRepository[T](repo: ReactiveRepository[T, _])(implicit ex: ExecutionContext) {
-    def awaitCount: Int = await(repo.count)
+  lazy val mongoComponent = app.injector.instanceOf[MongoComponent]
+
+  implicit class RichMongoRepository[T](repo: PlayMongoRepository[T])(implicit ex: ExecutionContext, ct: ClassTag[T]) {
+    def count: Int = await(repo.collection.countDocuments().toFuture()).toInt
+    def findAll: Seq[T] = await(repo.collection.find(BsonDocument()).toFuture())
+    def deleteAll: DeleteResult = await(repo.collection.deleteMany(BsonDocument()).toFuture())
+    def insert(data: T): InsertOneResult = await(repo.collection.insertOne(data).toFuture())
+    def insertRaw(raw: JsObject) = {
+      val db = mongoComponent.database.withCodecRegistry(
+        CodecRegistries.fromRegistries(
+          CodecRegistries.fromCodecs(Codecs.playFormatCodec[T](repo.domainFormat)),
+          CodecRegistries.fromCodecs(Codecs.playFormatCodec[JsObject](implicitly[Format[JsObject]])),
+          DEFAULT_CODEC_REGISTRY
+        )
+      )
+      await(db.getCollection[JsObject](repo.collectionName).insertOne(raw).toFuture())
+    }
   }
 }

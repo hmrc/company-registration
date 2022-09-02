@@ -18,12 +18,12 @@ package audit
 
 import models.des._
 import org.joda.time.DateTime
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsObject, Json}
 
-class UserRegistrationSubmissionEventSpec extends WordSpec with Matchers {
+class UserRegistrationSubmissionEventSpec extends PlaySpec {
 
-  "UserRegistrationSubmissionEventDetail" should {
+  "UserRegistrationSubmissionEventDetail" must {
 
     val regId = "123456789"
     val authProviderId = "apid001"
@@ -97,7 +97,7 @@ class UserRegistrationSubmissionEventSpec extends WordSpec with Matchers {
           )
         )).as[JsObject]
       )
-      Json.toJson(testModel)(SubmissionEventDetail.writes) shouldBe expected
+      Json.toJson(testModel)(SubmissionEventDetail.writes) mustBe expected
     }
 
     "construct full json as per definition when the transaction ID is missing" in {
@@ -154,7 +154,7 @@ class UserRegistrationSubmissionEventSpec extends WordSpec with Matchers {
           )
         )).as[JsObject]
       )
-      Json.toJson(testModel)(SubmissionEventDetail.writes) shouldBe expected
+      Json.toJson(testModel)(SubmissionEventDetail.writes) mustBe expected
     }
   }
 }

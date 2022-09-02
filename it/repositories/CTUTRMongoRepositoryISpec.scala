@@ -16,23 +16,18 @@
 
 package repositories
 
-import auth.CryptoSCRS
-import itutil.IntegrationSpecBase
+import itutil.{IntegrationSpecBase, MongoIntegrationSpec}
 import models.RegistrationStatus._
 import models._
+import org.mongodb.scala.model.Filters
+import org.mongodb.scala.result.InsertOneResult
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.JsObject
 import play.api.test.Helpers._
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.commands.WriteResult
-import reactivemongo.bson.{BSONDocument, BSONInteger, BSONString}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 
-class CTUTRMongoRepositoryISpec
-  extends IntegrationSpecBase {
+class CTUTRMongoRepositoryISpec extends IntegrationSpecBase with MongoIntegrationSpec {
 
   val additionalConfiguration = Map(
     "schedules.missing-incorporation-job.enabled" -> "false",
@@ -44,19 +39,15 @@ class CTUTRMongoRepositoryISpec
     .build()
 
   class Setup {
-    val rmc = app.injector.instanceOf[ReactiveMongoComponent]
-    val crypto = app.injector.instanceOf[CryptoSCRS]
-
-    lazy val repository = new CorporationTaxRegistrationMongoRepository(rmc,crypto)
-    await(repository.drop)
+    lazy val repository = app.injector.instanceOf[CorporationTaxRegistrationMongoRepository]
+    repository.deleteAll
     await(repository.ensureIndexes)
   }
 
-  def setupCollection(repo: CorporationTaxRegistrationMongoRepository, ctRegistration: CorporationTaxRegistration): Future[WriteResult] = {
+  def setupCollection(repo: CorporationTaxRegistrationMongoRepository, ctRegistration: CorporationTaxRegistration): InsertOneResult =
     repo.insert(ctRegistration)
-  }
 
-  "CT UTR Encryption" should {
+  "CT UTR Encryption" must {
 
     val ackRef = "BRCT12345678910"
 
@@ -88,23 +79,21 @@ class CTUTRMongoRepositoryISpec
     )
 
     "store the plain UTR in encrypted form" in new Setup {
-      import reactivemongo.play.json.ImplicitBSONHandlers._
 
       val ctUtr = validHeldCorporationTaxRegistration.acknowledgementReferences.get.ctUtr
-      await(setupCollection(repository, validHeldCorporationTaxRegistration))
+      setupCollection(repository, validHeldCorporationTaxRegistration)
       val result = await(repository.updateCTRecordWithAcknowledgments(ackRef, validHeldCorporationTaxRegistration))
-      result.writeErrors shouldBe Seq()
+      result.getMatchedCount mustBe 1
 
       // check the value isn't the UTR when fetched direct from the DB
-      val query = BSONDocument("confirmationReferences.acknowledgement-reference" -> BSONString(ackRef))
-      val project = BSONDocument("acknowledgementReferences.ct-utr" -> BSONInteger(1), "_id" -> BSONInteger(0))
-      val stored: Option[JsObject] = await(repository.collection.find(query, project).one[JsObject])
-      stored shouldBe defined
-      (stored.get \ "acknowledgementReferences" \ "ct-utr").as[String] shouldNot be(ctUtr)
+      val query = Filters.equal("confirmationReferences.acknowledgement-reference", ackRef)
+      val stored: Option[CorporationTaxRegistration] = await(repository.collection.find(query).headOption())
+      stored mustBe defined
+      stored.get.acknowledgementReferences.get.ctUtr.get mustNot be(ctUtr)
 
       // check that it is the UTR when fetched properly
-      val fetched: CorporationTaxRegistration = await(repository.findBySelector(repository.ackRefSelector(ackRef))).get
-      fetched.acknowledgementReferences.map(_.ctUtr) shouldBe Some(ctUtr)
+      val fetched: CorporationTaxRegistration = await(repository.findOneBySelector(repository.ackRefSelector(ackRef))).get
+      fetched.acknowledgementReferences.map(_.ctUtr) mustBe Some(ctUtr)
     }
   }
 }

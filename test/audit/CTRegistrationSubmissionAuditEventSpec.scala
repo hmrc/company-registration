@@ -16,12 +16,12 @@
 
 package audit
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsObject, Json}
 
-class CTRegistrationSubmissionAuditEventSpec extends WordSpec with Matchers {
+class CTRegistrationSubmissionAuditEventSpec extends PlaySpec {
 
-  "CTRegistrationSubmissionAuditEventSpec" should {
+  "CTRegistrationSubmissionAuditEventSpec" must {
     "construct a valid details JSON structure as per confluence" when {
       "converting a case class to JSON for a successful submission" in {
         val expected: String =
@@ -42,8 +42,8 @@ class CTRegistrationSubmissionAuditEventSpec extends WordSpec with Matchers {
           )
 
         val result = Json.toJson[CTRegistrationSubmissionAuditEventDetails](testModel)
-        result.getClass shouldBe classOf[JsObject]
-        result shouldBe Json.parse(expected)
+        result.getClass mustBe classOf[JsObject]
+        result mustBe Json.parse(expected)
       }
 
       "converting a case class to JSON for a failed submission" in {
@@ -64,8 +64,8 @@ class CTRegistrationSubmissionAuditEventSpec extends WordSpec with Matchers {
           )
 
         val result = Json.toJson[CTRegistrationSubmissionAuditEventDetails](testModel)
-        result.getClass shouldBe classOf[JsObject]
-        result shouldBe Json.parse(expected)
+        result.getClass mustBe classOf[JsObject]
+        result mustBe Json.parse(expected)
       }
     }
   }

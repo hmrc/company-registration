@@ -54,13 +54,13 @@ class UserAccessControllerSpec extends BaseSpec with AuthorisationMocks {
 
   val internalId = "int-12345"
 
-  "checkUserAccess" should {
+  "checkUserAccess" must {
 
     "return a unauthorised status code when user is not in session" in new Setup {
       mockAuthorise(Future.failed(MissingBearerToken()))
 
       val result = controller.checkUserAccess(FakeRequest())
-      status(result) shouldBe UNAUTHORIZED
+      status(result) mustBe UNAUTHORIZED
     }
 
     "return a 200" in new Setup {
@@ -70,8 +70,8 @@ class UserAccessControllerSpec extends BaseSpec with AuthorisationMocks {
         .thenReturn(Future.successful(Right(UserAccessSuccessResponse("123", created = false, confRefs = false, paymentRefs = false))))
 
       val result = controller.checkUserAccess(FakeRequest())
-      status(result) shouldBe OK
-      contentAsJson(result) shouldBe Json.toJson(UserAccessSuccessResponse("123", created = false, confRefs = false, paymentRefs = false))
+      status(result) mustBe OK
+      contentAsJson(result) mustBe Json.toJson(UserAccessSuccessResponse("123", created = false, confRefs = false, paymentRefs = false))
     }
 
     "return a 429" in new Setup {
@@ -81,14 +81,14 @@ class UserAccessControllerSpec extends BaseSpec with AuthorisationMocks {
         .thenReturn(Future.successful(Left(Json.toJson(UserAccessLimitReachedResponse(limitReached = true)))))
 
       val result = controller.checkUserAccess(FakeRequest())
-      status(result) shouldBe TOO_MANY_REQUESTS
+      status(result) mustBe TOO_MANY_REQUESTS
     }
 
     "return a 403 when no internalId retrieved from Auth" in new Setup {
       mockAuthorise(Future.successful(None))
 
       val result: Future[Result] = controller.checkUserAccess(FakeRequest())
-      status(result) shouldBe FORBIDDEN
+      status(result) mustBe FORBIDDEN
     }
   }
 

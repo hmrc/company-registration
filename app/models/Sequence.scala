@@ -16,10 +16,25 @@
 
 package models
 
-import play.api.libs.json.Json
+import play.api.libs.json._
+import play.api.libs.json.Reads._
+import play.api.libs.functional.syntax._
 
 case class Sequence(sequenceID: String, seq: Int)
 
 object Sequence {
-  implicit val formats = Json.format[Sequence]
+
+  val reads: Reads[Sequence] = (
+    (__ \ "_id").read[String] and
+      (__ \ "seq").read[Int]
+    )(Sequence.apply _)
+
+  val writes: Writes[Sequence] = Writes { model =>
+    Json.obj(
+      "_id" -> model.sequenceID,
+      "seq" -> model.seq
+    )
+  }
+
+  implicit val formats: Format[Sequence] = Format(reads, writes)
 }

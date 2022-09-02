@@ -16,15 +16,11 @@
 
 package repositories
 
-import javax.inject.Inject
-import uk.gov.hmrc.lock.LockRepository
+import uk.gov.hmrc.mongo.lock.LockRepository
 
-class Repositories @Inject()(corpRepo: CorporationTaxRegistrationMongoRepository,
-                             seqMongoRepo: SequenceMongoRepo,
-                             throttleMongoRepo: ThrottleMongoRepo,
-                             lockRepo: LockRepositoryProvider) {
-  lazy val cTRepository: CorporationTaxRegistrationMongoRepository = corpRepo
-  lazy val sequenceRepository: SequenceMongoRepository = seqMongoRepo.repo
-  lazy val throttleRepository: ThrottleMongoRepository = throttleMongoRepo.repo
-  lazy val lockRepository: LockRepository = lockRepo.repo
-}
+import javax.inject.Inject
+
+class Repositories @Inject()(val cTRepository: CorporationTaxRegistrationMongoRepository,
+                             val sequenceRepository: SequenceMongoRepository,
+                             val throttleRepository: ThrottleMongoRepository,
+                             val lockRepository: LockRepository)

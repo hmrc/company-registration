@@ -46,11 +46,11 @@ class DesConnectorSpec extends BaseSpec with WSHttpMock {
     }
   }
 
-  "httpRds" should {
+  "httpRds" must {
 
     "return the http response when a 200 status code is read from the http response" in new Setup {
       val response = HttpResponse(200)
-      connector.httpRds.read("http://", "testUrl", response) shouldBe response
+      connector.httpRds.read("http://", "testUrl", response) mustBe response
     }
 
     "return a not found exception when it reads a 404 status code from the http response" in new Setup {
@@ -60,7 +60,7 @@ class DesConnectorSpec extends BaseSpec with WSHttpMock {
     }
   }
 
-  "DesConnector" should {
+  "DesConnector" must {
     val submission = Json.obj("x" -> "y")
     implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
 
@@ -73,7 +73,7 @@ class DesConnectorSpec extends BaseSpec with WSHttpMock {
 
       val result = await(connector.ctSubmission("", submission, "testJID"))
 
-      result.status shouldBe 202
+      result.status mustBe 202
     }
 
     "for topup  submission, return success" in new Setup {
@@ -85,7 +85,7 @@ class DesConnectorSpec extends BaseSpec with WSHttpMock {
 
       val result = await(connector.topUpCTSubmission("", submission, "testJID"))
 
-      result.status shouldBe 202
+      result.status mustBe 202
     }
 
     "for a forbidden request, return a bad request" in new Setup {
@@ -126,11 +126,11 @@ class DesConnectorSpec extends BaseSpec with WSHttpMock {
     }
   }
 
-  "customDESRead" should {
+  "customDESRead" must {
 
     "return the response on an acceptable request" in new Setup {
       val response = HttpResponse(202)
-      connector.customDESRead("", "", response) shouldBe response
+      connector.customDESRead("", "", response) mustBe response
     }
 
     "return a Upstream4xxResponse on a bad request" in new Setup {
@@ -142,7 +142,7 @@ class DesConnectorSpec extends BaseSpec with WSHttpMock {
 
     "return the HttpResponse as a 202 on a conflict" in new Setup {
       val response = HttpResponse(409)
-      connector.customDESRead("", "", response).status shouldBe 202
+      connector.customDESRead("", "", response).status mustBe 202
     }
 
     "return a Upstream4xxResponse on a timeout" in new Setup {
@@ -150,14 +150,14 @@ class DesConnectorSpec extends BaseSpec with WSHttpMock {
       val ex = intercept[Upstream4xxResponse] {
         connector.customDESRead("", "", response)
       }
-      ex.reportAs shouldBe 502
+      ex.reportAs mustBe 502
     }
     "return a Upstream5xxResponse when response is 503" in new Setup {
       val response = HttpResponse(429)
       val ex = intercept[Upstream5xxResponse] {
         connector.customDESRead("", "", response)
       }
-      ex.reportAs shouldBe 503
+      ex.reportAs mustBe 503
     }
   }
 }

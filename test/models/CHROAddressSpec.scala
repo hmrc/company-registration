@@ -16,11 +16,11 @@
 
 package models
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsonValidationError, _}
 
 
-class CHROAddressSpec extends WordSpec with Matchers with JsonFormatValidation {
+class CHROAddressSpec extends PlaySpec with JsonFormatValidation {
 
   def lineEnd(comma: Boolean) = if (comma) "," else ""
 
@@ -45,7 +45,7 @@ class CHROAddressSpec extends WordSpec with Matchers with JsonFormatValidation {
      """.stripMargin
   }
 
-  "CHROAddress Model - line 1" should {
+  "CHROAddress Model - line 1" must {
     "Be able to be parsed from JSON" in {
       val line1 = "12345678901234567890123456789012345678901234567890"
       val json = j(line1 = line1)
@@ -53,7 +53,7 @@ class CHROAddressSpec extends WordSpec with Matchers with JsonFormatValidation {
 
       val result = Json.parse(json).validate[CHROAddress]
 
-      shouldBeSuccess(expected, result)
+      mustBeSuccess(expected, result)
     }
 
     "fail to be read from JSON if is empty string" in {
@@ -74,7 +74,7 @@ class CHROAddressSpec extends WordSpec with Matchers with JsonFormatValidation {
 
   }
 
-  "CHROAddress Model - line 2" should {
+  "CHROAddress Model - line 2" must {
     "Be able to be parsed from JSON" in {
       val line2 = Some("12345678901234567890123456789012345678901234567890")
       val json = j(line2 = line2)
@@ -82,7 +82,7 @@ class CHROAddressSpec extends WordSpec with Matchers with JsonFormatValidation {
 
       val result = Json.parse(json).validate[CHROAddress]
 
-      shouldBeSuccess(expected, result)
+      mustBeSuccess(expected, result)
     }
 
     "Be able to be parsed from JSON with no line2" in {
@@ -91,7 +91,7 @@ class CHROAddressSpec extends WordSpec with Matchers with JsonFormatValidation {
 
       val result = Json.parse(json).validate[CHROAddress]
 
-      shouldBeSuccess(expected, result)
+      mustBeSuccess(expected, result)
     }
 
     "fail to be read from JSON if line2 is empty string" in {

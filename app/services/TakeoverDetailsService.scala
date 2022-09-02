@@ -29,7 +29,7 @@ class TakeoverDetailsService @Inject()(corporationTaxRegistrationMongoRepository
 
   def retrieveTakeoverDetailsBlock(registrationID: String): Future[Option[TakeoverDetails]] = {
     corporationTaxRegistrationMongoRepository
-      .findBySelector(corporationTaxRegistrationMongoRepository.regIDSelector(registrationID)).map {
+      .findOneBySelector(corporationTaxRegistrationMongoRepository.regIDSelector(registrationID)).map {
       document =>
         document.getOrElse(
           throw new Exception(s"[retrieveTakeoverDetails] failed to retrieve document with regId: '$registrationID' as it was not found")

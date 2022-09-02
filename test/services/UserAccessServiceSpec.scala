@@ -16,15 +16,16 @@
 
 package services
 
-import connectors.{BusinessRegistrationConnector, _}
+import connectors._
 import fixtures.{BusinessRegistrationFixture, CorporationTaxRegistrationFixture}
 import helpers.MockHelper
 import models.{Email, UserAccessLimitReachedResponse, UserAccessSuccessResponse}
 import org.joda.time.{DateTime, DateTimeZone}
 import org.mockito.ArgumentMatchers.{any, anyString, eq => eqTo}
 import org.mockito.Mockito._
+import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar
-import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
+import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.Json
 import play.api.test.Helpers._
 import repositories.CorporationTaxRegistrationMongoRepository
@@ -33,7 +34,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
-class UserAccessServiceSpec extends WordSpec with Matchers with MockitoSugar with BusinessRegistrationFixture
+class UserAccessServiceSpec extends PlaySpec with MockitoSugar with BusinessRegistrationFixture
   with CorporationTaxRegistrationFixture with BeforeAndAfterEach with MockHelper {
 
   val mockBRConnector = mock[BusinessRegistrationConnector]
@@ -60,13 +61,13 @@ class UserAccessServiceSpec extends WordSpec with Matchers with MockitoSugar wit
     resetMocks(mocks)
   }
 
-  "UserAccessService" should {
+  "UserAccessService" must {
     "use the correct threshold from config" in new Setup {
-      service.threshold shouldBe 10F
+      service.threshold mustBe 10F
     }
   }
 
-  "checkUserAccess" should {
+  "checkUserAccess" must {
 
     val regId = "12345"
     val internalId = "int-123"
@@ -80,7 +81,7 @@ class UserAccessServiceSpec extends WordSpec with Matchers with MockitoSugar wit
       when(mockCTService.retrieveCorporationTaxRegistrationRecord(eqTo(regId), any[Option[DateTime]]()))
         .thenReturn(Future.successful(Some(draftCorporationTaxRegistration(regId))))
 
-      await(service.checkUserAccess(internalId)) shouldBe Right(UserAccessSuccessResponse(regId, false, false, false))
+      await(service.checkUserAccess(internalId)) mustBe Right(UserAccessSuccessResponse(regId, false, false, false))
     }
 
     "return a UserAccessLimitReachedResponse when the throttle service returns a false" in new Setup {
@@ -93,7 +94,7 @@ class UserAccessServiceSpec extends WordSpec with Matchers with MockitoSugar wit
       when(mockCTService.createCorporationTaxRegistrationRecord(anyString(), anyString(), anyString()))
         .thenReturn(Future.successful(validDraftCorporationTaxRegistration))
 
-      await(service.checkUserAccess("321")) shouldBe Left(Json.toJson(UserAccessLimitReachedResponse(true)))
+      await(service.checkUserAccess("321")) mustBe Left(Json.toJson(UserAccessLimitReachedResponse(true)))
     }
 
     "fail if the registration is missing" in new Setup {
@@ -122,7 +123,7 @@ class UserAccessServiceSpec extends WordSpec with Matchers with MockitoSugar wit
       when(mockCTService.createCorporationTaxRegistrationRecord(anyString(), anyString(), anyString()))
         .thenReturn(Future.successful(draftCTReg))
 
-      await(service.checkUserAccess(internalId)) shouldBe
+      await(service.checkUserAccess(internalId)) mustBe
         Right(UserAccessSuccessResponse(regId, true, false, false, Some(expectedEmail)))
     }
 
@@ -136,7 +137,7 @@ class UserAccessServiceSpec extends WordSpec with Matchers with MockitoSugar wit
       when(mockCTService.createCorporationTaxRegistrationRecord(anyString(), anyString(), anyString()))
         .thenReturn(Future.successful(draftCorporationTaxRegistration(regId)))
 
-      await(service.checkUserAccess("321")) shouldBe Right(UserAccessSuccessResponse("12345", true, false, false))
+      await(service.checkUserAccess("321")) mustBe Right(UserAccessSuccessResponse("12345", true, false, false))
     }
 
     "return a UserAccessSuccessResponse with the confirmation refs flag set to true" in new Setup {
@@ -147,7 +148,7 @@ class UserAccessServiceSpec extends WordSpec with Matchers with MockitoSugar wit
       when(mockCTService.retrieveCorporationTaxRegistrationRecord(eqTo(regId), any()))
         .thenReturn(Future.successful(Some(validHeldCTRegWithData(regId))))
 
-      await(service.checkUserAccess(internalId)) shouldBe Right(UserAccessSuccessResponse(regId, false, true, true))
+      await(service.checkUserAccess(internalId)) mustBe Right(UserAccessSuccessResponse(regId, false, true, true))
     }
 
     "return an error when retrieving metadata returns a forbidden response" in new Setup {
@@ -155,7 +156,7 @@ class UserAccessServiceSpec extends WordSpec with Matchers with MockitoSugar wit
         .thenReturn(Future.successful(BusinessRegistrationForbiddenResponse))
 
       val ex = intercept[Exception](await(service.checkUserAccess(internalId)))
-      ex.getMessage shouldBe "Something went wrong"
+      ex.getMessage mustBe "Something went wrong"
     }
   }
 }

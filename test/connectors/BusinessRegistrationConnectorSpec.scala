@@ -44,51 +44,51 @@ class BusinessRegistrationConnectorSpec extends BaseSpec with BusinessRegistrati
 
   val regId = "reg-id-12345"
 
-  "createMetadataEntry" should {
+  "createMetadataEntry" must {
     "make a http POST request to business registration micro-service to create a metadata entry" in new Setup {
       mockHttpPOST[JsValue, BusinessRegistration](connector.businessRegUrl, validBusinessRegistrationResponse)
 
-      await(connector.createMetadataEntry) shouldBe validBusinessRegistrationResponse
+      await(connector.createMetadataEntry) mustBe validBusinessRegistrationResponse
     }
   }
 
-  "retrieveMetadata" should {
+  "retrieveMetadata" must {
 
     "return a a metadata response if one is found in business registration using the supplied RegId" in new Setup {
       mockHttpGet[BusinessRegistration]("testUrl", validBusinessRegistrationResponse)
 
-      await(connector.retrieveMetadata(regId)) shouldBe BusinessRegistrationSuccessResponse(validBusinessRegistrationResponse)
+      await(connector.retrieveMetadata(regId)) mustBe BusinessRegistrationSuccessResponse(validBusinessRegistrationResponse)
     }
 
     "return a a metadata response if one is found in business registration micro-service" in new Setup {
       mockHttpGet[BusinessRegistration]("testUrl", validBusinessRegistrationResponse)
 
-      await(connector.retrieveMetadata) shouldBe BusinessRegistrationSuccessResponse(validBusinessRegistrationResponse)
+      await(connector.retrieveMetadata) mustBe BusinessRegistrationSuccessResponse(validBusinessRegistrationResponse)
     }
 
     "return a Not Found response when a metadata record can not be found" in new Setup {
       when(mockWSHttp.GET[BusinessRegistration](ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.failed(new NotFoundException("Bad request")))
 
-      await(connector.retrieveMetadata) shouldBe BusinessRegistrationNotFoundResponse
+      await(connector.retrieveMetadata) mustBe BusinessRegistrationNotFoundResponse
     }
 
     "return a Forbidden response when a metadata record can not be accessed by the user" in new Setup {
       when(mockWSHttp.GET[BusinessRegistration](ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.failed(new ForbiddenException("Forbidden")))
 
-      await(connector.retrieveMetadata) shouldBe BusinessRegistrationForbiddenResponse
+      await(connector.retrieveMetadata) mustBe BusinessRegistrationForbiddenResponse
     }
 
     "return an Exception response when an unspecified error has occurred" in new Setup {
       when(mockWSHttp.GET[BusinessRegistration](ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.failed(new Exception("exception")))
 
-      await(connector.retrieveMetadata).getClass shouldBe BusinessRegistrationErrorResponse(new Exception).getClass
+      await(connector.retrieveMetadata).getClass mustBe BusinessRegistrationErrorResponse(new Exception).getClass
     }
   }
 
-  "dropMetadata" should {
+  "dropMetadata" must {
     val successMessage = Json.parse("""{"message":"success"}""")
     val failureMessage = Json.parse("""{"message":"failed"}""")
 
@@ -98,7 +98,7 @@ class BusinessRegistrationConnectorSpec extends BaseSpec with BusinessRegistrati
 
       val result = connector.dropMetadataCollection
 
-      await(result) shouldBe "success"
+      await(result) mustBe "success"
     }
 
     "return a failed message upon successfully dropping the collection" in new Setup {
@@ -107,7 +107,7 @@ class BusinessRegistrationConnectorSpec extends BaseSpec with BusinessRegistrati
 
       val result = connector.dropMetadataCollection
 
-      await(result) shouldBe "failed"
+      await(result) mustBe "failed"
     }
   }
 }

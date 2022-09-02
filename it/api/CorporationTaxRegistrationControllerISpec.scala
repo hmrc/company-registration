@@ -69,7 +69,7 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
       GovHeaderNames.authorisation -> "Bearer123"
     )
 
-  "roAddressValid" should {
+  "roAddressValid" must {
 
     val validCHROAddressOne =
       """
@@ -132,13 +132,13 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
       val (validCHRO, expectedCHRO, testCase) = tuple
       s"validCHROAddress should match expectedCHRO with $testCase" in {
         val response = await(client(s"/check-ro-address").post(validCHRO))
-        response.json shouldBe expectedCHRO
-        response.status shouldBe 200
+        response.json mustBe expectedCHRO
+        response.status mustBe 200
       }
     }
   }
 
-  "roAddressSpecialCharsValid" should {
+  "roAddressSpecialCharsValid" must {
     "return 200 with valid data when special chars are removed" in {
 
       val specialCharCHROAddress =
@@ -169,11 +169,11 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
         """.stripMargin)
 
       val response = await(client(s"/check-ro-address").post(specialCharCHROAddress))
-      response.json shouldBe expectedResult
-      response.status shouldBe 200
+      response.json mustBe expectedResult
+      response.status mustBe 200
     }
 
-    "CHROAddressinValid" should {
+    "CHROAddressinValid" must {
       "return 400 with invalid data" in {
 
         val invalidCHROAddress =
@@ -204,7 +204,7 @@ class CorporationTaxRegistrationControllerISpec extends IntegrationSpecBase with
           """.stripMargin)
 
         val response = await(client(s"/check-ro-address").post(invalidCHROAddress))
-        response.status shouldBe 400
+        response.status mustBe 400
 
       }
 

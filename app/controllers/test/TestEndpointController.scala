@@ -20,6 +20,7 @@ package controllers.test
 import connectors.BusinessRegistrationConnector
 import helpers.DateHelper
 import models.ConfirmationReferences
+import org.mongodb.scala.bson.BsonDocument
 import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
@@ -48,15 +49,13 @@ trait TestEndpointController extends BackendBaseController with Logging {
   val submissionService: SubmissionService
 
   def modifyThrottledUsers(usersIn: Int) = Action.async {
-    implicit request =>
-      val date = DateHelper.getCurrentDay
-      throttleMongoRepository.modifyThrottledUsers(date, usersIn).map(x => Ok(Json.parse(s"""{"users_in" : $x}""")))
+    val date = DateHelper.getCurrentDay
+    throttleMongoRepository.modifyThrottledUsers(date, usersIn).map(x => Ok(Json.parse(s"""{"users_in" : $x}""")))
   }
 
   def dropCTCollection = {
-    cTMongoRepository.drop map {
-      case true => "CT collection was dropped"
-      case false => "A problem occurred and the CT Collection could not be dropped"
+    cTMongoRepository.collection.deleteMany(BsonDocument()).toFuture() map { _ => "CT collection was dropped" } recover {
+      case _ => "A problem occurred and the CT Collection could not be dropped"
     }
   }
 
@@ -71,8 +70,7 @@ trait TestEndpointController extends BackendBaseController with Logging {
   }
 
   def updateSubmissionStatusToHeld(registrationId: String) = Action.async {
-    implicit request =>
-      cTMongoRepository.updateSubmissionStatus(registrationId, "Held").map(_ => Ok)
+    cTMongoRepository.updateSubmissionStatus(registrationId, "Held").map(_ => Ok)
   }
 
   def updateConfirmationRefs(registrationId: String): Action[AnyContent] = Action.async {
@@ -83,13 +81,11 @@ trait TestEndpointController extends BackendBaseController with Logging {
   }
 
   def removeTaxRegistrationInformation(registrationId: String) = Action.async {
-    implicit request =>
-      cTMongoRepository.removeTaxRegistrationInformation(registrationId) map (if (_) Ok else BadRequest)
+    cTMongoRepository.removeTaxRegistrationInformation(registrationId) map (if (_) Ok else BadRequest)
   }
 
   def pagerDuty(name: String) = Action.async {
-    implicit request =>
-      logger.error(name)
-      Future.successful(Ok)
+    logger.error(name)
+    Future.successful(Ok)
   }
 }

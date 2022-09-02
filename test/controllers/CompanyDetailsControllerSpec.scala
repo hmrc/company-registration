@@ -56,7 +56,7 @@ class CompanyDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
 
   val companyDetailsResponseJson: JsValue = Json.toJson(Some(validCompanyDetailsResponse(registrationID)))
 
-  "retrieveCompanyDetails" should {
+  "retrieveCompanyDetails" must {
 
     "return a 200 and a Company details record when authorised" in new Setup {
       mockAuthorise(Future.successful(Some(internalId)))
@@ -65,8 +65,8 @@ class CompanyDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
       CompanyDetailsServiceMocks.retrieveCompanyDetails(registrationID, Some(validCompanyDetails))
 
       val result: Future[Result] = controller.retrieveCompanyDetails(registrationID)(FakeRequest())
-      status(result) shouldBe OK
-      contentAsJson(result) shouldBe companyDetailsResponseJson
+      status(result) mustBe OK
+      contentAsJson(result) mustBe companyDetailsResponseJson
 
     }
 
@@ -77,8 +77,8 @@ class CompanyDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
       CompanyDetailsServiceMocks.retrieveCompanyDetails(registrationID, None)
 
       val result: Future[Result] = controller.retrieveCompanyDetails(registrationID)(FakeRequest())
-      status(result) shouldBe NOT_FOUND
-      contentAsJson(result) shouldBe ErrorResponse.companyDetailsNotFound
+      status(result) mustBe NOT_FOUND
+      contentAsJson(result) mustBe ErrorResponse.companyDetailsNotFound
     }
 
     "return a 404 when the CT document cannot be found" in new Setup {
@@ -86,7 +86,7 @@ class CompanyDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
       mockGetInternalId(Future.failed(new MissingCTDocument("testRegId")))
 
       val result: Future[Result] = controller.retrieveCompanyDetails(registrationID)(FakeRequest())
-      status(result) shouldBe NOT_FOUND
+      status(result) mustBe NOT_FOUND
     }
 
     "return a 403 when the user is unauthorised to access the record" in new Setup {
@@ -94,18 +94,18 @@ class CompanyDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
       mockGetInternalId(Future.successful(otherInternalID))
 
       val result: Future[Result] = controller.retrieveCompanyDetails(registrationID)(FakeRequest())
-      status(result) shouldBe FORBIDDEN
+      status(result) mustBe FORBIDDEN
     }
 
     "return a 401 when the user is not logged in" in new Setup {
       mockAuthorise(Future.failed(MissingBearerToken()))
 
       val result: Future[Result] = controller.retrieveCompanyDetails(registrationID)(FakeRequest())
-      status(result) shouldBe UNAUTHORIZED
+      status(result) mustBe UNAUTHORIZED
     }
   }
 
-  "updateCompanyDetails" should {
+  "updateCompanyDetails" must {
 
     val request = FakeRequest().withBody(Json.toJson(validCompanyDetails))
 
@@ -116,8 +116,8 @@ class CompanyDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
       CompanyDetailsServiceMocks.updateCompanyDetails(registrationID, Some(validCompanyDetails))
 
       val result: Future[Result] = controller.updateCompanyDetails(registrationID)(request)
-      status(result) shouldBe OK
-      contentAsJson(result) shouldBe companyDetailsResponseJson
+      status(result) mustBe OK
+      contentAsJson(result) mustBe companyDetailsResponseJson
     }
 
     "return a 404 if the record to update does not exist" in new Setup {
@@ -127,8 +127,8 @@ class CompanyDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
       CompanyDetailsServiceMocks.updateCompanyDetails(registrationID, None)
 
       val result: Future[Result] = controller.updateCompanyDetails(registrationID)(request)
-      status(result) shouldBe NOT_FOUND
-      contentAsJson(result) shouldBe ErrorResponse.companyDetailsNotFound
+      status(result) mustBe NOT_FOUND
+      contentAsJson(result) mustBe ErrorResponse.companyDetailsNotFound
     }
 
     "return a 404 when the user is authorised but the CT document does not exist" in new Setup {
@@ -136,14 +136,14 @@ class CompanyDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
       mockGetInternalId(Future.failed(new MissingCTDocument("testRegId")))
 
       val result: Future[Result] = controller.updateCompanyDetails(registrationID)(request)
-      status(result) shouldBe NOT_FOUND
+      status(result) mustBe NOT_FOUND
     }
 
     "return a 401 when the user is not logged in" in new Setup {
       mockAuthorise(Future.failed(MissingBearerToken()))
 
       val result: Future[Result] = controller.updateCompanyDetails(registrationID)(request)
-      status(result) shouldBe UNAUTHORIZED
+      status(result) mustBe UNAUTHORIZED
     }
 
     "return a 403 when the user is unauthorised to access the record" in new Setup {
@@ -151,7 +151,7 @@ class CompanyDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
       mockGetInternalId(Future.successful(otherInternalID))
 
       val result: Future[Result] = controller.updateCompanyDetails(registrationID)(request)
-      status(result) shouldBe FORBIDDEN
+      status(result) mustBe FORBIDDEN
     }
 
     "verify that metrics are captured on a successful update" in new Setup {
@@ -161,11 +161,11 @@ class CompanyDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
       CompanyDetailsServiceMocks.updateCompanyDetails(registrationID, Some(validCompanyDetails))
 
       val result: Future[Result] = controller.updateCompanyDetails(registrationID)(request)
-      status(result) shouldBe OK
+      status(result) mustBe OK
     }
   }
 
-  "saveHandOff2ReferenceAndGenerateAckRef" should {
+  "saveHandOff2ReferenceAndGenerateAckRef" must {
     val ackRefJsObject = Json.obj("acknowledgement-reference" -> "testAckRef")
     val requestContainingTxId = FakeRequest().withBody(Json.obj("transaction_id" -> "testTransactionId"))
     "return 200 as service returned jsObject" in new Setup {
@@ -174,8 +174,8 @@ class CompanyDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
       CompanyDetailsServiceMocks.saveTxidAndGenerateAckRef(Future.successful(ackRefJsObject))
 
       val result: Future[Result] = controller.saveHandOff2ReferenceAndGenerateAckRef("testRegId")(requestContainingTxId)
-      status(result) shouldBe 200
-      contentAsJson(result).as[JsObject] shouldBe ackRefJsObject
+      status(result) mustBe 200
+      contentAsJson(result).as[JsObject] mustBe ackRefJsObject
     }
     "return exception if service returned exception" in new Setup {
       mockAuthorise(Future.successful(Some(internalId)))
@@ -192,7 +192,7 @@ class CompanyDetailsControllerSpec extends BaseSpec with AuthorisationMocks with
       mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
       val result: Future[Result] = controller.saveHandOff2ReferenceAndGenerateAckRef("testRegId")(requestNOTContainingTxId)
-      status(result) shouldBe 400
+      status(result) mustBe 400
     }
   }
 }

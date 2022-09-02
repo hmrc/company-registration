@@ -16,55 +16,55 @@
 
 package models
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.JsonValidationError
 import play.api.libs.json.{JsPath, Json}
 
-class TradingDetailsSpec extends WordSpec with Matchers {
+class TradingDetailsSpec extends PlaySpec {
 
-  "Reading from Json with regular payments string" should {
+  "Reading from Json with regular payments string" must {
 
     "succeed when a trading details model contains a 'true' is supplied as json" in {
       val json = Json.parse("""{"regularPayments":"true"}""")
       val result = json.validate[TradingDetails]
 
-      result.isSuccess shouldBe true
-      result.asOpt.get shouldBe TradingDetails("true")
+      result.isSuccess mustBe true
+      result.asOpt.get mustBe TradingDetails("true")
     }
 
     "succeed when a trading details model contains a 'false' is supplied as json" in {
       val json = Json.parse("""{"regularPayments":"false"}""")
       val result = json.validate[TradingDetails]
 
-      result.isSuccess shouldBe true
-      result.asOpt.get shouldBe TradingDetails("false")
+      result.isSuccess mustBe true
+      result.asOpt.get mustBe TradingDetails("false")
     }
 
     "fail validation when Trading details does not contain a 'true' or a 'false'" in {
       val json = Json.parse("""{"regularPayments":"test"}""")
       val result = json.validate[TradingDetails]
 
-      result.isSuccess shouldBe false
-      result.asEither.left.get shouldBe Seq((JsPath \ "regularPayments", List(JsonValidationError("expected either 'true' or 'false' but neither was found"))))
+      result.isSuccess mustBe false
+      result.asEither.left.get mustBe Seq((JsPath \ "regularPayments", List(JsonValidationError("expected either 'true' or 'false' but neither was found"))))
     }
   }
 
-  "Reading from Json with regular payments boolean" should {
+  "Reading from Json with regular payments boolean" must {
 
     "succeed when a trading details model contains a 'true' is supplied as json" in {
       val json = Json.parse("""{"regularPayments":true}""")
       val result = json.validate[TradingDetails]
 
-      result.isSuccess shouldBe true
-      result.asOpt.get shouldBe TradingDetails("true")
+      result.isSuccess mustBe true
+      result.asOpt.get mustBe TradingDetails("true")
     }
 
     "succeed when a trading details model contains a 'false' is supplied as json" in {
       val json = Json.parse("""{"regularPayments":false}""")
       val result = json.validate[TradingDetails]
 
-      result.isSuccess shouldBe true
-      result.asOpt.get shouldBe TradingDetails("false")
+      result.isSuccess mustBe true
+      result.asOpt.get mustBe TradingDetails("false")
     }
   }
 }

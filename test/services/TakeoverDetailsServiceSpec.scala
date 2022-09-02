@@ -21,9 +21,9 @@ import assets.TestConstants.TakeoverDetails.testTakeoverDetailsModel
 import helpers.BaseSpec
 import org.mockito.ArgumentMatchers.{eq => eqTo}
 import org.mockito.Mockito.{reset, when}
+import org.mongodb.scala.result.UpdateResult
 import play.api.libs.json.{JsObject, Json}
 import play.api.test.Helpers._
-import reactivemongo.api.commands.UpdateWriteResult
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -37,28 +37,28 @@ class TakeoverDetailsServiceSpec extends BaseSpec {
 
   object TestService extends TakeoverDetailsService(mockCTDataRepository)
 
-  "retrieveTakeoverDetailsBlock" should {
+  "retrieveTakeoverDetailsBlock" must {
     "return a TakeoverDetails model" when {
       "one is found in the database" in {
         val testData = corpTaxRegModel(optTakeoverDetails = Some(testTakeoverDetailsModel))
-        when(mockCTDataRepository.findBySelector(mockCTDataRepository.regIDSelector(eqTo(testRegistrationId)))).thenReturn(Future.successful(Some(testData)))
+        when(mockCTDataRepository.findOneBySelector(mockCTDataRepository.regIDSelector(eqTo(testRegistrationId)))).thenReturn(Future.successful(Some(testData)))
 
         val res = await(TestService.retrieveTakeoverDetailsBlock(testRegistrationId))
 
-        res shouldBe Some(testTakeoverDetailsModel)
+        res mustBe Some(testTakeoverDetailsModel)
       }
     }
 
     "throw an exception" when {
       "no document is found in the database" in {
-        when(mockCTDataRepository.findBySelector(mockCTDataRepository.regIDSelector(eqTo(testRegistrationId)))).thenReturn(Future.successful(None))
+        when(mockCTDataRepository.findOneBySelector(mockCTDataRepository.regIDSelector(eqTo(testRegistrationId)))).thenReturn(Future.successful(None))
 
         intercept[Exception](await(TestService.retrieveTakeoverDetailsBlock(testRegistrationId)))
       }
     }
   }
 
-  "updateTakeoverDetailsBlock" should {
+  "updateTakeoverDetailsBlock" must {
     "return a TakeoverDetails model" when {
       "the database is successfully updated" in {
         val testJson = Json.toJson(testTakeoverDetailsModel).as[JsObject]
@@ -67,11 +67,11 @@ class TakeoverDetailsServiceSpec extends BaseSpec {
           eqTo(mockCTDataRepository.regIDSelector(eqTo(testRegistrationId))),
           eqTo(key),
           eqTo(testJson))
-        ).thenReturn(Future.successful(mock[UpdateWriteResult]))
+        ).thenReturn(Future.successful(mock[UpdateResult]))
 
         val res = await(TestService.updateTakeoverDetailsBlock(testRegistrationId, testTakeoverDetailsModel))
 
-        res shouldBe testTakeoverDetailsModel
+        res mustBe testTakeoverDetailsModel
       }
     }
 

@@ -17,12 +17,12 @@
 package models
 
 import assets.TestConstants.TakeoverDetails._
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsError, JsPath, JsSuccess, Json}
 
-class TakeoverDetailsSpec extends WordSpec with Matchers {
+class TakeoverDetailsSpec extends PlaySpec {
 
-  "takeover details" should {
+  "takeover details" must {
     "return JsSuccess" when {
       "all fields are provided" in {
         val takeoverDetailsJson = Json.obj(fields =
@@ -43,7 +43,7 @@ class TakeoverDetailsSpec extends WordSpec with Matchers {
 
         val actual = Json.fromJson[TakeoverDetails](takeoverDetailsJson)
 
-        actual shouldBe expected
+        actual mustBe expected
       }
 
       "previous owner name is not provided" in {
@@ -64,7 +64,7 @@ class TakeoverDetailsSpec extends WordSpec with Matchers {
 
         val actual = Json.fromJson[TakeoverDetails](takeoverDetailsJson)
 
-        actual shouldBe expected
+        actual mustBe expected
       }
 
       "previous owner address is not provided" in {
@@ -85,7 +85,7 @@ class TakeoverDetailsSpec extends WordSpec with Matchers {
 
         val actual = Json.fromJson[TakeoverDetails](takeoverDetailsJson)
 
-        actual shouldBe expected
+        actual mustBe expected
       }
 
       "the business name has not been provided" in {
@@ -105,7 +105,7 @@ class TakeoverDetailsSpec extends WordSpec with Matchers {
         ))
         val actual = Json.fromJson[TakeoverDetails](takeoverDetailsJson)
 
-        actual shouldBe expected
+        actual mustBe expected
       }
     }
 
@@ -122,7 +122,7 @@ class TakeoverDetailsSpec extends WordSpec with Matchers {
 
         val actual = Json.fromJson[TakeoverDetails](takeoverDetailsJson)
 
-        actual shouldBe expected
+        actual mustBe expected
 
       }
     }

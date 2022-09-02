@@ -20,13 +20,13 @@ import models.Email
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
 import org.scalatestplus.mockito.MockitoSugar
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.play.PlaySpec
 import play.api.test.Helpers._
 import repositories.CorporationTaxRegistrationMongoRepository
 
 import scala.concurrent.Future
 
-class EmailServiceSpec extends WordSpec with Matchers with MockitoSugar {
+class EmailServiceSpec extends PlaySpec with MockitoSugar {
 
   val mockCTRepository = mock[CorporationTaxRegistrationMongoRepository]
 
@@ -39,23 +39,23 @@ class EmailServiceSpec extends WordSpec with Matchers with MockitoSugar {
   val registrationId = "12345"
   val email = Email("testAddress", "GG", linkSent = true, verified = true, returnLinkEmailSent = true)
 
-  "updateEmail" should {
+  "updateEmail" must {
 
     "update and return the supplied email case class" in new Setup {
       when(mockCTRepository.updateEmail(ArgumentMatchers.eq(registrationId), ArgumentMatchers.eq(email)))
         .thenReturn(Future.successful(Some(email)))
 
-      await(emailService.updateEmail(registrationId, email)) shouldBe Some(email)
+      await(emailService.updateEmail(registrationId, email)) mustBe Some(email)
     }
   }
 
-  "retrieveEmail" should {
+  "retrieveEmail" must {
 
     "return an email case class" in new Setup {
       when(mockCTRepository.retrieveEmail(ArgumentMatchers.eq(registrationId)))
         .thenReturn(Future.successful(Some(email)))
 
-      await(emailService.retrieveEmail(registrationId)) shouldBe Some(email)
+      await(emailService.retrieveEmail(registrationId)) mustBe Some(email)
     }
   }
 }

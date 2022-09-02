@@ -63,7 +63,7 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
   val internalId = "int-12345"
   val authProviderId = "auth-prov-id-12345"
 
-  "createCorporationTaxRegistration" should {
+  "createCorporationTaxRegistration" must {
 
     val request = FakeRequest().withBody(Json.toJson(validCorporationTaxRegistrationRequest))
 
@@ -76,26 +76,26 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
       val response: CorporationTaxRegistrationResponse = buildCTRegistrationResponse(regId)
 
       val result: Future[Result] = controller.createCorporationTaxRegistration(regId)(request)
-      status(result) shouldBe CREATED
-      contentAsJson(result) shouldBe Json.toJson(response)
+      status(result) mustBe CREATED
+      contentAsJson(result) mustBe Json.toJson(response)
     }
 
     "return a 403 when no internalId retrieved from Auth" in new Setup {
       mockAuthorise(Future.successful(None))
 
       val result: Future[Result] = controller.createCorporationTaxRegistration(regId)(request)
-      status(result) shouldBe FORBIDDEN
+      status(result) mustBe FORBIDDEN
     }
 
     "return a 403 when the user is not authorised" in new Setup {
       mockAuthorise(Future.failed(InsufficientConfidenceLevel()))
 
       val result: Future[Result] = controller.createCorporationTaxRegistration(regId)(request)
-      status(result) shouldBe FORBIDDEN
+      status(result) mustBe FORBIDDEN
     }
   }
 
-  "retrieveCorporationTaxRegistration" should {
+  "retrieveCorporationTaxRegistration" must {
 
     val ctRegistrationResponse = buildCTRegistrationResponse(regId)
 
@@ -107,8 +107,8 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
         .thenReturn(Future.successful(Some(draftCorporationTaxRegistration(regId))))
 
       val result: Future[Result] = controller.retrieveCorporationTaxRegistration(regId)(FakeRequest())
-      status(result) shouldBe OK
-      contentAsJson(result) shouldBe Json.toJson(ctRegistrationResponse)
+      status(result) mustBe OK
+      contentAsJson(result) mustBe Json.toJson(ctRegistrationResponse)
     }
 
     "return a 404 if a CT registration record cannot be found" in new Setup {
@@ -118,18 +118,18 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
       CTServiceMocks.retrieveCTDataRecord(regId, None)
 
       val result: Future[Result] = controller.retrieveCorporationTaxRegistration(regId)(FakeRequest())
-      status(result) shouldBe NOT_FOUND
+      status(result) mustBe NOT_FOUND
     }
 
     "return a 403 when the user is not authenticated" in new Setup {
       mockAuthorise(Future.failed(InsufficientConfidenceLevel()))
 
       val result: Future[Result] = controller.retrieveCorporationTaxRegistration(regId)(FakeRequest())
-      status(result) shouldBe FORBIDDEN
+      status(result) mustBe FORBIDDEN
     }
   }
 
-  "retrieveFullCorporationTaxRegistration" should {
+  "retrieveFullCorporationTaxRegistration" must {
 
     "return a 200 and a CorporationTaxRegistration model is found" in new Setup {
       mockAuthorise(Future.successful(Some(internalId)))
@@ -138,8 +138,8 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
       CTServiceMocks.retrieveCTDataRecord(regId, Some(validDraftCorporationTaxRegistration))
 
       val result: Future[Result] = controller.retrieveFullCorporationTaxRegistration(regId)(FakeRequest())
-      status(result) shouldBe OK
-      contentAsJson(result) shouldBe Json.toJson(validDraftCorporationTaxRegistration)(CorporationTaxRegistration.format(MongoValidation, mockInstanceOfCrypto))
+      status(result) mustBe OK
+      contentAsJson(result) mustBe Json.toJson(validDraftCorporationTaxRegistration)(CorporationTaxRegistration.format(MongoValidation, mockInstanceOfCrypto))
     }
 
     "return a 404 if a CT registration record cannot be found" in new Setup {
@@ -149,18 +149,18 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
       CTServiceMocks.retrieveCTDataRecord(regId, None)
 
       val result: Future[Result] = controller.retrieveFullCorporationTaxRegistration(regId)(FakeRequest())
-      status(result) shouldBe NOT_FOUND
+      status(result) mustBe NOT_FOUND
     }
 
     "return a 403 when the user is not authenticated" in new Setup {
       mockAuthorise(Future.failed(InsufficientConfidenceLevel()))
 
       val result: Future[Result] = controller.retrieveFullCorporationTaxRegistration(regId)(FakeRequest())
-      status(result) shouldBe FORBIDDEN
+      status(result) mustBe FORBIDDEN
     }
   }
 
-  "retrieveConfirmationReference" should {
+  "retrieveConfirmationReference" must {
 
     "return a 200 and an acknowledgement ref is one exists" in new Setup {
       mockAuthorise(Future.successful(Some(internalId)))
@@ -171,8 +171,8 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
         .thenReturn(Future.successful(Some(expected)))
 
       val result: Future[Result] = controller.retrieveConfirmationReference(regId)(FakeRequest())
-      status(result) shouldBe OK
-      contentAsJson(result) shouldBe Json.toJson(expected)
+      status(result) mustBe OK
+      contentAsJson(result) mustBe Json.toJson(expected)
     }
 
     "return a 404 if a record cannot be found" in new Setup {
@@ -183,18 +183,18 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
         .thenReturn(Future.successful(None))
 
       val result: Future[Result] = controller.retrieveConfirmationReference(regId)(FakeRequest())
-      status(result) shouldBe NOT_FOUND
+      status(result) mustBe NOT_FOUND
     }
 
     "return a 403 when the user is not authenticated" in new Setup {
       mockAuthorise(Future.failed(InsufficientConfidenceLevel()))
 
       val result: Future[Result] = controller.retrieveConfirmationReference(regId)(FakeRequest())
-      status(result) shouldBe FORBIDDEN
+      status(result) mustBe FORBIDDEN
     }
   }
 
-  "updateRegistrationProgress" should {
+  "updateRegistrationProgress" must {
 
     def progressRequest(progress: String): JsValue = Json.parse(s"""{"registration-progress":"$progress"}""")
 
@@ -208,11 +208,11 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
         thenReturn(Future.successful(Some("")))
       val response: Future[Result] = controller.updateRegistrationProgress(regId)(request)
 
-      status(response) shouldBe OK
+      status(response) mustBe OK
 
       val captor: ArgumentCaptor[String] = ArgumentCaptor.forClass[String, String](classOf[String])
       verify(mockCTDataService, times(1)).updateRegistrationProgress(eqTo(regId), captor.capture())
-      captor.getValue shouldBe progress
+      captor.getValue mustBe progress
     }
 
     "Return not found is the doc couldn't be updated" in new Setup {
@@ -226,11 +226,11 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
         thenReturn(Future.successful(None))
 
       val result: Future[Result] = controller.updateRegistrationProgress(regId)(request)
-      status(result) shouldBe NOT_FOUND
+      status(result) mustBe NOT_FOUND
     }
   }
 
-  "convertAndReturnRoAddressIfValidInPPOBFormat" should {
+  "convertAndReturnRoAddressIfValidInPPOBFormat" must {
 
     val cHROAddress = Json.toJson(CHROAddress("p", "14 St Test Walk", Some("Test"), "c", "l", Some("pb"), Some("TE1 1ST"), Some("r")))
 
@@ -241,7 +241,7 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
       val request: FakeRequest[JsValue] = FakeRequest().withBody(cHROAddress)
       val response: Future[Result] = controller.convertAndReturnRoAddressIfValidInPPOBFormat()(request)
 
-      status(response) shouldBe OK
+      status(response) mustBe OK
     }
 
     "return a Bad Request if the RO address cannot be converted to a PPOB address" in new Setup {
@@ -251,11 +251,11 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
       val request: FakeRequest[JsValue] = FakeRequest().withBody(cHROAddress)
       val response: Future[Result] = controller.convertAndReturnRoAddressIfValidInPPOBFormat()(request)
 
-      status(response) shouldBe BAD_REQUEST
+      status(response) mustBe BAD_REQUEST
     }
   }
 
-  "convertAndReturnRoAddressIfValidInBusinessAddressFormat" should {
+  "convertAndReturnRoAddressIfValidInBusinessAddressFormat" must {
     val anyCHROAddress = Json.toJson(
       CHROAddress(
         premises = "premises",
@@ -281,8 +281,8 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
 
       val request: FakeRequest[JsValue] = FakeRequest().withBody(anyCHROAddress)
       val response: Future[Result] = controller.convertAndReturnRoAddressIfValidInBusinessAddressFormat(request)
-      status(response) shouldBe OK
-      contentAsJson(response) shouldBe Json.parse(
+      status(response) mustBe OK
+      contentAsJson(response) mustBe Json.parse(
         """
           |{
           |   "line1" : "1 abc",
@@ -301,7 +301,7 @@ class CorporationTaxRegistrationControllerSpec extends BaseSpec with Authorisati
 
       val request: FakeRequest[JsValue] = FakeRequest().withBody(anyCHROAddress)
       val response: Future[Result] = controller.convertAndReturnRoAddressIfValidInBusinessAddressFormat(request)
-      status(response) shouldBe BAD_REQUEST
+      status(response) mustBe BAD_REQUEST
     }
   }
 }

@@ -39,10 +39,9 @@ class HeldController @Inject()(val authConnector: AuthConnector,
 
 
   def fetchHeldSubmissionTime(regId: String): Action[AnyContent] = AuthenticatedAction.async {
-    implicit request =>
-      resource.getExistingRegistration(regId) map { doc =>
-        doc.heldTimestamp.fold(NotFound(""))(date => Ok(Json.toJson(date)))
-      }
+    resource.getExistingRegistration(regId) map { doc =>
+      doc.heldTimestamp.fold(NotFound(""))(date => Ok(Json.toJson(date)))
+    }
   }
 
   def deleteSubmissionData(regId: String): Action[AnyContent] = AuthorisedAction(regId).async {

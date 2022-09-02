@@ -17,12 +17,12 @@
 package utils
 
 import models.validation.APIValidation
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.play.PlaySpec
 
 
-class APIValidationSpec extends WordSpec with Matchers {
+class APIValidationSpec extends PlaySpec {
 
-  "APIValidation" should {
+  "APIValidation" must {
 
     val linePatternStringMatchOne = """Abc /123\Z("""
     val linePatternStringMatchTwo = """dEF"), 456.y"""
@@ -39,7 +39,7 @@ class APIValidationSpec extends WordSpec with Matchers {
     ).foreach{ tuple =>
       val (testData, expected, tcase) = tuple
       s"linePattern should match valid chars with $tcase" in {
-        APIValidation.linePattern.findAllMatchIn(testData).mkString shouldBe expected
+        APIValidation.linePattern.findAllMatchIn(testData).mkString mustBe expected
       }
     }
 
@@ -58,7 +58,7 @@ class APIValidationSpec extends WordSpec with Matchers {
     ).foreach{ tuple =>
       val (testData, expected, tcase) = tuple
       s"linePattern should remove invalid chars with $tcase" in {
-        APIValidation.linePattern.findAllMatchIn(testData).mkString shouldBe expected
+        APIValidation.linePattern.findAllMatchIn(testData).mkString mustBe expected
       }
     }
 
@@ -77,7 +77,7 @@ class APIValidationSpec extends WordSpec with Matchers {
     ).foreach{ tuple =>
       val (testData, expected, tcase) = tuple
       s"line4Pattern should match valid chars with $tcase" in {
-        APIValidation.line4Pattern.findAllMatchIn(testData).mkString shouldBe expected
+        APIValidation.line4Pattern.findAllMatchIn(testData).mkString mustBe expected
       }
     }
 
@@ -96,7 +96,7 @@ class APIValidationSpec extends WordSpec with Matchers {
     ).foreach{ tuple =>
       val (testData, expected, tcase) = tuple
       s"line4Pattern should remove invalid chars with $tcase" in {
-        APIValidation.line4Pattern.findAllMatchIn(testData).mkString shouldBe expected
+        APIValidation.line4Pattern.findAllMatchIn(testData).mkString mustBe expected
       }
     }
 
@@ -115,7 +115,7 @@ class APIValidationSpec extends WordSpec with Matchers {
     ).foreach{ tuple =>
       val (testPC, expectedPC, testCase) = tuple
       s"postCodePattern should match valid post codes with $testCase" in {
-        APIValidation.postCodePattern.findAllMatchIn(testPC).mkString shouldBe expectedPC
+        APIValidation.postCodePattern.findAllMatchIn(testPC).mkString mustBe expectedPC
       }
     }
 
@@ -144,7 +144,7 @@ class APIValidationSpec extends WordSpec with Matchers {
       ).foreach{ tuple =>
         val (testPC, expectedPC, testCase) = tuple
         s"postCodePattern should remove invalid post codes with $testCase" in {
-          APIValidation.postCodePattern.findAllMatchIn(testPC).mkString shouldBe expectedPC
+          APIValidation.postCodePattern.findAllMatchIn(testPC).mkString mustBe expectedPC
         }
       }
 
@@ -163,7 +163,7 @@ class APIValidationSpec extends WordSpec with Matchers {
       ).foreach{ tuple =>
        val (testCountry, expectedCountry, testCase) = tuple
        s"countryPattern should match valid countries with $testCase" in {
-         APIValidation.countryPattern.findAllMatchIn(testCountry).mkString shouldBe expectedCountry
+         APIValidation.countryPattern.findAllMatchIn(testCountry).mkString mustBe expectedCountry
        }
       }
 
@@ -182,7 +182,7 @@ class APIValidationSpec extends WordSpec with Matchers {
       ).foreach{ tuple =>
         val (testCountry, expectedCountry, testCase) = tuple
         s"countryPattern should remove invalid chars in countries with $testCase" in {
-          APIValidation.countryPattern.findAllMatchIn(testCountry).mkString shouldBe expectedCountry
+          APIValidation.countryPattern.findAllMatchIn(testCountry).mkString mustBe expectedCountry
         }
     }
   }

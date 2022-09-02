@@ -17,13 +17,13 @@
 package models
 
 import org.joda.time.{DateTime, DateTimeZone}
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.Json
 
 
-class IncorporationInformationSpec extends WordSpec with Matchers {
+class IncorporationInformationSpec extends PlaySpec {
 
-  "IIreads" should {
+  "IIreads" must {
 
     val transactionId = "trans12345"
     val subscriber = "SCRS"
@@ -59,7 +59,7 @@ class IncorporationInformationSpec extends WordSpec with Matchers {
       """.stripMargin)
 
       val incorpUpdateReponseAcc = IncorpStatus(transactionId, statusacc, Some(crn), None, Some(incDate))
-      accjson.as[IncorpStatus](IncorpStatus.reads) shouldBe incorpUpdateReponseAcc
+      accjson.as[IncorpStatus](IncorpStatus.reads) mustBe incorpUpdateReponseAcc
     }
 
     "return an IncorpUpdate model when suitable rejected JSON is put in." in {
@@ -86,7 +86,7 @@ class IncorporationInformationSpec extends WordSpec with Matchers {
 
       val incorpUpdateReponseRej = IncorpStatus(transactionId, statusrej, None, Some("description"), None)
 
-      rejjson.as[IncorpStatus](IncorpStatus.reads) shouldBe incorpUpdateReponseRej
+      rejjson.as[IncorpStatus](IncorpStatus.reads) mustBe incorpUpdateReponseRej
 
     }
   }

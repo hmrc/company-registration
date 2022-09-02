@@ -43,40 +43,40 @@ class CompanyDetailsServiceSpec extends BaseSpec with CompanyDetailsFixture {
   val registrationID = "12345"
 
 
-  "retrieveCompanyDetails" should {
+  "retrieveCompanyDetails" must {
     "return the CompanyDetails when a company details record is found" in new Setup {
       CTDataRepositoryMocks.retrieveCompanyDetails(Some(validCompanyDetails))
 
-      await(service.retrieveCompanyDetails(registrationID)) shouldBe Some(validCompanyDetails)
+      await(service.retrieveCompanyDetails(registrationID)) mustBe Some(validCompanyDetails)
     }
 
     "return a None when the record to retrieve is not found in the repository" in new Setup {
       CTDataRepositoryMocks.retrieveCompanyDetails(None)
 
-      await(service.retrieveCompanyDetails(registrationID)) shouldBe None
+      await(service.retrieveCompanyDetails(registrationID)) mustBe None
     }
   }
 
-  "updateCompanyDetails" should {
+  "updateCompanyDetails" must {
     "return a CompanyDetailsResponse when a company details record is updated" in new Setup {
       CTDataRepositoryMocks.updateCompanyDetails(Some(validCompanyDetails))
 
-      await(service.updateCompanyDetails(registrationID, validCompanyDetails)) shouldBe Some(validCompanyDetails)
+      await(service.updateCompanyDetails(registrationID, validCompanyDetails)) mustBe Some(validCompanyDetails)
     }
 
     "return a None when the record to update is not found in the repository" in new Setup {
       CTDataRepositoryMocks.updateCompanyDetails(None)
 
-      await(service.updateCompanyDetails(registrationID, validCompanyDetails)) shouldBe None
+      await(service.updateCompanyDetails(registrationID, validCompanyDetails)) mustBe None
     }
   }
-  "convertAckRefToJsObject" should {
+  "convertAckRefToJsObject" must {
     "return jsObject" in new Setup {
-      service.convertAckRefToJsObject("testAckRef") shouldBe Json.obj("acknowledgement-reference" -> "testAckRef")
+      service.convertAckRefToJsObject("testAckRef") mustBe Json.obj("acknowledgement-reference" -> "testAckRef")
     }
   }
 
-  "saveTxidAndGenerateAckRef" should {
+  "saveTxidAndGenerateAckRef" must {
     val ackRefJsObject = Json.obj("acknowledgement-reference" -> "testAckRef")
     val conf = ConfirmationReferences("testAckRef", "txId", None, None)
     "return jsObject with new ackref from repo" in new Setup {
@@ -86,7 +86,7 @@ class CompanyDetailsServiceSpec extends BaseSpec with CompanyDetailsFixture {
         .thenReturn(Future.successful(Some(conf)))
       val res = await(service.saveTxIdAndAckRef(registrationID, "txId"))
       verify(mockSubmissionService, times(1)).generateAckRef
-      res shouldBe ackRefJsObject
+      res mustBe ackRefJsObject
     }
     "return jsobject with updated txId, generate ackref not called if already exists" in new Setup {
       when(mockCTDataRepository.retrieveConfirmationReferences(any())).thenReturn(Future.successful(Some(conf.copy(transactionId = "willnotbethis"))))
@@ -95,7 +95,7 @@ class CompanyDetailsServiceSpec extends BaseSpec with CompanyDetailsFixture {
       val res = await(service.saveTxIdAndAckRef(registrationID, "txId"))
       verify(mockSubmissionService, times(0)).generateAckRef
       verify(mockCTDataRepository, times(1)).updateConfirmationReferences(any(), any())
-      res shouldBe ackRefJsObject
+      res mustBe ackRefJsObject
     }
     "return exception when retrieve fails" in new Setup {
       val ex = new Exception("failure reason")

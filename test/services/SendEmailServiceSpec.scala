@@ -55,7 +55,7 @@ class SendEmailServiceSpec extends BaseSpec with AuthorisationMocks {
     }
   }
 
-  "generateEmailRequest" should {
+  "generateEmailRequest" must {
 
     val testEmail = "myTestEmail@test.test"
     val testRequest = SendEmailRequest(
@@ -66,12 +66,12 @@ class SendEmailServiceSpec extends BaseSpec with AuthorisationMocks {
     )
 
     "return a EmailRequest with the correct email " in new Setup {
-      emailService.generateVATEmailRequest(Seq(testEmail)) shouldBe testRequest
+      emailService.generateVATEmailRequest(Seq(testEmail)) mustBe testRequest
     }
   }
 
 
-  "Generating an email request" should {
+  "Generating an email request" must {
     "construct the correct JSON" in new Setup {
       val result = emailService.generateVATEmailRequest(Seq("test@email.com"))
 
@@ -87,7 +87,7 @@ class SendEmailServiceSpec extends BaseSpec with AuthorisationMocks {
            |}
          """.stripMargin
       }
-      resultAsJson shouldBe expectedJson
+      resultAsJson mustBe expectedJson
     }
   }
 }

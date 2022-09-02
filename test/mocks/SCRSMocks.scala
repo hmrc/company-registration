@@ -22,14 +22,14 @@ import models._
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
 import org.mockito.stubbing.OngoingStubbing
+import org.mongodb.scala.bson.conversions.Bson
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.Configuration
 import play.api.libs.json.JsObject
-import reactivemongo.bson.BSONDocument
-import repositories.{CorporationTaxRegistrationMongoRepository, SequenceRepository}
+import repositories.{CorporationTaxRegistrationMongoRepository, SequenceMongoRepository}
 import services._
 import uk.gov.hmrc.crypto.ApplicationCrypto
-import uk.gov.hmrc.lock.LockKeeper
+import uk.gov.hmrc.mongo.lock.LockService
 
 import scala.concurrent.Future
 
@@ -42,13 +42,13 @@ trait SCRSMocks
   lazy val mockCTDataRepository = mock[CorporationTaxRegistrationMongoRepository]
   lazy val mockCompanyDetailsService = mock[CompanyDetailsService]
   lazy val mockContactDetailsService = mock[ContactDetailsService]
-  lazy val mockSequenceRepository = mock[SequenceRepository]
+  lazy val mockSequenceMongoRepository = mock[SequenceMongoRepository]
   lazy val mockIncorporationCheckAPIConnector = mock[IncorporationCheckAPIConnector]
   lazy val mockMetrics = mock[MetricsService]
   lazy val mockProcessIncorporationService = mock[ProcessIncorporationService]
   lazy val mockSubmissionService = mock[SubmissionService]
   val mockBusRegConnector = mock[BusinessRegistrationConnector]
-  val mockLockKeeper = mock[LockKeeper]
+  val mockLockService = mock[LockService]
   val mockInstanceOfCrypto = new CryptoSCRS {
     val crypto = new ApplicationCrypto(Configuration("json.encryption.key" -> "MTIzNDU2Nzg5MDEyMzQ1Ng==").underlying).JsonCrypto
   }
@@ -73,7 +73,7 @@ trait SCRSMocks
     }
 
     def retrieveCorporationTaxRegistration(ctData: Option[CorporationTaxRegistration]): OngoingStubbing[Future[Option[CorporationTaxRegistration]]] = {
-      when(mockCTDataRepository.findBySelector(ArgumentMatchers.any[BSONDocument]))
+      when(mockCTDataRepository.findOneBySelector(ArgumentMatchers.any[Bson]))
         .thenReturn(Future.successful(ctData))
     }
 
@@ -137,9 +137,9 @@ trait SCRSMocks
     }
   }
 
-  object SequenceRepositoryMocks {
+  object SequenceMongoRepositoryMocks {
     def getNext(sequenceID: String, returns: Int) = {
-      when(mockSequenceRepository.getNext(ArgumentMatchers.any()))
+      when(mockSequenceMongoRepository.getNext(ArgumentMatchers.any()))
         .thenReturn(Future.successful(returns))
     }
   }

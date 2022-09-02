@@ -16,19 +16,19 @@
 
 package models
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsonValidationError, _}
 
-class AccountingDetailsSpec extends WordSpec with Matchers with JsonFormatValidation {
+class AccountingDetailsSpec extends PlaySpec with JsonFormatValidation {
 
   import AccountingDetails.FUTURE_DATE
 
-  "AccountingDetails Model" should {
+  "AccountingDetails Model" must {
     "Be able to be parsed from JSON" in {
       val json = """{"accountingDateStatus":"FUTURE_DATE","startDateOfBusiness":"2017-02-01"}"""
       val expected = AccountingDetails(FUTURE_DATE, Some("2017-02-01"))
       val result = Json.parse(json).validate[AccountingDetails]
-      shouldBeSuccess(expected, result)
+      mustBeSuccess(expected, result)
     }
 
     "fail if status is not valid" in {
@@ -44,14 +44,14 @@ class AccountingDetailsSpec extends WordSpec with Matchers with JsonFormatValida
     }
   }
 
-  "reading from json into a AccountingDetails case class" should {
+  "reading from json into a AccountingDetails case class" must {
 
     "return a AccountingDetails case class" in {
       val accountingDetails = AccountingDetails(FUTURE_DATE, Some("2017-02-01"))
       val json = Json.parse("""{"accountingDateStatus":"FUTURE_DATE","startDateOfBusiness":"2017-02-01"}""")
 
       val result = Json.fromJson[AccountingDetails](json)
-      result shouldBe JsSuccess(accountingDetails)
+      result mustBe JsSuccess(accountingDetails)
     }
 
     "throw a json validation error when the status is future date but a date is not provided" in {

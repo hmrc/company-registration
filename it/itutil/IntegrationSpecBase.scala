@@ -18,11 +18,12 @@ package itutil
 
 import org.scalatest._
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
+import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.libs.ws.WSClient
 
-trait IntegrationSpecBase extends WordSpec
-  with GuiceOneServerPerSuite with ScalaFutures with IntegrationPatience with Matchers
+trait IntegrationSpecBase extends PlaySpec
+  with GuiceOneServerPerSuite with ScalaFutures with IntegrationPatience
   with WiremockHelper with BeforeAndAfterEach with BeforeAndAfterAll with FakeAppConfig {
 
   override def beforeEach() = {

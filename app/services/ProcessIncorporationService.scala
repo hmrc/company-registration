@@ -101,7 +101,7 @@ trait ProcessIncorporationService extends DateHelper with HttpErrorFunctions wit
     }
 
   def processIncorporationUpdate(item: IncorpUpdate, isAdmin: Boolean = false)(implicit hc: HeaderCarrier): Future[Boolean] = {
-    ctRepository.findBySelector(ctRepository.transIdSelector(item.transactionId)) flatMap { oCTReg =>
+    ctRepository.findOneBySelector(ctRepository.transIdSelector(item.transactionId)) flatMap { oCTReg =>
       item.status match {
         case "accepted" =>
           oCTReg.fold {

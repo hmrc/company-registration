@@ -17,11 +17,11 @@
 package utils
 
 import models.validation.APIValidation
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.play.PlaySpec
 
-class StringNormaliserSpec extends WordSpec with Matchers {
+class StringNormaliserSpec extends PlaySpec {
 
-  "normaliseString" should {
+  "normaliseString" must {
     Seq(
       ("ZZ1 1ZZ", "[A-Za-z0-9 ]", "ZZ1 1ZZ"),
       ("ZZ1 1ZZ", "[A-Za-z0-9]", "ZZ11ZZ"),
@@ -37,12 +37,12 @@ class StringNormaliserSpec extends WordSpec with Matchers {
 
     ).foreach {
       case (string, filter, result) => s"return '$result' when '$string' is passed in using regex '$filter'" in {
-        StringNormaliser.normaliseString(string, filter.r) shouldBe result
+        StringNormaliser.normaliseString(string, filter.r) mustBe result
       }
     }
   }
 
-  "removeIllegalCharacters" should {
+  "removeIllegalCharacters" must {
     Seq(
       ("line 1", "line 1"),
       ("line 2", "line 2"),
@@ -52,7 +52,7 @@ class StringNormaliserSpec extends WordSpec with Matchers {
       ("line 2;", "line 2,")
     ).foreach {
       case (string, result) => s"return '$result' when '$string' is passed in " in {
-        StringNormaliser.removeIllegalCharacters(string) shouldBe result
+        StringNormaliser.removeIllegalCharacters(string) mustBe result
       }
     }
   }

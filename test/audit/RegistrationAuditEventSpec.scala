@@ -16,13 +16,13 @@
 
 package audit
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.http.{Authorization, ForwardedFor, HeaderCarrier, RequestId, SessionId}
 
-class RegistrationAuditEventSpec extends WordSpec with Matchers {
+class RegistrationAuditEventSpec extends PlaySpec {
 
-  "RegistrationEvent" should {
+  "RegistrationEvent" must {
     val clientIP: String = "localhost"
     val clientPort: String = "1234"
     val auditType = "testType"
@@ -53,7 +53,7 @@ class RegistrationAuditEventSpec extends WordSpec with Matchers {
         "Authorization" -> bearer
       )
 
-      Json.toJson(event.tags) shouldBe expectedTags
+      Json.toJson(event.tags) mustBe expectedTags
     }
 
     "have the correct tags for an empty header carrier" in {
@@ -68,7 +68,7 @@ class RegistrationAuditEventSpec extends WordSpec with Matchers {
         "Authorization" -> "-"
       )
 
-      Json.toJson(event.tags) shouldBe expectedTags
+      Json.toJson(event.tags) mustBe expectedTags
     }
 
     "Output with minimum tags" in {
@@ -78,7 +78,7 @@ class RegistrationAuditEventSpec extends WordSpec with Matchers {
         "transactionName" -> auditType
       )
 
-      Json.toJson(event.tags) shouldBe expectedTags
+      Json.toJson(event.tags) mustBe expectedTags
     }
 
     "Output with name and clientIP/Port tags" in {
@@ -91,7 +91,7 @@ class RegistrationAuditEventSpec extends WordSpec with Matchers {
         "clientPort" -> clientPort
       )
 
-      Json.toJson(event.tags) shouldBe expectedTags
+      Json.toJson(event.tags) mustBe expectedTags
     }
 
     "output with name, request, session & authz tags" in {
@@ -105,16 +105,16 @@ class RegistrationAuditEventSpec extends WordSpec with Matchers {
         "Authorization" -> bearer
       )
 
-      Json.toJson(event.tags) shouldBe expectedTags
+      Json.toJson(event.tags) mustBe expectedTags
     }
 
 
     "have the correct result" in {
       val event = new RegistrationAuditEvent(auditType, None, Json.obj())(completeCarrier) {}
 
-      event.auditSource shouldBe "company-registration"
-      event.auditType shouldBe auditType
-      event.detail shouldBe Json.obj()
+      event.auditSource mustBe "company-registration"
+      event.auditType mustBe auditType
+      event.detail mustBe Json.obj()
     }
   }
 }

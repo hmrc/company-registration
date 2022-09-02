@@ -17,18 +17,18 @@
 package services
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
-import javax.inject.Inject
+import akka.stream.Materializer
 import models.AccountPrepDetails
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class PrepareAccountServiceImpl @Inject()(system: ActorSystem,
                                           val repositories: Repositories
                                          )(implicit val ec: ExecutionContext) extends PrepareAccountService {
 
-  implicit val materializer = ActorMaterializer()(system)
+  implicit val materializer = Materializer(system)
 
   lazy val repository = repositories.cTRepository
 

@@ -65,7 +65,7 @@ class EmailControllerSpec extends BaseSpec with AuthorisationMocks {
 
   val emailJson: JsValue = Json.toJson(email)
 
-  "retrieveEmail" should {
+  "retrieveEmail" must {
 
     "return a 200 and an Email json object if the user is authorised" in new Setup {
       mockAuthorise(Future.successful(Some(internalId)))
@@ -75,15 +75,15 @@ class EmailControllerSpec extends BaseSpec with AuthorisationMocks {
         .thenReturn(Future.successful(Some(email)))
 
       val result: Future[Result] = emailController.retrieveEmail(registrationID)(FakeRequest())
-      status(result) shouldBe OK
-      contentAsJson(result) shouldBe Json.toJson(email)
+      status(result) mustBe OK
+      contentAsJson(result) mustBe Json.toJson(email)
     }
 
     "return a 401 when the user is not logged in" in new Setup {
       mockAuthorise(Future.failed(MissingBearerToken()))
 
       val result: Future[Result] = emailController.retrieveEmail(registrationID)(FakeRequest())
-      status(result) shouldBe UNAUTHORIZED
+      status(result) mustBe UNAUTHORIZED
     }
 
     "return a 403 when the user is logged in but not authorised to access the resource" in new Setup {
@@ -91,7 +91,7 @@ class EmailControllerSpec extends BaseSpec with AuthorisationMocks {
       mockGetInternalId(Future.successful(otherInternalID))
 
       val result: Future[Result] = emailController.retrieveEmail(registrationID)(FakeRequest())
-      status(result) shouldBe FORBIDDEN
+      status(result) mustBe FORBIDDEN
     }
 
     "return a 404 when the user is logged in but a CT record doesn't exist" in new Setup {
@@ -99,11 +99,11 @@ class EmailControllerSpec extends BaseSpec with AuthorisationMocks {
       mockGetInternalId(Future.failed(new MissingCTDocument("hfbhdbf")))
 
       val result: Future[Result] = emailController.retrieveEmail(registrationID)(FakeRequest())
-      status(result) shouldBe NOT_FOUND
+      status(result) mustBe NOT_FOUND
     }
   }
 
-  "updateEmail" should {
+  "updateEmail" must {
 
     val request = FakeRequest().withBody(Json.toJson(email))
 
@@ -115,15 +115,15 @@ class EmailControllerSpec extends BaseSpec with AuthorisationMocks {
         .thenReturn(Future.successful(Some(email)))
 
       val result: Future[Result] = emailController.updateEmail(registrationID)(request)
-      status(result) shouldBe OK
-      contentAsJson(result) shouldBe emailJson
+      status(result) mustBe OK
+      contentAsJson(result) mustBe emailJson
     }
 
     "return a 401 when the user is not logged in" in new Setup {
       mockAuthorise(Future.failed(MissingBearerToken()))
 
       val result: Future[Result] = emailController.updateEmail(registrationID)(request)
-      status(result) shouldBe UNAUTHORIZED
+      status(result) mustBe UNAUTHORIZED
     }
 
     "return a 403 when the user is logged in but not authorised to access the resource" in new Setup {
@@ -131,7 +131,7 @@ class EmailControllerSpec extends BaseSpec with AuthorisationMocks {
       mockGetInternalId(Future.successful(otherInternalID))
 
       val result: Future[Result] = emailController.updateEmail(registrationID)(request)
-      status(result) shouldBe FORBIDDEN
+      status(result) mustBe FORBIDDEN
     }
 
     "return a 404 when the user is authorised but the CT document doesn't exist" in new Setup {
@@ -139,7 +139,7 @@ class EmailControllerSpec extends BaseSpec with AuthorisationMocks {
       mockGetInternalId(Future.failed(new MissingCTDocument("hfbhdbf")))
 
       val result: Future[Result] = emailController.updateEmail(registrationID)(request)
-      status(result) shouldBe NOT_FOUND
+      status(result) mustBe NOT_FOUND
     }
   }
 }

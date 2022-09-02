@@ -34,7 +34,7 @@ import play.api.test.Helpers._
 import repositories._
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.{HeaderCarrier, SessionId}
-import uk.gov.hmrc.lock.LockKeeper
+import uk.gov.hmrc.mongo.lock.LockService
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import utils.LogCapturing
 
@@ -62,15 +62,15 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
 
   override protected def beforeEach(): Unit = {
     reset(
-      mockCTDataRepository, mockSequenceRepository, mockAuthConnector, mockBRConnector,
-      mockIncorporationCheckAPIConnector, mockAuditConnector, mockIIConnector, mockDesConnector, mockLockKeeper
+      mockCTDataRepository, mockSequenceMongoRepository, mockAuthConnector, mockBRConnector,
+      mockIncorporationCheckAPIConnector, mockAuditConnector, mockIIConnector, mockDesConnector, mockLockService
     )
   }
 
   class Setup extends CorporationTaxRegistrationFixture {
     val service = new CorporationTaxRegistrationService {
       val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository = mockCTDataRepository
-      val sequenceRepository: SequenceRepository = mockSequenceRepository
+      val sequenceRepository: SequenceMongoRepository = mockSequenceMongoRepository
       val microserviceAuthConnector: AuthConnector = mockAuthConnector
       val brConnector: BusinessRegistrationConnector = mockBRConnector
       val submissionCheckAPIConnector: IncorporationCheckAPIConnector = mockIncorporationCheckAPIConnector
@@ -78,7 +78,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
       val incorpInfoConnector: IncorporationInformationConnector = mockIIConnector
       val desConnector: DesConnector = mockDesConnector
       val currentDateTime: DateTime = dateTime
-      override val lockKeeper: LockKeeper = mockLockKeeper
+      override val lockKeeper: LockService = mockLockService
       implicit val ec: ExecutionContext = global
     }
   }
@@ -149,34 +149,34 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
        |}
       """.stripMargin).as[JsObject]
 
-  "createCorporationTaxRegistrationRecord" should {
+  "createCorporationTaxRegistrationRecord" must {
 
     "create a new ctData record and return a 201 - Created response" in new Setup {
       CTDataRepositoryMocks.createCorporationTaxRegistration(validDraftCorporationTaxRegistration)
 
       val result = service.createCorporationTaxRegistrationRecord("54321", "12345", "en")
-      await(result) shouldBe validDraftCorporationTaxRegistration
+      await(result) mustBe validDraftCorporationTaxRegistration
     }
   }
 
-  "retrieveCorporationTaxRegistrationRecord" should {
+  "retrieveCorporationTaxRegistrationRecord" must {
 
     "return Corporation Tax registration response Json and a 200 - Ok when a record is retrieved" in new Setup {
       CTDataRepositoryMocks.retrieveCorporationTaxRegistration(Some(validDraftCorporationTaxRegistration))
 
       val result = service.retrieveCorporationTaxRegistrationRecord("testRegID")
-      await(result) shouldBe Some(validDraftCorporationTaxRegistration)
+      await(result) mustBe Some(validDraftCorporationTaxRegistration)
     }
 
     "return a 404 - Not found when no record is retrieved" in new Setup {
       CTDataRepositoryMocks.retrieveCorporationTaxRegistration(None)
 
       val result = service.retrieveCorporationTaxRegistrationRecord("testRegID")
-      await(result) shouldBe None
+      await(result) mustBe None
     }
   }
 
-  "retrieveConfirmationReference" should {
+  "retrieveConfirmationReference" must {
 
     "return an refs if found" in new Setup {
       val expected = ConfirmationReferences("testTransaction", "testPayRef", Some("testPayAmount"), Some("12"))
@@ -185,7 +185,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
         .thenReturn(Future.successful(Some(expected)))
 
       val result: Option[ConfirmationReferences] = await(service.retrieveConfirmationReferences(regId))
-      result shouldBe Some(expected)
+      result mustBe Some(expected)
     }
 
     "return an empty option if an Ack ref is not found" in new Setup {
@@ -193,12 +193,12 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
         .thenReturn(Future.successful(None))
 
       val result: Option[ConfirmationReferences] = await(service.retrieveConfirmationReferences(regId))
-      result shouldBe None
+      result mustBe None
     }
   }
 
 
-  "locateOldHeldSubmissions" should {
+  "locateOldHeldSubmissions" must {
     val registrationId = "testRegId"
     val tID = "transID"
     val heldTime = Some(DateTime.now().minusWeeks(1))
@@ -235,7 +235,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
         .thenReturn(Future.successful(List()))
 
       val result = await(service.locateOldHeldSubmissions)
-      result shouldBe "No week old held submissions found"
+      result mustBe "No week old held submissions found"
     }
 
     "log cases of week old held submissions and output 'Week old held submissions found'" in new Setup {
@@ -244,12 +244,12 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
           .thenReturn(Future.successful(List(oldHeldSubmission)))
 
         val result = await(service.locateOldHeldSubmissions)
-        result shouldBe "Week old held submissions found"
+        result mustBe "Week old held submissions found"
 
         eventually {
-          logEvents.length shouldBe 2
-          logEvents.head.getMessage should include("ALERT_missing_incorporations")
-          logEvents.tail.head.getMessage should
+          logEvents.length mustBe 2
+          logEvents.head.getMessage must include("ALERT_missing_incorporations")
+          logEvents.tail.head.getMessage must
             include(s"Held submission older than one week of regID: $registrationId txID: $tID heldDate: ${heldTime.get.toString})")
         }
       }
@@ -257,7 +257,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
   }
 
 
-  "convertROToPPOBAddress" should {
+  "convertROToPPOBAddress" must {
     val premise = "pr"
     val country = "Testland"
     val local = "locality"
@@ -275,7 +275,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
           premise, "-1 Test Road", Some("-1 Test Town"), country, local, pobox, testPost, region
         )
 
-        service.convertROToPPOBAddress(roAddress) shouldBe Some(PPOBAddress(
+        service.convertROToPPOBAddress(roAddress) mustBe Some(PPOBAddress(
           premise + " " + roAddress.address_line_1,
           roAddress.address_line_2.get,
           Some(local),
@@ -292,7 +292,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
           premise, "-1 Tést Road", Some("-1 Test Town"), country, local, pobox, testPost, region
         )
 
-        service.convertROToPPOBAddress(roAddress) shouldBe Some(PPOBAddress(
+        service.convertROToPPOBAddress(roAddress) mustBe Some(PPOBAddress(
           premise + " " + "-1 Test Road",
           roAddress.address_line_2.get,
           Some(local),
@@ -309,7 +309,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
           premise, "-1 Test![][@~~ Road", Some("-1 Test Town"), country, local, pobox, testPost, region
         )
 
-        service.convertROToPPOBAddress(roAddress) shouldBe Some(PPOBAddress(
+        service.convertROToPPOBAddress(roAddress) mustBe Some(PPOBAddress(
           premise + " " + "-1 Test Road",
           roAddress.address_line_2.get,
           Some(local),
@@ -328,7 +328,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
 
         val expectedConvertedConcat: String = concatenatedCharacters map characterConverts mkString
 
-        service.convertROToPPOBAddress(roAddress) shouldBe Some(PPOBAddress(
+        service.convertROToPPOBAddress(roAddress) mustBe Some(PPOBAddress(
           premise + " " + s"-1 Test $expectedConvertedConcat",
           roAddress.address_line_2.get,
           Some(local),
@@ -347,7 +347,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
           premise, stringOf27Chars, Some("-1 Test Town"), country, local, pobox, testPost, region
         )
 
-        service.convertROToPPOBAddress(roAddress) shouldBe Some(PPOBAddress(
+        service.convertROToPPOBAddress(roAddress) mustBe Some(PPOBAddress(
           premise + " " + stringOf27Chars.take(24),
           roAddress.address_line_2.get,
           Some(local),
@@ -361,13 +361,13 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
 
       "the RO address expands beyond after converting characters" in new Setup {
         val twentyPlusConcat = List.fill(23 - concatenatedCharacters.length)("a").mkString + concatenatedCharacters
-        twentyPlusConcat.length shouldBe 23
+        twentyPlusConcat.length mustBe 23
 
         val roAddress = CHROAddress(
           premise, twentyPlusConcat, Some("-1 Test Town"), country, local, pobox, testPost, region
         )
 
-        service.convertROToPPOBAddress(roAddress) shouldBe Some(PPOBAddress(
+        service.convertROToPPOBAddress(roAddress) mustBe Some(PPOBAddress(
           (premise + " " + twentyPlusConcat.map(char => characterConverts.getOrElse(char, char)).mkString).take(27),
           roAddress.address_line_2.get,
           Some(local),
@@ -384,7 +384,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
           premise, "-1 Test Road", None, country, local, pobox, None, region
         )
 
-        service.convertROToPPOBAddress(roAddress) shouldBe Some(PPOBAddress(
+        service.convertROToPPOBAddress(roAddress) mustBe Some(PPOBAddress(
           (premise + " " + "-1 Test Road").take(27),
           local,
           region,
@@ -403,7 +403,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
           "", "|", Some("-1 Test Town"), country, local, pobox, testPost, region
         )
 
-        service.convertROToPPOBAddress(roAddress) shouldBe None
+        service.convertROToPPOBAddress(roAddress) mustBe None
       }
     }
 
@@ -413,11 +413,11 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
           ">", "Test Two", Some("-1 Test Town"), country, local, pobox, Some("|"), region
         )
 
-        service.convertROToPPOBAddress(roAddress) shouldBe None
+        service.convertROToPPOBAddress(roAddress) mustBe None
       }
     }
   }
-  "convertROToBusinessAddress" should {
+  "convertROToBusinessAddress" must {
     val premise = "pr"
     val country = "Testland"
     val local = "locality"
@@ -435,7 +435,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
           premise, "-1 Test Road", Some("-1 Test Town"), country, local, pobox, testPost, region
         )
 
-        service.convertRoToBusinessAddress(roAddress) shouldBe Some(BusinessAddress(
+        service.convertRoToBusinessAddress(roAddress) mustBe Some(BusinessAddress(
           premise + " " + roAddress.address_line_1,
           roAddress.address_line_2.get,
           Some(local),
@@ -450,7 +450,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
           premise, "-1 Tést Road", Some("-1 Test Town"), country, local, pobox, testPost, region
         )
 
-        service.convertRoToBusinessAddress(roAddress) shouldBe Some(BusinessAddress(
+        service.convertRoToBusinessAddress(roAddress) mustBe Some(BusinessAddress(
           premise + " " + "-1 Test Road",
           roAddress.address_line_2.get,
           Some(local),
@@ -465,7 +465,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
           premise, "-1 Test![][@~~ Road", Some("-1 Test Town"), country, local, pobox, testPost, region
         )
 
-        service.convertRoToBusinessAddress(roAddress) shouldBe Some(BusinessAddress(
+        service.convertRoToBusinessAddress(roAddress) mustBe Some(BusinessAddress(
           premise + " " + "-1 Test Road",
           roAddress.address_line_2.get,
           Some(local),
@@ -482,7 +482,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
 
         val expectedConvertedConcat: String = concatenatedCharacters map characterConverts mkString
 
-        service.convertRoToBusinessAddress(roAddress) shouldBe Some(BusinessAddress(
+        service.convertRoToBusinessAddress(roAddress) mustBe Some(BusinessAddress(
           premise + " " + s"-1 Test $expectedConvertedConcat",
           roAddress.address_line_2.get,
           Some(local),
@@ -499,7 +499,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
           premise, stringOf27Chars, Some("-1 Test Town"), country, local, pobox, testPost, region
         )
 
-        service.convertRoToBusinessAddress(roAddress) shouldBe Some(BusinessAddress(
+        service.convertRoToBusinessAddress(roAddress) mustBe Some(BusinessAddress(
           premise + " " + stringOf27Chars.take(24),
           roAddress.address_line_2.get,
           Some(local),
@@ -511,13 +511,13 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
 
       "the RO address expands beyond after converting characters" in new Setup {
         val twentyPlusConcat = List.fill(23 - concatenatedCharacters.length)("a").mkString + concatenatedCharacters
-        twentyPlusConcat.length shouldBe 23
+        twentyPlusConcat.length mustBe 23
 
         val roAddress = CHROAddress(
           premise, twentyPlusConcat, Some("-1 Test Town"), country, local, pobox, testPost, region
         )
 
-        service.convertRoToBusinessAddress(roAddress) shouldBe Some(BusinessAddress(
+        service.convertRoToBusinessAddress(roAddress) mustBe Some(BusinessAddress(
           (premise + " " + twentyPlusConcat.map(char => characterConverts.getOrElse(char, char)).mkString).take(27),
           roAddress.address_line_2.get,
           Some(local),
@@ -532,7 +532,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
           premise, "-1 Test Road", None, country, local, pobox, None, region
         )
 
-        service.convertRoToBusinessAddress(roAddress) shouldBe Some(BusinessAddress(
+        service.convertRoToBusinessAddress(roAddress) mustBe Some(BusinessAddress(
           (premise + " " + "-1 Test Road").take(27),
           local,
           region,
@@ -549,7 +549,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
           "", "|", Some("-1 Test Town"), country, local, pobox, testPost, region
         )
 
-        service.convertRoToBusinessAddress(roAddress) shouldBe None
+        service.convertRoToBusinessAddress(roAddress) mustBe None
       }
     }
 
@@ -559,7 +559,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
           ">", "Test Two", Some("-1 Test Town"), country, local, pobox, Some("|"), region
         )
 
-        service.convertRoToBusinessAddress(roAddress) shouldBe None
+        service.convertRoToBusinessAddress(roAddress) mustBe None
       }
     }
   }

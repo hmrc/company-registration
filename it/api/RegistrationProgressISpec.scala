@@ -16,22 +16,21 @@
 
 package api
 
-import auth.CryptoSCRS
 import itutil.WiremockHelper._
-import itutil.{IntegrationSpecBase, LoginStub, WiremockHelper}
+import itutil.{IntegrationSpecBase, LoginStub, MongoIntegrationSpec, WiremockHelper}
+import models.CorporationTaxRegistration
+import org.joda.time.DateTime
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.crypto.DefaultCookieSigner
-import play.api.libs.json.{JsObject, Json}
 import play.api.test.Helpers._
-import play.modules.reactivemongo.ReactiveMongoComponent
 import repositories.CorporationTaxRegistrationMongoRepository
 import uk.gov.hmrc.http.{HeaderNames => GovHeaderNames}
 
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class RegistrationProgressISpec extends IntegrationSpecBase with LoginStub {
+class RegistrationProgressISpec extends IntegrationSpecBase with LoginStub with MongoIntegrationSpec {
 
   val mockHost = WiremockHelper.wiremockHost
   val mockPort = WiremockHelper.wiremockPort
@@ -57,43 +56,40 @@ class RegistrationProgressISpec extends IntegrationSpecBase with LoginStub {
       GovHeaderNames.authorisation -> "Bearer123")
 
   class Setup {
-    val rmComp = app.injector.instanceOf[ReactiveMongoComponent]
-    val crypto = app.injector.instanceOf[CryptoSCRS]
-    val repository = new CorporationTaxRegistrationMongoRepository(
-      rmComp, crypto)
-    await(repository.drop)
+    val repository = app.injector.instanceOf[CorporationTaxRegistrationMongoRepository]
+    repository.deleteAll
     await(repository.ensureIndexes)
   }
 
-  "Company registration progress" should {
+  "Company registration progress" must {
 
     val registrationId = UUID.randomUUID().toString
     val internalId = UUID.randomUUID().toString
 
-    import reactivemongo.play.json._
-
-    val jsonDoc = Json.parse(
-      s"""
-         |{
-         |"internalId":"${internalId}","registrationID":"${registrationId}","status":"draft","formCreationTimestamp":"testDateTime","language":"en",
-         |"createdTime":1488304097470,"lastSignedIn":1488304097486
-         |}
-      """.stripMargin).as[JsObject]
+    val ctReg = CorporationTaxRegistration(
+      internalId,
+      registrationId,
+      "draft",
+      "testDateTime",
+      "en",
+      createdTime = DateTime.now().minusDays(1),
+      lastSignedIn = DateTime.now(),
+    )
 
     "Update the CR doc successfully with the progress info" in new Setup {
       stubAuthorise(200, "internalId" -> internalId)
 
-      await(repository.collection.insert(jsonDoc))
+      repository.insert(ctReg)
 
       val progress = "HO5"
       val response = client(s"/${registrationId}/progress").put(s"""{"registration-progress": "${progress}"}""").futureValue
 
-      response.status shouldBe 200
+      response.status mustBe 200
 
-      val doc = await(repository.findBySelector(repository.regIDSelector(registrationId)))
+      val doc = await(repository.findOneBySelector(repository.regIDSelector(registrationId)))
 
-      doc shouldBe defined
-      doc.get.registrationProgress shouldBe Some(progress)
+      doc mustBe defined
+      doc.get.registrationProgress mustBe Some(progress)
     }
   }
 }

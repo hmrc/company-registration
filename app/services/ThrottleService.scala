@@ -17,11 +17,12 @@
 package services
 
 import config.MicroserviceAppConfig
+import org.joda.time.{DateTime, DateTimeZone}
+
 import javax.inject.{Inject, Singleton}
 import play.api.mvc.ControllerComponents
 import repositories.Repositories
-import uk.gov.hmrc.play.bootstrap.controller.BackendController
-import uk.gov.hmrc.time.DateTimeUtils
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -40,8 +41,7 @@ class ThrottleService @Inject()(val repositories: Repositories,
 
   lazy val throttleMongoRepository = repositories.throttleRepository
 
-  def dateTime = DateTimeUtils.now
-
+  def dateTime = DateTime.now.withZone(DateTimeZone.UTC)
 
   lazy val threshold = config.threshold
 

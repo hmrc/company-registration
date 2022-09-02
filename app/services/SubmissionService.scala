@@ -28,7 +28,7 @@ import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logging
 import play.api.libs.json.{JsObject, JsString, Json}
 import play.api.mvc.{AnyContent, Request}
-import repositories.{CorporationTaxRegistrationMongoRepository, Repositories, SequenceRepository}
+import repositories.{CorporationTaxRegistrationMongoRepository, Repositories, SequenceMongoRepository}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import utils.{PagerDutyKeys, StringNormaliser}
@@ -44,7 +44,7 @@ class SubmissionServiceImpl @Inject()(val repositories: Repositories,
                                       val auditConnector: AuditConnector
                                      )(implicit val ec: ExecutionContext) extends SubmissionService {
   lazy val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
-  lazy val sequenceRepository: SequenceRepository = repositories.sequenceRepository
+  lazy val sequenceRepository: SequenceMongoRepository = repositories.sequenceRepository
 
   def currentDateTime: DateTime = DateTime.now(DateTimeZone.UTC)
 }
@@ -53,7 +53,7 @@ trait SubmissionService extends DateHelper with Logging {
 
   implicit val ec: ExecutionContext
   val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository
-  val sequenceRepository: SequenceRepository
+  val sequenceRepository: SequenceMongoRepository
   val incorpInfoConnector: IncorporationInformationConnector
   val desConnector: DesConnector
   val auditConnector: AuditConnector
@@ -64,7 +64,7 @@ trait SubmissionService extends DateHelper with Logging {
 
   def handleSubmission(rID: String, authProvId: String, handOffRefs: ConfirmationReferences, isAdmin: Boolean)
                       (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[ConfirmationReferences] = {
-    cTRegistrationRepository.findBySelector(cTRegistrationRepository.regIDSelector(rID)) flatMap {
+    cTRegistrationRepository.findOneBySelector(cTRegistrationRepository.regIDSelector(rID)) flatMap {
       case Some(doc) =>
         throwPagerDutyIfTxIDInDBDoesntMatchHandOffTxID(doc.confirmationReferences, handOffRefs.transactionId)
         if (doc.status == DRAFT || doc.status == LOCKED) {
@@ -105,7 +105,7 @@ trait SubmissionService extends DateHelper with Logging {
   }
 
   def updateCTRecordWithAckRefs(ackRef: String, etmpNotification: AcknowledgementReferences): Future[Option[CorporationTaxRegistration]] = {
-    cTRegistrationRepository.findBySelector(cTRegistrationRepository.ackRefSelector(ackRef)) flatMap {
+    cTRegistrationRepository.findOneBySelector(cTRegistrationRepository.ackRefSelector(ackRef)) flatMap {
       case Some(record) =>
         cTRegistrationRepository.updateCTRecordWithAcknowledgments(ackRef, record.copy(acknowledgementReferences = Some(etmpNotification), status = RegistrationStatus.ACKNOWLEDGED)) map {
           _ => Some(record)
@@ -285,7 +285,7 @@ trait SubmissionService extends DateHelper with Logging {
   def setupPartialForTopupOnLocked(transID: String)(implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[Boolean] = {
     logger.info(s"[setupPartialForTopup] Trying to update locked document of txId: $transID to held for topup with incorp update")
 
-    cTRegistrationRepository.findBySelector(cTRegistrationRepository.transIdSelector(transID)) flatMap {
+    cTRegistrationRepository.findOneBySelector(cTRegistrationRepository.transIdSelector(transID)) flatMap {
       case Some(reg) =>
         (reg.sessionIdentifiers, reg.confirmationReferences) match {
           case _ if reg.status == SUBMITTED || reg.status == ACKNOWLEDGED =>

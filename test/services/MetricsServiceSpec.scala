@@ -21,12 +21,12 @@ import mocks.MockMetricsService
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
 import org.scalatestplus.mockito.MockitoSugar
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.play.PlaySpec
 import play.api.test.Helpers._
 
 import scala.concurrent.Future
 
-class MetricsServiceSpec extends WordSpec with Matchers with MockitoSugar {
+class MetricsServiceSpec extends PlaySpec with MockitoSugar {
 
   val mockRegistry = mock[MetricRegistry]
 
@@ -34,13 +34,13 @@ class MetricsServiceSpec extends WordSpec with Matchers with MockitoSugar {
     val service = MockMetricsService
   }
 
-  "Metrics" should {
+  "Metrics" must {
     "update no metrics if no registration stats" in new Setup() {
       when(service.ctRepository.getRegistrationStats).thenReturn(Future.successful(Map[String, Int]()))
 
       val result: Map[String, Int] = await(service.updateDocumentMetrics())
 
-      result shouldBe Map()
+      result mustBe Map()
 
       verifyNoMoreInteractions(mockRegistry)
     }
@@ -49,7 +49,7 @@ class MetricsServiceSpec extends WordSpec with Matchers with MockitoSugar {
       when(service.metrics.defaultRegistry).thenReturn(mockRegistry)
       when(service.ctRepository.getRegistrationStats).thenReturn(Future.successful(Map[String, Int]("test" -> 1)))
 
-      await(service.updateDocumentMetrics()) shouldBe Map("test" -> 1)
+      await(service.updateDocumentMetrics()) mustBe Map("test" -> 1)
 
       verify(mockRegistry).remove(ArgumentMatchers.any())
       verify(mockRegistry).register(ArgumentMatchers.contains("test"), ArgumentMatchers.any())
@@ -62,7 +62,7 @@ class MetricsServiceSpec extends WordSpec with Matchers with MockitoSugar {
 
       val result = await(service.updateDocumentMetrics())
 
-      result shouldBe Map("testOne" -> 1, "testTwo" -> 2, "testThree" -> 3)
+      result mustBe Map("testOne" -> 1, "testTwo" -> 2, "testThree" -> 3)
 
       verify(mockRegistry).remove(ArgumentMatchers.contains("testOne"))
       verify(mockRegistry).register(ArgumentMatchers.contains("testOne"), ArgumentMatchers.any())

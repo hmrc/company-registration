@@ -17,12 +17,15 @@
 package controllers.test
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
+import akka.stream.Materializer
+import com.mongodb.MongoException
+import com.mongodb.client.result.DeleteResult
 import helpers.BaseSpec
-import models.ConfirmationReferences
+import models.{ConfirmationReferences, CorporationTaxRegistration}
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
+import org.mongodb.scala.{MongoCollection, SingleObservable}
 import play.api.Logger
 import play.api.mvc.Result
 import play.api.test.FakeRequest
@@ -36,10 +39,12 @@ import scala.concurrent.{ExecutionContext, Future}
 class TestEndpointControllerSpec extends BaseSpec with LogCapturing {
 
   implicit val system = ActorSystem("CR")
-  implicit val mat = ActorMaterializer()
+  implicit val mat = Materializer(system)
 
   val mockThrottleRepository = mock[ThrottleMongoRepository]
   val mockCTRepository = mock[CorporationTaxRegistrationMongoRepository]
+  val mockCTCollection = mock[MongoCollection[CorporationTaxRegistration]]
+  val mockDeleteResult = mock[SingleObservable[DeleteResult]]
 
   class Setup {
     val controller = new TestEndpointController {
@@ -52,42 +57,46 @@ class TestEndpointControllerSpec extends BaseSpec with LogCapturing {
     }
   }
 
-  "modifyThrottledUsers" should {
+  "modifyThrottledUsers" must {
 
     "return a 200" in new Setup {
       when(mockThrottleRepository.modifyThrottledUsers(ArgumentMatchers.anyString(), ArgumentMatchers.eq(5)))
         .thenReturn(Future.successful(5))
 
       val result: Future[Result] = controller.modifyThrottledUsers(5)(FakeRequest())
-      status(result) shouldBe OK
-      contentAsJson(result).toString() shouldBe """{"users_in":5}"""
+      status(result) mustBe OK
+      contentAsJson(result).toString() mustBe """{"users_in":5}"""
     }
   }
 
-  "dropCTCollection" should {
+  "dropCTCollection" must {
 
     "return a 200 with a confirmation message" in new Setup {
-      when(mockCTRepository.drop(ArgumentMatchers.any())).thenReturn(Future.successful(true))
+      when(mockCTRepository.collection).thenReturn(mockCTCollection)
+      when(mockCTCollection.deleteMany(ArgumentMatchers.any())).thenReturn(mockDeleteResult)
+      when(mockDeleteResult.toFuture()).thenReturn(Future.successful(DeleteResult.acknowledged(1)))
       when(mockBusRegConnector.dropMetadataCollection(ArgumentMatchers.any()))
         .thenReturn(Future.successful("test message success"))
 
       val result: Future[Result] = controller.dropJourneyCollections(FakeRequest())
-      status(result) shouldBe OK
-      contentAsJson(result).toString() shouldBe """{"message":"CT collection was dropped test message success"}"""
+      status(result) mustBe OK
+      contentAsJson(result).toString() mustBe """{"message":"CT collection was dropped test message success"}"""
     }
 
     "return a 200 with an error message when the collection drop was unsuccessful" in new Setup {
-      when(mockCTRepository.drop(ArgumentMatchers.any())).thenReturn(Future.successful(false))
+      when(mockCTRepository.collection).thenReturn(mockCTCollection)
+      when(mockCTCollection.deleteMany(ArgumentMatchers.any())).thenReturn(mockDeleteResult)
+      when(mockDeleteResult.toFuture()).thenReturn(Future.failed(new MongoException("bang")))
       when(mockBusRegConnector.dropMetadataCollection(ArgumentMatchers.any()))
         .thenReturn(Future.successful("test message failed"))
 
       val result: Future[Result] = controller.dropJourneyCollections(FakeRequest())
-      status(result) shouldBe OK
-      contentAsJson(result).toString() shouldBe """{"message":"A problem occurred and the CT Collection could not be dropped test message failed"}"""
+      status(result) mustBe OK
+      contentAsJson(result).toString() mustBe """{"message":"A problem occurred and the CT Collection could not be dropped test message failed"}"""
     }
   }
 
-  "updateConfirmationRefs" should {
+  "updateConfirmationRefs" must {
 
     val registrationId = "testRegId"
 
@@ -98,7 +107,7 @@ class TestEndpointControllerSpec extends BaseSpec with LogCapturing {
         .thenReturn(Future.successful(confirmationRefs))
 
       val result: Future[Result] = controller.updateConfirmationRefs(registrationId)(FakeRequest())
-      status(result) shouldBe OK
+      status(result) mustBe OK
     }
   }
 
@@ -107,8 +116,8 @@ class TestEndpointControllerSpec extends BaseSpec with LogCapturing {
       val message: String = "test-pager-duty"
       withCaptureOfLoggingFrom(Logger(controller.getClass)) { logs =>
         val result = controller.pagerDuty(message)(FakeRequest())
-        status(result) shouldBe OK
-        logs.head.getMessage shouldBe message
+        status(result) mustBe OK
+        logs.head.getMessage mustBe message
       }
     }
   }

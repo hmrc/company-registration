@@ -16,18 +16,18 @@
 
 package models
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsObject, Json}
 
-class ElementsFromH02ReadsSpec extends WordSpec with Matchers {
+class ElementsFromH02ReadsSpec extends PlaySpec {
 
   val validJson: JsObject = Json.obj("transaction_id" -> "testTransactionId")
 
   "reads should return a string when jsObject provided containing transaction_id" in {
-    validJson.as[String](ElementsFromH02Reads.reads) shouldBe "testTransactionId"
+    validJson.as[String](ElementsFromH02Reads.reads) mustBe "testTransactionId"
   }
   "reads should return jsError if element transaction_id not in obj" in {
-    Json.obj().validate[String](ElementsFromH02Reads.reads).isError shouldBe true
+    Json.obj().validate[String](ElementsFromH02Reads.reads).isError mustBe true
   }
 
 }

@@ -30,7 +30,7 @@ class CorporationTaxRegistrationSpec extends BaseSpec with JsonFormatValidation 
 
   def now = DateTime.now(DateTimeZone.UTC)
 
-  "CorporationTaxRegistration" should {
+  "CorporationTaxRegistration" must {
 
 
     "using a custom read on the held json document without a lastSignedIn value will default it to the current time" in {
@@ -39,7 +39,7 @@ class CorporationTaxRegistrationSpec extends BaseSpec with JsonFormatValidation 
       val ct = Json.fromJson[CorporationTaxRegistration](fullHeldJson)(CorporationTaxRegistration.format(APIValidation, mockInstanceOfCrypto)).get
       val after = now.getMillis
 
-      ct.lastSignedIn.getMillis >= before && ct.lastSignedIn.getMillis <= after shouldBe true
+      ct.lastSignedIn.getMillis >= before && ct.lastSignedIn.getMillis <= after mustBe true
     }
     "using a custom read on the held json document without a lastSignedIn value will not change the rest of the document" in {
       val fullHeldJson = fullCorpTaxRegJson(optAccountingDetails = Some(testAccountingDetails))
@@ -47,7 +47,7 @@ class CorporationTaxRegistrationSpec extends BaseSpec with JsonFormatValidation 
       validHeldCorporationTaxRegistration.copy(
         createdTime = ct.get.createdTime,
         lastSignedIn = ct.get.lastSignedIn
-      ) shouldBe ct.get
+      ) mustBe ct.get
     }
     "parse the takeover details section" in {
       val testDateTime = DateTime.now(DateTimeZone.UTC)
@@ -61,7 +61,7 @@ class CorporationTaxRegistrationSpec extends BaseSpec with JsonFormatValidation 
     }
   }
 
-  "CompanyDetails Model - names" should {
+  "CompanyDetails Model - names" must {
     def testJson(companyName: String): JsObject = Json.obj(
       "companyName" -> companyName,
       "pPOBAddress" -> testPPOBAddress,
@@ -135,7 +135,7 @@ class CorporationTaxRegistrationSpec extends BaseSpec with JsonFormatValidation 
 
         Test.check(testRuns) {
           _.withMinSuccessfulTests(100000)
-        }.succeeded shouldBe 100000
+        }.succeeded mustBe 100000
       }
     }
   }

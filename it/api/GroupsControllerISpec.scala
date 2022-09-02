@@ -18,20 +18,18 @@ package api
 
 import auth.CryptoSCRS
 import itutil.WiremockHelper._
-import itutil.{IntegrationSpecBase, LoginStub, WiremockHelper}
+import itutil.{IntegrationSpecBase, LoginStub, MongoIntegrationSpec, WiremockHelper}
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.crypto.DefaultCookieSigner
 import play.api.libs.json.{JsObject, Json}
 import play.api.test.Helpers._
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.play.json._
 import repositories.CorporationTaxRegistrationMongoRepository
 import uk.gov.hmrc.http.{HeaderNames => GovHeaderNames}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class GroupsControllerISpec extends IntegrationSpecBase with LoginStub {
+class GroupsControllerISpec extends IntegrationSpecBase with MongoIntegrationSpec with LoginStub {
   lazy val defaultCookieSigner: DefaultCookieSigner = app.injector.instanceOf[DefaultCookieSigner]
 
   val regId: String = "123"
@@ -60,11 +58,9 @@ class GroupsControllerISpec extends IntegrationSpecBase with LoginStub {
       )
 
   class Setup {
-    val rmComp = app.injector.instanceOf[ReactiveMongoComponent]
     val crypto = app.injector.instanceOf[CryptoSCRS]
-    val repository = new CorporationTaxRegistrationMongoRepository(
-      rmComp,crypto)
-    await(repository.drop)
+    val repository = app.injector.instanceOf[CorporationTaxRegistrationMongoRepository]
+    repository.deleteAll
     await(repository.ensureIndexes)
   }
 
@@ -97,13 +93,13 @@ class GroupsControllerISpec extends IntegrationSpecBase with LoginStub {
        |}
       """.stripMargin).as[JsObject]
 
-  "returnGroupsBlock" should {
+  "returnGroupsBlock" must {
     "return groups json and a 200" in new Setup {
       stubAuthorise(200, "internalId" -> internalId)
-      await(repository.collection.insert(jsonDoc(crypto.wts.writes("1234567890").toString())))
+      repository.insertRaw(jsonDoc(crypto.wts.writes("1234567890").toString()))
       val res = await(client(s"/$regId/groups").get())
-      res.status shouldBe 200
-      res.json shouldBe Json.parse("""{
+      res.status mustBe 200
+      res.json mustBe Json.parse("""{
                                      |   "groupRelief": true,
                                      |   "nameOfCompany": {
                                      |     "name": "testCompanyName",
@@ -127,40 +123,40 @@ class GroupsControllerISpec extends IntegrationSpecBase with LoginStub {
     }
     "return 403 when user not authorised" in new Setup {
       stubAuthorise(401, "internalId" -> internalId)
-      await(repository.collection.insert(jsonDoc(crypto.wts.writes("1234567890").toString())))
+      repository.insertRaw(jsonDoc(crypto.wts.writes("1234567890").toString()))
       val res = await(client(s"/$regId/groups").get())
-      res.status shouldBe 403
+      res.status mustBe 403
     }
   }
-  "dropGroupsBlock" should {
+  "dropGroupsBlock" must {
     "drop groups json" in new Setup {
       stubAuthorise(200, "internalId" -> internalId)
-      await(repository.collection.insert(jsonDoc(crypto.wts.writes("1234567890").toString())))
-      await(repository.returnGroupsBlock(regId)).isEmpty shouldBe false
+      repository.insertRaw(jsonDoc(crypto.wts.writes("1234567890").toString()))
+      await(repository.returnGroupsBlock(regId)).isEmpty mustBe false
       val res = await(client(s"/$regId/groups").delete())
-      res.status shouldBe 204
-      await(repository.returnGroupsBlock(regId)).isEmpty shouldBe true
+      res.status mustBe 204
+      await(repository.returnGroupsBlock(regId)).isEmpty mustBe true
     }
     "return 403 when user not authorised" in new Setup {
       stubAuthorise(401, "internalId" -> internalId)
-      await(repository.collection.insert(jsonDoc(crypto.wts.writes("1234567890").toString())))
+      repository.insertRaw(jsonDoc(crypto.wts.writes("1234567890").toString()))
       val res = await(client(s"/$regId/groups").delete())
-      res.status shouldBe 403
+      res.status mustBe 403
     }
   }
-  "updateGroupsBlock" should {
+  "updateGroupsBlock" must {
     "return groups updated" in new Setup {
       stubAuthorise(200, "internalId" -> internalId)
-      await(repository.collection.insert(jsonDoc(crypto.wts.writes("1234567890").toString())))
-      await(repository.returnGroupsBlock(regId)).isEmpty shouldBe false
+      repository.insertRaw(jsonDoc(crypto.wts.writes("1234567890").toString()))
+      await(repository.returnGroupsBlock(regId)).isEmpty mustBe false
       val res = await(client(s"/$regId/groups").put(
         """
           |{
           | "groupRelief": false
           |}
         """.stripMargin))
-      res.status shouldBe 200
-      res.json shouldBe Json.parse( """
+      res.status mustBe 200
+      res.json mustBe Json.parse( """
                                       |{
                                       | "groupRelief": false
                                       |}
@@ -169,13 +165,13 @@ class GroupsControllerISpec extends IntegrationSpecBase with LoginStub {
     }
     "return 403 when user not authorised" in new Setup {
       stubAuthorise(401, "internalId" -> internalId)
-      await(repository.collection.insert(jsonDoc(crypto.wts.writes("1234567890").toString())))
+      repository.insertRaw(jsonDoc(crypto.wts.writes("1234567890").toString()))
       val res = await(client(s"/$regId/groups").put( """
                                                        |{
                                                        | "groupRelief": false
                                                        |}
                                                      """.stripMargin))
-      res.status shouldBe 403
+      res.status mustBe 403
     }
   }
 }

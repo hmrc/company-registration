@@ -17,7 +17,8 @@
 package helpers
 
 import mocks.SCRSMocks
+import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar
-import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
+import org.scalatestplus.play.PlaySpec
 
-trait BaseSpec extends WordSpec with Matchers with MockitoSugar with BeforeAndAfterEach with SCRSMocks
+trait BaseSpec extends PlaySpec with BeforeAndAfterEach with MockitoSugar with SCRSMocks

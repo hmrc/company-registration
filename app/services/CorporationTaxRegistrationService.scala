@@ -26,12 +26,13 @@ import org.joda.time.{DateTime, DateTimeZone, Duration}
 import play.api.Logging
 import repositories._
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.lock.LockKeeper
+import uk.gov.hmrc.mongo.lock.LockService
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import utils.StringNormaliser
 
 import javax.inject.{Inject, Singleton}
+import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NoStackTrace
 import scala.util.{Success, Try}
@@ -53,11 +54,8 @@ class CorporationTaxRegistrationServiceImpl @Inject()(val submissionCheckAPIConn
 
   def currentDateTime: DateTime = DateTime.now(DateTimeZone.UTC)
 
-  lazy val lockKeeper: LockKeeper = new LockKeeper() {
-    override val lockId = "missing-incorporation-job-lock"
-    override val forceLockReleaseAfter: Duration = Duration.standardSeconds(lockoutTimeout)
-    override lazy val repo = repositories.lockRepository
-  }
+  lazy val lockKeeper: LockService =
+    LockService(repositories.lockRepository, "missing-incorporation-job-lock", lockoutTimeout.seconds)
 }
 
 sealed trait FailedPartialForLockedTopup extends NoStackTrace
@@ -68,13 +66,13 @@ trait CorporationTaxRegistrationService extends ScheduledService[Either[String, 
 
   implicit val ec: ExecutionContext
   val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository
-  val sequenceRepository: SequenceRepository
+  val sequenceRepository: SequenceMongoRepository
   val brConnector: BusinessRegistrationConnector
   val auditConnector: AuditConnector
   val incorpInfoConnector: IncorporationInformationConnector
   val desConnector: DesConnector
   val submissionCheckAPIConnector: IncorporationCheckAPIConnector
-  val lockKeeper: LockKeeper
+  val lockKeeper: LockService
 
   def currentDateTime: DateTime
 
@@ -93,7 +91,7 @@ trait CorporationTaxRegistrationService extends ScheduledService[Either[String, 
 
   def retrieveCorporationTaxRegistrationRecord(rID: String, lastSignedIn: Option[DateTime] = None): Future[Option[CorporationTaxRegistration]] = {
     val repo = cTRegistrationRepository
-    repo.findBySelector(repo.regIDSelector(rID)) map {
+    repo.findOneBySelector(repo.regIDSelector(rID)) map {
       doc =>
         lastSignedIn map (repo.updateLastSignedIn(rID, _))
         doc
@@ -174,7 +172,7 @@ trait CorporationTaxRegistrationService extends ScheduledService[Either[String, 
 
   def invoke(implicit ec: ExecutionContext): Future[Either[String, LockResponse]] = {
     implicit val hc = HeaderCarrier()
-    lockKeeper.tryLock(locateOldHeldSubmissions).map {
+    lockKeeper.withLock(locateOldHeldSubmissions).map {
       case Some(res) =>
         logger.info("CorporationTaxRegistrationService acquired lock and returned results")
         logger.info(s"Result locateOldHeldSubmissions: $res")

@@ -48,12 +48,12 @@ class SendEmailConnectorSpec extends BaseSpec {
     force = true
   )
 
-  "send Email" should {
+  "send Email" must {
 
     "Return a true when a request to send a new email is successful" in new Setup {
       mockHttpPOST(connector.sendEmailURL, HttpResponse(ACCEPTED))
 
-      await(connector.requestEmail(emailRequest)) shouldBe true
+      await(connector.requestEmail(emailRequest)) mustBe true
     }
 
     "Fail the future when the service cannot be found" in new Setup {
@@ -86,16 +86,16 @@ class SendEmailConnectorSpec extends BaseSpec {
 
   }
 
-  "customRead" should {
+  "customRead" must {
     "return a 200" in new Setup {
       val expected = HttpResponse(OK)
       val result = connector.customRead("test", "test", expected)
-      result.status shouldBe expected.status
+      result.status mustBe expected.status
     }
     "return a 409" in new Setup {
       val expected = HttpResponse(CONFLICT)
       val result = connector.customRead("test", "test", HttpResponse(CONFLICT))
-      result.status shouldBe expected.status
+      result.status mustBe expected.status
     }
     "return a BadRequestException" in new Setup {
       val response = HttpResponse(BAD_REQUEST)

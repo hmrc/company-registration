@@ -25,7 +25,8 @@ import org.mockito.Mockito.{when, _}
 import org.mockito.{ArgumentCaptor, ArgumentMatchers}
 import org.scalatest.concurrent.Eventually
 import org.scalatestplus.mockito.MockitoSugar
-import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
+import org.scalatest.BeforeAndAfterEach
+import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.Json
 import play.api.mvc.{AnyContent, Request}
 import play.api.test.FakeRequest
@@ -33,7 +34,7 @@ import play.api.test.Helpers._
 import repositories.CorporationTaxRegistrationMongoRepository
 import services.FailedToDeleteSubmissionData
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, NotFoundException, Upstream4xxResponse}
-import uk.gov.hmrc.lock.LockKeeper
+import uk.gov.hmrc.mongo.lock.LockService
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 
@@ -41,14 +42,14 @@ import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with BeforeAndAfterEach with Eventually {
+class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach with Eventually {
 
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
   val mockIncorpInfoConnector: IncorporationInformationConnector = mock[IncorporationInformationConnector]
   val mockCorpTaxRegistrationRepo: CorporationTaxRegistrationMongoRepository = mock[CorporationTaxRegistrationMongoRepository]
   val mockBusRegConnector = mock[BusinessRegistrationConnector]
   val mockDesConnector = mock[DesConnector]
-  val mockLockKeeper = mock[LockKeeper]
+  val mockLockService = mock[LockService]
 
   class Setup {
     val service = new AdminService {
@@ -57,7 +58,7 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
       val corpTaxRegRepo: CorporationTaxRegistrationMongoRepository = mockCorpTaxRegistrationRepo
       val brConnector: BusinessRegistrationConnector = mockBusRegConnector
       val desConnector: DesConnector = mockDesConnector
-      override val lockKeeper: LockKeeper = mockLockKeeper
+      override val lockKeeper: LockService = mockLockService
       implicit val ec: ExecutionContext = global
       override val staleAmount: Int = 10
       override val clearAfterXDays: Int = 90
@@ -72,7 +73,7 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
     reset(mockCorpTaxRegistrationRepo)
     reset(mockDesConnector)
     reset(mockIncorpInfoConnector)
-    reset(mockLockKeeper)
+    reset(mockLockService)
   }
 
   val regId = "reg-id-12345"
@@ -112,19 +113,19 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
     sessionIdentifiers = sessionIds.map(ids => SessionIds(ids.sessionId.getOrElse(""), ids.credId.getOrElse("")))
   )
 
-  "fetchSessionIdData" should {
+  "fetchSessionIdData" must {
     "fetch session id data if it exists" in new Setup {
       val data = Some(sessionIdData)
       val reg = makeSessionReg(data)
 
-      when(mockCorpTaxRegistrationRepo.findBySelector(any()))
+      when(mockCorpTaxRegistrationRepo.findOneBySelector(any()))
         .thenReturn(Future.successful(Some(reg)))
 
-      await(service.fetchSessionIdData(regId)) shouldBe data
+      await(service.fetchSessionIdData(regId)) mustBe data
     }
   }
 
-  "adminCTUTRCheck" should {
+  "adminCTUTRCheck" must {
     "return the Status and presence of CTUTR as valid JSON" when {
       "using a valid AckRef" in new Setup {
         val id = "BRCT09876543210"
@@ -142,7 +143,7 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
 
         val result = await(service.ctutrCheck(id))
 
-        result shouldBe expected
+        result mustBe expected
       }
       "the valid AckRef retrieves no stored document" in new Setup {
         val id = "BRCT09876543210"
@@ -150,12 +151,12 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
           .thenReturn(Future.successful(None))
 
         val result = await(service.ctutrCheck(id))
-        result shouldBe Json.parse("{}")
+        result mustBe Json.parse("{}")
       }
     }
   }
 
-  "updateRegistrationWithAdminCTReference" should {
+  "updateRegistrationWithAdminCTReference" must {
     val timestamp = "timestamp"
 
     def makeReg(utr: Option[String]) = CorporationTaxRegistration(
@@ -200,7 +201,7 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
 
       val newUtr = "newFreshUtr"
       val result = await(service.updateRegistrationWithCTReference("ackRef", newUtr, "test"))
-      result shouldBe Some(Json.parse(
+      result mustBe Some(Json.parse(
         s"""{
            |"status": "04",
            |"ctutr" : true
@@ -208,14 +209,13 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
 
       val captor = ArgumentCaptor.forClass(classOf[AdminCTReferenceEvent])
 
-      eventually {
-        verify(mockAuditConnector, times(1)).sendExtendedEvent(captor.capture())(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any[ExecutionContext]())
-      }
+      verify(mockAuditConnector, times(1)).sendExtendedEvent(captor.capture())(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any[ExecutionContext]())
+
       val audit: List[AdminCTReferenceEvent] = captor.getAllValues.asScala.toList
 
-      audit.head.auditType shouldBe "adminCtReference"
-      (audit.head.detail \ "utrChanges" \ "previousUtr").as[String] shouldBe ctUtr
-      (audit.head.detail \ "utrChanges" \ "newUtr").as[String] shouldBe newUtr
+      audit.head.auditType mustBe "adminCtReference"
+      (audit.head.detail \ "utrChanges" \ "previousUtr").as[String] mustBe ctUtr
+      (audit.head.detail \ "utrChanges" \ "newUtr").as[String] mustBe newUtr
     }
 
     "update a previously rejected registration with the new admin ct reference" in new Setup {
@@ -230,7 +230,7 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
 
       val newUtr = "newFreshUtr"
       val result = await(service.updateRegistrationWithCTReference("ackRef", newUtr, "test"))
-      result shouldBe Some(Json.parse(
+      result mustBe Some(Json.parse(
         s"""{
            |"status": "04",
            |"ctutr" : true
@@ -238,14 +238,13 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
 
       val captor = ArgumentCaptor.forClass(classOf[AdminCTReferenceEvent])
 
-      eventually {
-        verify(mockAuditConnector, times(1)).sendExtendedEvent(captor.capture())(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any[ExecutionContext]())
-      }
+      verify(mockAuditConnector, times(1)).sendExtendedEvent(captor.capture())(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any[ExecutionContext]())
+
       val audit: List[AdminCTReferenceEvent] = captor.getAllValues.asScala.toList
 
-      audit.head.auditType shouldBe "adminCtReference"
-      (audit.head.detail \ "utrChanges" \ "previousUtr").as[String] shouldBe "NO-UTR"
-      (audit.head.detail \ "utrChanges" \ "newUtr").as[String] shouldBe newUtr
+      audit.head.auditType mustBe "adminCtReference"
+      (audit.head.detail \ "utrChanges" \ "previousUtr").as[String] mustBe "NO-UTR"
+      (audit.head.detail \ "utrChanges" \ "newUtr").as[String] mustBe newUtr
     }
 
     "do not update a registration with the new admin ct reference that does not exist" in new Setup {
@@ -253,11 +252,11 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
         .thenReturn(Future.successful(None))
 
       val result = await(service.updateRegistrationWithCTReference("ackRef", "ctUtr", "test"))
-      result shouldBe None
+      result mustBe None
     }
   }
 
-  "deleteRejectedSubmissionData" should {
+  "deleteRejectedSubmissionData" must {
     "delete a registration" when {
       "it exists" in new Setup {
         when(mockBusRegConnector.adminRemoveMetadata(any()))
@@ -267,7 +266,7 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
         when(mockCorpTaxRegistrationRepo.removeTaxRegistrationById(any()))
           .thenReturn(Future.successful(true))
 
-        await(service.adminDeleteSubmission(docInfo, Some(transId))) shouldBe true
+        await(service.adminDeleteSubmission(docInfo, Some(transId))) mustBe true
       }
     }
     "not delete a registration" when {
@@ -300,7 +299,7 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
     }
   }
 
-  "updateTransactionId" should {
+  "updateTransactionId" must {
 
     val updateFrom = "TRANS-123456789"
     val updateTo = "TRANS-0123456789"
@@ -310,7 +309,7 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
         when(mockCorpTaxRegistrationRepo.updateTransactionId(any(), any()))
           .thenReturn(Future.successful(updateTo))
 
-        await(service.updateTransactionId(updateFrom, updateTo)) shouldBe true
+        await(service.updateTransactionId(updateFrom, updateTo)) mustBe true
       }
     }
 
@@ -319,12 +318,12 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
         when(mockCorpTaxRegistrationRepo.updateTransactionId(any(), any()))
           .thenReturn(Future.failed(new RuntimeException("")))
 
-        await(service.updateTransactionId(updateFrom, updateTo)) shouldBe false
+        await(service.updateTransactionId(updateFrom, updateTo)) mustBe false
       }
     }
   }
 
-  "deleteLimboCase" should {
+  "deleteLimboCase" must {
 
     val regId = "myRegID"
     val companyName = "dtl ynapmoc"
@@ -366,7 +365,7 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
     )
   }
 
-  "deleteStaleDocuments" should {
+  "deleteStaleDocuments" must {
     val exampleDoc = CorporationTaxRegistration("id", "regid", "draft", "timestamp", "lang")
     "return a count of documents retrieved and deleted" when {
       "only one is older than 90 days" in new Setup {
@@ -376,7 +375,7 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
           .thenReturn(Future.successful(true))
         when(mockCorpTaxRegistrationRepo.removeTaxRegistrationById(any()))
           .thenReturn(Future.successful(true))
-        await(service.deleteStaleDocuments()) shouldBe 1
+        await(service.deleteStaleDocuments()) mustBe 1
       }
       "three are older than 90 days" in new Setup {
         when(mockCorpTaxRegistrationRepo.retrieveStaleDocuments(any(), any()))
@@ -385,7 +384,7 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
           .thenReturn(Future.successful(true))
         when(mockCorpTaxRegistrationRepo.removeTaxRegistrationById(any()))
           .thenReturn(Future.successful(true))
-        await(service.deleteStaleDocuments()) shouldBe 3
+        await(service.deleteStaleDocuments()) mustBe 3
       }
       "three are older than 90 days, and one fails to delete BR data" in new Setup {
         when(mockCorpTaxRegistrationRepo.retrieveStaleDocuments(any(), any()))
@@ -394,7 +393,7 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
           .thenReturn(Future.successful(true), Future.successful(false), Future.successful(true))
         when(mockCorpTaxRegistrationRepo.removeTaxRegistrationById(any()))
           .thenReturn(Future.successful(true), Future.successful(true), Future.successful(true))
-        await(service.deleteStaleDocuments()) shouldBe 2
+        await(service.deleteStaleDocuments()) mustBe 2
       }
       "three are older than 90 days, and one has a status of submitted" in new Setup {
         when(mockCorpTaxRegistrationRepo.retrieveStaleDocuments(any(), any()))
@@ -403,7 +402,7 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
           .thenReturn(Future.successful(true))
         when(mockCorpTaxRegistrationRepo.removeTaxRegistrationById(any()))
           .thenReturn(Future.successful(true))
-        await(service.deleteStaleDocuments()) shouldBe 2
+        await(service.deleteStaleDocuments()) mustBe 2
       }
       "three are older than 90 days, and one is on the allow list" in new Setup {
         when(mockCorpTaxRegistrationRepo.retrieveStaleDocuments(any(), any()))
@@ -412,12 +411,12 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
           .thenReturn(Future.successful(true))
         when(mockCorpTaxRegistrationRepo.removeTaxRegistrationById(any()))
           .thenReturn(Future.successful(true))
-        await(service.deleteStaleDocuments()) shouldBe 2
+        await(service.deleteStaleDocuments()) mustBe 2
       }
     }
   }
 
-  "processStaleDocument" should {
+  "processStaleDocument" must {
     val exampleDoc = CorporationTaxRegistration("id", "regid", "draft", "timestamp", "lang")
     "return true" when {
       "the document is draft, has no confirmation references and successfully deletes BR and CR document" in new Setup {
@@ -427,7 +426,7 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
         when(mockCorpTaxRegistrationRepo.removeTaxRegistrationById(any()))
           .thenReturn(Future.successful(true))
 
-        await(service.processStaleDocument(exampleDoc)) shouldBe true
+        await(service.processStaleDocument(exampleDoc)) mustBe true
       }
 
       "the document is draft, has confirmation references and successfully deletes BR and CR document" in new Setup {
@@ -442,7 +441,7 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
         when(mockCorpTaxRegistrationRepo.removeTaxRegistrationById(any()))
           .thenReturn(Future.successful(true))
 
-        await(service.processStaleDocument(confRefExampleDoc)) shouldBe true
+        await(service.processStaleDocument(confRefExampleDoc)) mustBe true
 
         verify(mockIncorpInfoConnector, times(1)).cancelSubscription(any(), any(), any())(any())
       }
@@ -462,7 +461,7 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
         when(mockCorpTaxRegistrationRepo.removeTaxRegistrationById(any()))
           .thenReturn(Future.successful(true))
 
-        await(service.processStaleDocument(confRefExampleDoc)) shouldBe true
+        await(service.processStaleDocument(confRefExampleDoc)) mustBe true
 
         verify(mockIncorpInfoConnector, times(1)).cancelSubscription(any(), any(), ArgumentMatchers.eq(false))(any())
         verify(mockIncorpInfoConnector, times(1)).cancelSubscription(any(), any(), ArgumentMatchers.eq(true))(any())
@@ -483,7 +482,7 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
         when(mockCorpTaxRegistrationRepo.removeTaxRegistrationById(any()))
           .thenReturn(Future.successful(true))
 
-        await(service.processStaleDocument(confRefExampleDoc)) shouldBe true
+        await(service.processStaleDocument(confRefExampleDoc)) mustBe true
 
         verify(mockIncorpInfoConnector, times(1)).cancelSubscription(any(), any(), ArgumentMatchers.eq(false))(any())
         verify(mockIncorpInfoConnector, times(1)).cancelSubscription(any(), any(), ArgumentMatchers.eq(true))(any())
@@ -505,7 +504,7 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
         when(mockAuditConnector.sendExtendedEvent(any())(any(), any()))
           .thenReturn(Future.successful(AuditResult.Success))
 
-        await(service.processStaleDocument(confRefExampleDoc)) shouldBe true
+        await(service.processStaleDocument(confRefExampleDoc)) mustBe true
 
         verify(mockIncorpInfoConnector, times(1)).cancelSubscription(any(), any(), any())(any())
       }
@@ -518,7 +517,7 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
         when(mockIncorpInfoConnector.checkCompanyIncorporated(any())(any()))
           .thenReturn(Future.successful(Some("CRN found")))
 
-        await(service.processStaleDocument(confRefWithCRNExampleDoc)) shouldBe false
+        await(service.processStaleDocument(confRefWithCRNExampleDoc)) mustBe false
       }
 
       "the document is held or locked with failure to send a rejection topup" in new Setup {
@@ -529,7 +528,7 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
         when(mockDesConnector.topUpCTSubmission(any(), any(), any(), any())(any()))
           .thenReturn(Future.failed(new Upstream4xxResponse("test", 400, 400, Map())))
 
-        await(service.processStaleDocument(confRefWithCRNExampleDoc)) shouldBe false
+        await(service.processStaleDocument(confRefWithCRNExampleDoc)) mustBe false
       }
       "the document is held or locked with failure to delete the BR document" in new Setup {
         val confRefWithCRNExampleDoc = exampleDoc.copy(status = "held", confirmationReferences = Some(ConfirmationReferences("", "transID", None, None)))
@@ -541,7 +540,7 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
         when(mockBusRegConnector.adminRemoveMetadata(any()))
           .thenReturn(Future.failed(new RuntimeException("failed to delete BR doc")))
 
-        await(service.processStaleDocument(confRefWithCRNExampleDoc)) shouldBe false
+        await(service.processStaleDocument(confRefWithCRNExampleDoc)) mustBe false
       }
       "the document is held or locked with failure to delete the CR document" in new Setup {
         val confRefWithCRNExampleDoc = exampleDoc.copy(status = "held", confirmationReferences = Some(ConfirmationReferences("", "transID", None, None)))
@@ -555,12 +554,12 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
         when(mockCorpTaxRegistrationRepo.removeTaxRegistrationById(any()))
           .thenReturn(Future.failed(new RuntimeException("failed to delete CR doc")))
 
-        await(service.processStaleDocument(confRefWithCRNExampleDoc)) shouldBe false
+        await(service.processStaleDocument(confRefWithCRNExampleDoc)) mustBe false
       }
     }
   }
 
-  "updateDocSessionID" should {
+  "updateDocSessionID" must {
     val newSessionId = "newSessionId"
     val newCredId = "newCredId"
     val userName = "admin"
@@ -570,7 +569,7 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
         val data = Some(sessionIdData.copy(sessionId = Some(newSessionId)))
         val reg = makeSessionReg(data)
 
-        when(mockCorpTaxRegistrationRepo.findBySelector(any()))
+        when(mockCorpTaxRegistrationRepo.findOneBySelector(any()))
           .thenReturn(Future.successful(Some(reg)))
         when(mockCorpTaxRegistrationRepo.retrieveSessionIdentifiers(any()))
           .thenReturn(Future.successful(Some(SessionIds(sessionIdData.sessionId.get, "credId"))))
@@ -579,17 +578,17 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
         when(mockAuditConnector.sendExtendedEvent(any())(any(), any()))
           .thenReturn(Future.successful(Success))
 
-        await(service.updateDocSessionID(regId, newSessionId, newCredId, userName)) shouldBe sessionIdData.copy(sessionId = Some(newSessionId))
+        await(service.updateDocSessionID(regId, newSessionId, newCredId, userName)) mustBe sessionIdData.copy(sessionId = Some(newSessionId))
 
         val captor = ArgumentCaptor.forClass(classOf[AdminSessionIDEvent])
-        eventually {
-          verify(mockAuditConnector, times(1)).sendExtendedEvent(captor.capture())(any[HeaderCarrier](), any[ExecutionContext]())
-        }
+
+        verify(mockAuditConnector, times(1)).sendExtendedEvent(captor.capture())(any[HeaderCarrier](), any[ExecutionContext]())
+
         val audit: List[AdminSessionIDEvent] = captor.getAllValues.asScala.toList
 
-        audit.head.auditType shouldBe "adminSessionID"
-        (audit.head.detail \ "oldSessionId").as[String] shouldBe sessionIdData.sessionId.get
-        (audit.head.detail \ "sessionId").as[String] shouldBe newSessionId
+        audit.head.auditType mustBe "adminSessionID"
+        (audit.head.detail \ "oldSessionId").as[String] mustBe sessionIdData.sessionId.get
+        (audit.head.detail \ "sessionId").as[String] mustBe newSessionId
       }
       "audit event fails" in new Setup {
         val data = Some(sessionIdData.copy(sessionId = Some(newSessionId), credId = Some(newCredId)))
@@ -599,10 +598,10 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
           .thenReturn(Future.successful(Some(SessionIds(sessionIdData.sessionId.get, sessionIdData.credId.get))))
         when(mockCorpTaxRegistrationRepo.storeSessionIdentifiers(any(), any(), any()))
           .thenReturn(Future.successful(true))
-        when(mockCorpTaxRegistrationRepo.findBySelector(any()))
+        when(mockCorpTaxRegistrationRepo.findOneBySelector(any()))
           .thenReturn(Future.successful(Some(reg)))
 
-        await(service.updateDocSessionID(regId, newSessionId, newCredId, userName)) shouldBe sessionIdData.copy(sessionId = Some(newSessionId), credId = Some(newCredId))
+        await(service.updateDocSessionID(regId, newSessionId, newCredId, userName)) mustBe sessionIdData.copy(sessionId = Some(newSessionId), credId = Some(newCredId))
       }
     }
 
@@ -622,7 +621,7 @@ class AdminServiceSpec extends WordSpec with Matchers with MockitoSugar with Bef
         intercept[RuntimeException](await(service.updateDocSessionID(regId, newSessionId, newCredId, userName)))
       }
       "retrieveCorporationTaxRegistration fails" in new Setup {
-        when(mockCorpTaxRegistrationRepo.findBySelector(any()))
+        when(mockCorpTaxRegistrationRepo.findOneBySelector(any()))
           .thenReturn(Future.failed(new RuntimeException("Failed to retrieve")))
         when(mockCorpTaxRegistrationRepo.retrieveSessionIdentifiers(any()))
           .thenReturn(Future.successful(Some(SessionIds(sessionIdData.sessionId.get, "credId"))))

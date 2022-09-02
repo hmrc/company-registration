@@ -17,42 +17,34 @@
 package repositories
 
 import models.Sequence
-import play.api.Logging
-import play.api.libs.json.JsValue
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.DB
-import reactivemongo.bson.{BSONDocument, BSONObjectID}
-import reactivemongo.play.json.ImplicitBSONHandlers.BSONDocumentWrites
-import uk.gov.hmrc.mongo.ReactiveRepository
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
+import org.mongodb.scala.model.Filters.equal
+import org.mongodb.scala.model.Updates.inc
+import org.mongodb.scala.model.{FindOneAndUpdateOptions, ReturnDocument}
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
-trait SequenceRepository {
-  def getNext(sequenceID: String): Future[Int]
-}
-
-class SequenceMongoRepo @Inject()(mongo: ReactiveMongoComponent)(implicit val ec: ExecutionContext) extends Logging {
-  logger.info("Creating CorporationTaxRegistrationMongoRepository")
-
-  val repo = new SequenceMongoRepository(mongo.mongoConnector.db)
-}
-
-class SequenceMongoRepository(mongo: () => DB)(implicit val ec: ExecutionContext)
-  extends ReactiveRepository[Sequence, BSONObjectID]("sequence", mongo, Sequence.formats, ReactiveMongoFormats.objectIdFormats)
-    with SequenceRepository {
-  logger.info("Creating SequenceMongoRepository")
+@Singleton
+class SequenceMongoRepository @Inject()(mongo: MongoComponent)(implicit val ec: ExecutionContext)
+  extends PlayMongoRepository[Sequence](
+    mongoComponent = mongo,
+    collectionName = "sequence",
+    domainFormat = Sequence.formats,
+    indexes = Seq()
+  ) {
 
   def getNext(sequenceID: String): Future[Int] = {
-    val selector = BSONDocument("_id" -> sequenceID)
-    val modifier = BSONDocument("$inc" -> BSONDocument("seq" -> 1))
+    val selector = equal("_id", sequenceID)
+    val modifier = inc("seq", 1)
 
-    collection.findAndUpdate(selector, modifier, fetchNewObject = true, upsert = true) map {
-      _.result[JsValue] match {
-        case None => -1
-        case Some(res) => (res \ "seq").as[Int]
-      }
-    }
+    collection.findOneAndUpdate(
+      selector,
+      modifier,
+      FindOneAndUpdateOptions()
+        .upsert(true)
+        .returnDocument(ReturnDocument.AFTER)
+    ).toFuture().map(_.seq)
   }
 }

@@ -18,12 +18,12 @@ package models.des
 
 import models.{IncorpUpdate, SubmissionCheckResponse}
 import org.joda.time.DateTime
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.Json
 
-class SubmissionCheckResponseSpec extends WordSpec with Matchers  {
+class SubmissionCheckResponseSpec extends PlaySpec  {
 
-  "SubmissionCheckResponse" should {
+  "SubmissionCheckResponse" must {
 
     "Be able to read from JSON where no updates were returned" in {
 
@@ -39,7 +39,7 @@ class SubmissionCheckResponseSpec extends WordSpec with Matchers  {
 
       val testModel1 = SubmissionCheckResponse(Seq(), "https://ewf.companieshouse.gov.uk/submissions?timepoint=123456789")
 
-      Json.fromJson[SubmissionCheckResponse](Json.parse(json1)).get shouldBe testModel1
+      Json.fromJson[SubmissionCheckResponse](Json.parse(json1)).get mustBe testModel1
     }
 
 
@@ -65,7 +65,7 @@ class SubmissionCheckResponseSpec extends WordSpec with Matchers  {
       val testIncorpUpdate = IncorpUpdate("0987654322", "accepted", Some("99999999"), Some(new DateTime(2016, 8, 10, 0, 0)), "123456787")
       val testModel1 = SubmissionCheckResponse(Seq(testIncorpUpdate), "https://ewf.companieshouse.gov.uk/submissions?timepoint=123456789")
 
-      Json.fromJson[SubmissionCheckResponse](Json.parse(json1)).get shouldBe testModel1
+      Json.fromJson[SubmissionCheckResponse](Json.parse(json1)).get mustBe testModel1
     }
 
 
@@ -101,7 +101,7 @@ class SubmissionCheckResponseSpec extends WordSpec with Matchers  {
         "https://ewf.companieshouse.gov.uk/submissions?timepoint=123456789"
       )
 
-      Json.fromJson[SubmissionCheckResponse](Json.parse(json1)).get shouldBe testModel1
+      Json.fromJson[SubmissionCheckResponse](Json.parse(json1)).get mustBe testModel1
     }
 
     "Be able to read from JSON when an incorporation was rejected" in {
@@ -131,7 +131,7 @@ class SubmissionCheckResponseSpec extends WordSpec with Matchers  {
         "https://ewf.companieshouse.gov.uk/submissions?timepoint=123456789"
       )
 
-      Json.fromJson[SubmissionCheckResponse](Json.parse(json1)).get shouldBe testModel1
+      Json.fromJson[SubmissionCheckResponse](Json.parse(json1)).get mustBe testModel1
     }
   }
 
