@@ -17,6 +17,14 @@
 package repositories
 
 import models.Sequence
+import utils.Logging
+import play.api.libs.json.JsValue
+import play.modules.reactivemongo.ReactiveMongoComponent
+import reactivemongo.api.DB
+import reactivemongo.bson.{BSONDocument, BSONObjectID}
+import reactivemongo.play.json.ImplicitBSONHandlers.BSONDocumentWrites
+import uk.gov.hmrc.mongo.ReactiveRepository
+import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import org.mongodb.scala.model.Filters.equal
 import org.mongodb.scala.model.Updates.inc
 import org.mongodb.scala.model.{FindOneAndUpdateOptions, ReturnDocument}

@@ -17,7 +17,7 @@
 package connectors
 
 import models.SubmissionCheckResponse
-import play.api.Logging
+import utils.Logging
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
@@ -44,7 +44,7 @@ trait IncorporationCheckAPIConnector extends Logging {
   val http: HttpClient
 
   def logError(ex: HttpException, timepoint: Option[String]) = {
-    logger.error(s"[IncorporationCheckAPIConnector] [checkSubmission]" +
+    logger.error(s"[checkSubmission]" +
       s" request to SubmissionCheckAPI returned a ${ex.responseCode}. " +
       s"No incorporations were processed for timepoint ${timepoint} - Reason = ${ex.getMessage}")
   }
@@ -61,13 +61,13 @@ trait IncorporationCheckAPIConnector extends Logging {
         logError(ex, timepoint)
         throw new SubmissionAPIFailure
       case ex: Upstream4xxResponse =>
-        logger.error("[IncorporationCheckAPIConnector] [checkSubmission]" + ex.upstreamResponseCode + " " + ex.message)
+        logger.error("[checkSubmission]" + ex.upstreamResponseCode + " " + ex.message)
         throw new SubmissionAPIFailure
       case ex: Upstream5xxResponse =>
-        logger.error("[IncorporationCheckAPIConnector] [checkSubmission]" + ex.upstreamResponseCode + " " + ex.message)
+        logger.error("[checkSubmission]" + ex.upstreamResponseCode + " " + ex.message)
         throw new SubmissionAPIFailure
       case ex: Exception =>
-        logger.error("[IncorporationCheckAPIConnector] [checkSubmission]" + ex)
+        logger.error("[checkSubmission]" + ex)
         throw new SubmissionAPIFailure
     }
   }

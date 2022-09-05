@@ -21,7 +21,7 @@ import connectors.BusinessRegistrationConnector
 import helpers.DateHelper
 import models.ConfirmationReferences
 import org.mongodb.scala.bson.BsonDocument
-import play.api.Logging
+import utils.Logging
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import repositories._

@@ -40,7 +40,7 @@ class IncorporationInformationConnectorSpec extends BaseSpec with BusinessRegist
   val tSubscriber = "testSubscriber"
 
   trait Setup {
-    val connector = new IncorporationInformationConnector {
+    object Connector extends IncorporationInformationConnector {
       override val iiUrl = "testIncorporationInformationUrl"
       override val http = mockWSHttp
       override val regime = tRegime
@@ -88,10 +88,10 @@ class IncorporationInformationConnectorSpec extends BaseSpec with BusinessRegist
 
   "callBackUrl" must {
     "return admin url when admin is true" in new Setup {
-      connector.callBackurl(true) mustBe "testCompanyRegistrationUrl/corporation-tax-registration/process-admin-incorp"
+      Connector.callBackurl(true) mustBe "testCompanyRegistrationUrl/corporation-tax-registration/process-admin-incorp"
     }
     "return non admin url when admin is false" in new Setup {
-      connector.callBackurl(false) mustBe "testCompanyRegistrationUrl/corporation-tax-registration/process-incorp"
+      Connector.callBackurl(false) mustBe "testCompanyRegistrationUrl/corporation-tax-registration/process-incorp"
 
     }
   }
@@ -102,98 +102,98 @@ class IncorporationInformationConnectorSpec extends BaseSpec with BusinessRegist
         (ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any()))
         .thenReturn(Future.successful(HttpResponse(202)))
 
-      await(connector.registerInterest(regId, txId)) mustBe true
+      await(Connector.registerInterest(regId, txId)) mustBe true
     }
     "not make a http POST request to Incorporation Information micro-service to register an interest and return any other 2xx" in new Setup {
       when(mockWSHttp.POST[JsValue, HttpResponse](ArgumentMatchers.anyString(), ArgumentMatchers.any[JsValue](), ArgumentMatchers.any())
         (ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any()))
         .thenReturn(Future.successful(HttpResponse(200)))
 
-      intercept[RuntimeException](await(connector.registerInterest(regId, txId)))
+      intercept[RuntimeException](await(Connector.registerInterest(regId, txId)))
     }
     "not make a http POST request to Incorporation Information micro-service to register an interest and return any 4xx" in new Setup {
       when(mockWSHttp.POST[JsValue, HttpResponse](ArgumentMatchers.anyString(), ArgumentMatchers.any[JsValue](), ArgumentMatchers.any())
         (ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any()))
         .thenReturn(Future.successful(HttpResponse(400)))
 
-      intercept[RuntimeException](await(connector.registerInterest(regId, txId)))
+      intercept[RuntimeException](await(Connector.registerInterest(regId, txId)))
     }
     "not make a http POST request to Incorporation Information micro-service to register an interest and return any 5xx" in new Setup {
       when(mockWSHttp.POST[JsValue, HttpResponse](ArgumentMatchers.anyString(), ArgumentMatchers.any[JsValue](), ArgumentMatchers.any())
         (ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any()))
         .thenReturn(Future.successful(HttpResponse(500)))
 
-      intercept[RuntimeException](await(connector.registerInterest(regId, txId)))
+      intercept[RuntimeException](await(Connector.registerInterest(regId, txId)))
     }
   }
 
   "cancelSubscription" must {
     "make a http DELETE request to Incorporation Information micro-service to register an interest and return 200" in new Setup {
-      val expectedURL = s"${connector.iiUrl}/incorporation-information/subscribe/$txId/regime/$tRegime/subscriber/$tSubscriber?force=true"
+      val expectedURL = s"${Connector.iiUrl}/incorporation-information/subscribe/$txId/regime/$tRegime/subscriber/$tSubscriber?force=true"
       when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.eq(expectedURL), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(HttpResponse(200)))
 
-      await(connector.cancelSubscription(regId, txId)) mustBe true
+      await(Connector.cancelSubscription(regId, txId)) mustBe true
     }
     "make a http DELETE request to Incorporation Information micro-service to register an interest and return a 404" in new Setup {
       when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.anyString(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.failed(new NotFoundException("404")))
 
-      intercept[NotFoundException](await(connector.cancelSubscription(regId, txId)))
+      intercept[NotFoundException](await(Connector.cancelSubscription(regId, txId)))
     }
     "not make a http DELETE request to Incorporation Information micro-service to register an interest and return any other 2xx" in new Setup {
       when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.anyString(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(HttpResponse(202)))
 
-      intercept[RuntimeException](await(connector.cancelSubscription(regId, txId)))
+      intercept[RuntimeException](await(Connector.cancelSubscription(regId, txId)))
     }
     "not make a http DELETE request to Incorporation Information micro-service to register an interest and return any 5xx" in new Setup {
       when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.anyString(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.failed(Upstream5xxResponse("500", 502, 500)))
 
-      intercept[RuntimeException](await(connector.cancelSubscription(regId, txId)))
+      intercept[RuntimeException](await(Connector.cancelSubscription(regId, txId)))
     }
 
     "use the old regime" in new Setup {
       val oldRegime = "ct"
-      val expectedURL = s"${connector.iiUrl}/incorporation-information/subscribe/$txId/regime/$oldRegime/subscriber/$tSubscriber?force=true"
+      val expectedURL = s"${Connector.iiUrl}/incorporation-information/subscribe/$txId/regime/$oldRegime/subscriber/$tSubscriber?force=true"
       when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.eq(expectedURL), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(HttpResponse(200)))
 
-      await(connector.cancelSubscription(regId, txId, useOldRegime = true)) mustBe true
+      await(Connector.cancelSubscription(regId, txId, useOldRegime = true)) mustBe true
     }
   }
 
   "checkNotIncorporated" must {
     "return None" when {
       "the CRN is not there" in new Setup {
-        val expectedURL = s"${connector.iiUrl}/incorporation-information/$txId/incorporation-update"
+        val expectedURL = s"${Connector.iiUrl}/incorporation-information/$txId/incorporation-update"
         when(mockWSHttp.GET[HttpResponse](ArgumentMatchers.eq(expectedURL), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
           .thenReturn(Future.successful(HttpResponse(200)))
 
-        await(connector.checkCompanyIncorporated(txId)) mustBe None
+        await(Connector.checkCompanyIncorporated(txId)) mustBe None
       }
 
       "on a no content response" in new Setup {
-        val expectedURL = s"${connector.iiUrl}/incorporation-information/$txId/incorporation-update"
+        val expectedURL = s"${Connector.iiUrl}/incorporation-information/$txId/incorporation-update"
         when(mockWSHttp.GET[HttpResponse](ArgumentMatchers.eq(expectedURL), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
           .thenReturn(Future.successful(HttpResponse(204)))
 
-        await(connector.checkCompanyIncorporated(txId)) mustBe None
+        await(Connector.checkCompanyIncorporated(txId)) mustBe None
       }
     }
 
     "return Some crn" when {
       "the CRN is there" in new Setup {
-        val expectedURL = s"${connector.iiUrl}/incorporation-information/$txId/incorporation-update"
+        val expectedURL = s"${Connector.iiUrl}/incorporation-information/$txId/incorporation-update"
         when(mockWSHttp.GET[HttpResponse](ArgumentMatchers.eq(expectedURL), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
           .thenReturn(Future.successful(HttpResponse(200, Some(Json.obj("crn" -> "crn")))))
 
-        withCaptureOfLoggingFrom(Logger(connector.getClass)) { logs =>
-          await(connector.checkCompanyIncorporated(txId)) mustBe Some("crn")
+        withCaptureOfLoggingFrom(Connector.logger) { logs =>
+          await(Connector.checkCompanyIncorporated(txId)) mustBe Some("crn")
 
           logs.size mustBe 1
-          logs.head.getMessage mustBe "STALE_DOCUMENTS_DELETE_WARNING_CRN_FOUND"
+          logs.head.getMessage mustBe "[Connector] STALE_DOCUMENTS_DELETE_WARNING_CRN_FOUND"
         }
       }
     }

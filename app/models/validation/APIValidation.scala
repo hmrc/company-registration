@@ -22,7 +22,7 @@ import models.AccountingDetails.{FUTURE_DATE => FD, NOT_PLANNING_TO_YET => NP2Y,
 import models._
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.{DateTime, DateTimeZone}
-import play.api.Logging
+import utils.Logging
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads.{maxLength, pattern}
 import play.api.libs.json.{JsonValidationError, _}

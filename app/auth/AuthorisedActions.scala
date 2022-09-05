@@ -16,7 +16,7 @@
 
 package auth
 
-import play.api.Logging
+import utils.Logging
 import play.api.mvc._
 import repositories.MissingCTDocument
 import uk.gov.hmrc.auth.core.AuthProvider.GovernmentGateway
