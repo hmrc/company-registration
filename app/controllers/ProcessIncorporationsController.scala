@@ -17,7 +17,7 @@
 package controllers
 
 import models._
-import play.api.Logging
+import utils.Logging
 import play.api.libs.json.JsValue
 import play.api.mvc.{Action, AnyContentAsJson, ControllerComponents, Request}
 import services._

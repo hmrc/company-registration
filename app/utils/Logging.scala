@@ -16,22 +16,21 @@
 
 package utils
 
-import play.api.Logger
-
-import scala.util.control.NoStackTrace
+import org.slf4j.{Logger, LoggerFactory}
+import play.api.{LoggerLike, MarkerContext}
 
 trait Logging {
-  val logger: Logger = Logger(getClass)
 
-  implicit class RichLogger(underlying: Logger) {
-    def pagerDuty(alertMsg: String, msg: String): Unit = {
-      underlying.error(
-        alertMsg,
-        new NoStackTrace {
-          override def getMessage = msg
-        }
-      )
-    }
+  lazy val className: String = this.getClass.getSimpleName.stripSuffix("$")
+
+  val logger: LoggerLike = new LoggerLike {
+
+    private lazy val prefixLog: String => String = s"[$className] " + _
+    override val logger: Logger = LoggerFactory.getLogger(s"application.$className")
+
+    override def debug(message: => String)(implicit mc: MarkerContext): Unit = super.debug(prefixLog(message))
+    override def info(message: => String)(implicit mc: MarkerContext): Unit = super.info(prefixLog(message))
+    override def warn(message: => String)(implicit mc: MarkerContext): Unit = super.warn(prefixLog(message))
+    override def error(message: => String)(implicit mc: MarkerContext): Unit = super.error(prefixLog(message))
   }
-
 }

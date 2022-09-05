@@ -19,7 +19,7 @@ package services
 import com.codahale.metrics.{Counter, Gauge, Timer}
 import com.kenshoo.play.metrics.{Metrics, MetricsDisabledException}
 import jobs.{LockResponse, MongoLocked, ScheduledService, UnlockingFailed}
-import play.api.Logging
+import utils.Logging
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.lock.LockService
@@ -143,7 +143,7 @@ trait MetricsService extends ScheduledService[Either[Map[String, Int], LockRespo
       metrics.defaultRegistry.register(metricName, gauge)
     } catch {
       case ex: MetricsDisabledException => {
-        logger.warn(s"[MetricsService] [recordStatusCountStat] Metrics disabled - $metricName -> $count")
+        logger.warn(s"[recordStatusCountStat] Metrics disabled - $metricName -> $count")
       }
     }
   }

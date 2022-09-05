@@ -200,7 +200,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
 
       when(mockCorpTaxRepo.retrieveConfirmationReferences(eqTo(regId)))
         .thenReturn(Future.successful(Some(confRefs)))
-      withCaptureOfLoggingFrom(Logger(service.getClass)) { logEvents =>
+      withCaptureOfLoggingFrom(service.logger) { logEvents =>
         await(service.handleSubmission(regId, authProviderId, ho6RequestBody, isAdmin = false)) mustBe confRefs
         logEvents.count(_.getMessage.contains(s"${PagerDutyKeys.TXID_IN_CR_DOESNT_MATCH_HANDOFF_TXID}")) mustBe 0
       }
@@ -215,7 +215,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
 
       when(mockCorpTaxRepo.retrieveConfirmationReferences(eqTo(regId)))
         .thenReturn(Future.successful(Some(confRefs)))
-      withCaptureOfLoggingFrom(Logger(service.getClass)) { logEvents =>
+      withCaptureOfLoggingFrom(service.logger) { logEvents =>
 
         await(service.handleSubmission(regId, authProviderId, ho6RequestBody, isAdmin = false)) mustBe confRefs
         logEvents.count(_.getMessage.contains(s"${PagerDutyKeys.TXID_IN_CR_DOESNT_MATCH_HANDOFF_TXID}")) mustBe 1

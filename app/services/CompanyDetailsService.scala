@@ -17,7 +17,7 @@
 package services
 
 import models.{CompanyDetails, ConfirmationReferences}
-import play.api.Logging
+import utils.Logging
 import play.api.libs.json.{JsObject, Json}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 
@@ -50,7 +50,7 @@ trait CompanyDetailsService extends Logging {
     } yield convertAckRefToJsObject(updated.acknowledgementReference))
       .recoverWith {
         case e: Exception =>
-          logger.error(s"[CompanyDetailsService] saveTxIdAndAckRef threw an exception ${e.getMessage}  for txid: $txid, regId: $registrationId")
+          logger.error(s"saveTxIdAndAckRef threw an exception ${e.getMessage}  for txid: $txid, regId: $registrationId")
           throw e
       }
   }

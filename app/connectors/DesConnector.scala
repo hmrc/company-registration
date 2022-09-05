@@ -18,7 +18,7 @@ package connectors
 
 import audit.DesSubmissionEventFailure
 import config.MicroserviceAppConfig
-import play.api.Logging
+import utils.Logging
 import play.api.libs.json.{JsObject, Writes}
 import services.{AuditService, MetricsService}
 import uk.gov.hmrc.http._
@@ -62,13 +62,13 @@ trait DesConnector extends AuditService with RawResponseReads with HttpErrorFunc
     val url: String = s"""${serviceURL}${baseURI}${ctRegistrationURI}"""
     metricsService.processDataResponseWithMetrics[HttpResponse](metricsService.desSubmissionCRTimer.time()) {
       cPOST(url, submission) map { response =>
-        logger.info(s"[DesConnector] [ctSubmission] Submission to DES successful for regId: $journeyId AckRef: $ackRef")
+        logger.info(s"[ctSubmission] Submission to DES successful for regId: $journeyId AckRef: $ackRef")
         sendCTRegSubmissionEvent(buildCTRegSubmissionEvent(ctRegSubmissionFromJson(journeyId, response.json.as[JsObject])))
         response
       } recoverWith {
         case ex: Upstream4xxResponse =>
           logger.error("DES_SUBMISSION_400")
-          logger.warn(s"[DesConnector] [ctSubmission] Submission to DES was invalid for regId: $journeyId AckRef: $ackRef")
+          logger.warn(s"[ctSubmission] Submission to DES was invalid for regId: $journeyId AckRef: $ackRef")
           val event = new DesSubmissionEventFailure(journeyId, submission)
           auditConnector.sendExtendedEvent(event)
           throw ex
@@ -84,13 +84,13 @@ trait DesConnector extends AuditService with RawResponseReads with HttpErrorFunc
     val url: String = s"$serviceURL$baseTopUpURI$ctRegistrationURI"
     metricsService.processDataResponseWithMetrics[HttpResponse](metricsService.desSubmissionCRTimer.time()) {
       cPOST(url, submission) map { response =>
-        logger.info(s"[DesConnector] [ctTopUpSubmission] Top up submission to DES successful for regId: $journeyId AckRef: $ackRef")
+        logger.info(s"[ctTopUpSubmission] Top up submission to DES successful for regId: $journeyId AckRef: $ackRef")
         sendCTRegSubmissionEvent(buildCTRegSubmissionEvent(ctRegSubmissionFromJson(journeyId, response.json.as[JsObject])))
         response
       } recoverWith {
         case ex: Upstream4xxResponse =>
           logger.error("DES_SUBMISSION_400")
-          logger.warn(s"[DesConnector] [ctTopUpSubmission] Top up submission to DES was invalid for regId: $journeyId AckRef: $ackRef")
+          logger.warn(s"[ctTopUpSubmission] Top up submission to DES was invalid for regId: $journeyId AckRef: $ackRef")
           val event = new DesSubmissionEventFailure(journeyId, submission)
           auditConnector.sendExtendedEvent(event)
           throw ex
@@ -112,13 +112,13 @@ trait DesConnector extends AuditService with RawResponseReads with HttpErrorFunc
   private[connectors] def customDESRead(http: String, url: String, response: HttpResponse): HttpResponse = {
     response.status match {
       case 409 =>
-        logger.warn("[DesConnector] [customDESRead] Received 409 from DES - converting to 202")
+        logger.warn("[customDESRead] Received 409 from DES - converting to 202")
         HttpResponse(202, Some(response.json), response.allHeaders, Option(response.body))
       case 429 =>
-        logger.warn("[DesConnector] [customDESRead] Received 429 from DES - converting to 503")
+        logger.warn("[customDESRead] Received 429 from DES - converting to 503")
         throw Upstream5xxResponse("Timeout received from DES submission", 499, 503)
       case 499 =>
-        logger.warn("[DesConnector] [customDESRead] Received 499 from DES - converting to 502")
+        logger.warn("[customDESRead] Received 499 from DES - converting to 502")
         throw Upstream4xxResponse("Timeout received from DES submission", 499, 502)
       case status if is4xx(status) =>
         throw Upstream4xxResponse(upstreamResponseMessage(http, url, status, response.body), status, reportAs = 400, response.allHeaders)

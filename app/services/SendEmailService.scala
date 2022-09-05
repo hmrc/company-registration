@@ -18,7 +18,7 @@ package services
 
 import connectors.SendEmailConnector
 import models.SendEmailRequest
-import play.api.Logging
+import utils.Logging
 import uk.gov.hmrc.http.HeaderCarrier
 
 import javax.inject.Inject

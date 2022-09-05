@@ -17,7 +17,6 @@
 package controllers
 
 import auth._
-import play.api.Logging
 
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.Json
@@ -25,6 +24,7 @@ import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import services.{MetricsService, UserAccessService}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import utils.Logging
 
 import scala.concurrent.{ExecutionContext, Future}
 

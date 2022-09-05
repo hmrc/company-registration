@@ -163,9 +163,9 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with MongoIntegra
         count mustBe 1
 
         val job = lookupJob("remove-stale-documents-job")
-        val message = s"[processStaleDocument] Registration $regId - $txID does not have CTAX subscription. Now trying to delete CT sub."
-        val delMess = "[remove-stale-documents-job] Successfully deleted 1 stale documents"
-        withCaptureOfLoggingFrom(Logger("services.admin.AdminServiceImpl")) { logs =>
+        val message = s"[AdminServiceImpl] [processStaleDocument] Registration $regId - $txID does not have CTAX subscription. Now trying to delete CT sub."
+        val delMess = "[AdminServiceImpl] [remove-stale-documents-job] Successfully deleted 1 stale documents"
+        withCaptureOfLoggingFrom(Logger("application.AdminServiceImpl")) { logs =>
           val res = await(job.scheduledMessage.service.invoke.map(_.asInstanceOf[Either[Int, LockResponse]]))
           res.left.get mustBe 1
 
@@ -187,11 +187,11 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with MongoIntegra
         count mustBe 1
 
         val job = lookupJob("remove-stale-documents-job")
-        val message = s"[processStaleDocument] Registration $regId - $txID does not have CTAX subscription. Now trying to delete CT sub."
-        val finalMessage = s"[processStaleDocument] Registration $regId - $txID has no subscriptions."
-        val delMess = "[remove-stale-documents-job] Successfully deleted 1 stale documents"
+        val message = s"[AdminServiceImpl] [processStaleDocument] Registration $regId - $txID does not have CTAX subscription. Now trying to delete CT sub."
+        val finalMessage = s"[AdminServiceImpl] [processStaleDocument] Registration $regId - $txID has no subscriptions."
+        val delMess = "[AdminServiceImpl] [remove-stale-documents-job] Successfully deleted 1 stale documents"
 
-        withCaptureOfLoggingFrom(Logger("services.admin.AdminServiceImpl")) { logs =>
+        withCaptureOfLoggingFrom(Logger("application.AdminServiceImpl")) { logs =>
           val res = await(job.scheduledMessage.service.invoke.map(_.asInstanceOf[Either[Int, LockResponse]]))
           res.left.get mustBe 1
 

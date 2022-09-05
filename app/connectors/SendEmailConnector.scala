@@ -17,7 +17,7 @@
 package connectors
 
 import models.SendEmailRequest
-import play.api.Logging
+import utils.Logging
 import play.api.http.Status._
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
@@ -43,14 +43,14 @@ trait SendEmailConnector extends HttpErrorFunctions with Logging {
 
   def requestEmail(EmailRequest: SendEmailRequest)(implicit hc: HeaderCarrier): Future[Boolean] = {
     def errorMsg(status: String, ex: HttpException) = {
-      logger.error(s"[SendEmailConnector] [sendEmail] request to send email returned a $status - email not sent - reason = ${ex.getMessage}")
+      logger.error(s"[sendEmail] request to send email returned a $status - email not sent - reason = ${ex.getMessage}")
       throw new EmailErrorResponse(status)
     }
 
     http.POST[SendEmailRequest, HttpResponse](s"$sendEmailURL", EmailRequest) map { r =>
       r.status match {
         case ACCEPTED => {
-          logger.debug("[SendEmailConnector] [sendEmail] request to email service was successful")
+          logger.debug("[sendEmail] request to email service was successful")
           true
         }
       }

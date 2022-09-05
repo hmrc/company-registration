@@ -51,7 +51,7 @@ class ProcessIncorporationsControllerSpec extends PlaySpec with MockitoSugar wit
   val mockSubmissionService = mock[SubmissionService]
 
   class Setup {
-    val controller = new ProcessIncorporationsController(mockProcessIncorporationService,
+    object Controller extends ProcessIncorporationsController(mockProcessIncorporationService,
       mockCorpRegTaxService,
       mockSubmissionService,
       stubControllerComponents(playBodyParsers = stubPlayBodyParsers(mat))) {
@@ -125,7 +125,7 @@ class ProcessIncorporationsControllerSpec extends PlaySpec with MockitoSugar wit
 
       val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
 
-      val result = call(controller.processAdminIncorporation, request)
+      val result = call(Controller.processAdminIncorporation, request)
 
       status(result) mustBe 200
 
@@ -142,7 +142,7 @@ class ProcessIncorporationsControllerSpec extends PlaySpec with MockitoSugar wit
       when(mockProcessIncorporationService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.successful(true))
 
       val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
-      val result = call(controller.processIncorporationNotification, request)
+      val result = call(Controller.processIncorporationNotification, request)
 
       status(result) mustBe 200
     }
@@ -153,11 +153,11 @@ class ProcessIncorporationsControllerSpec extends PlaySpec with MockitoSugar wit
       when(mockProcessIncorporationService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.failed(new RuntimeException))
 
       val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
-      withCaptureOfLoggingFrom(Logger(controller.getClass)) { logEvents =>
-        intercept[RuntimeException](await(call(controller.processIncorporationNotification, request)))
+      withCaptureOfLoggingFrom(Controller.logger) { logEvents =>
+        intercept[RuntimeException](await(call(Controller.processIncorporationNotification, request)))
         eventually {
           logEvents.size mustBe 2
-          val res = logEvents.map(_.getMessage) contains "FAILED_DES_TOPUP"
+          val res = logEvents.map(_.getMessage) contains "[Controller] FAILED_DES_TOPUP"
 
           res mustBe true
         }
@@ -171,7 +171,7 @@ class ProcessIncorporationsControllerSpec extends PlaySpec with MockitoSugar wit
       when(mockProcessIncorporationService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.successful(false))
       when(mockSubmissionService.setupPartialForTopupOnLocked(any())(any(), any())).thenReturn(Future.successful(false))
       val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
-      val result = call(controller.processIncorporationNotification, request)
+      val result = call(Controller.processIncorporationNotification, request)
 
       status(result) mustBe 202
     }
@@ -180,7 +180,7 @@ class ProcessIncorporationsControllerSpec extends PlaySpec with MockitoSugar wit
     "return a 500 response for admin flow" in new Setup {
       when(mockProcessIncorporationService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.successful(false))
       val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
-      val result = call(controller.processAdminIncorporation, request)
+      val result = call(Controller.processAdminIncorporation, request)
 
       status(result) mustBe 400
 

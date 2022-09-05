@@ -239,7 +239,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
     }
 
     "log cases of week old held submissions and output 'Week old held submissions found'" in new Setup {
-      withCaptureOfLoggingFrom(Logger(service.getClass)) { logEvents =>
+      withCaptureOfLoggingFrom(service.logger) { logEvents =>
         when(mockCTDataRepository.retrieveAllWeekOldHeldSubmissions())
           .thenReturn(Future.successful(List(oldHeldSubmission)))
 
