@@ -193,14 +193,14 @@ class CorporationTaxRegistrationMongoRepository @Inject()(mongo: ReactiveMongoCo
       Json.toJson(updateTo)
     ) map { res =>
       if (res.nModified == 0) {
-        logger.error(s"[CorporationTaxRegistrationMongoRepository] [updateTransactionId] No document with transId: $updateFrom was found")
+        logger.error(s"[updateTransactionId] No document with transId: $updateFrom was found")
         throw new RuntimeException("Did not update transaction ID")
       } else {
         updateTo
       }
     } recover {
       case e =>
-        logger.error(s"[CorporationTaxRegistrationMongoRepository] [updateTransactionId] Unable to update transId: $updateFrom to $updateTo", e)
+        logger.error(s"[updateTransactionId] Unable to update transId: $updateFrom to $updateTo", e)
         throw e
     }
   }

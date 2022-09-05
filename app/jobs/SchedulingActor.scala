@@ -19,7 +19,7 @@ package jobs
 
 import akka.actor.{Actor, ActorLogging, Props}
 import jobs.SchedulingActor._
-import play.api.Logging
+import utils.Logging
 import services._
 import services.admin.AdminService
 

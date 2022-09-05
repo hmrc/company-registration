@@ -17,7 +17,7 @@
 package repositories
 
 import models.Sequence
-import play.api.Logging
+import utils.Logging
 import play.api.libs.json.JsValue
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.DB

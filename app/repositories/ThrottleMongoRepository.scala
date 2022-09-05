@@ -17,7 +17,7 @@
 package repositories
 
 import models.UserCount
-import play.api.Logging
+import utils.Logging
 import play.api.libs.json.JsValue
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.DB

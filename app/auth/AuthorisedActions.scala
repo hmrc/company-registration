@@ -16,7 +16,7 @@
 
 package auth
 
-import play.api.Logging
+import utils.Logging
 import play.api.libs.json.Reads
 import play.api.mvc.{ActionBuilder, _}
 import repositories.MissingCTDocument

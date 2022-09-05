@@ -46,7 +46,7 @@ class AlertLoggingSpec extends WordSpec with Matchers with LogCapturing with Eve
               logDays: String = defaultLoggingDays,
               logTimes: String = defaultLoggingTime) {
 
-    val alertLogging: AlertLogging = new AlertLogging {
+    object AlertLogging extends AlertLogging {
       override protected val loggingTimes: String = logTimes
       override protected val loggingDays: String = logDays
 
@@ -63,22 +63,22 @@ class AlertLoggingSpec extends WordSpec with Matchers with LogCapturing with Eve
   "isLoggingDay" should {
 
     "return true when today is the logging day" in new SetupInWorkingHours {
-      alertLogging.isLoggingDay shouldBe true
+      AlertLogging.isLoggingDay shouldBe true
     }
 
     "return false when today is not the logging day" in new Setup(saturday, _2pm) {
-      alertLogging.isLoggingDay shouldBe false
+      AlertLogging.isLoggingDay shouldBe false
     }
   }
 
   "isBetweenLoggingTimes" should {
 
     "return true when now is between the logging times" in new SetupInWorkingHours {
-      alertLogging.isBetweenLoggingTimes shouldBe true
+      AlertLogging.isBetweenLoggingTimes shouldBe true
     }
 
     "return false when now is not between the logging times" in new Setup(monday, _9pm) {
-      alertLogging.isBetweenLoggingTimes shouldBe false
+      AlertLogging.isBetweenLoggingTimes shouldBe false
     }
   }
 
@@ -87,42 +87,42 @@ class AlertLoggingSpec extends WordSpec with Matchers with LogCapturing with Eve
     "return true" when {
 
       "the current time is 14:00 on a Monday" in new SetupInWorkingHours {
-        alertLogging.inWorkingHours shouldBe true
+        AlertLogging.inWorkingHours shouldBe true
       }
 
       "the current time is 08:00 on a Monday" in new Setup(monday, _8am) {
-        alertLogging.inWorkingHours shouldBe true
+        AlertLogging.inWorkingHours shouldBe true
       }
 
       "the current time is 08:01 on a Monday" in new Setup(monday, _8_01am) {
-        alertLogging.inWorkingHours shouldBe true
+        AlertLogging.inWorkingHours shouldBe true
       }
 
       "the current time is 16:59 on a Friday" in new Setup(friday, _4_59pm) {
-        alertLogging.inWorkingHours shouldBe true
+        AlertLogging.inWorkingHours shouldBe true
       }
     }
 
     "return false" when {
 
       "the current time is 07:59:59 on a Monday" in new Setup(monday, _7_59am) {
-        alertLogging.inWorkingHours shouldBe false
+        AlertLogging.inWorkingHours shouldBe false
       }
 
       "the current time is 17:00 on a Monday" in new Setup(monday, _5pm) {
-        alertLogging.inWorkingHours shouldBe false
+        AlertLogging.inWorkingHours shouldBe false
       }
 
       "the current time is 21:00 on a Monday" in new Setup(monday, _9pm) {
-        alertLogging.inWorkingHours shouldBe false
+        AlertLogging.inWorkingHours shouldBe false
       }
 
       "the current time is 14:00 on a Saturday" in new Setup(saturday, _2pm) {
-        alertLogging.inWorkingHours shouldBe false
+        AlertLogging.inWorkingHours shouldBe false
       }
 
       "the current time is 14:00 on a Sunday" in new Setup(sunday, _2pm) {
-        alertLogging.inWorkingHours shouldBe false
+        AlertLogging.inWorkingHours shouldBe false
       }
 
     }
@@ -143,24 +143,24 @@ class AlertLoggingSpec extends WordSpec with Matchers with LogCapturing with Eve
       )
 
       validKeys foreach { key =>
-        withCaptureOfLoggingFrom(Logger(alertLogging.getClass)) { logs =>
-          alertLogging.pagerduty(key)
-          logs.head.getMessage shouldBe key.toString
+        withCaptureOfLoggingFrom(AlertLogging.logger) { logs =>
+          AlertLogging.pagerduty(key)
+          logs.head.getMessage shouldBe s"[AlertLogging] ${key.toString}"
         }
       }
     }
 
     "change error level based on working" when {
       "within working hours" in new Setup(monday, _8am) {
-        withCaptureOfLoggingFrom(Logger(alertLogging.getClass)) { logs =>
-          alertLogging.pagerduty(PagerDutyKeys.CT_REJECTED, message = Some("Extra Information"))
-          found(logs)(1, "CT_REJECTED - Extra Information", Level.ERROR)
+        withCaptureOfLoggingFrom(AlertLogging.logger) { logs =>
+          AlertLogging.pagerduty(PagerDutyKeys.CT_REJECTED, message = Some("Extra Information"))
+          found(logs)(1, "[AlertLogging] CT_REJECTED - Extra Information", Level.ERROR)
         }
       }
       "out of working hours" in new Setup(sunday, _9pm) {
-        withCaptureOfLoggingFrom(Logger(alertLogging.getClass)) { logs =>
-          alertLogging.pagerduty(PagerDutyKeys.CT_REJECTED, message = Some("Extra Information"))
-          found(logs)(1, "CT_REJECTED - Extra Information", Level.INFO)
+        withCaptureOfLoggingFrom(AlertLogging.logger) { logs =>
+          AlertLogging.pagerduty(PagerDutyKeys.CT_REJECTED, message = Some("Extra Information"))
+          found(logs)(1, "[AlertLogging] CT_REJECTED - Extra Information", Level.INFO)
         }
       }
     }

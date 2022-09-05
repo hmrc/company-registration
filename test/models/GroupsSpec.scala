@@ -162,9 +162,9 @@ class GroupsSpec extends BaseSpec with LogCapturing {
           |   }
           |}
         """.stripMargin)
-      withCaptureOfLoggingFrom(Logger("models.validation.MongoValidation")) { logEvents =>
+      withCaptureOfLoggingFrom(Logger("application.MongoValidation")) { logEvents =>
 
-        val expectedMessage = s"[Groups API Reads] name of company invalid when normalised and trimmed this doesn't pass Regex validation"
+        val expectedMessage = s"[APIValidation] [Groups API Reads] name of company invalid when normalised and trimmed this doesn't pass Regex validation"
         logEvents.map(events => (events.getLevel.toString, events.getMessage)).contains(("WARN", expectedMessage)) shouldBe false
 
         val res = groupJsonNameOfCompanyValidButLong.as[Groups](formatsOfGroupsAPI)
@@ -214,9 +214,9 @@ class GroupsSpec extends BaseSpec with LogCapturing {
           |   }
          }
         """.stripMargin)
-      withCaptureOfLoggingFrom(Logger("models.validation.APIValidation")) { logEvents =>
+      withCaptureOfLoggingFrom(Logger("application.APIValidation")) { logEvents =>
         json.as[Groups](formatsOfGroupsAPI) shouldBe Groups(true, Some(GroupCompanyName("123456789012345678901", GroupCompanyNameEnum.Other)), None, None)
-        val expectedMessage = s"[Groups API Reads] nameOfCompany.nameType = ${GroupCompanyNameEnum.Other} but name.size > 20, could indicate frontend validation issue"
+        val expectedMessage = s"[APIValidation] [Groups API Reads] nameOfCompany.nameType = ${GroupCompanyNameEnum.Other} but name.size > 20, could indicate frontend validation issue"
         logEvents.map(events => (events.getLevel.toString, events.getMessage)).contains(("WARN", expectedMessage)) shouldBe true
 
       }
@@ -232,9 +232,9 @@ class GroupsSpec extends BaseSpec with LogCapturing {
           |   }
          }
         """.stripMargin)
-      withCaptureOfLoggingFrom(Logger("models.validation.MongoValidation")) { logEvents =>
+      withCaptureOfLoggingFrom(Logger("application.MongoValidation")) { logEvents =>
         json.as[Groups](formatsOfGroupsAPI) shouldBe Groups(true, Some(GroupCompanyName("123456789012345678901", GroupCompanyNameEnum.CohoEntered)), None, None)
-        val expectedMessage = s"[Groups API Reads] nameOfCompany.nameType = ${GroupCompanyNameEnum.Other} but name.size > 20, could indicate frontend validation issue"
+        val expectedMessage = s"[APIValidation] [Groups API Reads] nameOfCompany.nameType = ${GroupCompanyNameEnum.Other} but name.size > 20, could indicate frontend validation issue"
         logEvents.map(events => (events.getLevel.toString, events.getMessage)).contains(("WARN", expectedMessage)) shouldBe false
       }
     }
@@ -312,9 +312,9 @@ class GroupsSpec extends BaseSpec with LogCapturing {
           |}
         """.stripMargin)
 
-      withCaptureOfLoggingFrom(Logger("models.validation.APIValidation")) { logEvents =>
+      withCaptureOfLoggingFrom(Logger("application.APIValidation")) { logEvents =>
         groupJsonNameOfCompanyInvalidFor20chars.validate[Groups](formatsOfGroupsAPI).isError shouldBe true
-        val expectedMessage = s"[Groups API Reads] name of company invalid when normalised and trimmed this doesn't pass Regex validation"
+        val expectedMessage = s"[APIValidation] [Groups API Reads] name of company invalid when normalised and trimmed this doesn't pass Regex validation"
         logEvents.map(events => (events.getLevel.toString, events.getMessage)).contains(("WARN", expectedMessage)) shouldBe true
       }
     }
@@ -330,9 +330,9 @@ class GroupsSpec extends BaseSpec with LogCapturing {
           |}
         """.stripMargin)
 
-      withCaptureOfLoggingFrom(Logger("models.validation.APIValidation")) { logEvents =>
+      withCaptureOfLoggingFrom(Logger("application.APIValidation")) { logEvents =>
         groupJsonNameOfCompanyInvalidFor20chars.validate[Groups](formatsOfGroupsAPI).isError shouldBe true
-        val expectedMessage = s"[Groups API Reads] name of company invalid when normalised and trimmed this doesn't pass Regex validation"
+        val expectedMessage = s"[APIValidation] [Groups API Reads] name of company invalid when normalised and trimmed this doesn't pass Regex validation"
         logEvents.map(events => (events.getLevel.toString, events.getMessage)).contains(("WARN", expectedMessage)) shouldBe true
       }
     }
@@ -348,9 +348,9 @@ class GroupsSpec extends BaseSpec with LogCapturing {
           |}
         """.stripMargin)
 
-      withCaptureOfLoggingFrom(Logger("models.validation.APIValidation")) { logEvents =>
+      withCaptureOfLoggingFrom(Logger("application.APIValidation")) { logEvents =>
         groupJsonNameOfCompanyInvalidFor20chars.validate[Groups](formatsOfGroupsAPI).isError shouldBe true
-        val expectedMessage = s"[Groups API Reads] name of company invalid when normalised and trimmed this doesn't pass Regex validation"
+        val expectedMessage = s"[APIValidation] [Groups API Reads] name of company invalid when normalised and trimmed this doesn't pass Regex validation"
         logEvents.map(events => (events.getLevel.toString, events.getMessage)).contains(("WARN", expectedMessage)) shouldBe true
       }
     }
@@ -473,9 +473,9 @@ class GroupsSpec extends BaseSpec with LogCapturing {
            |   }
            |}
           """.stripMargin)
-      withCaptureOfLoggingFrom(Logger("models.validation.MongoValidation")) { logEvents =>
+      withCaptureOfLoggingFrom(Logger("application.MongoValidation")) { logEvents =>
         json.as[Groups](formatsOfGroupsMongo) shouldBe Groups(true, Some(GroupCompanyName("testGroupName", GroupCompanyNameEnum.Other)), None, None)
-        val expectedMessage = "[Groups Mongo Reads] nameOfCompany.nameType was: TEST, converted to Other"
+        val expectedMessage = "[MongoValidation] [Groups Mongo Reads] nameOfCompany.nameType was: TEST, converted to Other"
         logEvents.map(events => (events.getLevel.toString, events.getMessage)).contains(("WARN", expectedMessage)) shouldBe true
       }
     }
@@ -542,7 +542,7 @@ class GroupsSpec extends BaseSpec with LogCapturing {
            |   }
            |}
         """.stripMargin)
-      withCaptureOfLoggingFrom(Logger("models.validation.MongoValidation")) { logEvents =>
+      withCaptureOfLoggingFrom(Logger("application.MongoValidation")) { logEvents =>
         jsonUhOh.as[Groups](formatsOfGroupsMongo) shouldBe Groups(
           true,
           Some(GroupCompanyName("testGroupName", GroupCompanyNameEnum.Other)),
@@ -550,7 +550,7 @@ class GroupsSpec extends BaseSpec with LogCapturing {
             GroupAddressTypeEnum.ALF,
             BusinessAddress("1 abc", "2 abc", Some("3 abc"), Some("4 abc"), Some("ZZ1 1ZZ"), Some("country A")))),
           None)
-        val expectedMessage = "[Groups Mongo Reads] addressType was: Uh Oh, converted to ALF"
+        val expectedMessage = "[MongoValidation] [Groups Mongo Reads] addressType was: Uh Oh, converted to ALF"
         logEvents.map(events => (events.getLevel.toString, events.getMessage)).contains(("WARN", expectedMessage)) shouldBe true
       }
     }

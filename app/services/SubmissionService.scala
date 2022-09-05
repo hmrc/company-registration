@@ -25,7 +25,7 @@ import models._
 import models.des._
 import models.validation.APIValidation
 import org.joda.time.{DateTime, DateTimeZone}
-import play.api.Logging
+import utils.Logging
 import play.api.libs.json.{JsObject, JsString, Json}
 import play.api.mvc.{AnyContent, Request}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories, SequenceRepository}
@@ -80,11 +80,11 @@ trait SubmissionService extends DateHelper with Logging {
               storeConfirmationReferencesAndUpdateStatus(rID, existingRefs.copy(paymentReference = handOffRefs.paymentReference, paymentAmount = handOffRefs.paymentAmount), None)
 
             case Some(existingRefs) =>
-              logger.info(s"[SubmissionService] [handleSubmission] - Confirmation refs for Reg ID: $rID already exist")
+              logger.info(s"[handleSubmission] - Confirmation refs for Reg ID: $rID already exist")
               Future.successful(existingRefs)
 
             case _ =>
-              logger.error(s"[SubmissionService] [handleSubmission] - Registration status is ${doc.status} for regId: $rID but confirmation refs not found")
+              logger.error(s"[handleSubmission] - Registration status is ${doc.status} for regId: $rID but confirmation refs not found")
               throw new RuntimeException(s"Registration status is held for regId: $rID but confirmation refs not found")
           }
         }
@@ -111,7 +111,7 @@ trait SubmissionService extends DateHelper with Logging {
           _ => Some(record)
         }
       case None =>
-        logger.info(s"[SubmissionService] - [updateCTRecordWithAckRefs] : No record could not be found using this ackref")
+        logger.info(s"[updateCTRecordWithAckRefs] : No record could not be found using this ackref")
         Future.successful(None)
     }
   }
@@ -140,7 +140,7 @@ trait SubmissionService extends DateHelper with Logging {
     status.fold(cTRegistrationRepository.updateConfirmationReferences(regId, refs))(cTRegistrationRepository.updateConfirmationReferencesAndUpdateStatus(regId, refs, _)) map {
       case Some(_) => refs
       case None =>
-        logger.error(s"[SubmissionService] [HO6] [storeConfirmationReferencesAndUpdateStatus] - Could not find a registration document for regId : $regId")
+        logger.error(s"[HO6] [storeConfirmationReferencesAndUpdateStatus] - Could not find a registration document for regId : $regId")
         throw new RuntimeException(s"[HO6] Could not update confirmation refs for regId: $regId - registration document not found")
     }
   }

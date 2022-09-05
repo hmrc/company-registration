@@ -19,7 +19,7 @@ package controllers
 import auth._
 import models.validation.APIValidation
 import models.{GroupNameListValidator, Groups}
-import play.api.Logging
+import utils.Logging
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}

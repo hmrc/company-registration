@@ -23,7 +23,7 @@ import models.des.BusinessAddress
 import models.validation.APIValidation._
 import models.{HttpResponse => _, _}
 import org.joda.time.{DateTime, DateTimeZone, Duration}
-import play.api.Logging
+import utils.Logging
 import repositories._
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.lock.LockKeeper

@@ -58,7 +58,7 @@
     <logger name="reactivemongo.core.actors.MongoDBSystem" level="INFO"/>
     <logger name="reactivemongo.api.MongoConnection" level="INFO"/>
 
-    <logger name="application" level="INFO"/>
+    <logger name="application" level="DEBUG"/>
 
     <logger name="javax.management" level="INFO"/>
 
