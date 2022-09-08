@@ -14,4 +14,4 @@ addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.9.3")
 
 addSbtPlugin("uk.gov.hmrc" % "sbt-artifactory" % "2.0.0")
 
-addSbtPlugin("uk.gov.hmrc" % "sbt-bobby" % "4.0.0")
+addSbtPlugin("uk.gov.hmrc" % "sbt-bobby" % "4.1.0")

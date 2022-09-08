@@ -19,7 +19,6 @@ package services.admin
 import audit.{AdminCTReferenceEvent, AdminSessionIDEvent}
 import connectors.{BusinessRegistrationConnector, DesConnector, IncorporationInformationConnector}
 import models._
-import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{when, _}
 import org.mockito.{ArgumentCaptor, ArgumentMatchers}
@@ -38,6 +37,7 @@ import uk.gov.hmrc.mongo.lock.LockService
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 
+import java.time.Instant
 import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -64,7 +64,7 @@ class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEac
       override val clearAfterXDays: Int = 90
       override val ignoredDocs: Set[String] = Set("1", "2", "3", "4", "5")
     }
-    val docInfo = service.DocumentInfo(regId, "draft", DateTime.now)
+    val docInfo = service.DocumentInfo(regId, "draft", Instant.now)
   }
 
   override def beforeEach() {

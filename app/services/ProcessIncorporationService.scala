@@ -21,14 +21,13 @@ import config.MicroserviceAppConfig
 import connectors._
 import helpers.DateHelper
 import models._
-import org.joda.time.DateTime
 import play.api.libs.json.{JsObject, Json}
-import repositories.{Repositories, _}
+import repositories._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpErrorFunctions}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import utils.{DateCalculators, Logging, PagerDutyKeys}
 
-import java.time.LocalTime
+import java.time.{Instant, LocalDate, LocalTime}
 import java.util.Base64
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
@@ -169,7 +168,7 @@ trait ProcessIncorporationService extends DateHelper with HttpErrorFunctions wit
           for {
             submission <- constructTopUpSubmission(item, ctReg, ackRef)
             _ <- processAcceptedSubmission(item, ackRef, ctReg, submission, isAdmin)
-            submitted <- ctRepository.updateHeldToSubmitted(ctReg.registrationID, item.crn.get, formatTimestamp(now))
+            submitted <- ctRepository.updateHeldToSubmitted(ctReg.registrationID, item.crn.get, formatTimestamp(Instant.now()))
           } yield submitted
           ) recover {
           case e =>
@@ -299,11 +298,11 @@ trait ProcessIncorporationService extends DateHelper with HttpErrorFunctions wit
   }
 
   def inWorkingHours: Boolean = {
-    DateCalculators.loggingDay(blockageLoggingDay, DateCalculators.getTheDay(DateTime.now)) &&
+    DateCalculators.loggingDay(blockageLoggingDay, DateCalculators.getCurrentDay) &&
       DateCalculators.loggingTime(blockageLoggingTime, LocalTime.now)
   }
 
-  private[services] def activeDate(date: AccountingDetails, incorpDate: DateTime) = {
+  private[services] def activeDate(date: AccountingDetails, incorpDate: LocalDate) = {
     import AccountingDetails.WHEN_REGISTERED
 
     (date.status, date.activeDate) match {

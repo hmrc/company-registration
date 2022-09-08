@@ -17,10 +17,11 @@
 package models
 
 import models.validation.{APIValidation, BaseJsonFormatting}
-import org.joda.time.DateTime
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
+
+import java.time.LocalDate
 
 case class SubmissionCheckResponse(
                                     items: Seq[IncorpUpdate],
@@ -30,7 +31,7 @@ case class SubmissionCheckResponse(
 case class IncorpUpdate(transactionId: String,
                         status: String,
                         crn: Option[String],
-                        incorpDate: Option[DateTime],
+                        incorpDate: Option[LocalDate],
                         timepoint: String,
                         statusDescription: Option[String] = None)
 
@@ -48,7 +49,7 @@ object IncorpUpdate {
     (__ \ "transaction_id").read[String] and
       (__ \ "transaction_status").read[String] and
       (__ \ "company_number").readNullable[String] and
-      (__ \ "incorporated_on").readNullable[DateTime](formatter.dateFormat) and
+      (__ \ "incorporated_on").readNullable[LocalDate](formatter.dateFormat) and
       (__ \ "timepoint").read[String] and
       (__ \ "transaction_status_description").readNullable[String]
     ) (IncorpUpdate.apply _)

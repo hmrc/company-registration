@@ -19,9 +19,10 @@ package models.validation
 import auth.CryptoSCRS
 import models._
 import org.joda.time.DateTime
-import utils.Logging
 import play.api.libs.json._
+import utils.Logging
 
+import java.time.{Instant, LocalDate, ZoneOffset}
 import scala.util.Try
 
 object MongoValidation extends BaseJsonFormatting with Logging {
@@ -63,7 +64,13 @@ object MongoValidation extends BaseJsonFormatting with Logging {
   def accountPrepDetailsFormatWithFilter(formatDef: OFormat[AccountPrepDetails]): Format[AccountPrepDetails] = formatDef
 
   val acctPrepStatusValidator: Format[String] = defaultStringFormat
-  val dateFormat: Format[DateTime] = Format(Reads.DefaultJodaDateReads, Writes.jodaDateWrites(dateTimePattern))
+  val dateFormat: Format[LocalDate] = Format(
+    Reads[LocalDate] {
+      case n: JsNumber => n.validate[Long].map(l => Instant.ofEpochMilli(l).atZone(ZoneOffset.UTC).toLocalDate)
+      case s => s.validate[String].map(s => LocalDate.parse(s))
+    },
+    Writes[LocalDate](d => JsString(d.toString))
+  )
 
   //Groups
   def formatsForGroupCompanyNameEnum(name: String): Format[GroupCompanyNameEnum.Value] = new Format[GroupCompanyNameEnum.Value] {

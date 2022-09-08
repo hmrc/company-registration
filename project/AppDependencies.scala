@@ -7,13 +7,12 @@ object AppDependencies {
   import play.sbt.PlayImport._
 
   private val playVersion                 =  "-play-28"
-  private val bootstrapPlayVersion        =  "7.1.0"
+  private val bootstrapPlayVersion        =  "7.2.0"
   private val domainVersion               = s"8.1.0$playVersion"
   private val scalaTestVersion            =  "3.2.12"
   private val scalatestPlusPlayVersion    =  "5.1.0"
   private val akkaVersion                 =  "1.9.2-akka-2.6.x"
   private val catsVersion                 =  "2.7.0"
-  private val jodaVersion                 =  "2.6.10"
   private val wiremockVersion             =  "2.27.2"
   private val hmrcMongoVersion            =  "0.71.0"
   private val flexmarkVersion             =  "0.62.2"
@@ -25,7 +24,6 @@ object AppDependencies {
     "uk.gov.hmrc"               %% s"bootstrap-backend$playVersion" % bootstrapPlayVersion,
     "uk.gov.hmrc"               %%  "domain"                        % domainVersion,
     "org.typelevel"             %%  "cats-core"                     % catsVersion,
-    "com.typesafe.play"         %%  "play-json-joda"                % jodaVersion,
     "uk.gov.hmrc.mongo"         %% s"hmrc-mongo$playVersion"        % hmrcMongoVersion
   )
 

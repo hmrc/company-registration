@@ -23,7 +23,6 @@ import mocks.AuthorisationMocks
 import models.RegistrationStatus._
 import models._
 import models.des.BusinessAddress
-import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers.{eq => eqTo}
 import org.mockito.Mockito._
 import org.scalatest.concurrent.Eventually
@@ -38,6 +37,8 @@ import uk.gov.hmrc.mongo.lock.LockService
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import utils.LogCapturing
 
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -51,7 +52,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
   val mockIIConnector: IncorporationInformationConnector = mock[IncorporationInformationConnector]
   val mockDesConnector: DesConnector = mock[DesConnector]
 
-  val dateTime: DateTime = DateTime.parse("2016-10-27T16:28:59.000")
+  val dateTime: Instant = Instant.parse("2016-10-27T16:28:59.000Z")
 
   val regId = "reg-id-12345"
   val transId = "trans-id-12345"
@@ -77,7 +78,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
       val auditConnector: AuditConnector = mockAuditConnector
       val incorpInfoConnector: IncorporationInformationConnector = mockIIConnector
       val desConnector: DesConnector = mockDesConnector
-      val currentDateTime: DateTime = dateTime
+      val instantNow: Instant = dateTime
       override val lockKeeper: LockService = mockLockService
       implicit val ec: ExecutionContext = global
     }
@@ -201,7 +202,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
   "locateOldHeldSubmissions" must {
     val registrationId = "testRegId"
     val tID = "transID"
-    val heldTime = Some(DateTime.now().minusWeeks(1))
+    val heldTime = Some(Instant.now().minus(7, ChronoUnit.DAYS))
 
     val oldHeldSubmission = CorporationTaxRegistration(
       internalId = "testID",

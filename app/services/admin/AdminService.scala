@@ -24,7 +24,6 @@ import jobs.{LockResponse, MongoLocked, ScheduledService, UnlockingFailed}
 import models.RegistrationStatus._
 import models.admin.{AdminCTReferenceDetails, HO6Identifiers, HO6Response}
 import models.{ConfirmationReferences, CorporationTaxRegistration, HO6RegistrationInformation, SessionIdData}
-import org.joda.time.DateTime
 import utils.Logging
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.Request
@@ -35,6 +34,7 @@ import uk.gov.hmrc.mongo.lock.LockService
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
+import java.time.Instant
 import java.util.Base64
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration.DurationInt
@@ -196,7 +196,7 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
     }
   }
 
-  case class DocumentInfo(regId: String, status: String, lastSignedIn: DateTime)
+  case class DocumentInfo(regId: String, status: String, lastSignedIn: Instant)
 
   private def removeStaleDocument(documentInfo: DocumentInfo, optRefs: Option[ConfirmationReferences])(implicit hc: HeaderCarrier) = optRefs match {
     case Some(confRefs) => checkNotIncorporated(documentInfo, confRefs) flatMap { _ =>

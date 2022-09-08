@@ -20,14 +20,12 @@ import auth.CryptoSCRS
 import models.AccountPrepDetails.{COMPANY_DEFINED, HMRC_DEFINED}
 import models.AccountingDetails.{FUTURE_DATE => FD, NOT_PLANNING_TO_YET => NP2Y, WHEN_REGISTERED => WR}
 import models._
-import org.joda.time.format.DateTimeFormat
-import org.joda.time.{DateTime, DateTimeZone}
-import utils.Logging
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads.{maxLength, pattern}
-import play.api.libs.json.{JsonValidationError, _}
-import utils.StringNormaliser
+import play.api.libs.json._
+import utils.{Logging, StringNormaliser}
 
+import java.time.LocalDate
 import scala.util.Try
 import scala.util.matching.Regex
 
@@ -116,8 +114,6 @@ trait ContactDetailsValidator {
 trait DateValidator {
   self: BaseJsonFormatting =>
 
-  def now: DateTime = DateTime.now(DateTimeZone.UTC)
-
   def yyyymmddValidator: Reads[String] = pattern("^[0-9]{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$".r)
 
   val startDateValidator: Format[String] = readToFmt(yyyymmddValidator)
@@ -130,15 +126,9 @@ trait DateValidator {
     }
   }
 
-  val dateFormat: Format[DateTime] = Format[DateTime](
-    Reads[DateTime](js =>
-      js.validate[String](yyyymmddValidator).map(
-        DateTime.parse(_, DateTimeFormat.forPattern(dateTimePattern))
-      )
-    ),
-    new Writes[DateTime] {
-      def writes(d: DateTime) = JsString(d.toString(dateTimePattern))
-    }
+  val dateFormat: Format[LocalDate] = Format[LocalDate](
+    Reads[LocalDate](_.validate[String](yyyymmddValidator).map(LocalDate.parse)),
+    Writes[LocalDate](d => JsString(d.toString))
   )
 }
 

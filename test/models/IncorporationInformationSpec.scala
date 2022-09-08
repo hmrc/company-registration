@@ -16,9 +16,10 @@
 
 package models
 
-import org.joda.time.{DateTime, DateTimeZone}
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.Json
+
+import java.time.{LocalDate, ZoneOffset}
 
 
 class IncorporationInformationSpec extends PlaySpec {
@@ -30,10 +31,9 @@ class IncorporationInformationSpec extends PlaySpec {
     val regime = "CT"
     val callbackUrl = "www.url.com"
     val crn = "crn12345"
-    val incDate = DateTime.parse("2000-12-12")
+    val incDate = LocalDate.parse("2000-12-12")
     val statusacc = "accepted"
     val statusrej = "rejected"
-    val time = DateTime.now(DateTimeZone.UTC)
 
     "return an IncorpUpdate model when suitable success JSON is put in." in {
 
@@ -52,7 +52,7 @@ class IncorporationInformationSpec extends PlaySpec {
            |    "IncorpStatusEvent":{
            |      "status":"$statusacc",
            |      "crn":"$crn",
-           |      "incorporationDate":${incDate.getMillis}
+           |      "incorporationDate":${incDate.atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli}
            |    }
            |  }
            |}

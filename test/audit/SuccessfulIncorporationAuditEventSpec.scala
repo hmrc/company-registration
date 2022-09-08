@@ -16,10 +16,12 @@
 
 package audit
 
-import org.joda.time.DateTime
+
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.http.HeaderCarrier
+
+import java.time.LocalDate
 
 class SuccessfulIncorporationAuditEventSpec extends PlaySpec {
 
@@ -28,7 +30,7 @@ class SuccessfulIncorporationAuditEventSpec extends PlaySpec {
   val testModel = SuccessfulIncorporationAuditEventDetail(
     journeyId = "1234567890",
     companyRegistrationNumber = "1234",
-    incorporationDate = DateTime.parse("2017-01-01")
+    incorporationDate = LocalDate.parse("2017-01-01")
   )
 
   "successfulIncorporationAuditEventDetail" must {

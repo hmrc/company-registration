@@ -16,14 +16,13 @@
 
 package models
 
-import org.joda.time.DateTime
 import play.api.libs.json.Json
-import play.api.libs.json.JodaWrites._
-import play.api.libs.json.JodaReads._
 
-case class SubmissionDates(companyActiveDate: DateTime,
-                           startDateOfFirstAccountingPeriod: DateTime,
-                           intendedAccountsPreparationDate: DateTime)
+import java.time.LocalDate
+
+case class SubmissionDates(companyActiveDate: LocalDate,
+                           startDateOfFirstAccountingPeriod: LocalDate,
+                           intendedAccountsPreparationDate: LocalDate)
 
 object SubmissionDates {
   implicit val formats = Json.format[SubmissionDates]

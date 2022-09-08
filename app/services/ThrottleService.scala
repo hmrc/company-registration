@@ -17,13 +17,13 @@
 package services
 
 import config.MicroserviceAppConfig
-import org.joda.time.{DateTime, DateTimeZone}
-
-import javax.inject.{Inject, Singleton}
 import play.api.mvc.ControllerComponents
 import repositories.Repositories
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 sealed trait ThrottleResponse
@@ -41,7 +41,7 @@ class ThrottleService @Inject()(val repositories: Repositories,
 
   lazy val throttleMongoRepository = repositories.throttleRepository
 
-  def dateTime = DateTime.now.withZone(DateTimeZone.UTC)
+  def date = LocalDate.now()
 
   lazy val threshold = config.threshold
 
@@ -61,6 +61,6 @@ class ThrottleService @Inject()(val repositories: Repositories,
   }
 
   private[services] def getCurrentDay: String = {
-    dateTime.toString("yyyy-MM-dd")
+    date.format(DateTimeFormatter.ISO_LOCAL_DATE)
   }
 }

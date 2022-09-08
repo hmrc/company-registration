@@ -17,11 +17,11 @@
 package models
 
 import models.validation.{APIValidation, BaseJsonFormatting}
-import org.joda.time.DateTime
 import play.api.libs.functional.syntax._
-import play.api.libs.json.JodaReads._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
+
+import java.time.LocalDate
 
 
 case class SCRSIncorpStatus(ISK: IncorpSubscriptionKey,
@@ -45,7 +45,7 @@ case class IncorpStatus(transactionId: String,
                         status: String,
                         crn: Option[String],
                         description: Option[String],
-                        incorporationDate: Option[DateTime]) {
+                        incorporationDate: Option[LocalDate]) {
 
   def toIncorpUpdate: IncorpUpdate = {
     IncorpUpdate(transactionId, status, crn, incorporationDate, "N/A", description)
@@ -58,7 +58,7 @@ object IncorpStatus {
       (__ \ "SCRSIncorpStatus" \ "IncorpStatusEvent" \ "status").read[String] and
       (__ \ "SCRSIncorpStatus" \ "IncorpStatusEvent" \ "crn").readNullable[String] and
       (__ \ "SCRSIncorpStatus" \ "IncorpStatusEvent" \ "description").readNullable[String] and
-      (__ \ "SCRSIncorpStatus" \ "IncorpStatusEvent" \ "incorporationDate").readNullable[DateTime]
+      (__ \ "SCRSIncorpStatus" \ "IncorpStatusEvent" \ "incorporationDate").readNullable[LocalDate]
     ) (IncorpStatus.apply _)
 }
 
@@ -69,7 +69,7 @@ object SCRSIncorpStatus {
       (__ \ "SCRSIncorpStatus" \ "IncorpSubscriptionKey" \ "transactionId").read[String] and
         (__ \ "SCRSIncorpStatus" \ "IncorpStatusEvent" \ "status").read[String] and
         (__ \ "SCRSIncorpStatus" \ "IncorpStatusEvent" \ "crn").readNullable[String] and
-        (__ \ "SCRSIncorpStatus" \ "IncorpStatusEvent" \ "incorporationDate").readNullable[DateTime](formatter.dateFormat) and
+        (__ \ "SCRSIncorpStatus" \ "IncorpStatusEvent" \ "incorporationDate").readNullable[LocalDate](formatter.dateFormat) and
         (__ \ "timepoint").read[String] and
         (__ \ "SCRSIncorpStatus" \ "IncorpStatusEvent" \ "description").readNullable[String]
       ) (IncorpUpdate.apply _)

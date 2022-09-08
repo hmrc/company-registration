@@ -16,10 +16,8 @@
 
 package utils
 
-import java.time.LocalTime
+import java.time.{LocalDate, LocalTime}
 import java.time.format.DateTimeFormatter
-
-import org.joda.time.DateTime
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 
@@ -27,7 +25,7 @@ class DateCalculatorsSpec extends PlaySpec with BeforeAndAfterEach {
 
   "getTheDay" must {
     "return todays day" in {
-      val testDate = DateTime.parse("2017-07-11T00:00:00.000Z")
+      val testDate = LocalDate.parse("2017-07-11")
       DateCalculators.getTheDay(testDate) mustBe "TUE"
     }
   }

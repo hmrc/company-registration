@@ -27,7 +27,7 @@ class AccountPrepDetailsSpec extends PlaySpec with JsonFormatValidation with Dat
   "AccountPrepDetails Model" must {
     "Be able to be parsed from JSON" in {
       val json = """{"businessEndDateChoice":"COMPANY_DEFINED","businessEndDate":"2017-02-01"}"""
-      val expected = AccountPrepDetails(COMPANY_DEFINED, Some(yyyymmdd("2017-02-01")))
+      val expected = AccountPrepDetails(COMPANY_DEFINED, Some(asDate("2017-02-01")))
       val result = Json.parse(json).validate[AccountPrepDetails]
       mustBeSuccess(expected, result)
     }
@@ -48,7 +48,7 @@ class AccountPrepDetailsSpec extends PlaySpec with JsonFormatValidation with Dat
   "reading from json into a AccountPrepDetails case class" must {
 
     "return a AccountPrepDetails case class" in {
-      val accountPrepDetails = AccountPrepDetails(COMPANY_DEFINED, Some(yyyymmdd("2017-02-01")))
+      val accountPrepDetails = AccountPrepDetails(COMPANY_DEFINED, Some(asDate("2017-02-01")))
       val json = Json.parse("""{"businessEndDateChoice":"COMPANY_DEFINED","businessEndDate":"2017-02-01"}""")
 
       val result = Json.fromJson[AccountPrepDetails](json)

@@ -16,31 +16,17 @@
 
 package audit
 
-import org.joda.time.DateTime
-import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.http.HeaderCarrier
 
+import java.time.LocalDate
+
 case class SuccessfulIncorporationAuditEventDetail(journeyId: String,
                                                    companyRegistrationNumber: String,
-                                                   incorporationDate: DateTime)
+                                                   incorporationDate: LocalDate)
 
 object SuccessfulIncorporationAuditEventDetail {
-  implicit val writes = new Writes[SuccessfulIncorporationAuditEventDetail] {
-    def writes(detail: SuccessfulIncorporationAuditEventDetail) = {
-      val dateWrites = Writes[DateTime](
-        js =>
-          Json.toJson(js.toString("yyyy-MM-dd"))
-      )
-      val successWrites = (
-        (__ \ "journeyId").write[String] and
-          (__ \ "companyRegistrationNumber").write[String] and
-          (__ \ "incorporationDate").write[DateTime](dateWrites)
-        ) (unlift(SuccessfulIncorporationAuditEventDetail.unapply))
-
-      Json.toJson(detail)(successWrites).as[JsObject]
-    }
-  }
+  implicit val writes = Json.writes[SuccessfulIncorporationAuditEventDetail]
 }
 
 class SuccessfulIncorporationAuditEvent(details: SuccessfulIncorporationAuditEventDetail, auditType: String, transactionName: String)(implicit hc: HeaderCarrier)

@@ -16,15 +16,15 @@
 
 package models.validation
 
-import java.text.Normalizer
-import java.text.Normalizer.Form
-
 import auth.CryptoSCRS
-import models.{GroupCompanyNameEnum, _}
-import org.joda.time.DateTime
+import models._
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads.{maxLength, minLength}
-import play.api.libs.json.{JsonValidationError, _}
+import play.api.libs.json._
+
+import java.text.Normalizer
+import java.text.Normalizer.Form
+import java.time.LocalDate
 
 trait BaseJsonFormatting {
   private val companyNameRegex = """^[A-Za-z 0-9\-,.()/'&\"!%*_+:@<>?=;]{1,160}$"""
@@ -107,7 +107,7 @@ trait BaseJsonFormatting {
   def accountPrepDetailsFormatWithFilter(formatDef: OFormat[AccountPrepDetails]): Format[AccountPrepDetails]
 
   val acctPrepStatusValidator: Format[String]
-  val dateFormat: Format[DateTime]
+  val dateFormat: Format[LocalDate]
 
   //Groups
   def formatsForGroupCompanyNameEnum(name: String): Format[GroupCompanyNameEnum.Value]

@@ -26,7 +26,6 @@ import models.RegistrationStatus._
 import models._
 import models.des.BusinessAddress
 import models.validation.MongoValidation
-import org.joda.time.{DateTime, DateTimeZone}
 import org.mongodb.scala.model.Filters
 import org.mongodb.scala.result.InsertOneResult
 import play.api.Application
@@ -34,6 +33,8 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, Json, OWrites}
 import play.api.test.Helpers._
 
+import java.time.temporal.ChronoUnit
+import java.time.{Instant, LocalDate, LocalDateTime, LocalTime, ZoneOffset}
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -49,6 +50,8 @@ class CorporationTaxRegistrationMongoRepositoryISpec
   override implicit lazy val app: Application = new GuiceApplicationBuilder()
     .configure(additionalConfiguration)
     .build()
+
+  def now: Instant = LocalDateTime.now().withNano(0).toInstant(ZoneOffset.UTC)
 
   class Setup {
     val repository = app.injector.instanceOf[CorporationTaxRegistrationMongoRepository]
@@ -82,7 +85,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
   def corporationTaxRegistration(status: String = "draft",
                                  ctutr: Boolean = true,
-                                 lastSignedIn: DateTime = DateTime.now(DateTimeZone.UTC),
+                                 lastSignedIn: Instant = now,
                                  registrationStatus: String = RegistrationStatus.DRAFT,
                                  regId: String = UUID.randomUUID().toString) = CorporationTaxRegistration(
     status = status,
@@ -102,7 +105,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     tradingDetails = Some(TradingDetails("true")),
     confirmationReferences = Some(ConfirmationReferences(acknowledgementReference = ackRef, "txId", None, None)),
     acknowledgementReferences = Some(AcknowledgementReferences(Option("ctutr").filter(_ => ctutr), "timestamp", status)),
-    createdTime = DateTime.parse("2017-09-04T14:49:48.261"),
+    createdTime = Instant.parse("2017-09-04T14:49:48.261Z"),
     lastSignedIn = lastSignedIn
   )
 
@@ -162,7 +165,6 @@ class CorporationTaxRegistrationMongoRepositoryISpec
           email = None))
       )
 
-      val now = DateTime.now()
       insert(corporationTaxRegistration)
       val response = await(repository.getExistingRegistration(registrationId))
       response.copy(createdTime = now, lastSignedIn = now) mustBe corporationTaxRegistration.copy(createdTime = now, lastSignedIn = now)
@@ -476,7 +478,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         status = "end",
         endDate = None
       )
-      val newAccountingPrepDetails: AccountPrepDetails = accountingPrepDetails.copy(endDate = Some(DateTime.now()))
+      val newAccountingPrepDetails: AccountPrepDetails = accountingPrepDetails.copy(endDate = Some(LocalDate.now()))
 
       insert(newCTDoc.copy(accountsPreparation = Some(accountingPrepDetails)))
       await(repository.updateCompanyEndDate(registrationId, newAccountingPrepDetails)) mustBe Some(newAccountingPrepDetails)
@@ -599,7 +601,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         corporationTaxRegistration.accountingDetails.isEmpty mustBe true
         corporationTaxRegistration.registrationID mustBe corporationTaxRegistrationModel.registrationID
         corporationTaxRegistration.status mustBe corporationTaxRegistrationModel.status
-        corporationTaxRegistration.lastSignedIn mustBe corporationTaxRegistrationModel.lastSignedIn
+        corporationTaxRegistration.lastSignedIn.toEpochMilli mustBe corporationTaxRegistrationModel.lastSignedIn.toEpochMilli
       }
 
       "mongo statement execeutes with the document having missing fields" in new Setup {
@@ -622,7 +624,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         corporationTaxRegistration.accountingDetails.isEmpty mustBe true
         corporationTaxRegistration.registrationID mustBe corporationTaxRegistrationModel.registrationID
         corporationTaxRegistration.status mustBe corporationTaxRegistrationModel.status
-        corporationTaxRegistration.lastSignedIn mustBe corporationTaxRegistrationModel.lastSignedIn
+        corporationTaxRegistration.lastSignedIn.toEpochMilli mustBe corporationTaxRegistrationModel.lastSignedIn.toEpochMilli
       }
     }
     "should not update document" when {
@@ -765,8 +767,8 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       formCreationTimestamp = "2001-12-31T12:00:00Z",
       language = "en",
       confirmationReferences = Some(validConfirmationReferences),
-      createdTime = DateTime.now,
-      lastSignedIn = DateTime.now(DateTimeZone.UTC)
+      createdTime = now,
+      lastSignedIn = now
     )
 
     "return an optional ct record" when {
@@ -847,8 +849,8 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       contactDetails = Some(ContactDetails(Some("0123456789"), Some("0123456789"), Some("test@email.co.uk")
       )),
       tradingDetails = Some(TradingDetails("true")),
-      createdTime = DateTime.now,
-      lastSignedIn = DateTime.now(DateTimeZone.UTC)
+      createdTime = now,
+      lastSignedIn = now
     )
 
     "remove all details under that RegId from the collection" in new Setup {
@@ -907,7 +909,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
   "updateRegistrationToHeld" must {
 
     val regId = "reg-12345"
-    val dateTime = DateTime.parse("2017-09-04T14:49:48.261")
+    val dateTime = Instant.parse("2017-09-04T14:49:48.261Z")
 
     val validConfirmationReferences = ConfirmationReferences(
       acknowledgementReference = "BRCT12345678910",
@@ -954,7 +956,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
       val Some(result): Option[CorporationTaxRegistration] = await(repository.updateRegistrationToHeld(regId, validConfirmationReferences))
 
-      val heldTs: Option[DateTime] = result.heldTimestamp
+      val heldTs: Option[Instant] = result.heldTimestamp
 
       val Some(expected): Option[CorporationTaxRegistration] = Some(CorporationTaxRegistration(
         internalId = "testID",
@@ -967,7 +969,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         status = RegistrationStatus.HELD,
         confirmationReferences = Some(validConfirmationReferences),
         createdTime = dateTime,
-        lastSignedIn = dateTime.withZone(DateTimeZone.UTC),
+        lastSignedIn = dateTime,
         heldTimestamp = heldTs,
         groups = None
       ))
@@ -980,7 +982,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
     val regId = "reg-12345"
     val lockedRegId = "reg-54321"
-    val dateTime = DateTime.parse("2017-09-04T14:49:48.261")
+    val dateTime = Instant.parse("2017-09-04T14:49:48.261Z")
 
     val validConfirmationReferences = ConfirmationReferences(
       acknowledgementReference = "BRCT12345678910",
@@ -1060,8 +1062,8 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       status = RegistrationStatus.ACKNOWLEDGED,
       confirmationReferences = Some(ConfirmationReferences(acknowledgementReference = ackRef, "txId", None, None)),
       acknowledgementReferences = Some(AcknowledgementReferences(Option("ctutr").filter(_ => ctutr), "timestamp", status)),
-      createdTime = DateTime.parse("2017-09-04T14:49:48.261"),
-      lastSignedIn = DateTime.parse("2017-09-04T14:49:48.261")
+      createdTime = Instant.parse("2017-09-04T14:49:48.261Z"),
+      lastSignedIn = Instant.parse("2017-09-04T14:49:48.261Z")
     )
 
     "retrieve nothing when registration is not found" in new Setup {
@@ -1085,10 +1087,10 @@ class CorporationTaxRegistrationMongoRepositoryISpec
   "updateRegistrationWithAdminCTReference" must {
 
     val ackRef = "BRCT09876543210"
-    val dateTime = DateTime.parse("2017-09-04T14:49:48.261")
+    val dateTime = Instant.parse("2017-09-04T14:49:48.261Z")
     val regId = "regId"
     val confRefs = Some(ConfirmationReferences(acknowledgementReference = ackRef, "txId", None, None))
-    val timestamp = DateTime.now().toString
+    val timestamp = now.toString
 
     def corporationTaxRegistration(status: String, ctutr: Boolean) = CorporationTaxRegistration(
       internalId = "testID",
@@ -1108,7 +1110,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       confirmationReferences = confRefs,
       acknowledgementReferences = Some(AcknowledgementReferences(Option("ctutr").filter(_ => ctutr), timestamp, status)),
       createdTime = dateTime,
-      lastSignedIn = dateTime.withZone(DateTimeZone.UTC)
+      lastSignedIn = dateTime
     )
 
     "update a registration with an admin ct reference" in new Setup {
@@ -1137,7 +1139,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     val regId = "12345"
     val (defaultSID, defaultCID) = ("oldSessID", "oldCredId")
 
-    val timestamp = DateTime.now()
+    val timestamp = now
 
     def corporationTaxRegistration(regId: String, alreadyHasSessionIds: Boolean = false) = CorporationTaxRegistration(
       internalId = "testID",
@@ -1185,7 +1187,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     val credId = "authorisedId"
     val (defaultSID, defaultCID) = ("oldSessID", "oldCredId")
 
-    val timestamp = DateTime.now()
+    val timestamp = now
 
     def corporationTaxRegistration(regId: String, alreadyHasSessionIds: Boolean = false) = CorporationTaxRegistration(
       internalId = "testID",
@@ -1294,47 +1296,47 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
     val registration90DaysOldDraft: CorporationTaxRegistration = corporationTaxRegistration(
       registrationStatus = "draft",
-      lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(90)
+      lastSignedIn = now.minus(90, ChronoUnit.DAYS)
     )
 
     val registration91DaysOldLocked: CorporationTaxRegistration = corporationTaxRegistration(
       registrationStatus = "locked",
-      lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(91)
+      lastSignedIn = now.minus(91, ChronoUnit.DAYS)
     )
 
     val registration90DaysOldLocked: CorporationTaxRegistration = corporationTaxRegistration(
       registrationStatus = "locked",
-      lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(90)
+      lastSignedIn = now.minus(90, ChronoUnit.DAYS)
     )
 
     val registration90DaysOldHeld: CorporationTaxRegistration = corporationTaxRegistration(
       registrationStatus = "held",
-      lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(90)
+      lastSignedIn = now.minus(90, ChronoUnit.DAYS)
     )
 
     val registration30DaysOldDraft: CorporationTaxRegistration = corporationTaxRegistration(
       registrationStatus = "draft",
-      lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(30)
+      lastSignedIn = now.minus(30, ChronoUnit.DAYS)
     )
 
     val registration91DaysOldDraft: CorporationTaxRegistration = corporationTaxRegistration(
       registrationStatus = "draft",
-      lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(91)
+      lastSignedIn = now.minus(91, ChronoUnit.DAYS)
     )
 
     val registration90DaysOldSubmitted: CorporationTaxRegistration = corporationTaxRegistration(
       status = "submitted",
-      lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(90)
+      lastSignedIn = now.minus(90, ChronoUnit.DAYS)
     )
 
     val registration90DaysOldHeldWithPaymentRef: CorporationTaxRegistration = corporationTaxRegistration(
       status = "held",
-      lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(90)
+      lastSignedIn = now.minus(90, ChronoUnit.DAYS)
     ).copy(confirmationReferences = Some(ConfirmationReferences(transactionId = "txId", paymentReference = Some("TEST_PAY_REF"), paymentAmount = None)))
 
     val registration90DaysOldLockedWithPaymentRef: CorporationTaxRegistration = corporationTaxRegistration(
       status = "locked",
-      lastSignedIn = DateTime.now(DateTimeZone.UTC).minusDays(90)
+      lastSignedIn = now.minus(90, ChronoUnit.DAYS)
     ).copy(confirmationReferences = Some(ConfirmationReferences(transactionId = "txId", paymentReference = Some("TEST_PAY_REF"), paymentAmount = None)))
 
     "return 0 documents" when {
@@ -1354,8 +1356,8 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         await(repository.retrieveStaleDocuments(1, 91)) mustBe Nil
       }
       "the database contains documents not matching the query - held/locked without payment reference and held timestamp is 90 days old" in new Setup {
-        insert(registration90DaysOldHeld.copy(heldTimestamp = Some(DateTime.now(DateTimeZone.UTC).minusDays(90))))
-        insert(registration90DaysOldLocked.copy(heldTimestamp = Some(DateTime.now(DateTimeZone.UTC).minusDays(90))))
+        insert(registration90DaysOldHeld.copy(heldTimestamp = Some(now.minus(90, ChronoUnit.DAYS))))
+        insert(registration90DaysOldLocked.copy(heldTimestamp = Some(now.minus(90, ChronoUnit.DAYS))))
 
         await(repository.retrieveStaleDocuments(1, 91)) mustBe Nil
       }
@@ -1365,7 +1367,8 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       "the database contains 1 document matching the query" in new Setup {
         insert(registration91DaysOldDraft)
 
-        await(repository.retrieveStaleDocuments(1, 90)).head.lastSignedIn.getChronology mustBe List(registration90DaysOldDraft).head.lastSignedIn.getChronology
+        await(repository.retrieveStaleDocuments(1, 90)).head.lastSignedIn mustBe
+          List(registration91DaysOldDraft).head.lastSignedIn
       }
 
       "the database contains multiple documents matching the query but the batch size was set to 1" in new Setup {
@@ -1409,7 +1412,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       "an invalid registration document is read" in new Setup {
         val incorrectRegistration = ctRegistrationJson(
           regId = registration91DaysOldDraft.registrationID,
-          lastSignedIn = registration91DaysOldDraft.lastSignedIn.getMillis,
+          lastSignedIn = registration91DaysOldDraft.lastSignedIn.toEpochMilli,
           malform = Some(Json.obj("registrationID" -> true))
         )
         repository.insertRaw(incorrectRegistration)

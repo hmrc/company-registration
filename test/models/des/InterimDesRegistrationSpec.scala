@@ -17,9 +17,10 @@
 package models.des
 
 import models._
-import org.joda.time.{DateTime, DateTimeZone}
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsObject, Json}
+
+import java.time.Instant
 
 
 class InterimDesRegistrationSpec extends PlaySpec {
@@ -48,7 +49,7 @@ class InterimDesRegistrationSpec extends PlaySpec {
                                |  "declareAccurateAndComplete": true
                                |}""".stripMargin
 
-      val desModel = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), CompletionCapacity(Director.text) )
+      val desModel = Metadata( "session-123", "cred-123", "ENG", Instant.ofEpochSecond(0), CompletionCapacity(Director.text) )
 
       val result = Json.toJson[Metadata](desModel)
       result.getClass mustBe classOf[JsObject]
@@ -67,7 +68,7 @@ class InterimDesRegistrationSpec extends PlaySpec {
                                |  "declareAccurateAndComplete": true
                                |}""".stripMargin
 
-      val desModel = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), CompletionCapacity(Agent.text) )
+      val desModel = Metadata( "session-123", "cred-123", "ENG", Instant.ofEpochSecond(0), CompletionCapacity(Agent.text) )
 
       val result = Json.toJson[Metadata](desModel)
       result.getClass mustBe classOf[JsObject]
@@ -86,7 +87,7 @@ class InterimDesRegistrationSpec extends PlaySpec {
                                      |  "declareAccurateAndComplete": true
                                      |}""".stripMargin
 
-      val desModel = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), CompletionCapacity(Secretary.text) )
+      val desModel = Metadata( "session-123", "cred-123", "ENG", Instant.ofEpochSecond(0), CompletionCapacity(Secretary.text) )
 
       val result = Json.toJson[Metadata](desModel)
       result.getClass mustBe classOf[JsObject]
@@ -106,7 +107,7 @@ class InterimDesRegistrationSpec extends PlaySpec {
                                       |  "declareAccurateAndComplete": true
                                       |}""".stripMargin
 
-      val desModel = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), CompletionCapacity("other") )
+      val desModel = Metadata( "session-123", "cred-123", "ENG", Instant.ofEpochSecond(0), CompletionCapacity("other") )
 
       val result = Json.toJson[Metadata](desModel)
       result.getClass mustBe classOf[JsObject]
@@ -125,7 +126,7 @@ class InterimDesRegistrationSpec extends PlaySpec {
                                       |  "declareAccurateAndComplete": true
                                       |}""".stripMargin
 
-      val desModel = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), CompletionCapacity("Director") )
+      val desModel = Metadata( "session-123", "cred-123", "ENG", Instant.ofEpochSecond(0), CompletionCapacity("Director") )
 
       val result = Json.toJson[Metadata](desModel)
       result.getClass mustBe classOf[JsObject]
@@ -225,7 +226,7 @@ class InterimDesRegistrationSpec extends PlaySpec {
                                       |  }
                                       |}""".stripMargin
 
-      val testMetadata = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), Director )
+      val testMetadata = Metadata( "session-123", "cred-123", "ENG", Instant.ofEpochSecond(0), Director )
       val desBusinessAddress = BusinessAddress(
         "1 Acacia Avenue",
         "Hollinswood",
@@ -303,7 +304,7 @@ class InterimDesRegistrationSpec extends PlaySpec {
                                      |  }
                                      |}""".stripMargin
 
-      val testMetadata = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), Director )
+      val testMetadata = Metadata( "session-123", "cred-123", "ENG", Instant.ofEpochSecond(0), Director )
       val desBusinessAddress = BusinessAddress(
         "1 Acacia Avenue",
         "Hollinswood",
@@ -383,7 +384,7 @@ class InterimDesRegistrationSpec extends PlaySpec {
                                      |  }
                                      |}""".stripMargin
 
-      val testMetadata = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), Director )
+      val testMetadata = Metadata( "session-123", "cred-123", "ENG", Instant.ofEpochSecond(0), Director )
       val desBusinessAddress = BusinessAddress(
         "1 Acacia Avenue",
         "Hollinswood",
@@ -462,7 +463,7 @@ class InterimDesRegistrationSpec extends PlaySpec {
                                      |  }
                                      |}""".stripMargin
 
-      val testMetadata = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), Director )
+      val testMetadata = Metadata( "session-123", "cred-123", "ENG", Instant.ofEpochSecond(0), Director )
       val desBusinessAddress = BusinessAddress(
         "1 Acacia Avenue",
         "Hollinswood",
@@ -574,7 +575,7 @@ class InterimDesRegistrationSpec extends PlaySpec {
                                      |  }
                                      |}""".stripMargin
 
-      val testMetadata = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), Director )
+      val testMetadata = Metadata( "session-123", "cred-123", "ENG", Instant.ofEpochSecond(0), Director )
       val desBusinessAddress = BusinessAddress(
         "1 Acacia Avenue",
         "Hollinswood",
@@ -674,7 +675,7 @@ class InterimDesRegistrationSpec extends PlaySpec {
                                       |  }
                                       |}""".stripMargin
 
-      val testMetadata = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), Director )
+      val testMetadata = Metadata( "session-123", "cred-123", "ENG", Instant.ofEpochSecond(0), Director )
 
       val desBusinessContactContactDetails = BusinessContactDetails(
         None,
@@ -722,7 +723,7 @@ class InterimDesRegistrationSpec extends PlaySpec {
                                      |  }
                                      |}""".stripMargin
 
-      val testMetadata = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), Director )
+      val testMetadata = Metadata( "session-123", "cred-123", "ENG", Instant.ofEpochSecond(0), Director )
       val desBusinessContactContactDetails = BusinessContactDetails(
                 None,
                 None,
@@ -771,7 +772,7 @@ class InterimDesRegistrationSpec extends PlaySpec {
                                      |  }
                                      |}""".stripMargin
       
-            val testMetadata = Metadata( "session-123", "cred-123", "ENG", new DateTime(0).withZone(DateTimeZone.UTC), Director )
+            val testMetadata = Metadata( "session-123", "cred-123", "ENG", Instant.ofEpochSecond(0), Director )
 
             val desBusinessContactContactDetails = BusinessContactDetails(
                 None,

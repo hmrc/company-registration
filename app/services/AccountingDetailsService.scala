@@ -16,14 +16,13 @@
 
 package services
 
-import java.util.Base64
-
-import javax.inject.{Inject, Singleton}
 import models.{AccountingDetails, SubmissionDates}
-import org.joda.time.DateTime
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
+import java.time.LocalDate
+import java.util.Base64
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
 
 @Singleton
@@ -39,7 +38,7 @@ case object DoNotIntendToTrade extends ActiveDate
 
 case object ActiveOnIncorporation extends ActiveDate
 
-case class ActiveInFuture(date: DateTime) extends ActiveDate
+case class ActiveInFuture(date: LocalDate) extends ActiveDate
 
 trait AccountingDetailsService {
 
@@ -54,11 +53,11 @@ trait AccountingDetailsService {
     corporationTaxRegistrationMongoRepository.updateAccountingDetails(registrationID, accountingDetails)
   }
 
-  def calculateSubmissionDates(incorporationDate: DateTime, activeDate: ActiveDate, accountingDate: Option[DateTime]): SubmissionDates = {
+  def calculateSubmissionDates(incorporationDate: LocalDate, activeDate: ActiveDate, accountingDate: Option[LocalDate]): SubmissionDates = {
 
     (activeDate, accountingDate) match {
       case (DoNotIntendToTrade, _) =>
-        val defaultDate = DateTime.parse(doNotIndendToTradeDefaultDate)
+        val defaultDate = LocalDate.parse(doNotIndendToTradeDefaultDate)
         SubmissionDates(defaultDate, defaultDate, defaultDate)
 
       case (ActiveOnIncorporation, Some(date)) =>
@@ -75,5 +74,5 @@ trait AccountingDetailsService {
     }
   }
 
-  private[services] def endOfMonthPlusOneYear(date: DateTime): DateTime = date withDayOfMonth 1 plusYears 1 plusMonths 1 minusDays 1
+  private[services] def endOfMonthPlusOneYear(date: LocalDate): LocalDate = date withDayOfMonth 1 plusYears 1 plusMonths 1 minusDays 1
 }

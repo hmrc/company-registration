@@ -19,10 +19,9 @@ package models
 import auth.CryptoSCRS
 import models.validation.{APIValidation, BaseJsonFormatting, MongoValidation}
 import play.api.libs.functional.syntax._
-import play.api.libs.json.JodaReads._
-import play.api.libs.json.JodaWrites._
-import play.api.libs.json.{JsonValidationError, _}
-import org.joda.time.{DateTime, DateTimeZone}
+import play.api.libs.json._
+
+import java.time.{Instant, LocalDate}
 
 object RegistrationStatus {
   val DRAFT = "draft"
@@ -49,9 +48,9 @@ case class CorporationTaxRegistration(internalId: String,
                                       crn: Option[String] = None,
                                       submissionTimestamp: Option[String] = None,
                                       verifiedEmail: Option[Email] = None,
-                                      createdTime: DateTime = CorporationTaxRegistration.now,
-                                      lastSignedIn: DateTime = CorporationTaxRegistration.now,
-                                      heldTimestamp: Option[DateTime] = None,
+                                      createdTime: Instant = CorporationTaxRegistration.now,
+                                      lastSignedIn: Instant = CorporationTaxRegistration.now,
+                                      heldTimestamp: Option[Instant] = None,
                                       sessionIdentifiers: Option[SessionIds] = None,
                                       groups: Option[Groups] = None,
                                       takeoverDetails: Option[TakeoverDetails] = None
@@ -59,12 +58,14 @@ case class CorporationTaxRegistration(internalId: String,
 
 object CorporationTaxRegistration {
 
-  def now: DateTime = DateTime.now(DateTimeZone.UTC)
+  def now: Instant = Instant.now()
 
-  implicit val dateFormatDefault = new Format[DateTime] {
-    override def reads(json: JsValue): JsResult[DateTime] = JodaReads.DefaultJodaDateTimeReads.reads(json)
-
-    override def writes(o: DateTime): JsValue = JodaDateTimeNumberWrites.writes(o)
+  implicit val timestampFormat = new Format[Instant] {
+    override def reads(json: JsValue): JsResult[Instant] = json match {
+      case n: JsNumber => n.validate[Long].map(Instant.ofEpochMilli)
+      case s => s.validate[String].map(Instant.parse)
+    }
+    override def writes(o: Instant): JsValue = JsNumber(o.toEpochMilli)
   }
 
   def format(formatter: BaseJsonFormatting, cryptoSCRS: CryptoSCRS): Format[CorporationTaxRegistration] = {
@@ -85,9 +86,9 @@ object CorporationTaxRegistration {
         (__ \ "crn").readNullable[String] and
         (__ \ "submissionTimestamp").readNullable[String] and
         (__ \ "verifiedEmail").readNullable[Email] and
-        (__ \ "createdTime").read[DateTime] and
-        (__ \ "lastSignedIn").read[DateTime].map(_.withZone(DateTimeZone.UTC)).orElse(Reads.pure(CorporationTaxRegistration.now)) and
-        (__ \ "heldTimestamp").readNullable[DateTime] and
+        (__ \ "createdTime").read[Instant] and
+        (__ \ "lastSignedIn").read[Instant].orElse(Reads.pure(CorporationTaxRegistration.now)) and
+        (__ \ "heldTimestamp").readNullable[Instant] and
         (__ \ "sessionIdentifiers").readNullable[SessionIds](SessionIds.format(cryptoSCRS)) and
         (__ \ "groups").readNullable[Groups](Groups.formats(formatter, cryptoSCRS)) and
         (__ \ "takeoverDetails").readNullable[TakeoverDetails]
@@ -110,9 +111,9 @@ object CorporationTaxRegistration {
         (__ \ "crn").writeNullable[String] and
         (__ \ "submissionTimestamp").writeNullable[String] and
         (__ \ "verifiedEmail").writeNullable[Email] and
-        (__ \ "createdTime").write[DateTime](dateFormatDefault) and
-        (__ \ "lastSignedIn").write[DateTime](dateFormatDefault) and
-        (__ \ "heldTimestamp").writeNullable[DateTime](dateFormatDefault) and
+        (__ \ "createdTime").write[Instant] and
+        (__ \ "lastSignedIn").write[Instant] and
+        (__ \ "heldTimestamp").writeNullable[Instant] and
         (__ \ "sessionIdentifiers").writeNullable[SessionIds](SessionIds.format(cryptoSCRS)) and
         (__ \ "groups").writeNullable[Groups](Groups.formats(formatter, cryptoSCRS)) and
         (__ \ "takeoverDetails").writeNullable[TakeoverDetails]
@@ -338,7 +339,7 @@ object AccountingDetails {
 }
 
 case class AccountPrepDetails(status: String = AccountPrepDetails.HMRC_DEFINED,
-                              endDate: Option[DateTime] = None)
+                              endDate: Option[LocalDate] = None)
 
 object AccountPrepDetails {
   val HMRC_DEFINED = "HMRC_DEFINED"
@@ -347,7 +348,7 @@ object AccountPrepDetails {
   def format(formatter: BaseJsonFormatting): Format[AccountPrepDetails] = {
     val formatDef = (
       (__ \ "businessEndDateChoice").format[String](formatter.acctPrepStatusValidator) and
-        (__ \ "businessEndDate").formatNullable[DateTime](formatter.dateFormat)
+        (__ \ "businessEndDate").formatNullable[LocalDate](formatter.dateFormat)
       ) (AccountPrepDetails.apply, unlift(AccountPrepDetails.unapply))
 
     formatter.accountPrepDetailsFormatWithFilter(formatDef)
