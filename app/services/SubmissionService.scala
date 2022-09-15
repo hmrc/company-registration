@@ -24,15 +24,14 @@ import models.RegistrationStatus.{ACKNOWLEDGED, DRAFT, LOCKED, SUBMITTED}
 import models._
 import models.des._
 import models.validation.APIValidation
-import org.joda.time.{DateTime, DateTimeZone}
-import utils.Logging
 import play.api.libs.json.{JsObject, JsString, Json}
 import play.api.mvc.{AnyContent, Request}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories, SequenceMongoRepository}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
-import utils.{PagerDutyKeys, StringNormaliser}
+import utils.{Logging, PagerDutyKeys, StringNormaliser}
 
+import java.time.Instant
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -46,7 +45,7 @@ class SubmissionServiceImpl @Inject()(val repositories: Repositories,
   lazy val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
   lazy val sequenceRepository: SequenceMongoRepository = repositories.sequenceRepository
 
-  def currentDateTime: DateTime = DateTime.now(DateTimeZone.UTC)
+  def instantNow: Instant = Instant.now()
 }
 
 trait SubmissionService extends DateHelper with Logging {
@@ -60,7 +59,7 @@ trait SubmissionService extends DateHelper with Logging {
   val brConnector: BusinessRegistrationConnector
   val corpTaxRegService: CorporationTaxRegistrationService
 
-  def currentDateTime: DateTime
+  def instantNow: Instant
 
   def handleSubmission(rID: String, authProvId: String, handOffRefs: ConfirmationReferences, isAdmin: Boolean)
                       (implicit hc: HeaderCarrier, req: Request[AnyContent]): Future[ConfirmationReferences] = {
@@ -227,7 +226,7 @@ trait SubmissionService extends DateHelper with Logging {
         sessionId = sessionID,
         credId = credID,
         language = brMetadata.language,
-        submissionTs = DateTime.parse(formatTimestamp(currentDateTime)),
+        submissionTs = instantNow,
         completionCapacity = completionCapacity
       ),
       interimCorporationTax = InterimCorporationTax(

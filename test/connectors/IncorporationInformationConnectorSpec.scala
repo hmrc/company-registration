@@ -19,10 +19,8 @@ package connectors
 import fixtures.BusinessRegistrationFixture
 import helpers.BaseSpec
 import models.IncorpStatus
-import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
-import play.api.Logger
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{AnyContent, Request}
 import play.api.test.FakeRequest
@@ -30,6 +28,7 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, NotFoundException, Upstream5xxResponse}
 import utils.LogCapturing
 
+import java.time.{Instant, LocalDate}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -77,14 +76,14 @@ class IncorporationInformationConnectorSpec extends BaseSpec with BusinessRegist
        |      "crn":"$crn",
        |      "incorporationDate":"$incorpDate",
        |      "description":"$description",
-       |      "timestamp":"${DateTime.parse("2017-04-25").getMillis}"
+       |      "timestamp":"${Instant.parse("2017-04-25T00:00:00.000Z").toEpochMilli}"
        |    }
        |  }
        |}
       """.stripMargin)
 
 
-  val expected = IncorpStatus(txId, status, Some(crn), Some(description), Some(DateTime.parse(incorpDate)))
+  val expected = IncorpStatus(txId, status, Some(crn), Some(description), Some(LocalDate.parse(incorpDate)))
 
   "callBackUrl" must {
     "return admin url when admin is true" in new Setup {

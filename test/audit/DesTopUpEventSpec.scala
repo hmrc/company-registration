@@ -17,9 +17,10 @@
 package audit
 
 
-import org.joda.time.DateTime
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.Json
+
+import java.time.LocalDate
 
 class DesTopUpEventSpec extends PlaySpec {
 
@@ -50,9 +51,9 @@ class DesTopUpEventSpec extends PlaySpec {
         regId,
         ackRef,
         accepted,
-        Some(DateTime.parse("2017-01-02")),
-        Some(DateTime.parse("2017-01-04")),
-        Some(DateTime.parse("2017-01-01")),
+        Some(LocalDate.parse("2017-01-02")),
+        Some(LocalDate.parse("2017-01-04")),
+        Some(LocalDate.parse("2017-01-01")),
         Some(crn)
       )
 

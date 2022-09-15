@@ -18,17 +18,18 @@ package models.des
 
 import models.validation.APIValidation
 import models.{Groups, TakeoverDetails}
-import org.joda.time.DateTime
-import org.joda.time.format.{DateTimeFormatter, ISODateTimeFormat}
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Writes._
 import play.api.libs.json._
 
+import java.time.Instant
+import java.time.format.{DateTimeFormatter, DateTimeFormatterBuilder}
+
 object DesFormats {
 
-  private val datetime: DateTimeFormatter = ISODateTimeFormat.dateTime()
+  private val datetime: DateTimeFormatter = new DateTimeFormatterBuilder().appendInstant(3).toFormatter
 
-  def formatTimestamp(ts: DateTime): String = datetime.print(ts)
+  def formatTimestamp(ts: Instant): String = datetime.format(ts)
 
 }
 
@@ -158,7 +159,7 @@ object BusinessContactDetails {
 case class Metadata(sessionId: String,
                     credId: String,
                     language: String,
-                    submissionTs: DateTime,
+                    submissionTs: Instant,
                     completionCapacity: CompletionCapacity)
 
 object Metadata {

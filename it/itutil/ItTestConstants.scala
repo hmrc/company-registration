@@ -17,9 +17,9 @@
 package itutil
 
 import models._
-import org.joda.time.DateTime
 import play.api.libs.json._
-import play.api.libs.json.JodaWrites._
+
+import java.time.Instant
 
 
 object ItTestConstants {
@@ -104,8 +104,8 @@ object ItTestConstants {
 
     def fullCorpTaxRegJson(optAccountingDetails: Option[JsObject] = None,
                            optTakeoverDetails: Option[JsObject] = None,
-                           createdTime: DateTime = DateTime.now,
-                           lastSignedIn: DateTime = DateTime.now
+                           createdTime: Instant = Instant.now,
+                           lastSignedIn: Instant = Instant.now
                           ): JsObject =
       Json.obj(fields =
         "internalId" -> testInternalId,
@@ -125,8 +125,8 @@ object ItTestConstants {
     def corpTaxRegModel(optConfirmationDetails: Option[ConfirmationReferences] = None,
                         optAccountingDetails: Option[AccountingDetails] = None,
                         optTakeoverDetails: Option[TakeoverDetails] = None,
-                        createdTime: DateTime = DateTime.now,
-                        lastSignedIn: DateTime = DateTime.now
+                        createdTime: Instant = Instant.now,
+                        lastSignedIn: Instant = Instant.now
                        ): CorporationTaxRegistration =
       models.CorporationTaxRegistration(
         internalId = testInternalId,

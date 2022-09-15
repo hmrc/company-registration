@@ -17,14 +17,13 @@
 package connectors
 
 import models.{BusinessRegistration, BusinessRegistrationRequest}
-import org.joda.time.DateTime
-import utils.Logging
-import play.api.libs.json.JodaWrites._
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import utils.Logging
 
+import java.time.Instant
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -122,8 +121,8 @@ trait BusinessRegistrationConnector extends Logging {
     }
   }
 
-  def updateLastSignedIn(registrationId: String, dateTime: DateTime)(implicit hc: HeaderCarrier): Future[String] = {
-    val json = Json.toJson(dateTime)
+  def updateLastSignedIn(registrationId: String, timestamp: Instant)(implicit hc: HeaderCarrier): Future[String] = {
+    val json = Json.toJson(timestamp)
     http.PATCH[JsValue, HttpResponse](s"$businessRegUrl/business-registration/business-tax-registration/last-signed-in/$registrationId", json).map {
       res => res.body
     } recover {

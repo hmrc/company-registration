@@ -26,7 +26,6 @@ import mocks.AuthorisationMocks
 import models.RegistrationStatus._
 import models._
 import models.des._
-import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
@@ -43,6 +42,7 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
 import utils.{LogCapturing, PagerDutyKeys}
 
+import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -60,7 +60,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
   val mockDesConnector: DesConnector = mock[DesConnector]
   val mockCorpTaxService: CorporationTaxRegistrationService = mock[CorporationTaxRegistrationService]
 
-  val dateTime: DateTime = DateTime.parse("2016-10-27T16:28:59.000")
+  val dateTime: Instant = Instant.parse("2016-10-27T16:28:59.000Z")
 
   val regId: String = "reg-id-12345"
   val transId: String = "trans-id-12345"
@@ -84,7 +84,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
       override val brConnector: BusinessRegistrationConnector = mockBRConnector
       override val corpTaxRegService: CorporationTaxRegistrationService = mockCorpTaxService
       implicit val ec: ExecutionContext = global
-      override def currentDateTime: DateTime = dateTime
+      override def instantNow: Instant = dateTime
     }
   }
 
@@ -461,7 +461,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
 
       result mustBe InterimDesRegistration(
         ackRef,
-        Metadata(sessionId, credId, "en", DateTime.parse(service.formatTimestamp(dateTime)), Director),
+        Metadata(sessionId, credId, "en", dateTime, Director),
         InterimCorporationTax(
           "name",
           returnsOnCT61 = false,
@@ -483,7 +483,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
 
       result mustBe InterimDesRegistration(
         ackRef,
-        Metadata(sessionId, credId, "en", DateTime.parse(service.formatTimestamp(dateTime)), Director),
+        Metadata(sessionId, credId, "en", dateTime, Director),
         InterimCorporationTax(
           "name",
           returnsOnCT61 = false,
@@ -509,7 +509,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
 
       result mustBe InterimDesRegistration(
         ackRef,
-        Metadata(sessionId, credId, "en", DateTime.parse(service.formatTimestamp(dateTime)), Director),
+        Metadata(sessionId, credId, "en", dateTime, Director),
         InterimCorporationTax(
           "name",
           returnsOnCT61 = false,
@@ -534,7 +534,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
 
       result mustBe InterimDesRegistration(
         ackRef,
-        Metadata(sessionId, credId, "en", DateTime.parse(service.formatTimestamp(dateTime)), Director),
+        Metadata(sessionId, credId, "en", dateTime, Director),
         InterimCorporationTax(
           "name",
           returnsOnCT61 = false,
@@ -580,7 +580,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
 
       result mustBe InterimDesRegistration(
         ackRef,
-        Metadata(sessionId, credId, "en", DateTime.parse(service.formatTimestamp(dateTime)), Director),
+        Metadata(sessionId, credId, "en", dateTime, Director),
         InterimCorporationTax(
           "name",
           returnsOnCT61 = false,
@@ -609,7 +609,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
 
       result mustBe InterimDesRegistration(
         ackRef,
-        Metadata(sessionId, credId, "en", DateTime.parse(service.formatTimestamp(dateTime)), Director),
+        Metadata(sessionId, credId, "en", dateTime, Director),
         InterimCorporationTax(
           "name",
           returnsOnCT61 = false,
@@ -642,7 +642,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
 
       result mustBe InterimDesRegistration(
         ackRef,
-        Metadata(sessionId, credId, "en", DateTime.parse(service.formatTimestamp(dateTime)), Director),
+        Metadata(sessionId, credId, "en", dateTime, Director),
         InterimCorporationTax(
           "name",
           returnsOnCT61 = false,
@@ -679,7 +679,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
 
       result mustBe InterimDesRegistration(
         ackRef,
-        Metadata(sessionId, credId, "en", DateTime.parse(service.formatTimestamp(dateTime)), Director),
+        Metadata(sessionId, credId, "en", dateTime, Director),
         InterimCorporationTax(
           "name",
           returnsOnCT61 = false,
@@ -736,7 +736,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
 
       result mustBe InterimDesRegistration(
         ackRef,
-        Metadata(sessionId, credId, "en", DateTime.parse(service.formatTimestamp(dateTime)), Director),
+        Metadata(sessionId, credId, "en", dateTime, Director),
         InterimCorporationTax(
           "name",
           returnsOnCT61 = false,
@@ -770,7 +770,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
 
       result mustBe InterimDesRegistration(
         ackRef,
-        Metadata(sessionId, credId, "en", DateTime.parse(service.formatTimestamp(dateTime)), Director),
+        Metadata(sessionId, credId, "en", dateTime, Director),
         InterimCorporationTax(
           "name",
           returnsOnCT61 = false,
@@ -941,7 +941,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
         Some("test@email.co.uk")
       )),
       tradingDetails = Some(TradingDetails("false")),
-      heldTimestamp = Some(DateTime.now()),
+      heldTimestamp = Some(Instant.now()),
       confirmationReferences = Some(confRefs),
       sessionIdentifiers = Some(sessIds)
     )

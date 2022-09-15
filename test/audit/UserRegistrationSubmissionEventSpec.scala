@@ -17,9 +17,10 @@
 package audit
 
 import models.des._
-import org.joda.time.DateTime
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsObject, Json}
+
+import java.time.Instant
 
 class UserRegistrationSubmissionEventSpec extends PlaySpec {
 
@@ -85,7 +86,7 @@ class UserRegistrationSubmissionEventSpec extends PlaySpec {
         Json.toJson(InterimDesRegistration(
           ackRef,
           Metadata(
-            "sessionId", "credId", "eng", DateTime.parse(timestamp), CompletionCapacity("Director")
+            "sessionId", "credId", "eng", Instant.parse(timestamp), CompletionCapacity("Director")
           ),
           InterimCorporationTax(
             "Company Co",
@@ -142,7 +143,7 @@ class UserRegistrationSubmissionEventSpec extends PlaySpec {
         Json.toJson(InterimDesRegistration(
           ackRef,
           Metadata(
-            "sessionId", "credId", "eng", DateTime.parse(timestamp), CompletionCapacity("Director")
+            "sessionId", "credId", "eng", Instant.parse(timestamp), CompletionCapacity("Director")
           ),
           InterimCorporationTax(
             "Company Co",

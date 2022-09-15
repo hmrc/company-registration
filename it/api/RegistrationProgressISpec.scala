@@ -19,7 +19,6 @@ package api
 import itutil.WiremockHelper._
 import itutil.{IntegrationSpecBase, LoginStub, MongoIntegrationSpec, WiremockHelper}
 import models.CorporationTaxRegistration
-import org.joda.time.DateTime
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.crypto.DefaultCookieSigner
@@ -27,6 +26,8 @@ import play.api.test.Helpers._
 import repositories.CorporationTaxRegistrationMongoRepository
 import uk.gov.hmrc.http.{HeaderNames => GovHeaderNames}
 
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -72,8 +73,8 @@ class RegistrationProgressISpec extends IntegrationSpecBase with LoginStub with 
       "draft",
       "testDateTime",
       "en",
-      createdTime = DateTime.now().minusDays(1),
-      lastSignedIn = DateTime.now(),
+      createdTime = Instant.now().minus(1, ChronoUnit.DAYS),
+      lastSignedIn = Instant.now(),
     )
 
     "Update the CR doc successfully with the progress info" in new Setup {

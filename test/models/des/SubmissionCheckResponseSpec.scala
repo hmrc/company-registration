@@ -17,9 +17,10 @@
 package models.des
 
 import models.{IncorpUpdate, SubmissionCheckResponse}
-import org.joda.time.DateTime
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.Json
+
+import java.time.LocalDate
 
 class SubmissionCheckResponseSpec extends PlaySpec  {
 
@@ -62,7 +63,7 @@ class SubmissionCheckResponseSpec extends PlaySpec  {
            |}
        """.stripMargin
 
-      val testIncorpUpdate = IncorpUpdate("0987654322", "accepted", Some("99999999"), Some(new DateTime(2016, 8, 10, 0, 0)), "123456787")
+      val testIncorpUpdate = IncorpUpdate("0987654322", "accepted", Some("99999999"), Some(LocalDate.of(2016, 8, 10)), "123456787")
       val testModel1 = SubmissionCheckResponse(Seq(testIncorpUpdate), "https://ewf.companieshouse.gov.uk/submissions?timepoint=123456789")
 
       Json.fromJson[SubmissionCheckResponse](Json.parse(json1)).get mustBe testModel1
@@ -93,8 +94,8 @@ class SubmissionCheckResponseSpec extends PlaySpec  {
            |}
        """.stripMargin
 
-      val testIncorpUpdate = IncorpUpdate("0987654322", "accepted", Some("99999999"), Some(new DateTime(2016, 8, 10, 0, 0)), "123456787")
-      val testIncorpUpdate2 = IncorpUpdate("0987654321","accepted", Some("99999998"), Some(new DateTime(2016, 8, 10, 0, 0)), "123456789")
+      val testIncorpUpdate = IncorpUpdate("0987654322", "accepted", Some("99999999"), Some(LocalDate.of(2016, 8, 10)), "123456787")
+      val testIncorpUpdate2 = IncorpUpdate("0987654321","accepted", Some("99999998"), Some(LocalDate.of(2016, 8, 10)), "123456789")
 
       val testModel1 = SubmissionCheckResponse(
         Seq(testIncorpUpdate,testIncorpUpdate2),

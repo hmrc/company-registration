@@ -19,7 +19,6 @@ package controllers
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import models.IncorpStatus
-import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.concurrent.Eventually
@@ -33,6 +32,7 @@ import play.api.test.Helpers._
 import services._
 import utils.LogCapturing
 
+import java.time.{LocalDate, ZoneOffset}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -42,7 +42,7 @@ class ProcessIncorporationsControllerSpec extends PlaySpec with MockitoSugar wit
   implicit val mat = ActorMaterializer()
 
   val regId = "1234"
-  val incDate = DateTime.parse("2000-12-12")
+  val incDate = LocalDate.parse("2000-12-12")
   val transactionId = "trans-12345"
   val crn = "crn-12345"
 
@@ -95,7 +95,7 @@ class ProcessIncorporationsControllerSpec extends PlaySpec with MockitoSugar wit
        |    "IncorpStatusEvent":{
        |       "status":"accepted",
        |      "crn":"$crn",
-       |      "incorporationDate":${incDate.getMillis}
+       |      "incorporationDate":${incDate.atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli}
        |    }
        |  }
        |}

@@ -20,7 +20,6 @@ import connectors._
 import fixtures.{BusinessRegistrationFixture, CorporationTaxRegistrationFixture}
 import helpers.MockHelper
 import models.{Email, UserAccessLimitReachedResponse, UserAccessSuccessResponse}
-import org.joda.time.{DateTime, DateTimeZone}
 import org.mockito.ArgumentMatchers.{any, anyString, eq => eqTo}
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
@@ -31,6 +30,7 @@ import play.api.test.Helpers._
 import repositories.CorporationTaxRegistrationMongoRepository
 import uk.gov.hmrc.http.HeaderCarrier
 
+import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -71,14 +71,14 @@ class UserAccessServiceSpec extends PlaySpec with MockitoSugar with BusinessRegi
 
     val regId = "12345"
     val internalId = "int-123"
-    val dateTime = DateTime.now(DateTimeZone.UTC)
+    val dateTime = Instant.now()
 
     "return a UserAccessSuccessResponse with the created and confirmation ref flags set to false" in new Setup {
       when(mockBRConnector.retrieveMetadata(any(), any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistrationResponse(regId))))
       when(mockBRConnector.updateLastSignedIn(any(), any())(any()))
         .thenReturn(Future.successful(dateTime.toString))
-      when(mockCTService.retrieveCorporationTaxRegistrationRecord(eqTo(regId), any[Option[DateTime]]()))
+      when(mockCTService.retrieveCorporationTaxRegistrationRecord(eqTo(regId), any[Option[Instant]]()))
         .thenReturn(Future.successful(Some(draftCorporationTaxRegistration(regId))))
 
       await(service.checkUserAccess(internalId)) mustBe Right(UserAccessSuccessResponse(regId, false, false, false))
@@ -102,7 +102,7 @@ class UserAccessServiceSpec extends PlaySpec with MockitoSugar with BusinessRegi
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistrationResponse(regId))))
       when(mockBRConnector.updateLastSignedIn(any(), any())(any()))
         .thenReturn(Future.successful(dateTime.toString))
-      when(mockCTService.retrieveCorporationTaxRegistrationRecord(eqTo(regId), any[Option[DateTime]]()))
+      when(mockCTService.retrieveCorporationTaxRegistrationRecord(eqTo(regId), any[Option[Instant]]()))
         .thenReturn(Future.successful(None))
 
       intercept[MissingRegistration] {

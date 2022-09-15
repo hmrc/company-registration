@@ -19,7 +19,6 @@ package services
 import connectors._
 import fixtures.CorporationTaxRegistrationFixture
 import models._
-import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
 import org.scalatest.concurrent.Eventually
@@ -36,6 +35,7 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
 import utils.LogCapturing
 
+import java.time.LocalDate
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
@@ -98,7 +98,7 @@ class ProcessIncorporationServiceSpec extends PlaySpec with MockitoSugar with Co
     }
   }
 
-  def date(yyyyMMdd: String) = DateTime.parse(yyyyMMdd)
+  def date(yyyyMMdd: String) = LocalDate.parse(yyyyMMdd)
 
   implicit val hc = HeaderCarrier()
 
@@ -115,7 +115,7 @@ class ProcessIncorporationServiceSpec extends PlaySpec with MockitoSugar with Co
   val submittedCR = validCR.copy(status = SUBMITTED)
   val acknowledgedCR = validCR.copy(status = ACKNOWLEDGED)
   val failCaseCR = validCR.copy(status = DRAFT)
-  val incorpSuccess = IncorpUpdate(transId, "accepted", Some("012345"), Some(new DateTime(2016, 8, 10, 0, 0)), timepoint)
+  val incorpSuccess = IncorpUpdate(transId, "accepted", Some("012345"), Some(LocalDate.of(2016, 8, 10)), timepoint)
   val incorpRejected = IncorpUpdate(transId, "rejected", None, None, timepoint, Some("testReason"))
   val submissionCheckResponseSingle = SubmissionCheckResponse(Seq(incorpSuccess), "testNextLink")
   val submissionCheckResponseDouble = SubmissionCheckResponse(Seq(incorpSuccess, incorpSuccess), "testNextLink")
@@ -197,9 +197,8 @@ class ProcessIncorporationServiceSpec extends PlaySpec with MockitoSugar with Co
   val validRejectedTopUpDesSubmission = Json.parse(topUpRejSub(rejectedStatus, testAckRef)).as[JsObject]
 
   "formatDate" must {
-    "format a DateTime timestamp into the format yyyy-mm-dd" in new Setup {
-      val date = DateTime.parse("1970-01-01T00:00:00.000Z")
-      Service.formatDate(date) mustBe "1970-01-01"
+    "format a LocalDate into the format yyyy-mm-dd" in new Setup {
+      Service.formatDate(LocalDate.of(1970,1,1)) mustBe "1970-01-01"
     }
   }
 

@@ -18,11 +18,11 @@ package services
 
 import helpers.BaseSpec
 import models.AccountPrepDetails
-import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
 import play.api.test.Helpers._
 
+import java.time.LocalDate
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -39,7 +39,7 @@ class PrepareAccountServiceSpec extends BaseSpec {
 
     val rID = "testRegID"
 
-    val prepareAccountModel = AccountPrepDetails(AccountPrepDetails.COMPANY_DEFINED, Some(DateTime.parse("1980-12-12")))
+    val prepareAccountModel = AccountPrepDetails(AccountPrepDetails.COMPANY_DEFINED, Some(LocalDate.parse("1980-12-12")))
 
     "return a PrepareAccountModel on successful update" in new Setup {
       when(mockCTDataRepository.updateCompanyEndDate(ArgumentMatchers.eq(rID), ArgumentMatchers.any()))

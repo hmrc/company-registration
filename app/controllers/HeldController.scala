@@ -17,15 +17,14 @@
 package controllers
 
 import auth._
-import javax.inject.{Inject, Singleton}
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.ProcessIncorporationService
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import utils.JodaDateTimeFormatter
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 
@@ -34,13 +33,13 @@ class HeldController @Inject()(val authConnector: AuthConnector,
                                val service: ProcessIncorporationService,
                                val repositories: Repositories,
                                controllerComponents: ControllerComponents
-                              )(implicit val ec: ExecutionContext) extends BackendController(controllerComponents) with AuthorisedActions with JodaDateTimeFormatter {
+                              )(implicit val ec: ExecutionContext) extends BackendController(controllerComponents) with AuthorisedActions {
   lazy val resource: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 
 
   def fetchHeldSubmissionTime(regId: String): Action[AnyContent] = AuthenticatedAction.async {
     resource.getExistingRegistration(regId) map { doc =>
-      doc.heldTimestamp.fold(NotFound(""))(date => Ok(Json.toJson(date)))
+      doc.heldTimestamp.fold(NotFound(""))(date => Ok(Json.toJson(date.toEpochMilli)))
     }
   }
 

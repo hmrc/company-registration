@@ -22,15 +22,16 @@ import jobs.{LockResponse, MongoLocked, ScheduledService, UnlockingFailed}
 import models.des.BusinessAddress
 import models.validation.APIValidation._
 import models.{HttpResponse => _, _}
-import org.joda.time.{DateTime, DateTimeZone, Duration}
-import utils.Logging
 import repositories._
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.lock.LockService
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import utils.StringNormaliser
+import utils.{Logging, StringNormaliser}
+import cats._
+import cats.implicits._
 
+import java.time.Instant
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
@@ -52,7 +53,7 @@ class CorporationTaxRegistrationServiceImpl @Inject()(val submissionCheckAPIConn
 
   lazy val lockoutTimeout = servicesConfig.getInt("schedules.missing-incorporation-job.lockTimeout")
 
-  def currentDateTime: DateTime = DateTime.now(DateTimeZone.UTC)
+  def instantNow: Instant = Instant.now()
 
   lazy val lockKeeper: LockService =
     LockService(repositories.lockRepository, "missing-incorporation-job-lock", lockoutTimeout.seconds)
@@ -74,7 +75,7 @@ trait CorporationTaxRegistrationService extends ScheduledService[Either[String, 
   val submissionCheckAPIConnector: IncorporationCheckAPIConnector
   val lockKeeper: LockService
 
-  def currentDateTime: DateTime
+  def instantNow: Instant
 
   def updateRegistrationProgress(regID: String, progress: String): Future[Option[String]] = cTRegistrationRepository.updateRegistrationProgress(regID, progress)
 
@@ -83,19 +84,18 @@ trait CorporationTaxRegistrationService extends ScheduledService[Either[String, 
     val record = CorporationTaxRegistration(
       internalId = internalId,
       registrationID = registrationId,
-      formCreationTimestamp = formatTimestamp(currentDateTime),
+      formCreationTimestamp = formatTimestamp(instantNow),
       language = language)
 
     cTRegistrationRepository.createCorporationTaxRegistration(record)
   }
 
-  def retrieveCorporationTaxRegistrationRecord(rID: String, lastSignedIn: Option[DateTime] = None): Future[Option[CorporationTaxRegistration]] = {
+  def retrieveCorporationTaxRegistrationRecord(rID: String, lastSignedIn: Option[Instant] = None): Future[Option[CorporationTaxRegistration]] = {
     val repo = cTRegistrationRepository
-    repo.findOneBySelector(repo.regIDSelector(rID)) map {
-      doc =>
-        lastSignedIn map (repo.updateLastSignedIn(rID, _))
-        doc
-    }
+    for {
+      doc <- repo.findOneBySelector(repo.regIDSelector(rID))
+      _ <- lastSignedIn.traverse(date => repo.updateLastSignedIn(rID, date))
+    } yield doc
   }
 
   private def returnSeqAddressLinesFromCHROAddress(rOAddress: CHROAddress): Seq[Option[String]] = {

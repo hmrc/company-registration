@@ -17,7 +17,6 @@
 package connectors
 
 import models.{IncorpUpdate, SubmissionCheckResponse}
-import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
 import org.scalatestplus.play.PlaySpec
@@ -26,6 +25,7 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
+import java.time.LocalDate
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
@@ -52,7 +52,7 @@ class SubmissionCheckAPIConnectorSpec extends PlaySpec with MockitoSugar {
         transactionId = "transactionId",
         status = "status",
         crn = Some("crn"),
-        incorpDate = Some(new DateTime(2016, 8, 10, 0, 0)),
+        incorpDate = Some(LocalDate.of(2016, 8, 10)),
         timepoint = "100000011")
     ),
     "testNextLink")

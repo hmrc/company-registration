@@ -19,7 +19,6 @@ package controllers
 import helpers.BaseSpec
 import mocks.AuthorisationMocks
 import models.{CorporationTaxRegistration, RegistrationStatus}
-import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
 import play.api.mvc.Result
@@ -28,6 +27,7 @@ import play.api.test.Helpers._
 import repositories.{CorporationTaxRegistrationMongoRepository, MissingCTDocument, Repositories}
 import uk.gov.hmrc.http.HeaderCarrier
 
+import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -50,9 +50,9 @@ class HeldControllerSpec extends BaseSpec with AuthorisationMocks {
   val otherRegId: String = "other-reg-12345"
   val internalId: String = "int-12345"
   val timestamp: String = "2016-12-31T12:00:00.000Z"
-  val dateTime: DateTime = DateTime.parse(timestamp)
+  val dateTime: Instant = Instant.parse(timestamp)
 
-  def doc(timestamp: Option[DateTime]): CorporationTaxRegistration = {
+  def doc(timestamp: Option[Instant]): CorporationTaxRegistration = {
     CorporationTaxRegistration(internalId = "",
       registrationID = regId,
       status = RegistrationStatus.HELD,
@@ -79,14 +79,14 @@ class HeldControllerSpec extends BaseSpec with AuthorisationMocks {
   "fetchHeldTimestamp" must {
     "return a 200 and a held time stamp" in new Setup {
       mockAuthorise()
-      val now: DateTime = DateTime.now()
+      val now: Instant = Instant.now()
 
       when(mockResource.getExistingRegistration(ArgumentMatchers.any()))
         .thenReturn(Future.successful(doc(Some(now))))
 
       val result: Future[Result] = controller.fetchHeldSubmissionTime(regId)(FakeRequest())
       status(result) mustBe OK
-      contentAsString(result) mustBe s"${now.getMillis}"
+      contentAsString(result) mustBe s"${now.toEpochMilli}"
     }
     "return 404 If no date exists" in new Setup {
       mockAuthorise()

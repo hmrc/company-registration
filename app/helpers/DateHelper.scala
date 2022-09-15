@@ -16,14 +16,10 @@
 
 package helpers
 
-import java.text.SimpleDateFormat
-import java.time.format.DateTimeFormatter
-import java.time.{ZoneId, ZonedDateTime}
-import java.util.Date
-
-import org.joda.time.format.DateTimeFormat
-import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json.{JsString, Writes}
+
+import java.time._
+import java.time.format.DateTimeFormatter
 
 trait DateFormatter extends DateHelper {
   val zonedDateTimeWrites: Writes[ZonedDateTime] = new Writes[ZonedDateTime] {
@@ -34,33 +30,15 @@ trait DateFormatter extends DateHelper {
 trait DateHelper {
   val dtFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXX")
 
-  def now: DateTime = {
-    DateTime.now(DateTimeZone.UTC)
-  }
+  def nowAsZonedDateTime: ZonedDateTime = ZonedDateTime.now(ZoneOffset.UTC)
 
-  def nowAsZonedDateTime: ZonedDateTime = ZonedDateTime.now(ZoneId.of("UTC"))
+  def getCurrentDay: String = formatDate(LocalDate.now(ZoneOffset.UTC))
 
-  def getCurrentDay: String = {
-    now.toString("yyyy-MM-dd")
-  }
+  def asDate(s: String): LocalDate = LocalDate.parse(s)
 
-  def yyyymmdd(s: String): DateTime = {
-    DateTime.parse(s, DateTimeFormat.forPattern("yyyy-MM-dd"))
-  }
+  def formatDate(date: LocalDate): String = date.format(DateTimeFormatter.ISO_LOCAL_DATE)
 
-  def asDate(s: String): DateTime = {
-    DateTime.parse(s)
-  }
-
-  def formatDate(date: DateTime): String = {
-    date.toString("yyyy-MM-dd")
-  }
-
-  def formatTimestamp(timeStamp: DateTime): String = {
-    val timeStampFormat = "yyyy-MM-dd'T'HH:mm:ssXXX"
-    val format: SimpleDateFormat = new SimpleDateFormat(timeStampFormat)
-    format.format(new Date(timeStamp.getMillis))
-  }
+  def formatTimestamp(timeStamp: Instant): String = timeStamp.toString
 
   def formatTimestamp(timeStamp: ZonedDateTime): String = {
     val utcTimeStamp = timeStamp.withZoneSameInstant(ZoneId.of("Z"))

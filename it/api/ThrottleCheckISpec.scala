@@ -18,7 +18,6 @@ package api
 
 import itutil.WiremockHelper._
 import itutil.{IntegrationSpecBase, LoginStub, MongoIntegrationSpec, WiremockHelper}
-import org.joda.time.DateTime
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.crypto.DefaultCookieSigner
@@ -27,6 +26,7 @@ import play.api.test.Helpers._
 import repositories.{CorporationTaxRegistrationMongoRepository, ThrottleMongoRepository}
 import uk.gov.hmrc.http.{HeaderNames => GovHeaderNames}
 
+import java.time.LocalDate
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -88,7 +88,7 @@ class ThrottleCheckISpec extends IntegrationSpecBase with MongoIntegrationSpec w
     def throttleDoc(current: Int) = Json.parse(
       s"""
          |{
-         |"_id": "${DateTime.now.toString("yyyy-MM-dd")}",
+         |"_id": "${LocalDate.now}",
          |"users_in": ${current},
          |"threshold": 0
          |}

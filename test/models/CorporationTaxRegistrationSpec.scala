@@ -21,25 +21,26 @@ import assets.TestConstants.TakeoverDetails.{testTakeoverDetails, testTakeoverDe
 import fixtures.CorporationTaxRegistrationFixture
 import helpers.BaseSpec
 import models.validation.APIValidation
-import org.joda.time.{DateTime, DateTimeZone}
 import org.scalacheck.Prop.forAll
 import org.scalacheck.{Gen, Prop, Test}
 import play.api.libs.json.{JsonValidationError, _}
 
+import java.time.Instant
+
 class CorporationTaxRegistrationSpec extends BaseSpec with JsonFormatValidation with CorporationTaxRegistrationFixture {
 
-  def now = DateTime.now(DateTimeZone.UTC)
+  def now = Instant.now()
 
   "CorporationTaxRegistration" must {
 
 
     "using a custom read on the held json document without a lastSignedIn value will default it to the current time" in {
-      val before = now.getMillis
+      val before = now.toEpochMilli
       val fullHeldJson = fullCorpTaxRegJson(optAccountingDetails = Some(testAccountingDetails))
       val ct = Json.fromJson[CorporationTaxRegistration](fullHeldJson)(CorporationTaxRegistration.format(APIValidation, mockInstanceOfCrypto)).get
-      val after = now.getMillis
+      val after = now.toEpochMilli
 
-      ct.lastSignedIn.getMillis >= before && ct.lastSignedIn.getMillis <= after mustBe true
+      ct.lastSignedIn.toEpochMilli >= before && ct.lastSignedIn.toEpochMilli <= after mustBe true
     }
     "using a custom read on the held json document without a lastSignedIn value will not change the rest of the document" in {
       val fullHeldJson = fullCorpTaxRegJson(optAccountingDetails = Some(testAccountingDetails))
@@ -50,7 +51,7 @@ class CorporationTaxRegistrationSpec extends BaseSpec with JsonFormatValidation 
       ) mustBe ct.get
     }
     "parse the takeover details section" in {
-      val testDateTime = DateTime.now(DateTimeZone.UTC)
+      val testDateTime = Instant.now()
       val ctrJson = fullCorpTaxRegJson(optAccountingDetails = Some(testAccountingDetails), optTakeoverDetails = Some(testTakeoverDetails))
       val expected = validHeldCorporationTaxRegistration.copy(
         createdTime = testDateTime,

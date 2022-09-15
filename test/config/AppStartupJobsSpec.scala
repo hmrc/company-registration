@@ -20,7 +20,6 @@ import assets.TestConstants.CorporationTaxRegistration.testTransactionId
 import fixtures.CorporationTaxRegistrationFixture
 import models.RegistrationStatus._
 import models.{ContactDetails, PPOBAddress, TradingDetails, _}
-import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
 import org.scalatest.concurrent.Eventually
@@ -31,6 +30,7 @@ import play.api.{Configuration, Logger}
 import repositories._
 import utils.LogCapturing
 
+import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -84,7 +84,7 @@ class AppStartupJobsSpec extends PlaySpec with MockitoSugar with LogCapturing
   }
   "fetch Reg Ids" must {
 
-    val dateTime: DateTime = DateTime.parse("2016-10-27T16:28:59.000")
+    val dateTime: Instant = Instant.parse("2016-10-27T16:28:59.000Z")
 
     def corporationTaxRegistration(regId: String,
                                    status: String = SUBMITTED,

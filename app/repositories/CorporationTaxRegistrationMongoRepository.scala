@@ -21,7 +21,6 @@ import cats.data.OptionT
 import cats.implicits._
 import models._
 import models.validation.MongoValidation
-import org.joda.time.{DateTime, DateTimeZone}
 import org.mongodb.scala.bson.BsonDocument
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model.Filters.{equal, lte}
@@ -29,12 +28,13 @@ import org.mongodb.scala.model.Indexes.ascending
 import org.mongodb.scala.model.Updates.{set, unset}
 import org.mongodb.scala.model._
 import org.mongodb.scala.result.UpdateResult
-import play.api.libs.json.JodaWrites._
 import play.api.libs.json._
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import utils.Logging
 
+import java.time.temporal.ChronoUnit
+import java.time.{Instant, LocalDateTime, ZoneOffset}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NoStackTrace
@@ -169,8 +169,8 @@ class CorporationTaxRegistrationMongoRepository @Inject()(val mongo: MongoCompon
     }
   }
 
-  def updateLastSignedIn(regId: String, dateTime: DateTime): Future[DateTime] =
-    update(regIDSelector(regId), "lastSignedIn", JsNumber(dateTime.getMillis)).map(_ => dateTime)
+  def updateLastSignedIn(regId: String, timestamp: Instant): Future[Instant] =
+    update(regIDSelector(regId), "lastSignedIn", JsNumber(timestamp.toEpochMilli)).map(_ => timestamp)
 
   def updateCTRecordWithAcknowledgments(ackRef: String, ctRecord: CorporationTaxRegistration): Future[UpdateResult] =
     collection.replaceOne(ackRefSelector(ackRef), ctRecord, ReplaceOptions().upsert(false)).toFuture()
@@ -376,7 +376,7 @@ class CorporationTaxRegistrationMongoRepository @Inject()(val mongo: MongoCompon
   def retrieveAllWeekOldHeldSubmissions(): Future[Seq[CorporationTaxRegistration]] =
     findAllBySelector(Filters.and(
       equal("status", RegistrationStatus.HELD),
-      lte("heldTimestamp", DateTime.now(DateTimeZone.UTC).minusWeeks(1).getMillis)
+      lte("heldTimestamp", Instant.now().minus(7, ChronoUnit.DAYS).toEpochMilli)
     ))
 
   def retrieveLockedRegIDs(): Future[Seq[String]] =
@@ -427,10 +427,10 @@ class CorporationTaxRegistrationMongoRepository @Inject()(val mongo: MongoCompon
     val query = Filters.and(
       Filters.in("status", "draft", "held", "locked"),
       Filters.exists("confirmationReferences.payment-reference", exists = false),
-      Filters.lt("lastSignedIn", DateTime.now(DateTimeZone.UTC).withHourOfDay(0).minusDays(storageThreshold).getMillis),
+      Filters.lt("lastSignedIn", LocalDateTime.now(ZoneOffset.UTC).withHour(0).minusDays(storageThreshold).toInstant(ZoneOffset.UTC).toEpochMilli),
       Filters.or(
         Filters.exists("heldTimestamp", exists = false),
-        Filters.lt("heldTimestamp", DateTime.now(DateTimeZone.UTC).withHourOfDay(0).minusDays(storageThreshold).getMillis)
+        Filters.lt("heldTimestamp", LocalDateTime.now(ZoneOffset.UTC).withHour(0).minusDays(storageThreshold).toInstant(ZoneOffset.UTC).toEpochMilli)
       )
     )
 

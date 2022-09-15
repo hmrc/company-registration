@@ -19,12 +19,12 @@ package connectors
 import itutil.WiremockHelper._
 import itutil.{IntegrationSpecBase, WiremockHelper}
 import models._
-import org.joda.time.DateTime
-import org.joda.time.format.DateTimeFormat
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.Helpers._
 import uk.gov.hmrc.http.HeaderCarrier
+
+import java.time.LocalDate
 
 
 class IncorporationCheckAPIConnectorISpec extends IntegrationSpecBase {
@@ -45,7 +45,7 @@ class IncorporationCheckAPIConnectorISpec extends IntegrationSpecBase {
 
   implicit val hc = HeaderCarrier()
 
-  def asDate(date: String) = DateTime.parse(date, DateTimeFormat.forPattern("yyyy-MM-dd"))
+  def asDate(date: String) = LocalDate.parse(date)
 
   val incorporationCheckAPIConnector: IncorporationCheckAPIConnector = app.injector.instanceOf[IncorporationCheckAPIConnector]
 

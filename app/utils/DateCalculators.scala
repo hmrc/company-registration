@@ -16,32 +16,22 @@
 
 package utils
 
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
-
-import org.joda.time.{DateTime, DateTimeZone}
+import java.time.format.{DateTimeFormatter, TextStyle}
+import java.time.{LocalDate, LocalTime, ZoneOffset}
+import java.util.Locale
 
 
 object DateCalculators {
 
-  def getCurrentDay: String = {
-    DateTime
-      .now(DateTimeZone.UTC)
-      .dayOfWeek()
-      .getAsText()
-      .substring(0, 3)
-      .toUpperCase
-  }
+  def getCurrentDay: String = getTheDay(LocalDate.now(ZoneOffset.UTC))
 
   def getCurrentTime: LocalTime = LocalTime.now
 
-  def getTheDay(nowDateTime: DateTime): String = {
-    nowDateTime.dayOfWeek().getAsText().substring(0, 3).toUpperCase
-  }
+  def getTheDay(nowDateTime: LocalDate): String =
+    nowDateTime.getDayOfWeek.getDisplayName(TextStyle.SHORT, Locale.UK).toUpperCase
 
-  def loggingDay(validLoggingDays: String, todaysDate: String): Boolean = {
+  def loggingDay(validLoggingDays: String, todaysDate: String): Boolean =
     validLoggingDays.split(",").contains(todaysDate)
-  }
 
   def loggingTime(validLoggingTimes: String, now: LocalTime): Boolean = {
     implicit val frmt = LocalTime.parse(_: String, DateTimeFormatter.ofPattern("HH:mm:ss"))

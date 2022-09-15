@@ -17,11 +17,11 @@
 package assets
 
 import models._
-import org.joda.time.DateTime
 import play.api.libs.json._
-import utils.JodaDateTimeFormatter
 
-object TestConstants extends JodaDateTimeFormatter {
+import java.time.Instant
+
+object TestConstants {
 
   implicit class AppendableJsValue(jsValue: JsObject) {
     def plusOptional[A](optValue: (String, Option[A]))(implicit writes: Writes[A]): JsObject = optValue match {
@@ -103,8 +103,8 @@ object TestConstants extends JodaDateTimeFormatter {
 
     def fullCorpTaxRegJson(optAccountingDetails: Option[JsObject] = None,
                            optTakeoverDetails: Option[JsObject] = None,
-                           createdTime: DateTime = DateTime.now,
-                           lastSignedIn: DateTime = DateTime.now
+                           createdTime: Instant = Instant.now,
+                           lastSignedIn: Instant = Instant.now
                           ): JsObject =
       Json.obj(fields =
         "internalId" -> testInternalId,
@@ -124,8 +124,8 @@ object TestConstants extends JodaDateTimeFormatter {
     def corpTaxRegModel(optConfirmationDetails: Option[ConfirmationReferences] = None,
                         optAccountingDetails: Option[AccountingDetails] = None,
                         optTakeoverDetails: Option[TakeoverDetails] = None,
-                        createdTime: DateTime = DateTime.now,
-                        lastSignedIn: DateTime = DateTime.now
+                        createdTime: Instant = Instant.now,
+                        lastSignedIn: Instant = Instant.now
                        ): CorporationTaxRegistration =
       models.CorporationTaxRegistration(
         internalId = testInternalId,

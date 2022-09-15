@@ -17,14 +17,14 @@
 package services
 
 import connectors.{BusinessRegistrationConnector, BusinessRegistrationNotFoundResponse, BusinessRegistrationSuccessResponse}
-import javax.inject.{Inject, Singleton}
 import models.{CorporationTaxRegistration, UserAccessLimitReachedResponse, UserAccessSuccessResponse}
-import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json.{JsValue, Json}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
+import java.time.Instant
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NoStackTrace
 
@@ -54,7 +54,7 @@ trait UserAccessService {
   def checkUserAccess(internalId: String)(implicit hc: HeaderCarrier): Future[Either[JsValue, UserAccessSuccessResponse]] = {
     brConnector.retrieveMetadata flatMap {
       case BusinessRegistrationSuccessResponse(metadata) =>
-        val now = DateTime.now(DateTimeZone.UTC)
+        val now = Instant.now
         for {
           _ <- brConnector.updateLastSignedIn(metadata.registrationID, now)
           oCrData <- ctService.retrieveCorporationTaxRegistrationRecord(metadata.registrationID, Some(now))

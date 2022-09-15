@@ -16,42 +16,22 @@
 
 package audit
 
-import org.joda.time.DateTime
-import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.http.HeaderCarrier
+
+import java.time.LocalDate
 
 case class DesTopUpSubmissionEventDetail(journeyId: String,
                                          acknowledgementReference: String,
                                          incorporationStatus: String,
-                                         intendedAccountsPreparationDate: Option[DateTime],
-                                         startDateOfFirstAccountingPeriod: Option[DateTime],
-                                         companyActiveDate: Option[DateTime],
+                                         intendedAccountsPreparationDate: Option[LocalDate],
+                                         startDateOfFirstAccountingPeriod: Option[LocalDate],
+                                         companyActiveDate: Option[LocalDate],
                                          crn: Option[String],
                                          rejectedAsNotPaid: Option[Boolean] = None)
 
 object DesTopUpSubmissionEventDetail {
-
-  implicit val writes = new Writes[DesTopUpSubmissionEventDetail] {
-    def writes(detail: DesTopUpSubmissionEventDetail) = {
-      val dateWrites = Writes[DateTime](
-        js =>
-          Json.toJson(js.toString("yyyy-MM-dd"))
-      )
-      val successWrites = (
-        (__ \ "journeyId").write[String] and
-          (__ \ "acknowledgementReference").write[String] and
-          (__ \ "incorporationStatus").write[String] and
-          (__ \ "intendedAccountsPreparationDate").writeNullable[DateTime](dateWrites) and
-          (__ \ "startDateOfFirstAccountingPeriod").writeNullable[DateTime](dateWrites) and
-          (__ \ "companyActiveDate").writeNullable[DateTime](dateWrites) and
-          (__ \ "crn").writeNullable[String] and
-          (__ \ "rejectedAsNotPaid").writeNullable[Boolean]
-        ) (unlift(DesTopUpSubmissionEventDetail.unapply))
-
-      Json.toJson(detail)(successWrites).as[JsObject]
-    }
-  }
+  implicit val writes = Json.writes[DesTopUpSubmissionEventDetail]
 }
 
 class DesTopUpSubmissionEvent(details: DesTopUpSubmissionEventDetail, auditType: String, transactionName: String)(implicit hc: HeaderCarrier)
