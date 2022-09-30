@@ -16,15 +16,14 @@
 
 package services.admin
 
-import audit.{AdminCTReferenceEvent, AdminSessionIDEvent}
 import connectors.{BusinessRegistrationConnector, DesConnector, IncorporationInformationConnector}
 import models._
+import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.{when, _}
-import org.mockito.{ArgumentCaptor, ArgumentMatchers}
+import org.mockito.Mockito._
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.Eventually
 import org.scalatestplus.mockito.MockitoSugar
-import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.Json
 import play.api.mvc.{AnyContent, Request}
@@ -34,13 +33,11 @@ import repositories.CorporationTaxRegistrationMongoRepository
 import services.{AuditService, FailedToDeleteSubmissionData}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, NotFoundException, Upstream4xxResponse}
 import uk.gov.hmrc.mongo.lock.LockService
-import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
-import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
+import uk.gov.hmrc.play.audit.http.connector.AuditResult
 
 import java.time.Instant
-import scala.collection.JavaConverters._
-import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 
 class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach with Eventually {
 
@@ -188,86 +185,6 @@ class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEac
         utr, timestamp, utr.map(_ => "04").getOrElse("06")
       ))
     )
-
-    "update a registration with the new admin ct reference" in new Setup {
-      val ctUtr = "oldIncorrectUtr"
-      val expected = Some(makeReg(Some(ctUtr)))
-
-      when(mockCorpTaxRegistrationRepo.updateRegistrationWithAdminCTReference(ArgumentMatchers.any(), ArgumentMatchers.any()))
-        .thenReturn(Future.successful(expected))
-
-      when(mockAuditService.sendEvent(
-        ArgumentMatchers.eq("adminCtReference"),
-        ArgumentMatchers.any[AdminCTReferenceEvent](),
-        ArgumentMatchers.eq(Some("admin-ct-reference"))
-      )(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.eq(AdminCTReferenceEvent.writes)))
-        .thenReturn(Future.successful(Success))
-
-      val newUtr = "newFreshUtr"
-      val result = await(service.updateRegistrationWithCTReference("ackRef", newUtr, "test"))
-      result mustBe Some(Json.parse(
-        s"""{
-           |"status": "04",
-           |"ctutr" : true
-        }""".stripMargin))
-
-      val captor = ArgumentCaptor.forClass(classOf[AdminCTReferenceEvent])
-
-      verify(mockAuditService, times(1)).sendEvent(
-        ArgumentMatchers.eq("adminCtReference"),
-        captor.capture(),
-        ArgumentMatchers.eq(Some("admin-ct-reference"))
-      )(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.eq(AdminCTReferenceEvent.writes))
-
-      val audit: List[AdminCTReferenceEvent] = captor.getAllValues.asScala.toList
-
-      (audit.head.ctReferenceDetails \ "utrChanges" \ "previousUtr").as[String] mustBe ctUtr
-      (audit.head.ctReferenceDetails \ "utrChanges" \ "newUtr").as[String] mustBe newUtr
-    }
-
-    "update a previously rejected registration with the new admin ct reference" in new Setup {
-      val ctUtr = "oldIncorrectUtr"
-      val expected = Some(makeReg(None))
-
-      when(mockCorpTaxRegistrationRepo.updateRegistrationWithAdminCTReference(ArgumentMatchers.any(), ArgumentMatchers.any()))
-        .thenReturn(Future.successful(expected))
-
-      when(mockAuditService.sendEvent(
-        ArgumentMatchers.eq("adminCtReference"),
-        ArgumentMatchers.any[AdminCTReferenceEvent](),
-        ArgumentMatchers.eq(Some("admin-ct-reference"))
-      )(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.eq(AdminCTReferenceEvent.writes)))
-        .thenReturn(Future.successful(Success))
-
-      val newUtr = "newFreshUtr"
-      val result = await(service.updateRegistrationWithCTReference("ackRef", newUtr, "test"))
-      result mustBe Some(Json.parse(
-        s"""{
-           |"status": "04",
-           |"ctutr" : true
-        }""".stripMargin))
-
-      val captor = ArgumentCaptor.forClass(classOf[AdminCTReferenceEvent])
-
-      verify(mockAuditService, times(1)).sendEvent(
-        ArgumentMatchers.eq("adminCtReference"),
-        captor.capture(),
-        ArgumentMatchers.eq(Some("admin-ct-reference"))
-      )(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.eq(AdminCTReferenceEvent.writes))
-
-      val audit: List[AdminCTReferenceEvent] = captor.getAllValues.asScala.toList
-
-      (audit.head.ctReferenceDetails \ "utrChanges" \ "previousUtr").as[String] mustBe "NO-UTR"
-      (audit.head.ctReferenceDetails \ "utrChanges" \ "newUtr").as[String] mustBe newUtr
-    }
-
-    "do not update a registration with the new admin ct reference that does not exist" in new Setup {
-      when(mockCorpTaxRegistrationRepo.updateRegistrationWithAdminCTReference(ArgumentMatchers.any(), ArgumentMatchers.any()))
-        .thenReturn(Future.successful(None))
-
-      val result = await(service.updateRegistrationWithCTReference("ackRef", "ctUtr", "test"))
-      result mustBe None
-    }
   }
 
   "deleteRejectedSubmissionData" must {
@@ -570,84 +487,6 @@ class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEac
 
         await(service.processStaleDocument(confRefWithCRNExampleDoc)) mustBe false
       }
-    }
-  }
-
-  "updateDocSessionID" must {
-    val newSessionId = "newSessionId"
-    val newCredId = "newCredId"
-    val userName = "admin"
-
-    "update a document's session id" when {
-      "provided a session id" in new Setup {
-        val data = Some(sessionIdData.copy(sessionId = Some(newSessionId)))
-        val reg = makeSessionReg(data)
-
-        when(mockCorpTaxRegistrationRepo.findOneBySelector(any()))
-          .thenReturn(Future.successful(Some(reg)))
-        when(mockCorpTaxRegistrationRepo.retrieveSessionIdentifiers(any()))
-          .thenReturn(Future.successful(Some(SessionIds(sessionIdData.sessionId.get, "credId"))))
-        when(mockCorpTaxRegistrationRepo.storeSessionIdentifiers(any(), any(), any()))
-          .thenReturn(Future.successful(true))
-        when(mockAuditService.sendEvent(any(), any(), any())(any(), any()))
-          .thenReturn(Future.successful(Success))
-
-        await(service.updateDocSessionID(regId, newSessionId, newCredId, userName)) mustBe sessionIdData.copy(sessionId = Some(newSessionId))
-
-        val captor = ArgumentCaptor.forClass(classOf[AdminSessionIDEvent])
-
-        verify(mockAuditService, times(1)).sendEvent(
-          ArgumentMatchers.eq("adminSessionID"),
-          captor.capture(),
-          ArgumentMatchers.eq(Some("admin-session-id"))
-        )(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.eq(AdminSessionIDEvent.writes))
-
-        val audit: List[AdminSessionIDEvent] = captor.getAllValues.asScala.toList
-
-        audit.head.oldId mustBe sessionIdData.sessionId.get
-        (audit.head.sessionIdData \ "sessionId").as[String] mustBe newSessionId
-      }
-      "audit event fails" in new Setup {
-        val data = Some(sessionIdData.copy(sessionId = Some(newSessionId), credId = Some(newCredId)))
-        val reg = makeSessionReg(data)
-
-        when(mockCorpTaxRegistrationRepo.retrieveSessionIdentifiers(any()))
-          .thenReturn(Future.successful(Some(SessionIds(sessionIdData.sessionId.get, sessionIdData.credId.get))))
-        when(mockCorpTaxRegistrationRepo.storeSessionIdentifiers(any(), any(), any()))
-          .thenReturn(Future.successful(true))
-        when(mockCorpTaxRegistrationRepo.findOneBySelector(any()))
-          .thenReturn(Future.successful(Some(reg)))
-
-        await(service.updateDocSessionID(regId, newSessionId, newCredId, userName)) mustBe sessionIdData.copy(sessionId = Some(newSessionId), credId = Some(newCredId))
-      }
-    }
-
-    "fail to update when" when {
-      "the document does not exist" in new Setup {
-        when(mockCorpTaxRegistrationRepo.retrieveSessionIdentifiers(any()))
-          .thenReturn(Future.successful(None))
-
-        intercept[RuntimeException](await(service.updateDocSessionID(regId, newSessionId, newCredId, userName)))
-      }
-      "storeSessionIdentifiers fails" in new Setup {
-        when(mockCorpTaxRegistrationRepo.retrieveSessionIdentifiers(any()))
-          .thenReturn(Future.successful(Some(SessionIds(sessionIdData.sessionId.get, "credId"))))
-        when(mockCorpTaxRegistrationRepo.storeSessionIdentifiers(any(), any(), any()))
-          .thenReturn(Future.failed(new RuntimeException("Failed to store")))
-
-        intercept[RuntimeException](await(service.updateDocSessionID(regId, newSessionId, newCredId, userName)))
-      }
-      "retrieveCorporationTaxRegistration fails" in new Setup {
-        when(mockCorpTaxRegistrationRepo.findOneBySelector(any()))
-          .thenReturn(Future.failed(new RuntimeException("Failed to retrieve")))
-        when(mockCorpTaxRegistrationRepo.retrieveSessionIdentifiers(any()))
-          .thenReturn(Future.successful(Some(SessionIds(sessionIdData.sessionId.get, "credId"))))
-        when(mockCorpTaxRegistrationRepo.storeSessionIdentifiers(any(), any(), any()))
-          .thenReturn(Future.successful(true))
-
-        intercept[RuntimeException](await(service.updateDocSessionID(regId, newSessionId, newCredId, userName)))
-      }
-
     }
   }
 }
