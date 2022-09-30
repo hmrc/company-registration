@@ -16,7 +16,7 @@
 
 package services
 
-import audit.UserRegistrationSubmissionEvent
+import audit.SubmissionEventDetail
 import cats.data.OptionT
 import com.mongodb.client.result.UpdateResult
 import connectors._
@@ -31,7 +31,6 @@ import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
 import org.mongodb.scala.bson.BsonDocument
 import org.scalatest.concurrent.Eventually
-import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.AnyContentAsEmpty
 import play.api.test.FakeRequest
@@ -55,7 +54,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
   val mockBRConnector: BusinessRegistrationConnector = mock[BusinessRegistrationConnector]
   val mockCorpTaxRepo: CorporationTaxRegistrationMongoRepository = mock[CorporationTaxRegistrationMongoRepository]
   val mockSequenceRepo: SequenceMongoRepository = mock[SequenceMongoRepository]
-  val mockAuditConnector: AuditConnector = mock[AuditConnector]
+  val mockAuditService: AuditService = mock[AuditService]
   val mockIIConnector: IncorporationInformationConnector = mock[IncorporationInformationConnector]
   val mockDesConnector: DesConnector = mock[DesConnector]
   val mockCorpTaxService: CorporationTaxRegistrationService = mock[CorporationTaxRegistrationService]
@@ -70,7 +69,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
   override def beforeEach(): Unit = {
     reset(
       mockCorpTaxRepo, mockSequenceMongoRepository, mockAuthConnector, mockBRConnector,
-      mockIncorporationCheckAPIConnector, mockAuditConnector, mockIIConnector, mockDesConnector
+      mockIncorporationCheckAPIConnector, mockAuditService, mockIIConnector, mockDesConnector
     )
   }
 
@@ -80,7 +79,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
       override val sequenceRepository: SequenceMongoRepository = mockSequenceMongoRepository
       override val incorpInfoConnector: IncorporationInformationConnector = mockIIConnector
       override val desConnector: DesConnector = mockDesConnector
-      override val auditConnector: AuditConnector = mockAuditConnector
+      override val auditService: AuditService = mockAuditService
       override val brConnector: BusinessRegistrationConnector = mockBRConnector
       override val corpTaxRegService: CorporationTaxRegistrationService = mockCorpTaxService
       implicit val ec: ExecutionContext = global
@@ -970,7 +969,11 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
         .thenReturn(Future.successful(HttpResponse(200)))
       when(mockCorpTaxRepo.retrieveCompanyDetails(any()))
         .thenReturn(Future.successful(Some(companyDetails)))
-      when(mockAuditConnector.sendExtendedEvent(ArgumentMatchers.any[UserRegistrationSubmissionEvent]())(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any[ExecutionContext]()))
+      when(mockAuditService.sendEvent(
+        ArgumentMatchers.eq("interimCTRegistrationDetails"),
+        ArgumentMatchers.any[SubmissionEventDetail](),
+        ArgumentMatchers.any(),
+      )(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.eq(SubmissionEventDetail.writes)))
         .thenReturn(Future.successful(Success))
       when(mockCorpTaxRepo.updateRegistrationToHeld(eqTo(registrationId), eqTo(confRefs)))
         .thenReturn(Future.successful(Some(lockedSubmission.copy(status = RegistrationStatus.HELD))))
@@ -996,7 +999,11 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
         .thenReturn(Future.successful(HttpResponse(200)))
       when(mockCorpTaxRepo.retrieveCompanyDetails(any()))
         .thenReturn(Future.successful(Some(companyDetails)))
-      when(mockAuditConnector.sendExtendedEvent(ArgumentMatchers.any[UserRegistrationSubmissionEvent]())(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any[ExecutionContext]()))
+      when(mockAuditService.sendEvent(
+        ArgumentMatchers.eq("interimCTRegistrationDetails"),
+        ArgumentMatchers.any[SubmissionEventDetail](),
+        ArgumentMatchers.any(),
+      )(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.eq(SubmissionEventDetail.writes)))
         .thenReturn(Future.failed(new RuntimeException))
       when(mockCorpTaxRepo.updateRegistrationToHeld(eqTo(registrationId), eqTo(confRefs)))
         .thenReturn(Future.successful(Some(lockedSubmission.copy(status = RegistrationStatus.HELD))))

@@ -16,14 +16,12 @@
 
 package audit
 
-import play.api.libs.json.{JsObject, Json, Writes}
+import play.api.libs.json.{JsObject, Json}
+import uk.gov.hmrc.http.HeaderCarrier
 
-case class AdminCTReferenceEvent(timestamp: JsObject, strideUsername: String, ctReferenceDetails: JsObject)
+case class FailedIncorporationAuditEventDetail(journeyId: String,
+                                               reason: String)
 
-object AdminCTReferenceEvent {
-  implicit val writes: Writes[AdminCTReferenceEvent] = Writes { model =>
-    model.timestamp ++
-      Json.obj("strideUserId" -> model.strideUsername) ++
-      model.ctReferenceDetails
-  }
+object FailedIncorporationAuditEventDetail {
+  implicit val format = Json.format[FailedIncorporationAuditEventDetail]
 }

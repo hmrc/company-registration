@@ -31,7 +31,7 @@ import play.api.mvc.{AnyContent, Request}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import repositories.CorporationTaxRegistrationMongoRepository
-import services.FailedToDeleteSubmissionData
+import services.{AuditService, FailedToDeleteSubmissionData}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, NotFoundException, Upstream4xxResponse}
 import uk.gov.hmrc.mongo.lock.LockService
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
@@ -44,7 +44,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach with Eventually {
 
-  val mockAuditConnector: AuditConnector = mock[AuditConnector]
+  val mockAuditService: AuditService = mock[AuditService]
   val mockIncorpInfoConnector: IncorporationInformationConnector = mock[IncorporationInformationConnector]
   val mockCorpTaxRegistrationRepo: CorporationTaxRegistrationMongoRepository = mock[CorporationTaxRegistrationMongoRepository]
   val mockBusRegConnector = mock[BusinessRegistrationConnector]
@@ -53,7 +53,7 @@ class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEac
 
   class Setup {
     val service = new AdminService {
-      val auditConnector: AuditConnector = mockAuditConnector
+      val auditService: AuditService = mockAuditService
       val incorpInfoConnector: IncorporationInformationConnector = mockIncorpInfoConnector
       val corpTaxRegRepo: CorporationTaxRegistrationMongoRepository = mockCorpTaxRegistrationRepo
       val brConnector: BusinessRegistrationConnector = mockBusRegConnector
@@ -68,7 +68,7 @@ class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEac
   }
 
   override def beforeEach() {
-    reset(mockAuditConnector)
+    reset(mockAuditService)
     reset(mockBusRegConnector)
     reset(mockCorpTaxRegistrationRepo)
     reset(mockDesConnector)
@@ -196,7 +196,11 @@ class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEac
       when(mockCorpTaxRegistrationRepo.updateRegistrationWithAdminCTReference(ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(expected))
 
-      when(mockAuditConnector.sendExtendedEvent(ArgumentMatchers.any[AdminCTReferenceEvent]())(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any[ExecutionContext]()))
+      when(mockAuditService.sendEvent(
+        ArgumentMatchers.eq("adminCtReference"),
+        ArgumentMatchers.any[AdminCTReferenceEvent](),
+        ArgumentMatchers.eq(Some("admin-ct-reference"))
+      )(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.eq(AdminCTReferenceEvent.writes)))
         .thenReturn(Future.successful(Success))
 
       val newUtr = "newFreshUtr"
@@ -209,13 +213,16 @@ class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEac
 
       val captor = ArgumentCaptor.forClass(classOf[AdminCTReferenceEvent])
 
-      verify(mockAuditConnector, times(1)).sendExtendedEvent(captor.capture())(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any[ExecutionContext]())
+      verify(mockAuditService, times(1)).sendEvent(
+        ArgumentMatchers.eq("adminCtReference"),
+        captor.capture(),
+        ArgumentMatchers.eq(Some("admin-ct-reference"))
+      )(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.eq(AdminCTReferenceEvent.writes))
 
       val audit: List[AdminCTReferenceEvent] = captor.getAllValues.asScala.toList
 
-      audit.head.auditType mustBe "adminCtReference"
-      (audit.head.detail \ "utrChanges" \ "previousUtr").as[String] mustBe ctUtr
-      (audit.head.detail \ "utrChanges" \ "newUtr").as[String] mustBe newUtr
+      (audit.head.ctReferenceDetails \ "utrChanges" \ "previousUtr").as[String] mustBe ctUtr
+      (audit.head.ctReferenceDetails \ "utrChanges" \ "newUtr").as[String] mustBe newUtr
     }
 
     "update a previously rejected registration with the new admin ct reference" in new Setup {
@@ -225,7 +232,11 @@ class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEac
       when(mockCorpTaxRegistrationRepo.updateRegistrationWithAdminCTReference(ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(expected))
 
-      when(mockAuditConnector.sendExtendedEvent(ArgumentMatchers.any[AdminCTReferenceEvent]())(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any[ExecutionContext]()))
+      when(mockAuditService.sendEvent(
+        ArgumentMatchers.eq("adminCtReference"),
+        ArgumentMatchers.any[AdminCTReferenceEvent](),
+        ArgumentMatchers.eq(Some("admin-ct-reference"))
+      )(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.eq(AdminCTReferenceEvent.writes)))
         .thenReturn(Future.successful(Success))
 
       val newUtr = "newFreshUtr"
@@ -238,13 +249,16 @@ class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEac
 
       val captor = ArgumentCaptor.forClass(classOf[AdminCTReferenceEvent])
 
-      verify(mockAuditConnector, times(1)).sendExtendedEvent(captor.capture())(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any[ExecutionContext]())
+      verify(mockAuditService, times(1)).sendEvent(
+        ArgumentMatchers.eq("adminCtReference"),
+        captor.capture(),
+        ArgumentMatchers.eq(Some("admin-ct-reference"))
+      )(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.eq(AdminCTReferenceEvent.writes))
 
       val audit: List[AdminCTReferenceEvent] = captor.getAllValues.asScala.toList
 
-      audit.head.auditType mustBe "adminCtReference"
-      (audit.head.detail \ "utrChanges" \ "previousUtr").as[String] mustBe "NO-UTR"
-      (audit.head.detail \ "utrChanges" \ "newUtr").as[String] mustBe newUtr
+      (audit.head.ctReferenceDetails \ "utrChanges" \ "previousUtr").as[String] mustBe "NO-UTR"
+      (audit.head.ctReferenceDetails \ "utrChanges" \ "newUtr").as[String] mustBe newUtr
     }
 
     "do not update a registration with the new admin ct reference that does not exist" in new Setup {
@@ -501,7 +515,7 @@ class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEac
           .thenReturn(Future.successful(true))
         when(mockCorpTaxRegistrationRepo.removeTaxRegistrationById(any()))
           .thenReturn(Future.successful(true))
-        when(mockAuditConnector.sendExtendedEvent(any())(any(), any()))
+        when(mockAuditService.sendEvent(any(), any(), any())(any(), any()))
           .thenReturn(Future.successful(AuditResult.Success))
 
         await(service.processStaleDocument(confRefExampleDoc)) mustBe true
@@ -575,20 +589,23 @@ class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEac
           .thenReturn(Future.successful(Some(SessionIds(sessionIdData.sessionId.get, "credId"))))
         when(mockCorpTaxRegistrationRepo.storeSessionIdentifiers(any(), any(), any()))
           .thenReturn(Future.successful(true))
-        when(mockAuditConnector.sendExtendedEvent(any())(any(), any()))
+        when(mockAuditService.sendEvent(any(), any(), any())(any(), any()))
           .thenReturn(Future.successful(Success))
 
         await(service.updateDocSessionID(regId, newSessionId, newCredId, userName)) mustBe sessionIdData.copy(sessionId = Some(newSessionId))
 
         val captor = ArgumentCaptor.forClass(classOf[AdminSessionIDEvent])
 
-        verify(mockAuditConnector, times(1)).sendExtendedEvent(captor.capture())(any[HeaderCarrier](), any[ExecutionContext]())
+        verify(mockAuditService, times(1)).sendEvent(
+          ArgumentMatchers.eq("adminSessionID"),
+          captor.capture(),
+          ArgumentMatchers.eq(Some("admin-session-id"))
+        )(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.eq(AdminSessionIDEvent.writes))
 
         val audit: List[AdminSessionIDEvent] = captor.getAllValues.asScala.toList
 
-        audit.head.auditType mustBe "adminSessionID"
-        (audit.head.detail \ "oldSessionId").as[String] mustBe sessionIdData.sessionId.get
-        (audit.head.detail \ "sessionId").as[String] mustBe newSessionId
+        audit.head.oldId mustBe sessionIdData.sessionId.get
+        (audit.head.sessionIdData \ "sessionId").as[String] mustBe newSessionId
       }
       "audit event fails" in new Setup {
         val data = Some(sessionIdData.copy(sessionId = Some(newSessionId), credId = Some(newCredId)))

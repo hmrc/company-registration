@@ -16,15 +16,15 @@
 
 package connectors
 
-import audit.DesSubmissionEventFailure
+import audit.RegistrationAuditEventConstants.JOURNEY_ID
 import config.MicroserviceAppConfig
-import utils.Logging
-import play.api.libs.json.{JsObject, Writes}
+import play.api.libs.json.{JsObject, Json, Writes}
 import services.{AuditService, MetricsService}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import utils.Logging
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -63,14 +63,13 @@ trait DesConnector extends AuditService with RawResponseReads with HttpErrorFunc
     metricsService.processDataResponseWithMetrics[HttpResponse](metricsService.desSubmissionCRTimer.time()) {
       cPOST(url, submission) map { response =>
         logger.info(s"[ctSubmission] Submission to DES successful for regId: $journeyId AckRef: $ackRef")
-        sendCTRegSubmissionEvent(buildCTRegSubmissionEvent(ctRegSubmissionFromJson(journeyId, response.json.as[JsObject])))
+        sendCTRegSubmissionEvent(ctRegSubmissionFromJson(journeyId, response.json.as[JsObject]))
         response
       } recoverWith {
         case ex: Upstream4xxResponse =>
           logger.error("DES_SUBMISSION_400")
           logger.warn(s"[ctSubmission] Submission to DES was invalid for regId: $journeyId AckRef: $ackRef")
-          val event = new DesSubmissionEventFailure(journeyId, submission)
-          auditConnector.sendExtendedEvent(event)
+          sendEvent("ctRegistrationSubmissionFailed", Json.obj("submission" -> submission, JOURNEY_ID -> journeyId))
           throw ex
       }
     }
@@ -85,14 +84,13 @@ trait DesConnector extends AuditService with RawResponseReads with HttpErrorFunc
     metricsService.processDataResponseWithMetrics[HttpResponse](metricsService.desSubmissionCRTimer.time()) {
       cPOST(url, submission) map { response =>
         logger.info(s"[ctTopUpSubmission] Top up submission to DES successful for regId: $journeyId AckRef: $ackRef")
-        sendCTRegSubmissionEvent(buildCTRegSubmissionEvent(ctRegSubmissionFromJson(journeyId, response.json.as[JsObject])))
+        sendCTRegSubmissionEvent(ctRegSubmissionFromJson(journeyId, response.json.as[JsObject]))
         response
       } recoverWith {
         case ex: Upstream4xxResponse =>
           logger.error("DES_SUBMISSION_400")
           logger.warn(s"[ctTopUpSubmission] Top up submission to DES was invalid for regId: $journeyId AckRef: $ackRef")
-          val event = new DesSubmissionEventFailure(journeyId, submission)
-          auditConnector.sendExtendedEvent(event)
+          sendEvent("ctRegistrationSubmissionFailed", Json.obj("submission" -> submission, JOURNEY_ID -> journeyId))
           throw ex
       }
     }

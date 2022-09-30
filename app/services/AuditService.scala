@@ -16,12 +16,16 @@
 
 package services
 
-import audit.{CTRegistrationAuditEvent, CTRegistrationSubmissionAuditEventDetails, DesResponse}
-import javax.inject.Inject
-import play.api.libs.json.JsObject
+import audit.{CTRegistrationSubmissionAuditEventDetails, DesResponse, RegistrationAuditEventConstants}
+import play.api.libs.json.{JsObject, Json, Writes}
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.audit.AuditExtensions.auditHeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
+import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
 
+import java.time.Instant
+import java.util.UUID
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class AuditServiceImpl @Inject()(val auditConnector: AuditConnector)(implicit val ec: ExecutionContext) extends AuditService
@@ -32,23 +36,33 @@ trait AuditService {
 
   val auditConnector: AuditConnector
 
-  def sendCTRegSubmissionEvent(event: CTRegistrationAuditEvent)(implicit hc: HeaderCarrier): Future[AuditResult] = {
+  private[services] def now() = Instant.now()
+  private[services] def eventId() = UUID.randomUUID().toString
+
+  def sendEvent[T](auditType: String, detail: T, transactionName: Option[String] = None)
+                  (implicit hc: HeaderCarrier, fmt: Writes[T]): Future[AuditResult] = {
+
+    val event = ExtendedDataEvent(
+      auditSource = auditConnector.auditingConfig.auditSource,
+      auditType   = auditType,
+      eventId     = eventId(),
+      tags        = hc.toAuditTags(
+        transactionName = transactionName.getOrElse(auditType),
+        path = hc.otherHeaders.collectFirst { case (RegistrationAuditEventConstants.PATH, value) => value }.getOrElse("-")
+      ),
+      detail      = Json.toJson(detail),
+      generatedAt = now()
+    )
+
     auditConnector.sendExtendedEvent(event)
   }
 
-  def buildCTRegSubmissionEvent(detail: CTRegistrationSubmissionAuditEventDetails)(implicit hc: HeaderCarrier): CTRegistrationAuditEvent = {
-    val auditTypeAndTransactionName: (String, String) = {
-      detail.reason.isDefined match {
-        case true => ("ctRegistrationSubmissionFailed", "CTRegistrationSubmissionFailed")
-        case false => ("ctRegistrationSubmissionSuccessful", "CTRegistrationSubmission")
-      }
+  def sendCTRegSubmissionEvent(event: CTRegistrationSubmissionAuditEventDetails)(implicit hc: HeaderCarrier): Future[AuditResult] = {
+    val (auditType, transactionName) = event.reason.isDefined match {
+      case true => ("ctRegistrationSubmissionFailed", "CTRegistrationSubmissionFailed")
+      case false => ("ctRegistrationSubmissionSuccessful", "CTRegistrationSubmission")
     }
-
-    new CTRegistrationAuditEvent(
-      detail,
-      auditTypeAndTransactionName._1,
-      auditTypeAndTransactionName._2
-    )
+    sendEvent(auditType, event, Some(transactionName))
   }
 
   def ctRegSubmissionFromJson(journeyId: String, json: JsObject): CTRegistrationSubmissionAuditEventDetails = {

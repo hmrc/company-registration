@@ -16,15 +16,15 @@
 
 package audit
 
-import play.api.libs.json.{JsObject, Json}
-import uk.gov.hmrc.http.HeaderCarrier
+import play.api.libs.json.{JsObject, Json, Writes}
 
-class AdminReleaseAuditEvent(timestamp: JsObject, strideUsername: String, submittedIdentifiers: JsObject, receivedDetails: JsObject)(implicit hc: HeaderCarrier)
-  extends RegistrationAuditEvent(
-    auditType = "adminRelease",
-    transactionName = Some("admin-release"),
-    detail = {
-      val strideUser = Json.obj("strideUserId" -> strideUsername)
-      timestamp ++ strideUser ++ submittedIdentifiers ++ receivedDetails
-    },
-    tagSet = TagSet.REQUEST_ONLY)
+case class AdminReleaseAuditEvent(timestamp: JsObject, strideUsername: String, submittedIdentifiers: JsObject, receivedDetails: JsObject)
+
+object AdminReleaseAuditEvent {
+  implicit val writes: Writes[AdminReleaseAuditEvent] = Writes { model =>
+    model.timestamp ++
+      Json.obj("strideUserId" -> model.strideUsername) ++
+      model.submittedIdentifiers ++
+      model.receivedDetails
+  }
+}

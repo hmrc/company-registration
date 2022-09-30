@@ -16,14 +16,10 @@
 
 package audit
 
-import play.api.libs.json.{JsObject, Json, Writes}
-
-case class AdminCTReferenceEvent(timestamp: JsObject, strideUsername: String, ctReferenceDetails: JsObject)
-
-object AdminCTReferenceEvent {
-  implicit val writes: Writes[AdminCTReferenceEvent] = Writes { model =>
-    model.timestamp ++
-      Json.obj("strideUserId" -> model.strideUsername) ++
-      model.ctReferenceDetails
-  }
+object RegistrationAuditEventConstants {
+  val JOURNEY_ID = "journeyId"
+  val ACK_REF = "acknowledgementReference"
+  val REG_METADATA = "registrationMetadata"
+  val CORP_TAX = "corporationTax"
+  val PATH = "path"
 }

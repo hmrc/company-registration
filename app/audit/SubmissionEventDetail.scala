@@ -30,7 +30,7 @@ case class SubmissionEventDetail(regId: String,
 
 object SubmissionEventDetail {
 
-  import RegistrationAuditEvent.{ACK_REF, CORP_TAX, JOURNEY_ID, REG_METADATA}
+  import RegistrationAuditEventConstants.{ACK_REF, CORP_TAX, JOURNEY_ID, REG_METADATA}
 
   implicit val writes = new Writes[SubmissionEventDetail] {
     def writes(detail: SubmissionEventDetail) = {
@@ -77,6 +77,3 @@ object SubmissionEventDetail {
     }
   }
 }
-
-class UserRegistrationSubmissionEvent(details: SubmissionEventDetail)(implicit hc: HeaderCarrier, req: Request[AnyContent])
-  extends RegistrationAuditEvent("interimCTRegistrationDetails", None, Json.toJson(details).as[JsObject])(hc, Some(req))
