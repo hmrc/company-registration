@@ -16,7 +16,7 @@
 
 package services
 
-import audit.{SubmissionEventDetail, UserRegistrationSubmissionEvent}
+import audit.SubmissionEventDetail
 import cats.implicits._
 import connectors.{BusinessRegistrationConnector, BusinessRegistrationSuccessResponse, DesConnector, IncorporationInformationConnector}
 import helpers.DateHelper
@@ -28,7 +28,7 @@ import play.api.libs.json.{JsObject, JsString, Json}
 import play.api.mvc.{AnyContent, Request}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories, SequenceMongoRepository}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
-import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
+import uk.gov.hmrc.play.audit.http.connector.AuditResult
 import utils.{Logging, PagerDutyKeys, StringNormaliser}
 
 import java.time.Instant
@@ -40,7 +40,7 @@ class SubmissionServiceImpl @Inject()(val repositories: Repositories,
                                       val desConnector: DesConnector,
                                       val brConnector: BusinessRegistrationConnector,
                                       val corpTaxRegService: CorporationTaxRegistrationService,
-                                      val auditConnector: AuditConnector
+                                      val auditService: AuditService
                                      )(implicit val ec: ExecutionContext) extends SubmissionService {
   lazy val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
   lazy val sequenceRepository: SequenceMongoRepository = repositories.sequenceRepository
@@ -55,7 +55,7 @@ trait SubmissionService extends DateHelper with Logging {
   val sequenceRepository: SequenceMongoRepository
   val incorpInfoConnector: IncorporationInformationConnector
   val desConnector: DesConnector
-  val auditConnector: AuditConnector
+  val auditService: AuditService
   val brConnector: BusinessRegistrationConnector
   val corpTaxRegService: CorporationTaxRegistrationService
 
@@ -266,8 +266,10 @@ trait SubmissionService extends DateHelper with Logging {
       case (_, None) => (None, None)
     }
 
-    val event = new UserRegistrationSubmissionEvent(SubmissionEventDetail(regId, authProvId, txID, uprn, ppob.addressType, partialSubmission))(hc, req)
-    auditConnector.sendExtendedEvent(event)
+    auditService.sendEvent(
+      auditType = "interimCTRegistrationDetails",
+      detail = SubmissionEventDetail(regId, authProvId, txID, uprn, ppob.addressType, partialSubmission)
+    )
   }
 
   private[services] def retrieveBRMetadata(regId: String, isAdmin: Boolean = false)(implicit hc: HeaderCarrier): Future[BusinessRegistration] = {

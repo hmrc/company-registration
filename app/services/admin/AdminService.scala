@@ -28,7 +28,7 @@ import utils.Logging
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.Request
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
-import services.FailedToDeleteSubmissionData
+import services.{AuditService, FailedToDeleteSubmissionData}
 import uk.gov.hmrc.http.{HeaderCarrier, NotFoundException}
 import uk.gov.hmrc.mongo.lock.LockService
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
@@ -46,7 +46,7 @@ class AdminServiceImpl @Inject()(val corpTaxRegRepo: CorporationTaxRegistrationM
                                  val desConnector: DesConnector,
                                  val repositories: Repositories,
                                  val incorpInfoConnector: IncorporationInformationConnector, microserviceAppConfig: MicroserviceAppConfig,
-                                 val auditConnector: AuditConnector,
+                                 val auditService: AuditService,
                                  servicesConfig: ServicesConfig
                                 )(implicit val ec: ExecutionContext)
   extends AdminService {
@@ -63,7 +63,7 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
   implicit val ec: ExecutionContext
   val corpTaxRegRepo: CorporationTaxRegistrationMongoRepository
   val desConnector: DesConnector
-  val auditConnector: AuditConnector
+  val auditService: AuditService
   val incorpInfoConnector: IncorporationInformationConnector
   val brConnector: BusinessRegistrationConnector
   val lockKeeper: LockService
@@ -89,14 +89,6 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
     incorpInfoConnector.registerInterest(regId, transactionId, true)
   }
 
-  def auditAdminEvent(strideUser: String, identifiers: HO6Identifiers, response: HO6Response)(implicit hc: HeaderCarrier): Future[AuditResult] = {
-    val identifiersJson = Json.toJson(identifiers)(HO6Identifiers.adminAuditWrites).as[JsObject]
-    val responseJson = Json.toJson(response)(HO6Response.adminAuditWrites).as[JsObject]
-    val timestamp = Json.obj("timestamp" -> Json.toJson(nowAsZonedDateTime)(zonedDateTimeWrites))
-    val auditEvent = new AdminReleaseAuditEvent(timestamp, strideUser, identifiersJson, responseJson)
-    auditConnector.sendExtendedEvent(auditEvent)
-  }
-
   private[services] def fetchTransactionId(regId: String): Future[Option[String]] = corpTaxRegRepo.retrieveConfirmationReferences(regId).map(_.fold[Option[String]] {
     logger.error(s"[Admin] [fetchTransactionId] - Held submission found but transaction Id missing for regId $regId")
     None
@@ -108,24 +100,6 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
       case _ => Json.obj()
     }
   }
-
-  def updateRegistrationWithCTReference(ackRef: String, ctUtr: String, username: String)(implicit hc: HeaderCarrier): Future[Option[JsObject]] = {
-    corpTaxRegRepo.updateRegistrationWithAdminCTReference(ackRef, ctUtr) map {
-      _ flatMap { cr =>
-        cr.acknowledgementReferences map { acknowledgementRefs =>
-          val timestamp = Json.obj("timestamp" -> Json.toJson(nowAsZonedDateTime)(zonedDateTimeWrites))
-          val refDetails = AdminCTReferenceDetails(acknowledgementRefs.ctUtr, ctUtr, acknowledgementRefs.status, "04")
-
-          auditConnector.sendExtendedEvent(
-            new AdminCTReferenceEvent(timestamp, username, Json.toJson(refDetails)(AdminCTReferenceDetails.adminAuditWrites).as[JsObject])
-          )
-
-          Json.obj("status" -> "04", "ctutr" -> true)
-        }
-      }
-    }
-  }
-
 
   def adminDeleteSubmission(info: DocumentInfo, txId: Option[String])(implicit hc: HeaderCarrier): Future[Boolean] = {
     val cancelSub = txId match {
@@ -244,8 +218,9 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
 
     if (info.status != DRAFT) {
       val ackRef = confRefs.acknowledgementReference
-      val event = new DesTopUpSubmissionEvent(
-        DesTopUpSubmissionEventDetail(
+      for {
+        _ <- desConnector.topUpCTSubmission(ackRef, submission(ackRef), info.regId)
+        _ <- auditService.sendEvent("ctRegistrationAdditionalData", DesTopUpSubmissionEventDetail(
           info.regId,
           ackRef,
           "Rejected",
@@ -254,32 +229,10 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
           None,
           None,
           Some(true)
-        ),
-        "ctRegistrationAdditionalData",
-        "ctRegistrationAdditionalData"
-      )
-      for {
-        _ <- desConnector.topUpCTSubmission(ackRef, submission(ackRef), info.regId)
-        _ <- auditConnector.sendExtendedEvent(event)
+        ))
       } yield true
     } else {
       Future.successful(true)
-    }
-  }
-
-  def updateDocSessionID(regId: String, sessionId: String, credId: String, username: String)(implicit hc: HeaderCarrier): Future[SessionIdData] = {
-    logger.info(s"[updateDocSessionID] Updating document session id regId $regId")
-
-    corpTaxRegRepo.retrieveSessionIdentifiers(regId) flatMap {
-      case Some(sessionIds) =>
-        for {
-          _ <- corpTaxRegRepo.storeSessionIdentifiers(regId, sessionId, credId)
-          sessionIdData <- fetchSessionIdData(regId).map(
-            _.getOrElse(throw new RuntimeException(s"Registration Document does not exist or Document does not have sessionIdInfo for regId $regId")))
-          timestamp = Json.obj("timestamp" -> Json.toJson(nowAsZonedDateTime)(zonedDateTimeWrites))
-          _ = auditConnector.sendExtendedEvent(new AdminSessionIDEvent(timestamp, username, Json.toJson(sessionIdData).as[JsObject], sessionIds.sessionId))
-        } yield sessionIdData
-      case _ => throw new RuntimeException(s"Registration Document does not exist or Document does not have sessionIdentifiers for regId $regId")
     }
   }
 }

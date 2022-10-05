@@ -33,6 +33,3 @@ case class DesTopUpSubmissionEventDetail(journeyId: String,
 object DesTopUpSubmissionEventDetail {
   implicit val writes = Json.writes[DesTopUpSubmissionEventDetail]
 }
-
-class DesTopUpSubmissionEvent(details: DesTopUpSubmissionEventDetail, auditType: String, transactionName: String)(implicit hc: HeaderCarrier)
-  extends RegistrationAuditEvent(auditType, Some(transactionName), Json.toJson(details).as[JsObject], TagSet.REQUEST_ONLY)

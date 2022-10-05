@@ -46,16 +46,4 @@ class FailedIncorporationAuditEventSpec extends PlaySpec {
       }
     }
   }
-
-  "FailedIncorporationAuditEvent" must {
-    "construct a full successful incorporation audit event" when {
-      "given a FailedIncorporationAuditEventDetail case class, an audit type and a transaction name" in {
-        val auditEventTest = new FailedIncorporationAuditEvent(testModel, "failedIncorpInformation", "failedIncorpInformation")
-
-        auditEventTest.auditSource mustBe "company-registration"
-        auditEventTest.auditType mustBe "failedIncorpInformation"
-        auditEventTest.tags.get("transactionName") mustBe Some("failedIncorpInformation")
-      }
-    }
-  }
 }

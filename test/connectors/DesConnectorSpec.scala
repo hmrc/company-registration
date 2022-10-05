@@ -23,6 +23,7 @@ import org.mockito.Mockito._
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, SessionId, Upstream4xxResponse, Upstream5xxResponse}
+import uk.gov.hmrc.play.audit.http.config.AuditingConfig
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
 
@@ -32,9 +33,14 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class DesConnectorSpec extends BaseSpec with WSHttpMock {
 
-  val mockAuditConnector = mock[AuditConnector]
-
   trait Setup {
+
+    val mockAuditConnector = mock[AuditConnector]
+    val mockAuditingConfig = mock[AuditingConfig]
+
+    when(mockAuditConnector.auditingConfig) thenReturn mockAuditingConfig
+    when(mockAuditingConfig.auditSource) thenReturn "company-registration"
+
     val connector = new DesConnector {
       override lazy val serviceURL = "serviceUrl"
       override val http = mockWSHttp

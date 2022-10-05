@@ -16,15 +16,13 @@
 
 package audit
 
-import play.api.libs.json.{JsObject, Json}
-import uk.gov.hmrc.http.HeaderCarrier
+import play.api.libs.json.Json
 
-class AdminCTReferenceEvent(timestamp: JsObject, strideUsername: String, ctReferenceDetails: JsObject)(implicit hc: HeaderCarrier)
-  extends RegistrationAuditEvent(
-    auditType = "adminCtReference",
-    transactionName = Some("admin-ct-reference"),
-    detail = {
-      val strideUser = Json.obj("strideUserId" -> strideUsername)
-      timestamp ++ strideUser ++ ctReferenceDetails
-    },
-    tagSet = TagSet.REQUEST_ONLY)
+case class CTRegistrationSubmissionAuditEventDetails(journeyId: String,
+                                                     processingDate: Option[String],
+                                                     acknowledgementReference: Option[String],
+                                                     reason: Option[String])
+
+object CTRegistrationSubmissionAuditEventDetails {
+  implicit val format = Json.format[CTRegistrationSubmissionAuditEventDetails]
+}

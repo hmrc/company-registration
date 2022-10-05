@@ -16,67 +16,57 @@
 
 package services
 
-import audit.CTRegistrationSubmissionAuditEventDetails
+import audit.FailedIncorporationAuditEventDetail
+import org.mockito.ArgumentMatchers
+import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.Json
+import play.api.test.DefaultAwaitTimeout
+import play.api.test.Helpers.await
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.audit.AuditExtensions.auditHeaderCarrier
+import uk.gov.hmrc.play.audit.http.config.AuditingConfig
+import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
+import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
 
+import java.time.Instant
+import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
-class AuditServiceSpec extends PlaySpec with MockitoSugar {
+class AuditServiceSpec extends PlaySpec with MockitoSugar with DefaultAwaitTimeout {
 
   val mockAuditConnector = mock[AuditConnector]
 
   implicit val hc = HeaderCarrier()
 
-  class Setup {
+  class Setup(otherHcHeaders: Seq[(String, String)] = Seq()) {
+
+    implicit val hc = HeaderCarrier(otherHeaders = otherHcHeaders)
+    implicit val ec = ExecutionContext.global
+
+    val mockAuditConnector = mock[AuditConnector]
+    val mockAuditingConfig = mock[AuditingConfig]
+
+    val instantNow = Instant.now()
+    val appName = "business-registration-notification"
+    val auditType = "testAudit"
+    val testEventId = UUID.randomUUID().toString
+    val txnName = "transactionName"
+
+    when(mockAuditConnector.auditingConfig) thenReturn mockAuditingConfig
+    when(mockAuditingConfig.auditSource) thenReturn appName
+
+    val event = FailedIncorporationAuditEventDetail("journeyId", "REJECTED")
 
     object TestService extends AuditService {
-      val auditConnector = mockAuditConnector
+
       implicit val ec: ExecutionContext = global
-    }
+      override val auditConnector = mockAuditConnector
 
-  }
-
-  "buildCTRegSubmissionEvent" must {
-    "construct a successful AuditEvent" when {
-      "given a details model that has processingDate and ackReg defined" in new Setup {
-        val testModel = CTRegistrationSubmissionAuditEventDetails(
-          "testJourneyId",
-          Some("testProcessingDate"),
-          Some("testAckRef"),
-          None
-        )
-
-        val result = TestService.buildCTRegSubmissionEvent(testModel)
-
-        result.auditSource mustBe "company-registration"
-        result.auditType mustBe "ctRegistrationSubmissionSuccessful"
-        result.tags("transactionName") mustBe "CTRegistrationSubmission"
-        result.detail.\("processingDate").as[JsValue] mustBe Json.toJson("testProcessingDate")
-        result.detail.\("acknowledgementReference").as[JsValue] mustBe Json.toJson("testAckRef")
-      }
-    }
-
-    "construct a failed AuditEvent" when {
-      "given a details model that has reason defined" in new Setup {
-        val testModel2 = CTRegistrationSubmissionAuditEventDetails(
-          "testJourneyId",
-          None,
-          None,
-          Some("testReason")
-        )
-
-        val result = TestService.buildCTRegSubmissionEvent(testModel2)
-
-        result.auditSource mustBe "company-registration"
-        result.auditType mustBe "ctRegistrationSubmissionFailed"
-        result.tags("transactionName") mustBe "CTRegistrationSubmissionFailed"
-        result.detail.\("reason").as[JsValue] mustBe Json.toJson("testReason")
-      }
+      override private[services] def now() = instantNow
+      override private[services] def eventId() = testEventId
     }
   }
 
@@ -107,6 +97,96 @@ class AuditServiceSpec extends PlaySpec with MockitoSugar {
         result.processingDate mustBe None
         result.acknowledgementReference mustBe None
         result.reason mustBe Some("testReason")
+      }
+    }
+  }
+
+  ".sendEvent" when {
+
+    "call to AuditConnector is successful" when {
+
+      "transactionName is provided and path does NOT exist" must {
+
+        "create and send an Explicit ExtendedAuditEvent including the transactionName with pathTag set to '-'" in new Setup {
+
+          when(
+            mockAuditConnector.sendExtendedEvent(
+              ArgumentMatchers.eq(ExtendedDataEvent(
+                auditSource = appName,
+                auditType = auditType,
+                eventId = testEventId,
+                tags = hc.toAuditTags(txnName, "-"),
+                detail = Json.toJson(event),
+                generatedAt = instantNow
+              ))
+            )(
+              ArgumentMatchers.eq(hc),
+              ArgumentMatchers.eq(ec)
+            )
+          ) thenReturn Future.successful(AuditResult.Success)
+
+          val actual = await(TestService.sendEvent(auditType, event, Some(txnName)))
+
+          actual mustBe AuditResult.Success
+        }
+      }
+
+      "transactionName is NOT provided and path exists" must {
+
+        "create and send an Explicit ExtendedAuditEvent with transactionName as auditType & pathTag extracted from the HC" in new Setup(
+          otherHcHeaders = Seq("path" -> "/wizz/foo/bar")
+        ) {
+
+          when(
+            mockAuditConnector.sendExtendedEvent(
+              ArgumentMatchers.eq(ExtendedDataEvent(
+                auditSource = appName,
+                auditType = auditType,
+                eventId = testEventId,
+                tags = hc.toAuditTags(auditType, "/wizz/foo/bar"),
+                detail = Json.toJson(event),
+                generatedAt = instantNow
+              ))
+            )
+            (
+              ArgumentMatchers.eq(hc),
+              ArgumentMatchers.eq(ec)
+            )
+          ) thenReturn Future.successful(AuditResult.Success)
+
+          val actual = await(TestService.sendEvent(auditType, event, None))
+
+          actual mustBe AuditResult.Success
+        }
+      }
+    }
+
+    "call to AuditConnector fails" must {
+
+      "throw the exception" in new Setup {
+
+        val exception = new Exception("Oh No")
+
+        when(
+          mockAuditConnector.sendExtendedEvent(
+            ArgumentMatchers.eq(ExtendedDataEvent(
+              auditSource = appName,
+              auditType = auditType,
+              eventId = testEventId,
+              tags = hc.toAuditTags(txnName, "-"),
+              detail = Json.toJson(event),
+              generatedAt = instantNow
+            ))
+          )
+          (
+            ArgumentMatchers.eq(hc),
+            ArgumentMatchers.eq(ec)
+          )
+        ) thenReturn Future.failed(exception)
+
+        val actual = intercept[Exception](await(TestService.sendEvent(auditType, event, Some(txnName))))
+
+        actual.getMessage mustBe exception.getMessage
       }
     }
   }

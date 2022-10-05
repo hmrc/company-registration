@@ -24,7 +24,6 @@ import models._
 import play.api.libs.json.{JsObject, Json}
 import repositories._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpErrorFunctions}
-import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import utils.{DateCalculators, Logging, PagerDutyKeys}
 
 import java.time.{Instant, LocalDate, LocalTime}
@@ -39,7 +38,7 @@ class ProcessIncorporationServiceImpl @Inject()(val desConnector: DesConnector,
                                                 val brConnector: BusinessRegistrationConnector,
                                                 val sendEmailService: SendEmailService,
                                                 val repositories: Repositories,
-                                                val auditConnector: AuditConnector,
+                                                val auditService: AuditService,
                                                 val microserviceAppConfig: MicroserviceAppConfig
                                                )(implicit val ec: ExecutionContext) extends ProcessIncorporationService {
 
@@ -66,7 +65,7 @@ trait ProcessIncorporationService extends DateHelper with HttpErrorFunctions wit
   val ctRepository: CorporationTaxRegistrationMongoRepository
   val accountingService: AccountingDetailsService
   val brConnector: BusinessRegistrationConnector
-  val auditConnector: AuditConnector
+  val auditService: AuditService
   val sendEmailService: SendEmailService
 
   val addressLine4FixRegID: String
@@ -209,45 +208,22 @@ trait ProcessIncorporationService extends DateHelper with HttpErrorFunctions wit
     }
   }
 
-  private[services] def auditDesSubmission(rID: String, jsSubmission: JsObject, isAdmin: Boolean = false)(implicit hc: HeaderCarrier) = {
-    val event = new DesSubmissionEvent(DesSubmissionAuditEventDetail(rID, jsSubmission), isAdmin)
-    auditConnector.sendExtendedEvent(event)
-  }
-
-  private[services] def auditSuccessfulIncorporation(item: IncorpUpdate, ctReg: CorporationTaxRegistration)(implicit hc: HeaderCarrier) = {
-    val event = new SuccessfulIncorporationAuditEvent(
-      SuccessfulIncorporationAuditEventDetail(
-        ctReg.registrationID,
-        item.crn.get,
-        item.incorpDate.get
-      ),
-      "successIncorpInformation",
-      "successIncorpInformation"
-    )
-    auditConnector.sendExtendedEvent(event)
-  }
-
-  private[services] def auditSuccessfulTopUp(submission: JsObject, item: IncorpUpdate, ctReg: CorporationTaxRegistration)(implicit hc: HeaderCarrier) = {
+  private[services] def auditSuccessfulTopUp(submission: JsObject, item: IncorpUpdate, ctReg: CorporationTaxRegistration)(implicit hc: HeaderCarrier) =
     item.incorpDate match {
       case Some(_) =>
         calculateDates(item, ctReg.accountingDetails, ctReg.accountsPreparation) flatMap { dates =>
-          val event = new DesTopUpSubmissionEvent(
-            DesTopUpSubmissionEventDetail(
-              ctReg.registrationID,
-              ctReg.confirmationReferences.get.acknowledgementReference,
-              "Accepted",
-              Some(dates.intendedAccountsPreparationDate),
-              Some(dates.startDateOfFirstAccountingPeriod),
-              Some(dates.companyActiveDate),
-              item.crn
-            ),
-            "ctRegistrationAdditionalData",
-            "ctRegistrationAdditionalData"
-          )
-          auditConnector.sendExtendedEvent(event)
+          auditService.sendEvent("ctRegistrationAdditionalData", DesTopUpSubmissionEventDetail(
+            ctReg.registrationID,
+            ctReg.confirmationReferences.get.acknowledgementReference,
+            "Accepted",
+            Some(dates.intendedAccountsPreparationDate),
+            Some(dates.startDateOfFirstAccountingPeriod),
+            Some(dates.companyActiveDate),
+            item.crn
+          ))
         }
-      case None => val event = new DesTopUpSubmissionEvent(
-        DesTopUpSubmissionEventDetail(
+      case None =>
+        auditService.sendEvent("ctRegistrationAdditionalData", DesTopUpSubmissionEventDetail(
           ctReg.registrationID,
           ctReg.confirmationReferences.get.acknowledgementReference,
           "Rejected",
@@ -255,27 +231,14 @@ trait ProcessIncorporationService extends DateHelper with HttpErrorFunctions wit
           None,
           None,
           None
-        ),
-        "ctRegistrationAdditionalData",
-        "ctRegistrationAdditionalData"
-      )
-        auditConnector.sendExtendedEvent(event)
+        ))
     }
-  }
 
-
-  private[services] def auditFailedIncorporation(item: IncorpUpdate, ctReg: CorporationTaxRegistration)(implicit hc: HeaderCarrier) = {
-    val event = new FailedIncorporationAuditEvent(
-      FailedIncorporationAuditEventDetail(
-        ctReg.registrationID,
-        item.statusDescription.getOrElse("No reason provided")
-      ),
-      "failedIncorpInformation",
-      "failedIncorpInformation"
-    )
-
-    auditConnector.sendExtendedEvent(event)
-  }
+  private[services] def auditFailedIncorporation(item: IncorpUpdate, ctReg: CorporationTaxRegistration)(implicit hc: HeaderCarrier) =
+    auditService.sendEvent("failedIncorpInformation", FailedIncorporationAuditEventDetail(
+      ctReg.registrationID,
+      item.statusDescription.getOrElse("No reason provided")
+    ))
 
   private def constructTopUpSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration, ackRef: String): Future[JsObject] = {
     for {

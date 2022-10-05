@@ -16,6 +16,7 @@
 
 package services
 
+import audit.FailedIncorporationAuditEventDetail
 import connectors._
 import fixtures.CorporationTaxRegistrationFixture
 import models._
@@ -48,7 +49,7 @@ class ProcessIncorporationServiceSpec extends PlaySpec with MockitoSugar with Co
   val mockDesConnector = mock[DesConnector]
   val mockBRConnector = mock[BusinessRegistrationConnector]
   val mockAuthConnector = mock[AuthConnector]
-  val mockAuditConnector = mock[AuditConnector]
+  val mockAuditService = mock[AuditService]
   val mockSendEmailService = mock[SendEmailService]
 
   override def beforeEach() {
@@ -57,7 +58,7 @@ class ProcessIncorporationServiceSpec extends PlaySpec with MockitoSugar with Co
 
   def resetMocks() = reset(
     mockAuthConnector,
-    mockAuditConnector,
+    mockAuditService,
     mockIncorporationCheckAPIConnector,
     mockCTRepository,
     mockDesConnector,
@@ -73,7 +74,7 @@ class ProcessIncorporationServiceSpec extends PlaySpec with MockitoSugar with Co
     val accountingService = mockAccountService
     val desConnector = mockDesConnector
     val brConnector = mockBRConnector
-    val auditConnector = mockAuditConnector
+    val auditService = mockAuditService
     val microserviceAuthConnector = mockAuthConnector
     val sendEmailService = mockSendEmailService
     override val addressLine4FixRegID: String = "false"
@@ -373,7 +374,14 @@ class ProcessIncorporationServiceSpec extends PlaySpec with MockitoSugar with Co
 
       when(mockCTRepository.updateSubmissionStatus(ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(Future.successful("rejected"))
 
-      when(mockAuditConnector.sendExtendedEvent(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockAuditService.sendEvent(
+        ArgumentMatchers.eq("failedIncorpInformation"),
+        ArgumentMatchers.eq(FailedIncorporationAuditEventDetail(
+          validCR.registrationID,
+          "testReason"
+        )),
+        ArgumentMatchers.any()
+      )(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.eq(FailedIncorporationAuditEventDetail.format)))
         .thenReturn(Future.successful(Success))
 
       when(mockDesConnector.topUpCTSubmission(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any()))
@@ -395,7 +403,14 @@ class ProcessIncorporationServiceSpec extends PlaySpec with MockitoSugar with Co
       when(mockCTRepository.findOneBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
         .thenReturn(Future.successful(Some(validCR.copy(status = LOCKED))))
 
-      when(mockAuditConnector.sendExtendedEvent(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockAuditService.sendEvent(
+        ArgumentMatchers.eq("failedIncorpInformation"),
+        ArgumentMatchers.eq(FailedIncorporationAuditEventDetail(
+          validCR.registrationID,
+          "testReason"
+        )),
+        ArgumentMatchers.any()
+      )(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.eq(FailedIncorporationAuditEventDetail.format)))
         .thenReturn(Future.successful(Success))
 
       await(Service.processIncorporationUpdate(incorpRejected)) mustBe false
@@ -405,7 +420,14 @@ class ProcessIncorporationServiceSpec extends PlaySpec with MockitoSugar with Co
       when(mockCTRepository.findOneBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
         .thenReturn(Future.successful(Some(validCR)))
       when(mockCTRepository.updateSubmissionStatus(ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(Future.successful("rejected"))
-      when(mockAuditConnector.sendExtendedEvent(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockAuditService.sendEvent(
+        ArgumentMatchers.eq("failedIncorpInformation"),
+        ArgumentMatchers.eq(FailedIncorporationAuditEventDetail(
+          validCR.registrationID,
+          "testReason"
+        )),
+        ArgumentMatchers.any()
+      )(ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.eq(FailedIncorporationAuditEventDetail.format)))
         .thenReturn(Future.successful(Success))
       when(mockDesConnector.topUpCTSubmission(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any()))
         .thenReturn(Future.failed(new InternalServerException("DES returned a 500")))
@@ -425,9 +447,6 @@ class ProcessIncorporationServiceSpec extends PlaySpec with MockitoSugar with Co
         .thenReturn(Future.successful(None))
 
       when(mockCTRepository.updateSubmissionStatus(ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(Future.successful("rejected"))
-
-      when(mockAuditConnector.sendExtendedEvent(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
-        .thenReturn(Future.successful(Success))
 
       when(mockCTRepository.removeTaxRegistrationById(ArgumentMatchers.eq(validCR.registrationID)))
         .thenReturn(Future.successful(true))

@@ -25,6 +25,3 @@ case class FailedIncorporationAuditEventDetail(journeyId: String,
 object FailedIncorporationAuditEventDetail {
   implicit val format = Json.format[FailedIncorporationAuditEventDetail]
 }
-
-class FailedIncorporationAuditEvent(details: FailedIncorporationAuditEventDetail, auditType: String, transactionName: String)(implicit hc: HeaderCarrier)
-  extends RegistrationAuditEvent(auditType, Some(transactionName), Json.toJson(details).as[JsObject], TagSet.REQUEST_ONLY)
