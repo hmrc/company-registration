@@ -36,8 +36,7 @@ import play.api.mvc.AnyContentAsEmpty
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import repositories._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, SessionId, Upstream4xxResponse, Upstream5xxResponse}
-import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, SessionId, UpstreamErrorResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
 import utils.{LogCapturing, PagerDutyKeys}
 
@@ -178,7 +177,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
         .thenReturn(Future.successful(true))
 
       when(mockDesConnector.ctSubmission(any(), any(), eqTo(regId), any())(any()))
-        .thenReturn(Future.successful(HttpResponse(202)))
+        .thenReturn(Future.successful(HttpResponse(202, "")))
 
       when(mockCorpTaxRepo.retrieveCompanyDetails(eqTo(regId)))
         .thenReturn(Future.successful(Some(CompanyDetails("", CHROAddress("", "", None, "", "", None, None, None), PPOB("", None), ""))))
@@ -286,7 +285,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
 
     "send a partial submission to DES when the ETMP feature flag is enabled and return a HeldSubmissionData object when the connector returns a 200 HttpResponse" in new Setup {
       when(mockDesConnector.ctSubmission(eqTo(ackRef), eqTo(partialSubmission), eqTo(regId), any())(any()))
-        .thenReturn(Future.successful(HttpResponse(200)))
+        .thenReturn(Future.successful(HttpResponse(200, "")))
 
       val result: HttpResponse = await(service.submitPartialToDES(regId, ackRef, partialSubmission, authProviderId))
 
@@ -297,22 +296,22 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
 
     "throw a Runtime exception, save sessionID/credID when the ETMP feature flag is enabled and submission DES to fails on a 400" in new Setup {
       when(mockDesConnector.ctSubmission(eqTo(ackRef), eqTo(partialSubmission), eqTo(regId), any())(any()))
-        .thenReturn(Future.failed(Upstream4xxResponse("fail", 400, 400)))
+        .thenReturn(Future.failed(UpstreamErrorResponse("fail", 400, 400)))
       when(mockCorpTaxRepo.storeSessionIdentifiers(eqTo(regId), any(), any()))
         .thenReturn(Future.successful(true))
 
-      intercept[Upstream4xxResponse](await(service.submitPartialToDES(regId, ackRef, partialSubmission, authProviderId)))
+      intercept[UpstreamErrorResponse](await(service.submitPartialToDES(regId, ackRef, partialSubmission, authProviderId)))
 
       verify(mockDesConnector, times(1)).ctSubmission(eqTo(ackRef), eqTo(partialSubmission), eqTo(regId), any())(any())
     }
 
     "throw a Runtime exception, save sessionID/credID when the ETMP feature flag is enabled and submission DES to fails on a 500" in new Setup {
       when(mockDesConnector.ctSubmission(eqTo(ackRef), eqTo(partialSubmission), eqTo(regId), any())(any()))
-        .thenReturn(Future.failed(Upstream5xxResponse("fail", 500, 500)))
+        .thenReturn(Future.failed(UpstreamErrorResponse("fail", 500, 500)))
       when(mockCorpTaxRepo.storeSessionIdentifiers(eqTo(regId), any(), any()))
         .thenReturn(Future.successful(true))
 
-      intercept[Upstream5xxResponse](await(service.submitPartialToDES(regId, ackRef, partialSubmission, authProviderId)))
+      intercept[UpstreamErrorResponse](await(service.submitPartialToDES(regId, ackRef, partialSubmission, authProviderId)))
 
       verify(mockDesConnector, times(1)).ctSubmission(eqTo(ackRef), eqTo(partialSubmission), eqTo(regId), any())(any())
     }
@@ -966,7 +965,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
       when(mockCorpTaxRepo.findOneBySelector(ArgumentMatchers.any()))
         .thenReturn(Future.successful(Some(lockedSubmission)))
       when(mockDesConnector.ctSubmission(any(), any(), any(), any())(any()))
-        .thenReturn(Future.successful(HttpResponse(200)))
+        .thenReturn(Future.successful(HttpResponse(200, "")))
       when(mockCorpTaxRepo.retrieveCompanyDetails(any()))
         .thenReturn(Future.successful(Some(companyDetails)))
       when(mockAuditService.sendEvent(
@@ -996,7 +995,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
       when(mockCorpTaxRepo.findOneBySelector(ArgumentMatchers.any()))
         .thenReturn(Future.successful(Some(lockedSubmission)))
       when(mockDesConnector.ctSubmission(any(), any(), any(), any())(any()))
-        .thenReturn(Future.successful(HttpResponse(200)))
+        .thenReturn(Future.successful(HttpResponse(200, "")))
       when(mockCorpTaxRepo.retrieveCompanyDetails(any()))
         .thenReturn(Future.successful(Some(companyDetails)))
       when(mockAuditService.sendEvent(
@@ -1043,7 +1042,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
       when(mockCorpTaxRepo.findOneBySelector(ArgumentMatchers.any()))
         .thenReturn(Future.successful(Some(lockedSubmission)))
       when(mockDesConnector.ctSubmission(any(), any(), any(), any())(any()))
-        .thenReturn(Future.successful(HttpResponse(200)))
+        .thenReturn(Future.successful(HttpResponse(200, "")))
       when(mockCorpTaxRepo.retrieveCompanyDetails(any()))
         .thenReturn(Future.successful(None))
 
@@ -1061,7 +1060,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
       when(mockCorpTaxRepo.findOneBySelector(ArgumentMatchers.any()))
         .thenReturn(Future.successful(Some(lockedSubmission)))
       when(mockDesConnector.ctSubmission(any(), any(), any(), any())(any()))
-        .thenReturn(Future.successful(HttpResponse(200)))
+        .thenReturn(Future.successful(HttpResponse(200, "")))
       when(mockCorpTaxRepo.retrieveCompanyDetails(any()))
         .thenReturn(Future.successful(Some(companyDetails)))
 

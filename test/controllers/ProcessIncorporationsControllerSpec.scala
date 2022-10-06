@@ -17,14 +17,13 @@
 package controllers
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
+import akka.stream.Materializer
 import models.IncorpStatus
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.concurrent.Eventually
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.mockito.MockitoSugar
-import play.api.Logger
+import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.Reads._
 import play.api.libs.json.{JsObject, Json}
 import play.api.test.FakeRequest
@@ -39,7 +38,7 @@ import scala.concurrent.Future
 class ProcessIncorporationsControllerSpec extends PlaySpec with MockitoSugar with LogCapturing with Eventually {
 
   implicit val as = ActorSystem()
-  implicit val mat = ActorMaterializer()
+  implicit val mat = Materializer(as)
 
   val regId = "1234"
   val incDate = LocalDate.parse("2000-12-12")
@@ -156,10 +155,8 @@ class ProcessIncorporationsControllerSpec extends PlaySpec with MockitoSugar wit
       withCaptureOfLoggingFrom(Controller.logger) { logEvents =>
         intercept[RuntimeException](await(call(Controller.processIncorporationNotification, request)))
         eventually {
-          logEvents.size mustBe 2
-          val res = logEvents.map(_.getMessage) contains "[Controller] FAILED_DES_TOPUP"
-
-          res mustBe true
+          logEvents.size mustBe 1
+          logEvents.head.getMessage mustBe "[Controller][processIncorporationNotification] FAILED_DES_TOPUP - Topup failed for transaction ID: trans-12345"
         }
       }
     }

@@ -22,17 +22,15 @@ import connectors.{BusinessRegistrationConnector, DesConnector, IncorporationInf
 import helpers.DateFormatter
 import jobs.{LockResponse, MongoLocked, ScheduledService, UnlockingFailed}
 import models.RegistrationStatus._
-import models.admin.{AdminCTReferenceDetails, HO6Identifiers, HO6Response}
 import models.{ConfirmationReferences, CorporationTaxRegistration, HO6RegistrationInformation, SessionIdData}
-import utils.Logging
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.Request
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import services.{AuditService, FailedToDeleteSubmissionData}
 import uk.gov.hmrc.http.{HeaderCarrier, NotFoundException}
 import uk.gov.hmrc.mongo.lock.LockService
-import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import utils.Logging
 
 import java.time.Instant
 import java.util.Base64
@@ -90,7 +88,7 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
   }
 
   private[services] def fetchTransactionId(regId: String): Future[Option[String]] = corpTaxRegRepo.retrieveConfirmationReferences(regId).map(_.fold[Option[String]] {
-    logger.error(s"[Admin] [fetchTransactionId] - Held submission found but transaction Id missing for regId $regId")
+    logger.error(s"[fetchTransactionId] - Held submission found but transaction Id missing for regId $regId")
     None
   }(refs => Option(refs.transactionId)))
 
@@ -104,13 +102,13 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
   def adminDeleteSubmission(info: DocumentInfo, txId: Option[String])(implicit hc: HeaderCarrier): Future[Boolean] = {
     val cancelSub = txId match {
       case Some(tId) =>
-        incorpInfoConnector.cancelSubscription(info.regId, tId) recover {
+        incorpInfoConnector.cancelSubscription(info.regId, tId) recoverWith {
           case e: NotFoundException =>
             logger.info(s"[processStaleDocument] Registration ${info.regId} - $tId does not have CTAX subscription. Now trying to delete CT sub.")
-            incorpInfoConnector.cancelSubscription(info.regId, tId, useOldRegime = true) recover {
+            incorpInfoConnector.cancelSubscription(info.regId, tId, useOldRegime = true) recoverWith {
               case e: NotFoundException =>
                 logger.warn(s"[processStaleDocument] Registration ${info.regId} - $tId has no subscriptions.")
-                true
+                Future.successful(true)
             }
         }
       case _ => Future.successful(true)
@@ -142,15 +140,12 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
   def invoke(implicit ec: ExecutionContext): Future[Either[Int, LockResponse]] = {
     implicit val hc = HeaderCarrier()
     lockKeeper.withLock(deleteStaleDocuments()).map {
+      case None => Right(MongoLocked)
       case Some(res) =>
-        logger.info("AdminService acquired lock and returned results")
-        logger.info(s"[remove-stale-documents-job] Successfully deleted $res stale documents")
+        logger.info(s"[invoke] Successfully deleted $res stale documents")
         Left(res)
-      case None =>
-        logger.info("AdminService cant acquire lock")
-        Right(MongoLocked)
     }.recover {
-      case e: Exception => logger.error(s"Error running deleteStaleDocuments with message: ${e.getMessage}")
+      case e: Exception => logger.error(s"[invoke] Error running deleteStaleDocuments with message: ${e.getMessage}")
         Right(UnlockingFailed)
     }
   }
@@ -165,7 +160,7 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
     } yield {
       val duration = System.currentTimeMillis - startTS
       val res = processed count (_ == true)
-      logger.info(s"[remove-stale-documents-job] Duration to run $duration ms")
+      logger.info(s"[deleteStaleDocuments] Duration to run $duration ms")
       res
     }
   }
@@ -202,7 +197,7 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
       res.fold {
         true
       } { crn =>
-        logger.warn(s"[processStaleDocument] Could not delete document with CRN: $crn " +
+        logger.warn(s"[checkNotIncorporated] Could not delete document with CRN: $crn " +
           s"regId: ${documentInfo.regId} transID: ${confRefs.transactionId} lastSignIn: ${documentInfo.lastSignedIn} status: ${documentInfo.status} paymentRefExists = ${confRefs.paymentReference.isDefined} paymentAmoutExists = ${confRefs.paymentAmount.isDefined} acknowledgmentReference is NOT empty = ${confRefs.acknowledgementReference.nonEmpty}"
         )
         throw new Exception("No deletion carried out because CRN exists")

@@ -26,7 +26,6 @@ import models.des.BusinessAddress
 import org.mockito.ArgumentMatchers.{eq => eqTo}
 import org.mockito.Mockito._
 import org.scalatest.concurrent.Eventually
-import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._

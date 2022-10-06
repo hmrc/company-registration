@@ -21,41 +21,36 @@ import org.scalatestplus.play.PlaySpec
 
 class LoggingUtilSpec extends PlaySpec with LogCapturing {
 
-  object TestInstanceWithLogging extends Logging {
+  val ex = new Exception("foobar")
 
-    def foo() = {
-      logger.debug("debug-bar")
-      logger.info("info-bar")
-      logger.warn("warn-bar")
-      logger.error("error-bar")
-      "bar"
-    }
+  object TestLogging extends Logging
+
+  "have the logger configured correctly" in {
+    TestLogging.logger.logger.getName mustBe "application.utils.TestLogging"
   }
 
+  "when logging" must {
 
-  "LoggerUtil" must {
+    withCaptureOfLoggingFrom(TestLogging.logger) { logs =>
+      Seq(
+        Level.DEBUG -> TestLogging.logger.debug(s"${Level.DEBUG} Message"),
+        Level.INFO -> TestLogging.logger.info(s"${Level.INFO} Message"),
+        Level.WARN -> TestLogging.logger.warn(s"${Level.WARN} Message"),
+        Level.ERROR -> TestLogging.logger.error(s"${Level.ERROR} Message")
+      ) foreach {
 
-    "Provide a logger which" must {
+        case (level, _) =>
 
-      "have the correct underlying logger for the class" in {
+          s"at level $level" must {
 
-        TestInstanceWithLogging.logger.logger.getName mustBe "application.TestInstanceWithLogging"
-      }
+            s"output the correct message and level (prefixing with the class/object name)" in {
 
-      Seq(Level.DEBUG, Level.INFO, Level.WARN, Level.ERROR) foreach { level =>
-
-        s"output the correct $level level log and prefix with the class name" in {
-
-          withCaptureOfLoggingFrom(TestInstanceWithLogging.logger) { logs =>
-
-            TestInstanceWithLogging.foo()
-
-            logs.find(_.getLevel == level) match {
-              case Some(value) => value.getMessage mustBe s"[TestInstanceWithLogging] ${level.toString.toLowerCase}-bar"
-              case None => fail(s"Could not find $level message")
+              logs.find(_.getLevel == level) match {
+                case Some(value) => value.getMessage mustBe s"[TestLogging] $level Message"
+                case None => fail(s"Could not find $level message")
+              }
             }
           }
-        }
       }
     }
   }

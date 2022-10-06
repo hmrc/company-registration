@@ -22,17 +22,15 @@ import fixtures.CorporationTaxRegistrationFixture
 import models._
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
-import org.scalatest.concurrent.Eventually
 import org.scalatest.BeforeAndAfterEach
-import org.scalatestplus.play.PlaySpec
+import org.scalatest.concurrent.Eventually
 import org.scalatestplus.mockito.MockitoSugar
-import play.api.Logger
+import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsObject, JsString, Json}
 import play.api.test.Helpers._
 import repositories.CorporationTaxRegistrationMongoRepository
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, InternalServerException}
-import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
 import utils.LogCapturing
 
@@ -385,7 +383,7 @@ class ProcessIncorporationServiceSpec extends PlaySpec with MockitoSugar with Co
         .thenReturn(Future.successful(Success))
 
       when(mockDesConnector.topUpCTSubmission(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any()))
-        .thenReturn(Future.successful(HttpResponse(200)))
+        .thenReturn(Future.successful(HttpResponse(200, "")))
 
       when(mockCTRepository.removeTaxRegistrationById(ArgumentMatchers.eq(validCR.registrationID)))
         .thenReturn(Future.successful(true))

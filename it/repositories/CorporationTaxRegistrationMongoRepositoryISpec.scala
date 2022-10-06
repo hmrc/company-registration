@@ -713,7 +713,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     }
     "return Some(regId, InternalId) when ct doc exists" in new Setup {
       insert(newCTDoc)
-      await(repository.getInternalId(registrationId)) mustBe(newCTDoc.registrationID, newCTDoc.internalId)
+      await(repository.getInternalId(registrationId)) mustBe(newCTDoc.registrationID -> newCTDoc.internalId)
     }
   }
 
@@ -954,11 +954,11 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
       setupCollection(repository, corporationTaxRegistration)
 
-      val Some(result): Option[CorporationTaxRegistration] = await(repository.updateRegistrationToHeld(regId, validConfirmationReferences))
+      val result: Option[CorporationTaxRegistration] = await(repository.updateRegistrationToHeld(regId, validConfirmationReferences))
 
-      val heldTs: Option[Instant] = result.heldTimestamp
+      val heldTs: Option[Instant] = result.flatMap(_.heldTimestamp)
 
-      val Some(expected): Option[CorporationTaxRegistration] = Some(CorporationTaxRegistration(
+      val expected: Option[CorporationTaxRegistration] = Some(CorporationTaxRegistration(
         internalId = "testID",
         registrationID = regId,
         formCreationTimestamp = "testDateTime",
@@ -1119,9 +1119,9 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
       setupCollection(repository, corporationTaxRegistration("06", ctutr = false))
 
-      val Some(result): Option[CorporationTaxRegistration] = await(repository.updateRegistrationWithAdminCTReference(ackRef, newUtr))
+      val result: Option[CorporationTaxRegistration] = await(repository.updateRegistrationWithAdminCTReference(ackRef, newUtr))
 
-      result mustBe corporationTaxRegistration("06", ctutr = false)
+      result mustBe Some(corporationTaxRegistration("06", ctutr = false))
     }
 
     "not update a registration that does not exist" in new Setup {

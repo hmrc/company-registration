@@ -17,7 +17,7 @@
 package controllers
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
+import akka.stream.{ActorMaterializer, Materializer}
 import helpers.BaseSpec
 import mocks.{AuthorisationMocks, MockMetricsService}
 import models.{UserAccessLimitReachedResponse, UserAccessSuccessResponse}
@@ -37,7 +37,7 @@ import scala.concurrent.Future
 class UserAccessControllerSpec extends BaseSpec with AuthorisationMocks {
 
   implicit val system = ActorSystem("CR")
-  implicit val materializer = ActorMaterializer()
+  implicit val materializer = Materializer(system)
 
   val mockUserAccessService = mock[UserAccessService]
 

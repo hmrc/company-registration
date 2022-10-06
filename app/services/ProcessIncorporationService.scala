@@ -175,7 +175,7 @@ trait ProcessIncorporationService extends DateHelper with HttpErrorFunctions wit
             throw e
         }
       case None =>
-        val errMsg = s"""Held Registration doc is missing the ack ref for tx_id "${item.transactionId}"."""
+        val errMsg = s"""[updateHeldSubmission] Held Registration doc is missing the ack ref for tx_id "${item.transactionId}"."""
         logger.error(errMsg)
         Future.failed(new MissingAckRef(errMsg))
     }
@@ -202,7 +202,7 @@ trait ProcessIncorporationService extends DateHelper with HttpErrorFunctions wit
           true
         }
       case None =>
-        val errMsg = s"""Held Registration doc is missing the ack ref for tx_id "${item.transactionId}"."""
+        val errMsg = s"""[processIncorporationRejectionSubmission] Held Registration doc is missing the ack ref for tx_id "${item.transactionId}"."""
         logger.error(errMsg)
         Future.failed(new MissingAckRef(errMsg))
     }

@@ -33,10 +33,8 @@ class ProcessIncorporationsController @Inject()(val processIncorporationService:
                                                 controllerComponents: ControllerComponents
                                                )(implicit val ec: ExecutionContext) extends BackendController(controllerComponents) with Logging {
 
-  private def logFailedTopup(txId: String) = {
-    logger.error("FAILED_DES_TOPUP")
-    logger.info(s"FAILED_DES_TOPUP - Topup failed for transaction ID: $txId")
-  }
+  private def logFailedTopup(txId: String, method: String) =
+    logger.error(s"[$method] FAILED_DES_TOPUP - Topup failed for transaction ID: $txId")
 
   def processIncorporationNotification: Action[JsValue] = Action.async[JsValue](parse.json) {
     implicit request =>
@@ -47,14 +45,14 @@ class ProcessIncorporationsController @Inject()(val processIncorporationService:
         processIncorporationService.processIncorporationUpdate(incorp.toIncorpUpdate) flatMap {
           if (_) Future.successful(Ok) else {
             submissionService.setupPartialForTopupOnLocked(incorp.transactionId)(hc, requestAsAnyContentAsJson) map { _ =>
-              logger.info(s"[processIncorp] Sent partial submission in response to locked document on incorp update: ${incorp.transactionId}")
+              logger.info(s"[processIncorporationNotification] Sent partial submission in response to locked document on incorp update: ${incorp.transactionId}")
               Accepted
             }
           }
         } recover {
           case NoSessionIdentifiersInDocument => Ok
           case e =>
-            logFailedTopup(incorp.transactionId)
+            logFailedTopup(incorp.transactionId, "processIncorporationNotification")
             throw e
         }
       }
@@ -68,12 +66,12 @@ class ProcessIncorporationsController @Inject()(val processIncorporationService:
           if (_) {
             Ok
           } else {
-            logFailedTopup(incorp.transactionId)
+            logFailedTopup(incorp.transactionId, "processAdminIncorporation")
             BadRequest
           }
         } recover {
           case e =>
-            logFailedTopup(incorp.transactionId)
+            logFailedTopup(incorp.transactionId, "processAdminIncorporation")
             throw e
         }
       }

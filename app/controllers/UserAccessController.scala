@@ -49,7 +49,7 @@ class UserAccessController @Inject()(val authConnector: AuthConnector,
               TooManyRequests
           }
         case _ =>
-          logger.error("[UserAccessController][checkUserAccess] Unable to retrieve internalId from call to Auth")
+          logger.error("[checkUserAccess] Unable to retrieve internalId from call to Auth")
           Future.successful(Forbidden)
       }
   }

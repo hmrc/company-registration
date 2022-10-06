@@ -17,8 +17,9 @@
 package config
 
 import akka.actor.ActorSystem
-import play.api.{Configuration, Logging}
+import play.api.Configuration
 import repositories.CorporationTaxRegistrationMongoRepository
+import utils.Logging
 
 import java.util.Base64
 import java.util.concurrent.TimeUnit
@@ -31,7 +32,7 @@ class Startup @Inject()(appStartupJobs: AppStartupJobs,
                         actorSystem: ActorSystem
                        )(implicit val ec: ExecutionContext) {
 
-  actorSystem.scheduler.scheduleOnce(FiniteDuration(1, TimeUnit.MINUTES))(appStartupJobs.runEverythingOnStartUp)
+  actorSystem.scheduler.scheduleOnce(FiniteDuration(1, TimeUnit.MINUTES))(appStartupJobs.runEverythingOnStartUp())
 }
 
 class AppStartupJobsImpl @Inject()(val config: Configuration,
@@ -44,40 +45,36 @@ trait AppStartupJobs extends Logging {
   val config: Configuration
   val ctRepo: CorporationTaxRegistrationMongoRepository
 
-  def startupStats: Future[Unit] = {
+  def startupStats: Future[Unit] =
     ctRepo.getRegistrationStats map {
-      stats => logger.info(s"[RegStats] $stats")
+      stats => logger.info(s"[startupStats] $stats")
     }
-  }
 
-  def lockedRegIds: Future[Unit] = {
+  def lockedRegIds: Future[Unit] =
     ctRepo.retrieveLockedRegIDs() map { regIds =>
       val message = regIds.map(rid => s" RegId: $rid")
-      logger.info(s"RegIds with locked status:$message")
+      logger.info(s"[lockedRegIds] RegIds with locked status:$message")
     }
-  }
 
-  def getCTCompanyName(rid: String): Future[Unit] = {
+  def getCTCompanyName(rid: String): Future[Unit] =
     ctRepo.retrieveMultipleCorporationTaxRegistration(rid) map {
       list =>
         list foreach { ctDoc =>
-          logger.info(s"[CompanyName] " +
+          logger.info(s"[getCTCompanyName] " +
             s"status : ${ctDoc.status} - " +
             s"reg Id : ${ctDoc.registrationID} - " +
             s"Company Name : ${ctDoc.companyDetails.fold("")(companyDetails => companyDetails.companyName)} - " +
             s"Trans ID : ${ctDoc.confirmationReferences.fold("")(confRefs => confRefs.transactionId)}")
         }
     }
-  }
 
-  def fetchDocInfoByRegId(regIds: Seq[String]): Future[Seq[Unit]] = {
-
+  def fetchDocInfoByRegId(regIds: Seq[String]): Future[Seq[Unit]] =
     Future.sequence(regIds.map { regId =>
       ctRepo.findOneBySelector(ctRepo.regIDSelector(regId)).map {
         case Some(doc) =>
           logger.info(
             s"""
-               |[StartUp] [fetchByRegID] regId: $regId,
+               |[fetchDocInfoByRegId] regId: $regId,
                | status: ${doc.status},
                | lastSignedIn: ${doc.lastSignedIn},
                | confRefs: ${doc.confirmationReferences},
@@ -90,28 +87,22 @@ trait AppStartupJobs extends Logging {
                | verifiedEmail: ${doc.verifiedEmail.isDefined}
             """.stripMargin
           )
-        case _ => logger.info(s"[StartUp] [fetchByRegID] No registration document found for $regId")
+        case _ => logger.info(s"[fetchDocInfoByRegId] No registration document found for $regId")
       }
     })
-  }
 
-  def fetchByAckRef(ackRefs: Seq[String]): Unit = {
-
+  def fetchByAckRef(ackRefs: Seq[String]): Unit =
     for (ackRef <- ackRefs) {
       ctRepo.findOneBySelector(ctRepo.ackRefSelector(ackRef)).map {
         case Some(doc) =>
-          logger.info(
-            s"""
-               |[StartUp] [fetchByAckRef] Ack Ref: $ackRef, RegId: ${doc.registrationID}, Status: ${doc.status}, LastSignedIn: ${doc.lastSignedIn}, ConfRefs: ${doc.confirmationReferences}
-            """.stripMargin
-          )
-        case _ => logger.info(s"[StartUp] [fetchByAckRef] No registration document found for $ackRef")
+          logger.info(s"[fetchDocInfoByRegId] Ack Ref: $ackRef, RegId: ${doc.registrationID}, Status: ${doc.status}, LastSignedIn: ${doc.lastSignedIn}, ConfRefs: ${doc.confirmationReferences}")
+        case _ =>
+          logger.info(s"[fetchDocInfoByRegId] No registration document found for $ackRef")
       }
     }
-  }
 
-  def runEverythingOnStartUp = {
-    logger.info("Running Startup Jobs")
+  def runEverythingOnStartUp(): Future[Unit] = {
+    logger.info("[runEverythingOnStartUp] Running Startup Jobs")
     lazy val regid = config.get[String]("companyNameRegID")
     getCTCompanyName(regid)
 
@@ -127,6 +118,4 @@ trait AppStartupJobs extends Logging {
     lockedRegIds
 
   }
-
-
 }

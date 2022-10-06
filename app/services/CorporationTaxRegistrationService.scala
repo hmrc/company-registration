@@ -134,7 +134,7 @@ trait CorporationTaxRegistrationService extends ScheduledService[Either[String, 
     countryOpt
   }
 
-  def convertRoToBusinessAddress(rOAddress: CHROAddress): Option[BusinessAddress] = {
+  def convertRoToBusinessAddress(rOAddress: CHROAddress): Option[BusinessAddress] =
     Try {
       val linesResults: Seq[Option[String]] = returnSeqAddressLinesFromCHROAddress(rOAddress)
       val postCodeOpt: Option[String] = returnOptPostcode(rOAddress)
@@ -142,15 +142,13 @@ trait CorporationTaxRegistrationService extends ScheduledService[Either[String, 
 
       BusinessAddress(linesResults.head.get, linesResults(1).get, linesResults(2), linesResults(3), postCodeOpt, countryOpt)
     }.map { bAddress =>
-      logger.info("[convertRoToBusinessAddress] successfully converted RO to Business Address")
       Some(bAddress)
     }.recoverWith {
       case e => logger.info(s"[convertRoToBusinessAddress] Could not convert RO address - ${e.getMessage}")
         Success(Option.empty)
     }.get
-  }
 
-  def convertROToPPOBAddress(rOAddress: CHROAddress): Option[PPOBAddress] = {
+  def convertROToPPOBAddress(rOAddress: CHROAddress): Option[PPOBAddress] =
     Try {
       val linesResults: Seq[Option[String]] = returnSeqAddressLinesFromCHROAddress(rOAddress)
       val postCodeOpt: Option[String] = returnOptPostcode(rOAddress)
@@ -158,30 +156,25 @@ trait CorporationTaxRegistrationService extends ScheduledService[Either[String, 
 
       PPOBAddress(linesResults.head.get, linesResults(1).get, linesResults(2), linesResults(3), postCodeOpt, countryOpt, None, "")
     }.map { s =>
-      logger.info(s"[convertROToPPOBAddress] Convertd RO address")
       Some(s)
     }.recoverWith {
       case e => logger.warn(s"[convertROToPPOBAddress] Could not convert RO address - ${e.getMessage}")
         Success(None)
     }.get
-  }
 
-  def retrieveConfirmationReferences(rID: String): Future[Option[ConfirmationReferences]] = {
+  def retrieveConfirmationReferences(rID: String): Future[Option[ConfirmationReferences]] =
     cTRegistrationRepository.retrieveConfirmationReferences(rID)
-  }
 
   def invoke(implicit ec: ExecutionContext): Future[Either[String, LockResponse]] = {
     implicit val hc = HeaderCarrier()
     lockKeeper.withLock(locateOldHeldSubmissions).map {
+      case None => Right(MongoLocked)
       case Some(res) =>
-        logger.info("CorporationTaxRegistrationService acquired lock and returned results")
-        logger.info(s"Result locateOldHeldSubmissions: $res")
+        logger.info(s"[invoke] CorporationTaxRegistrationService acquired lock and returned results\nResult locateOldHeldSubmissions: $res")
         Left(res)
-      case None =>
-        logger.info("CorporationTaxRegistrationService cant acquire lock")
-        Right(MongoLocked)
     }.recover {
-      case e: Exception => logger.error(s"Error running locateOldHeldSubmissions with message: ${e.getMessage}")
+      case e: Exception =>
+        logger.error(s"[invoke] Error running locateOldHeldSubmissions with message: ${e.getMessage}")
         Right(UnlockingFailed)
     }
   }
@@ -194,7 +187,7 @@ trait CorporationTaxRegistrationService extends ScheduledService[Either[String, 
           val txID = submission.confirmationReferences.fold("")(cr => cr.transactionId)
           val heldTimestamp = submission.heldTimestamp.fold("")(ht => ht.toString())
 
-          logger.warn(s"Held submission older than one week of regID: ${submission.registrationID} txID: $txID heldDate: $heldTimestamp)")
+          logger.warn(s"[locateOldHeldSubmissions] Held submission older than one week of regID: ${submission.registrationID} txID: $txID heldDate: $heldTimestamp)")
           true
         }
         "Week old held submissions found"

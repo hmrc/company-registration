@@ -46,7 +46,7 @@ trait SendEmailService extends Logging {
   def sendVATEmail(emailAddress: String, regId: String)(implicit hc: HeaderCarrier): Future[Boolean] = {
     emailConnector.requestEmail(generateVATEmailRequest(Seq(emailAddress))).map {
       res =>
-        logger.info("VAT email sent for journey id " + regId)
+        logger.info("[sendVATEmail] VAT email sent for journey id " + regId)
         res
     }
   }

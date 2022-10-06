@@ -17,7 +17,7 @@
 package controllers
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
+import akka.stream.{ActorMaterializer, Materializer}
 import helpers.BaseSpec
 import mocks.AuthorisationMocks
 import models._
@@ -37,7 +37,7 @@ class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
   val internalId = "testInternalId"
   val regId = "testRegId"
   implicit val act: ActorSystem = ActorSystem()
-  implicit val mat: ActorMaterializer = ActorMaterializer()
+  implicit val mat: Materializer = Materializer(act)
   override val mockResource: CorporationTaxRegistrationMongoRepository = mockTypedResource[CorporationTaxRegistrationMongoRepository]
 
   val validGroupsModel: Groups = Groups(

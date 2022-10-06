@@ -23,7 +23,7 @@ import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.test.Helpers._
 import uk.gov.hmrc.http._
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.http.HttpClient
 
 import java.time.LocalDate
 import java.util.UUID
@@ -120,7 +120,7 @@ class SubmissionCheckAPIConnectorSpec extends PlaySpec with MockitoSugar {
       val url = s"$testProxyUrl/internal/check-submission?items_per_page=1"
 
       when(mockWSHttp.GET[SubmissionCheckResponse](ArgumentMatchers.eq(url), ArgumentMatchers.any(), ArgumentMatchers.any)(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
-        .thenReturn(Future.failed(Upstream4xxResponse("429", 429, 429)))
+        .thenReturn(Future.failed(UpstreamErrorResponse("429", 429, 429)))
 
       intercept[SubmissionAPIFailure](await(connector.checkSubmission(None)))
     }
@@ -129,7 +129,7 @@ class SubmissionCheckAPIConnectorSpec extends PlaySpec with MockitoSugar {
       val url = s"$testProxyUrl/internal/check-submission?items_per_page=1"
 
       when(mockWSHttp.GET[SubmissionCheckResponse](ArgumentMatchers.eq(url), ArgumentMatchers.any(), ArgumentMatchers.any)(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
-        .thenReturn(Future.failed(Upstream5xxResponse("502", 502, 502)))
+        .thenReturn(Future.failed(UpstreamErrorResponse("502", 502, 502)))
 
       intercept[SubmissionAPIFailure](await(connector.checkSubmission(None)))
     }

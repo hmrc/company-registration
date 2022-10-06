@@ -348,7 +348,7 @@ class CorporationTaxRegistrationMongoRepository @Inject()(val mongo: MongoCompon
 
   def fetchDocumentStatus(regId: String): OptionT[Future, String] = for {
     status <- OptionT(findOneBySelector(regIDSelector(regId))).map(_.status)
-    _ = logger.info(s"[FetchDocumentStatus] status for reg id $regId is $status ")
+    _ = logger.info(s"[fetchDocumentStatus] status for reg id $regId is $status ")
   } yield status
 
   def updateRegistrationToHeld(regId: String, confRefs: ConfirmationReferences): Future[Option[CorporationTaxRegistration]] = {

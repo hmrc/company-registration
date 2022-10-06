@@ -20,7 +20,7 @@ import models.SubmissionCheckResponse
 import utils.Logging
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.http.HttpClient
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -60,11 +60,8 @@ trait IncorporationCheckAPIConnector extends Logging {
       case ex: NotFoundException =>
         logError(ex, timepoint)
         throw new SubmissionAPIFailure
-      case ex: Upstream4xxResponse =>
-        logger.error("[checkSubmission]" + ex.upstreamResponseCode + " " + ex.message)
-        throw new SubmissionAPIFailure
-      case ex: Upstream5xxResponse =>
-        logger.error("[checkSubmission]" + ex.upstreamResponseCode + " " + ex.message)
+      case ex: UpstreamErrorResponse =>
+        logger.error("[checkSubmission]" + ex.statusCode + " " + ex.message)
         throw new SubmissionAPIFailure
       case ex: Exception =>
         logger.error("[checkSubmission]" + ex)

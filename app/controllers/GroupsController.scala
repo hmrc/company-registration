@@ -46,7 +46,7 @@ class GroupsController @Inject()(val authConnector: AuthConnector,
       case Groups(_, nameOfCompany@Some(_), None, Some(_)) => Right(new Exception("[groupsBlockValidation] address skipped"))
       case Groups(_, None, None, Some(_)) => Right(new Exception("[groupsBlockValidation] name of the company and address skipped"))
       case _ =>
-        logger.info("Groups block in correct state to use")
+        logger.info("[groupsBlockValidation] Groups block in correct state to use")
         Left(groups)
     }
   }

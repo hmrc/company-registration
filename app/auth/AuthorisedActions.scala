@@ -64,10 +64,10 @@ trait AuthenticatedActions extends MicroserviceAuthorisedFunctions with Logging 
 
   private def authenticationErrorHandling[A](implicit request: Request[A]): PartialFunction[Throwable, Result] = {
     case _: NoActiveSession =>
-      logger.error(s"User has no active session when trying to access ${request.path}")
+      logger.error(s"[authenticationErrorHandling] User has no active session when trying to access ${request.path}")
       Unauthorized
     case e: AuthorisationException =>
-      logger.error(s"User forbidden when trying to access ${request.path}", e)
+      logger.error(s"[authenticationErrorHandling] User forbidden when trying to access ${request.path}", e)
       Forbidden
   }
 }
@@ -116,19 +116,19 @@ trait AuthorisedActions extends AuthenticatedActions with AuthResource with Logg
 
   private def authorisationErrorHandling[A](regId: String)(implicit request: Request[A]): PartialFunction[Throwable, Result] = {
     case _: NoActiveSession =>
-      logger.error(s"User with regId $regId has no active session when trying to access ${request.path}")
+      logger.error(s"[authorisationErrorHandling] User with regId $regId has no active session when trying to access ${request.path}")
       Unauthorized
     case _: MissingCTDocument =>
-      logger.error(s"No CT document found for regId $regId when trying to access ${request.path}")
+      logger.error(s"[authorisationErrorHandling] No CT document found for regId $regId when trying to access ${request.path}")
       NotFound
     case _: UnauthorisedAccess =>
-      logger.error(s"User with regId $regId tried to access a matching document with a different internalId  when trying to access ${request.path}")
+      logger.error(s"[authorisationErrorHandling] User with regId $regId tried to access a matching document with a different internalId  when trying to access ${request.path}")
       Forbidden
     case _: NoInternalIdRetrieved =>
-      logger.error(s"User with regId $regId had no internalId retrieved from call to Auth")
+      logger.error(s"[authorisationErrorHandling] User with regId $regId had no internalId retrieved from call to Auth")
       Forbidden
     case e: AuthorisationException =>
-      logger.error(s"User forbidden when trying to access ${request.path}", e)
+      logger.error(s"[authorisationErrorHandling] User forbidden when trying to access ${request.path}", e)
       Forbidden
   }
 }
