@@ -23,7 +23,7 @@ import services.{AuditService, MetricsService}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.http.HttpClient
 import utils.Logging
 
 import javax.inject.{Inject, Singleton}
@@ -66,7 +66,7 @@ trait DesConnector extends AuditService with RawResponseReads with HttpErrorFunc
         sendCTRegSubmissionEvent(ctRegSubmissionFromJson(journeyId, response.json.as[JsObject]))
         response
       } recoverWith {
-        case ex: Upstream4xxResponse =>
+        case ex: UpstreamErrorResponse if UpstreamErrorResponse.Upstream4xxResponse.unapply(ex).isDefined =>
           logger.error("DES_SUBMISSION_400")
           logger.warn(s"[ctSubmission] Submission to DES was invalid for regId: $journeyId AckRef: $ackRef")
           sendEvent("ctRegistrationSubmissionFailed", Json.obj("submission" -> submission, JOURNEY_ID -> journeyId))
@@ -87,7 +87,7 @@ trait DesConnector extends AuditService with RawResponseReads with HttpErrorFunc
         sendCTRegSubmissionEvent(ctRegSubmissionFromJson(journeyId, response.json.as[JsObject]))
         response
       } recoverWith {
-        case ex: Upstream4xxResponse =>
+        case ex: UpstreamErrorResponse if UpstreamErrorResponse.Upstream4xxResponse.unapply(ex).isDefined =>
           logger.error("DES_SUBMISSION_400")
           logger.warn(s"[ctTopUpSubmission] Top up submission to DES was invalid for regId: $journeyId AckRef: $ackRef")
           sendEvent("ctRegistrationSubmissionFailed", Json.obj("submission" -> submission, JOURNEY_ID -> journeyId))
@@ -111,15 +111,15 @@ trait DesConnector extends AuditService with RawResponseReads with HttpErrorFunc
     response.status match {
       case 409 =>
         logger.warn("[customDESRead] Received 409 from DES - converting to 202")
-        HttpResponse(202, Some(response.json), response.allHeaders, Option(response.body))
+        HttpResponse(202, response.body, response.headers)
       case 429 =>
         logger.warn("[customDESRead] Received 429 from DES - converting to 503")
-        throw Upstream5xxResponse("Timeout received from DES submission", 499, 503)
+        throw UpstreamErrorResponse("TooManyRequests received from DES submission", 429, 503)
       case 499 =>
         logger.warn("[customDESRead] Received 499 from DES - converting to 502")
-        throw Upstream4xxResponse("Timeout received from DES submission", 499, 502)
+        throw UpstreamErrorResponse("Timeout received from DES submission", 499, 502)
       case status if is4xx(status) =>
-        throw Upstream4xxResponse(upstreamResponseMessage(http, url, status, response.body), status, reportAs = 400, response.allHeaders)
+        throw UpstreamErrorResponse(upstreamResponseMessage(http, url, status, response.body), status, reportAs = 400, response.headers)
       case _ => handleResponse(http, url)(response)
     }
   }

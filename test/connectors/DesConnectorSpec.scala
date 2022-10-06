@@ -22,7 +22,7 @@ import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, SessionId, Upstream4xxResponse, Upstream5xxResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, SessionId, UpstreamErrorResponse}
 import uk.gov.hmrc.play.audit.http.config.AuditingConfig
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
@@ -55,13 +55,13 @@ class DesConnectorSpec extends BaseSpec with WSHttpMock {
   "httpRds" must {
 
     "return the http response when a 200 status code is read from the http response" in new Setup {
-      val response = HttpResponse(200)
+      val response = HttpResponse(200, "")
       connector.httpRds.read("http://", "testUrl", response) mustBe response
     }
 
     "return a not found exception when it reads a 404 status code from the http response" in new Setup {
-      intercept[Upstream4xxResponse] {
-        connector.httpRds.read("http://", "testUrl", HttpResponse(404))
+      intercept[UpstreamErrorResponse] {
+        connector.httpRds.read("http://", "testUrl", HttpResponse(404, ""))
       }
     }
   }
@@ -72,7 +72,7 @@ class DesConnectorSpec extends BaseSpec with WSHttpMock {
 
     "for accepted submission, return success" in new Setup {
       when(mockWSHttp.POST[JsValue, HttpResponse](ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())).
-        thenReturn(Future.successful(HttpResponse(202, responseJson = Some(Json.obj("x" -> "y")))))
+        thenReturn(Future.successful(HttpResponse(202, json = Json.obj("x" -> "y"), Map())))
 
       when(mockAuditConnector.sendExtendedEvent(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(Success))
@@ -84,7 +84,7 @@ class DesConnectorSpec extends BaseSpec with WSHttpMock {
 
     "for topup  submission, return success" in new Setup {
       when(mockWSHttp.POST[JsValue, HttpResponse](ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())).
-        thenReturn(Future.successful(HttpResponse(202, responseJson = Some(Json.obj("x" -> "y")))))
+        thenReturn(Future.successful(HttpResponse(202, json = Json.obj("x" -> "y"), Map())))
 
       when(mockAuditConnector.sendExtendedEvent(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(Success))
@@ -96,24 +96,24 @@ class DesConnectorSpec extends BaseSpec with WSHttpMock {
 
     "for a forbidden request, return a bad request" in new Setup {
       when(mockWSHttp.POST[JsValue, HttpResponse](ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())).
-        thenReturn(Future.failed(Upstream4xxResponse("", 403, 400)))
+        thenReturn(Future.failed(UpstreamErrorResponse("", 403, 400)))
 
       when(mockAuditConnector.sendExtendedEvent(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(Success))
 
-      intercept[Upstream4xxResponse] {
+      intercept[UpstreamErrorResponse] {
         await(connector.ctSubmission("", submission, "testJID"))
       }
     }
 
     "for a forbidden topup request, return a bad request" in new Setup {
       when(mockWSHttp.POST[JsValue, HttpResponse](ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())).
-        thenReturn(Future.failed(Upstream4xxResponse("", 403, 400)))
+        thenReturn(Future.failed(UpstreamErrorResponse("", 403, 400)))
 
       when(mockAuditConnector.sendExtendedEvent(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(Success))
 
-      intercept[Upstream4xxResponse] {
+      intercept[UpstreamErrorResponse] {
         await(connector.topUpCTSubmission("", submission, "testJID"))
       }
     }
@@ -121,12 +121,12 @@ class DesConnectorSpec extends BaseSpec with WSHttpMock {
 
     "for a client request timedout, return unavailable" in new Setup {
       when(mockWSHttp.POST[JsValue, HttpResponse](ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())).
-        thenReturn(Future.failed(Upstream4xxResponse("", 499, 502)))
+        thenReturn(Future.failed(UpstreamErrorResponse("", 499, 502)))
 
       when(mockAuditConnector.sendExtendedEvent(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(Success))
 
-      intercept[Upstream4xxResponse] {
+      intercept[UpstreamErrorResponse] {
         await(connector.ctSubmission("", submission, "testJID"))
       }
     }
@@ -135,33 +135,29 @@ class DesConnectorSpec extends BaseSpec with WSHttpMock {
   "customDESRead" must {
 
     "return the response on an acceptable request" in new Setup {
-      val response = HttpResponse(202)
+      val response = HttpResponse(202, "")
       connector.customDESRead("", "", response) mustBe response
     }
 
-    "return a Upstream4xxResponse on a bad request" in new Setup {
-      val response = HttpResponse(400)
-      intercept[Upstream4xxResponse] {
-        connector.customDESRead("", "", response)
+    "return a UpstreamErrorResponse on a bad request" in new Setup {
+      intercept[UpstreamErrorResponse] {
+        connector.customDESRead("", "", HttpResponse(400, ""))
       }
     }
 
     "return the HttpResponse as a 202 on a conflict" in new Setup {
-      val response = HttpResponse(409)
-      connector.customDESRead("", "", response).status mustBe 202
+      connector.customDESRead("", "", HttpResponse(409, "")).status mustBe 202
     }
 
-    "return a Upstream4xxResponse on a timeout" in new Setup {
-      val response = HttpResponse(499)
-      val ex = intercept[Upstream4xxResponse] {
-        connector.customDESRead("", "", response)
+    "return a UpstreamErrorResponse on a timeout" in new Setup {
+      val ex = intercept[UpstreamErrorResponse] {
+        connector.customDESRead("", "", HttpResponse(499, ""))
       }
       ex.reportAs mustBe 502
     }
-    "return a Upstream5xxResponse when response is 503" in new Setup {
-      val response = HttpResponse(429)
-      val ex = intercept[Upstream5xxResponse] {
-        connector.customDESRead("", "", response)
+    "return a UpstreamErrorResponse when response is 503" in new Setup {
+      val ex = intercept[UpstreamErrorResponse] {
+        connector.customDESRead("", "", HttpResponse(429, ""))
       }
       ex.reportAs mustBe 503
     }

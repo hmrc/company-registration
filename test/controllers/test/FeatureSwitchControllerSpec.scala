@@ -17,7 +17,7 @@
 package controllers.test
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
+import akka.stream.{ActorMaterializer, Materializer}
 import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
@@ -32,7 +32,7 @@ import scala.concurrent.Future
 class FeatureSwitchControllerSpec extends PlaySpec with MockitoSugar {
 
   implicit val system: ActorSystem = ActorSystem("CR")
-  implicit val materializer: ActorMaterializer = ActorMaterializer()
+  implicit val materializer: Materializer = Materializer(system)
 
   val mockQuartz: QuartzSchedulerExtension = mock[QuartzSchedulerExtension]
 

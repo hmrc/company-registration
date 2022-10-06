@@ -32,7 +32,7 @@ object StringNormaliser {
     val ourString = Normalizer.normalize(string, Form.NFKD)
       .replaceAll("\\p{M}", "")
       .trim
-      .map((char: Char) => specialCharacterConverts.getOrElse(char, char))
+      .map((char: Char) => specialCharacterConverts.getOrElse[String](char, char.toString))
       .mkString
 
     charFilter.findAllMatchIn(ourString).mkString

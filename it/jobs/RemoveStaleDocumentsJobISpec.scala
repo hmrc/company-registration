@@ -39,7 +39,7 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with MongoIntegra
   val mockPort = WiremockHelper.wiremockPort
   val mockUrl = s"http://$mockHost:$mockPort"
 
-  val additionalConfiguration = Map(
+  val additionalConfiguration: Map[String, Any] = Map(
     "auditing.consumer.baseUri.host" -> s"$mockHost",
     "auditing.consumer.baseUri.port" -> s"$mockPort",
     "microservice.services.incorporation-information.host" -> s"$mockHost",
@@ -164,9 +164,9 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with MongoIntegra
         count mustBe 1
 
         val job = lookupJob("remove-stale-documents-job")
-        val message = s"[AdminServiceImpl] [processStaleDocument] Registration $regId - $txID does not have CTAX subscription. Now trying to delete CT sub."
-        val delMess = "[AdminServiceImpl] [remove-stale-documents-job] Successfully deleted 1 stale documents"
-        withCaptureOfLoggingFrom(Logger("application.AdminServiceImpl")) { logs =>
+        val message = s"[AdminServiceImpl][processStaleDocument] Registration $regId - $txID does not have CTAX subscription. Now trying to delete CT sub."
+        val delMess = "[AdminServiceImpl][invoke] Successfully deleted 1 stale documents"
+        withCaptureOfLoggingFrom(Logger("application.services.admin.AdminServiceImpl")) { logs =>
           val res = await(job.scheduledMessage.service.invoke.map(_.asInstanceOf[Either[Int, LockResponse]]))
           res.left.get mustBe 1
 
@@ -188,11 +188,11 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with MongoIntegra
         count mustBe 1
 
         val job = lookupJob("remove-stale-documents-job")
-        val message = s"[AdminServiceImpl] [processStaleDocument] Registration $regId - $txID does not have CTAX subscription. Now trying to delete CT sub."
-        val finalMessage = s"[AdminServiceImpl] [processStaleDocument] Registration $regId - $txID has no subscriptions."
-        val delMess = "[AdminServiceImpl] [remove-stale-documents-job] Successfully deleted 1 stale documents"
+        val message = s"[AdminServiceImpl][processStaleDocument] Registration $regId - $txID does not have CTAX subscription. Now trying to delete CT sub."
+        val finalMessage = s"[AdminServiceImpl][processStaleDocument] Registration $regId - $txID has no subscriptions."
+        val delMess = "[AdminServiceImpl][invoke] Successfully deleted 1 stale documents"
 
-        withCaptureOfLoggingFrom(Logger("application.AdminServiceImpl")) { logs =>
+        withCaptureOfLoggingFrom(Logger("application.services.admin.AdminServiceImpl")) { logs =>
           val res = await(job.scheduledMessage.service.invoke.map(_.asInstanceOf[Either[Int, LockResponse]]))
           res.left.get mustBe 1
 

@@ -43,6 +43,13 @@ class AppStartupJobsSpec extends PlaySpec with MockitoSugar with LogCapturing
   val expectedLockedReg = List()
   val expectedRegStats = Map.empty[String,  Int]
 
+  object TestAppStartupJobs extends AppStartupJobs {
+    override val config: Configuration = mockConfig
+    implicit val ec: ExecutionContext = global
+    override val ctRepo: CorporationTaxRegistrationMongoRepository = mockCTRepository
+    override def runEverythingOnStartUp: Future[Unit] = Future.successful(())
+  }
+
   "get Company Name" must {
 
     val regId1 = "reg-1"
@@ -62,19 +69,12 @@ class AppStartupJobsSpec extends PlaySpec with MockitoSugar with LogCapturing
       when(mockCTRepository.retrieveMultipleCorporationTaxRegistration(any()))
         .thenReturn(Future.successful(List(ctDoc1, ctDoc2)))
 
-
-      val appStartupJobs: AppStartupJobs = new AppStartupJobs {
-        override def runEverythingOnStartUp: Future[Unit] = Future.successful(())
-        implicit val ec: ExecutionContext = global
-        override val config: Configuration = Configuration()
-        override val ctRepo: CorporationTaxRegistrationMongoRepository = mockCTRepository
-      }
-      withCaptureOfLoggingFrom(Logger(appStartupJobs.getClass)) { logEvents =>
+      withCaptureOfLoggingFrom(TestAppStartupJobs.logger) { logEvents =>
         eventually {
-          await(appStartupJobs.getCTCompanyName(regId1))
+          await(TestAppStartupJobs.getCTCompanyName(regId1))
           val expectedLogs = List(
-            s"[CompanyName] status : held - reg Id : $regId1 - Company Name : $companyName1 - Trans ID : $testTransactionId",
-            s"[CompanyName] status : held - reg Id : $regId1 - Company Name : $companyName2 - Trans ID : $testTransactionId"
+            s"[TestAppStartupJobs][getCTCompanyName] status : held - reg Id : $regId1 - Company Name : $companyName1 - Trans ID : $testTransactionId",
+            s"[TestAppStartupJobs][getCTCompanyName] status : held - reg Id : $regId1 - Company Name : $companyName2 - Trans ID : $testTransactionId"
           )
           expectedLogs.diff(logEvents.map(_.getMessage)) mustBe List.empty
         }
@@ -128,18 +128,9 @@ class AppStartupJobsSpec extends PlaySpec with MockitoSugar with LogCapturing
       when(mockCTRepository.findOneBySelector(mockCTRepository.regIDSelector("regId3")))
         .thenReturn(Future.successful(None))
 
-      val appStartupJobs: AppStartupJobs = new AppStartupJobs {
-        override val config: Configuration = mockConfig
-        implicit val ec: ExecutionContext = global
-        override val ctRepo: CorporationTaxRegistrationMongoRepository = mockCTRepository
-
-        override def runEverythingOnStartUp: Future[Unit] = Future.successful(())
-
-      }
-
-      withCaptureOfLoggingFrom(Logger(appStartupJobs.getClass)) { logEvents =>
+      withCaptureOfLoggingFrom(TestAppStartupJobs.logger) { logEvents =>
         eventually {
-          await(appStartupJobs.fetchDocInfoByRegId(regIds))
+          await(TestAppStartupJobs.fetchDocInfoByRegId(regIds))
 
           logEvents.size mustBe 3
         }

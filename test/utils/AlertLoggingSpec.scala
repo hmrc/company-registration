@@ -20,7 +20,6 @@ import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.spi.ILoggingEvent
 import org.scalatest.concurrent.Eventually
 import org.scalatestplus.play.PlaySpec
-import play.api.Logger
 
 import java.time.LocalTime
 

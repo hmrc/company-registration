@@ -21,7 +21,7 @@ import play.api.http.Status.{ACCEPTED, NO_CONTENT, OK}
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.Request
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, NotFoundException}
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.http.HttpClient
 import utils.{AlertLogging, PagerDutyKeys}
 
 import javax.inject.{Inject, Singleton}
@@ -74,15 +74,15 @@ trait IncorporationInformationConnector extends AlertLogging {
     http.POST[JsObject, HttpResponse](s"$iiUrl${buildUri(transactionId)}", json) map { res =>
       res.status match {
         case ACCEPTED =>
-          logger.info(s"[IncorporationInformationConnector] [registerInterest] Registration forced returned 202 for regId: $regId txId: $transactionId ")
+          logger.info(s"[registerInterest] Registration forced returned 202 for regId: $regId txId: $transactionId ")
           true
         case other =>
-          logger.error(s"[IncorporationInformationConnector] [registerInterest] returned a $other response for regId: $regId txId: $transactionId")
+          logger.error(s"[registerInterest] returned a $other response for regId: $regId txId: $transactionId")
           throw new RuntimeException(s"forced registration of interest for regId : $regId - transactionId : $transactionId failed - reason : status code was $other instead of 202")
       }
     } recover {
       case e =>
-        logger.error(s"[IncorporationInformationConnector] [registerInterest] failure registering interest for regId: $regId txId: $transactionId", e)
+        logger.error(s"[registerInterest] failure registering interest for regId: $regId txId: $transactionId", e)
         throw new RuntimeException(s"forced registration of interest for regId : $regId - transactionId : $transactionId failed - reason : ", e)
     }
   }
@@ -93,15 +93,15 @@ trait IncorporationInformationConnector extends AlertLogging {
     http.DELETE[HttpResponse](s"$iiUrl$cancelUri") map { res =>
       res.status match {
         case OK =>
-          logger.info(s"[IncorporationInformationConnector] [cancelSubscription] Cancelled subscription for regId: $regId txId: $transactionId ")
+          logger.info(s"[cancelSubscription] Cancelled subscription for regId: $regId txId: $transactionId ")
           true
       }
     } recover {
       case e: NotFoundException =>
-        logger.info(s"[IncorporationInformationConnector] [cancelSubscription] No subscription to cancel for regId: $regId txId: $transactionId ")
+        logger.info(s"[cancelSubscription] No subscription to cancel for regId: $regId txId: $transactionId ")
         throw e
       case e =>
-        logger.error(s"[IncorporationInformationConnector] [cancelSubscription] Error cancelling subscription for regId: $regId txId: $transactionId", e)
+        logger.error(s"[cancelSubscription] Error cancelling subscription for regId: $regId txId: $transactionId", e)
         throw new RuntimeException(s"Failure to cancel subscription", e)
     }
   }

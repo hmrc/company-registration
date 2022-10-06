@@ -17,7 +17,7 @@
 package controllers
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
+import akka.stream.{ActorMaterializer, Materializer}
 import helpers.BaseSpec
 import mocks.AuthorisationMocks
 import models.{Address, TakeoverDetails}
@@ -50,7 +50,7 @@ class TakeoverDetailsControllerSpec extends BaseSpec with AuthorisationMocks {
   val mockTakeoverDetailsService: TakeoverDetailsService = mock[TakeoverDetailsService]
 
   implicit val act: ActorSystem = ActorSystem()
-  implicit val mat: ActorMaterializer = ActorMaterializer()
+  implicit val mat: Materializer = Materializer(act)
 
   class Setup {
     reset(mockTakeoverDetailsService)

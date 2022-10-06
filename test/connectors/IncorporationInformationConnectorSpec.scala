@@ -25,7 +25,7 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{AnyContent, Request}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, NotFoundException, Upstream5xxResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, NotFoundException, UpstreamErrorResponse}
 import utils.LogCapturing
 
 import java.time.{Instant, LocalDate}
@@ -99,28 +99,28 @@ class IncorporationInformationConnectorSpec extends BaseSpec with BusinessRegist
     "make a http POST request to Incorporation Information micro-service to register an interest and return 202" in new Setup {
       when(mockWSHttp.POST[JsValue, HttpResponse](ArgumentMatchers.anyString(), ArgumentMatchers.any[JsValue](), ArgumentMatchers.any())
         (ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any()))
-        .thenReturn(Future.successful(HttpResponse(202)))
+        .thenReturn(Future.successful(HttpResponse(202, "")))
 
       await(Connector.registerInterest(regId, txId)) mustBe true
     }
     "not make a http POST request to Incorporation Information micro-service to register an interest and return any other 2xx" in new Setup {
       when(mockWSHttp.POST[JsValue, HttpResponse](ArgumentMatchers.anyString(), ArgumentMatchers.any[JsValue](), ArgumentMatchers.any())
         (ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any()))
-        .thenReturn(Future.successful(HttpResponse(200)))
+        .thenReturn(Future.successful(HttpResponse(200, "")))
 
       intercept[RuntimeException](await(Connector.registerInterest(regId, txId)))
     }
     "not make a http POST request to Incorporation Information micro-service to register an interest and return any 4xx" in new Setup {
       when(mockWSHttp.POST[JsValue, HttpResponse](ArgumentMatchers.anyString(), ArgumentMatchers.any[JsValue](), ArgumentMatchers.any())
         (ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any()))
-        .thenReturn(Future.successful(HttpResponse(400)))
+        .thenReturn(Future.successful(HttpResponse(400, "")))
 
       intercept[RuntimeException](await(Connector.registerInterest(regId, txId)))
     }
     "not make a http POST request to Incorporation Information micro-service to register an interest and return any 5xx" in new Setup {
       when(mockWSHttp.POST[JsValue, HttpResponse](ArgumentMatchers.anyString(), ArgumentMatchers.any[JsValue](), ArgumentMatchers.any())
         (ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any[HeaderCarrier](), ArgumentMatchers.any()))
-        .thenReturn(Future.successful(HttpResponse(500)))
+        .thenReturn(Future.successful(HttpResponse(500, "")))
 
       intercept[RuntimeException](await(Connector.registerInterest(regId, txId)))
     }
@@ -130,7 +130,7 @@ class IncorporationInformationConnectorSpec extends BaseSpec with BusinessRegist
     "make a http DELETE request to Incorporation Information micro-service to register an interest and return 200" in new Setup {
       val expectedURL = s"${Connector.iiUrl}/incorporation-information/subscribe/$txId/regime/$tRegime/subscriber/$tSubscriber?force=true"
       when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.eq(expectedURL), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
-        .thenReturn(Future.successful(HttpResponse(200)))
+        .thenReturn(Future.successful(HttpResponse(200, "")))
 
       await(Connector.cancelSubscription(regId, txId)) mustBe true
     }
@@ -142,13 +142,13 @@ class IncorporationInformationConnectorSpec extends BaseSpec with BusinessRegist
     }
     "not make a http DELETE request to Incorporation Information micro-service to register an interest and return any other 2xx" in new Setup {
       when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.anyString(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
-        .thenReturn(Future.successful(HttpResponse(202)))
+        .thenReturn(Future.successful(HttpResponse(202, "")))
 
       intercept[RuntimeException](await(Connector.cancelSubscription(regId, txId)))
     }
     "not make a http DELETE request to Incorporation Information micro-service to register an interest and return any 5xx" in new Setup {
       when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.anyString(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
-        .thenReturn(Future.failed(Upstream5xxResponse("500", 502, 500)))
+        .thenReturn(Future.failed(UpstreamErrorResponse("500", 502, 500)))
 
       intercept[RuntimeException](await(Connector.cancelSubscription(regId, txId)))
     }
@@ -157,7 +157,7 @@ class IncorporationInformationConnectorSpec extends BaseSpec with BusinessRegist
       val oldRegime = "ct"
       val expectedURL = s"${Connector.iiUrl}/incorporation-information/subscribe/$txId/regime/$oldRegime/subscriber/$tSubscriber?force=true"
       when(mockWSHttp.DELETE[HttpResponse](ArgumentMatchers.eq(expectedURL), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
-        .thenReturn(Future.successful(HttpResponse(200)))
+        .thenReturn(Future.successful(HttpResponse(200, "")))
 
       await(Connector.cancelSubscription(regId, txId, useOldRegime = true)) mustBe true
     }
@@ -168,7 +168,7 @@ class IncorporationInformationConnectorSpec extends BaseSpec with BusinessRegist
       "the CRN is not there" in new Setup {
         val expectedURL = s"${Connector.iiUrl}/incorporation-information/$txId/incorporation-update"
         when(mockWSHttp.GET[HttpResponse](ArgumentMatchers.eq(expectedURL), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
-          .thenReturn(Future.successful(HttpResponse(200)))
+          .thenReturn(Future.successful(HttpResponse(200, json = Json.obj(), Map())))
 
         await(Connector.checkCompanyIncorporated(txId)) mustBe None
       }
@@ -176,7 +176,7 @@ class IncorporationInformationConnectorSpec extends BaseSpec with BusinessRegist
       "on a no content response" in new Setup {
         val expectedURL = s"${Connector.iiUrl}/incorporation-information/$txId/incorporation-update"
         when(mockWSHttp.GET[HttpResponse](ArgumentMatchers.eq(expectedURL), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
-          .thenReturn(Future.successful(HttpResponse(204)))
+          .thenReturn(Future.successful(HttpResponse(204, "")))
 
         await(Connector.checkCompanyIncorporated(txId)) mustBe None
       }
@@ -186,7 +186,7 @@ class IncorporationInformationConnectorSpec extends BaseSpec with BusinessRegist
       "the CRN is there" in new Setup {
         val expectedURL = s"${Connector.iiUrl}/incorporation-information/$txId/incorporation-update"
         when(mockWSHttp.GET[HttpResponse](ArgumentMatchers.eq(expectedURL), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
-          .thenReturn(Future.successful(HttpResponse(200, Some(Json.obj("crn" -> "crn")))))
+          .thenReturn(Future.successful(HttpResponse(200, json = Json.obj("crn" -> "crn"), Map())))
 
         withCaptureOfLoggingFrom(Connector.logger) { logs =>
           await(Connector.checkCompanyIncorporated(txId)) mustBe Some("crn")

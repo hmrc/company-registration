@@ -109,15 +109,12 @@ trait MetricsService extends ScheduledService[Either[Map[String, Int], LockRespo
   def invoke(implicit ec: ExecutionContext): Future[Either[Map[String, Int], LockResponse]] = {
     implicit val hc = HeaderCarrier()
     lockKeeper.withLock(updateDocumentMetrics()).map {
+      case None => Right(MongoLocked)
       case Some(res) =>
-        logger.info("MetricsService acquired lock and returned results")
-        logger.info(s"Result updateDocumentMetrics: $res")
+        logger.info(s"[invoke] acquired lock and returned updateDocumentMetrics: $res")
         Left(res)
-      case None =>
-        logger.info("MetricsService cant acquire lock")
-        Right(MongoLocked)
     }.recover {
-      case e: Exception => logger.error(s"Error running updateDocumentMetrics with message: ${e.getMessage}")
+      case e: Exception => logger.error(s"[invoke] Error running updateDocumentMetrics with message: ${e.getMessage}")
         Right(UnlockingFailed)
     }
   }

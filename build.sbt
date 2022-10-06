@@ -16,8 +16,8 @@ lazy val scoverageSettings = {
   import scoverage.ScoverageKeys
   Seq(
     ScoverageKeys.coverageExcludedPackages := "<empty>;Reverse.*;model.*;config.*;.*(AuthService|BuildInfo|Routes).*",
-    ScoverageKeys.coverageMinimum := 80,
-    ScoverageKeys.coverageFailOnMinimum := false,
+    ScoverageKeys.coverageMinimumStmtTotal := 90,
+    ScoverageKeys.coverageFailOnMinimum := true,
     ScoverageKeys.coverageHighlighting := true
   )
 }
@@ -30,6 +30,7 @@ lazy val microservice = Project(appName, file("."))
   .settings(defaultSettings(): _*)
   .settings(bobbyRulesURL := Some(new URL("https://webstore.tax.service.gov.uk/bobby-config/deprecated-dependencies.json")))
   .settings(
+    scalacOptions += "-Xlint:-unused",
     targetJvm := "jvm-1.8",
     libraryDependencies ++= AppDependencies(),
     Test / parallelExecution := false,

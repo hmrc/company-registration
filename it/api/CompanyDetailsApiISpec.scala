@@ -38,7 +38,7 @@ class CompanyDetailsApiISpec extends IntegrationSpecBase with MongoIntegrationSp
   val mockPort = WiremockHelper.wiremockPort
   val mockUrl = s"http://$mockHost:$mockPort"
 
-  val additionalConfiguration = Map(
+  val additionalConfiguration: Map[String, Any] = Map(
     "auditing.consumer.baseUri.host" -> s"$mockHost",
     "auditing.consumer.baseUri.port" -> s"$mockPort",
     "microservice.services.auth.host" -> s"$mockHost",

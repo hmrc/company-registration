@@ -31,7 +31,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import repositories.CorporationTaxRegistrationMongoRepository
 import services.{AuditService, FailedToDeleteSubmissionData}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, NotFoundException, Upstream4xxResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, NotFoundException, UpstreamErrorResponse}
 import uk.gov.hmrc.mongo.lock.LockService
 import uk.gov.hmrc.play.audit.http.connector.AuditResult
 
@@ -425,7 +425,7 @@ class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEac
         when(mockIncorpInfoConnector.checkCompanyIncorporated(any())(any()))
           .thenReturn(Future.successful(None))
         when(mockDesConnector.topUpCTSubmission(any(), any(), any(), any())(any()))
-          .thenReturn(Future.successful(HttpResponse(200)))
+          .thenReturn(Future.successful(HttpResponse(200, "")))
         when(mockBusRegConnector.adminRemoveMetadata(any()))
           .thenReturn(Future.successful(true))
         when(mockIncorpInfoConnector.cancelSubscription(any(), any(), any())(any()))
@@ -457,7 +457,7 @@ class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEac
         when(mockIncorpInfoConnector.checkCompanyIncorporated(any())(any()))
           .thenReturn(Future.successful(None))
         when(mockDesConnector.topUpCTSubmission(any(), any(), any(), any())(any()))
-          .thenReturn(Future.failed(new Upstream4xxResponse("test", 400, 400, Map())))
+          .thenReturn(Future.failed(UpstreamErrorResponse("test", 400, 400, Map())))
 
         await(service.processStaleDocument(confRefWithCRNExampleDoc)) mustBe false
       }
@@ -467,7 +467,7 @@ class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEac
         when(mockIncorpInfoConnector.checkCompanyIncorporated(any())(any()))
           .thenReturn(Future.successful(None))
         when(mockDesConnector.topUpCTSubmission(any(), any(), any(), any())(any()))
-          .thenReturn(Future.successful(HttpResponse(200)))
+          .thenReturn(Future.successful(HttpResponse(200, "")))
         when(mockBusRegConnector.adminRemoveMetadata(any()))
           .thenReturn(Future.failed(new RuntimeException("failed to delete BR doc")))
 
@@ -479,7 +479,7 @@ class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEac
         when(mockIncorpInfoConnector.checkCompanyIncorporated(any())(any()))
           .thenReturn(Future.successful(None))
         when(mockDesConnector.topUpCTSubmission(any(), any(), any(), any())(any()))
-          .thenReturn(Future.successful(HttpResponse(200)))
+          .thenReturn(Future.successful(HttpResponse(200, "")))
         when(mockBusRegConnector.adminRemoveMetadata(any()))
           .thenReturn(Future.successful(true))
         when(mockCorpTaxRegistrationRepo.removeTaxRegistrationById(any()))
