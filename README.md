@@ -1,7 +1,5 @@
 # company-registration
 
-[![Build Status](https://travis-ci.org/hmrc/company-registration.svg)](https://travis-ci.org/hmrc/company-registration) [ ![Download](https://api.bintray.com/packages/hmrc/releases/company-registration/images/download.svg) ](https://bintray.com/hmrc/releases/company-registration/_latestVersion)
-
 Microservice supporting the company registration and corporation tax aspects of the Streamline Company Registration Legislation.
 
 ### License
