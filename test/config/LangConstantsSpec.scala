@@ -14,19 +14,20 @@
  * limitations under the License.
  */
 
-package fixtures
+package config
 
-import config.LangConstants
-import models.BusinessRegistration
+import org.scalatestplus.play.PlaySpec
 
-trait BusinessRegistrationFixture {
+class LangConstantsSpec extends PlaySpec {
 
-  lazy val validBusinessRegistrationResponse = businessRegistrationResponse("12345")
+  "LangConstants" must {
 
-  def businessRegistrationResponse(regId: String) = BusinessRegistration(
-    regId,
-    "2016-08-03T10:49:11Z",
-    LangConstants.english,
-    Some("CompCap")
-  )
+    "have the correct code for English" in {
+      LangConstants.english mustBe "en"
+    }
+
+    "have the correct code for Welsh" in {
+      LangConstants.welsh mustBe "cy"
+    }
+  }
 }

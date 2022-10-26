@@ -94,7 +94,7 @@ class AppStartupJobsSpec extends PlaySpec with MockitoSugar with LogCapturing
         internalId = "testID",
         registrationID = regId,
         formCreationTimestamp = dateTime.toString,
-        language = "en",
+        language = LangConstants.english,
         companyDetails = Some(CompanyDetails(
           "testCompanyName",
           CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),

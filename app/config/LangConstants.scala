@@ -14,19 +14,11 @@
  * limitations under the License.
  */
 
-package fixtures
+package config
 
-import config.LangConstants
-import models.BusinessRegistration
+object LangConstants {
 
-trait BusinessRegistrationFixture {
+  val welsh = "cy"
+  val english = "en"
 
-  lazy val validBusinessRegistrationResponse = businessRegistrationResponse("12345")
-
-  def businessRegistrationResponse(regId: String) = BusinessRegistration(
-    regId,
-    "2016-08-03T10:49:11Z",
-    LangConstants.english,
-    Some("CompCap")
-  )
 }

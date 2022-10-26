@@ -94,7 +94,7 @@ trait ProcessIncorporationService extends DateHelper with HttpErrorFunctions wit
   }
 
   private def sendEmail(ctReg: CorporationTaxRegistration)(implicit hc: HeaderCarrier): Future[Boolean] =
-    sendEmailService.sendVATEmail(ctReg.verifiedEmail.get.address, ctReg.registrationID) recover {
+    sendEmailService.sendVATEmail(ctReg.verifiedEmail.get.address, ctReg.registrationID, ctReg.language) recover {
       case _: EmailErrorResponse => true
     }
 

@@ -17,6 +17,7 @@
 package jobs
 
 import com.google.inject.name.Names
+import config.LangConstants
 import itutil.WiremockHelper._
 import itutil.{IntegrationSpecBase, LogCapturing, MongoIntegrationSpec, WiremockHelper}
 import models._
@@ -85,7 +86,7 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with MongoIntegra
     internalId = "testID",
     registrationID = regId,
     formCreationTimestamp = "testDateTime",
-    language = "en",
+    language = LangConstants.english,
     companyDetails = Some(CompanyDetails(
       "testCompanyName",
       CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),

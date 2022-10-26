@@ -16,6 +16,7 @@
 
 package fixtures
 
+import config.LangConstants
 import controllers.routes
 import models._
 import play.api.libs.json.{JsObject, Json}
@@ -45,7 +46,7 @@ trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with Accou
     registrationID = regId,
     status = DRAFT,
     formCreationTimestamp = "2001-12-31T12:00:00Z",
-    language = "en",
+    language = LangConstants.english,
     confirmationReferences = None,
     companyDetails = Some(validCompanyDetails),
     accountingDetails = Some(validAccountingDetails),
@@ -69,7 +70,7 @@ trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with Accou
     registrationID = regId,
     status = HELD,
     formCreationTimestamp = "2001-12-31T12:00:00Z",
-    language = "en",
+    language = LangConstants.english,
     confirmationReferences = Some(validConfRefsWithData(ackRef)),
     companyDetails = None,
     accountingDetails = Some(AccountingDetails(AccountingDetails.FUTURE_DATE, Some("2019-12-31"))),
@@ -82,7 +83,7 @@ trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with Accou
     registrationID = regId,
     status = HELD,
     formCreationTimestamp = "2001-12-31T12:00:00Z",
-    language = "en",
+    language = LangConstants.english,
     confirmationReferences = Some(validConfRefsWithData(Some("BRCT1234"))),
     companyDetails = Some(validCompanyDetails.copy(companyName = companyName)),
     accountingDetails = Some(AccountingDetails(AccountingDetails.FUTURE_DATE, Some("2019-12-31"))),

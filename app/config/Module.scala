@@ -66,7 +66,6 @@ class Module extends AbstractModule {
     bind(classOf[CorporationTaxRegistrationService]).to(classOf[CorporationTaxRegistrationServiceImpl]).asEagerSingleton()
     bind(classOf[CorporationTaxRegistrationService]).to(classOf[CorporationTaxRegistrationServiceImpl]).asEagerSingleton()
     bind(classOf[EmailService]).to(classOf[EmailServiceImpl]).asEagerSingleton()
-    bind(classOf[SendEmailService]).to(classOf[SendEmailServiceImpl]).asEagerSingleton()
     bind(classOf[MetricsService]).to(classOf[MetricsServiceImpl]).asEagerSingleton()
     bind(classOf[PrepareAccountService]).to(classOf[PrepareAccountServiceImpl]).asEagerSingleton()
     bind(classOf[UserAccessService]).to(classOf[UserAccessServiceImpl]).asEagerSingleton()

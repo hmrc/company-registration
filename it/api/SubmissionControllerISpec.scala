@@ -18,6 +18,7 @@ package api
 
 import auth.CryptoSCRS
 import com.github.tomakehurst.wiremock.client.WireMock._
+import config.LangConstants
 import itutil.WiremockHelper._
 import itutil._
 import models.RegistrationStatus._
@@ -116,7 +117,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
     registrationID = regId,
     status = DRAFT,
     formCreationTimestamp = "2001-12-31T12:00:00Z",
-    language = "en",
+    language = LangConstants.english,
     confirmationReferences = None,
     companyDetails = Some(CompanyDetails(
       companyName = "testCompanyName",
@@ -152,7 +153,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
     registrationID = regId,
     status = HELD,
     formCreationTimestamp = "2001-12-31T12:00:00Z",
-    language = "en",
+    language = LangConstants.english,
     confirmationReferences = Some(ConfirmationReferences(
       acknowledgementReference = ackRef,
       transactionId = transId,
@@ -195,7 +196,7 @@ class SubmissionControllerISpec extends IntegrationSpecBase with LoginStub with 
     registrationID = regId,
     status = ACKNOWLEDGED,
     formCreationTimestamp = "2001-12-31T12:00:00Z",
-    language = "en",
+    language = LangConstants.english,
     acknowledgementReferences = Some(validAckRefs),
     confirmationReferences = Some(validConfirmationReferences),
     companyDetails = None,
