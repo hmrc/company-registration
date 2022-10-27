@@ -24,7 +24,7 @@ import uk.gov.hmrc.play.bootstrap.tools.LogCapturing
 
 import java.time.LocalTime
 
-class AlertLoggingSpec extends PlaySpec with LogCapturing with Eventually {
+class AlertLoggingSpec extends PlaySpec with LogCapturingHelper with Eventually {
 
   val defaultLoggingDays = "MON,TUE,WED,THU,FRI"
   val defaultLoggingTime = "08:00:00_17:00:00"

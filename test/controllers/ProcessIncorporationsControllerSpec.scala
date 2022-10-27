@@ -29,13 +29,13 @@ import play.api.libs.json.{JsObject, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import services._
-import uk.gov.hmrc.play.bootstrap.tools.LogCapturing
+import uk.gov.hmrc.play.bootstrap.tools.LogCapturingHelper
 
 import java.time.{LocalDate, ZoneOffset}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class ProcessIncorporationsControllerSpec extends PlaySpec with MockitoSugar with LogCapturing with Eventually {
+class ProcessIncorporationsControllerSpec extends PlaySpec with MockitoSugar with LogCapturingHelper with Eventually {
 
   implicit val as = ActorSystem()
   implicit val mat = Materializer(as)

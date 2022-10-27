@@ -20,9 +20,9 @@ import helpers.BaseSpec
 import models.des.BusinessAddress
 import models.validation.{APIValidation, MongoValidation}
 import play.api.libs.json.Json
-import uk.gov.hmrc.play.bootstrap.tools.LogCapturing
+import uk.gov.hmrc.play.bootstrap.tools.LogCapturingHelper
 
-class GroupsSpec extends BaseSpec with LogCapturing {
+class GroupsSpec extends BaseSpec with LogCapturingHelper {
 
   val formatsOfGroupsAPI = Groups.formats(APIValidation, mockInstanceOfCrypto)
   val formatsOfGroupsMongo = Groups.formats(MongoValidation, mockInstanceOfCrypto)

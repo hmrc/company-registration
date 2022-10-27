@@ -19,7 +19,7 @@ package config
 import assets.TestConstants.CorporationTaxRegistration.testTransactionId
 import fixtures.CorporationTaxRegistrationFixture
 import models.RegistrationStatus._
-import models.{ContactDetails, PPOBAddress, TradingDetails, _}
+import models._
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
 import org.scalatest.concurrent.Eventually
@@ -28,13 +28,13 @@ import org.scalatestplus.mockito.MockitoSugar
 import play.api.test.Helpers._
 import play.api.{Configuration, Logger}
 import repositories._
-import uk.gov.hmrc.play.bootstrap.tools.LogCapturing
+import uk.gov.hmrc.play.bootstrap.tools.LogCapturingHelper
 
 import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
-class AppStartupJobsSpec extends PlaySpec with MockitoSugar with LogCapturing
+class AppStartupJobsSpec extends PlaySpec with MockitoSugar with LogCapturingHelper
   with CorporationTaxRegistrationFixture with Eventually {
 
   val mockConfig: Configuration = Configuration.empty

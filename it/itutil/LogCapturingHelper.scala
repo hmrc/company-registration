@@ -26,11 +26,10 @@ trait LogCapturingHelper extends LogCapturing {
   implicit class LogCapturingExtensions(logs: List[ILoggingEvent]) {
     def containsMsg(level: Level, msg: String) =
       logs.find(_.getMessage.contains(msg)) match {
-      case Some(log) => if(log.getLevel == level) succeed else fail(
-        s"Found a log with the correct message, but the Level was '${log.getLevel}' when expecting '$level'"
-      )
-      case None => fail(s"Could not find log with message that contains '$msg'. Actual logs recorded: \n - ${logs.map(_.getMessage).mkString("\n - ")}")
-    }
+        case Some(log) => if(log.getLevel == level) succeed else fail(
+          s"Found a log with the correct message, but the Level was '${log.getLevel}' when expecting '$level'"
+        )
+        case None => fail(s"Could not find log with message that contains '$msg'. Actual logs recorded: \n - ${logs.map(_.getMessage).mkString("\n - ")}")
+      }
   }
-
 }

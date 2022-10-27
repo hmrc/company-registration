@@ -23,12 +23,12 @@ import uk.gov.hmrc.auth.core.AuthProvider.GovernmentGateway
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
 import uk.gov.hmrc.auth.core.retrieve.{Retrieval, ~}
 import uk.gov.hmrc.auth.core._
-import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import uk.gov.hmrc.play.bootstrap.backend.controller.{BackendBaseController, BackendController}
 
 import scala.concurrent.{ExecutionContext, Future}
 
 trait AuthenticatedActions extends MicroserviceAuthorisedFunctions with Logging {
-  self: BackendController =>
+  self: BackendBaseController =>
 
   implicit val ec: ExecutionContext
   private[auth] val predicate = ConfidenceLevel.L50 and AuthProviders(GovernmentGateway)
@@ -73,7 +73,7 @@ trait AuthenticatedActions extends MicroserviceAuthorisedFunctions with Logging 
 }
 
 trait AuthorisedActions extends AuthenticatedActions with AuthResource with Logging {
-  self: BackendController =>
+  self: BackendBaseController =>
 
   case class AuthorisedAction(regId: String) extends ActionBuilder[Request, AnyContent] {
 

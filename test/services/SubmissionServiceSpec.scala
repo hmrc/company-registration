@@ -39,14 +39,13 @@ import play.api.test.Helpers._
 import repositories._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, SessionId, UpstreamErrorResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
-import uk.gov.hmrc.play.bootstrap.tools.LogCapturing
-import utils.PagerDutyKeys
+import utils.{LogCapturingHelper, PagerDutyKeys}
 
 import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
-class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with CorporationTaxRegistrationFixture with LogCapturing with Eventually {
+class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with CorporationTaxRegistrationFixture with LogCapturingHelper with Eventually {
 
 
   implicit val hc: HeaderCarrier = HeaderCarrier(sessionId = Some(SessionId("testSessionId")))

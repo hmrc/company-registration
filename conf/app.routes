@@ -42,6 +42,8 @@ PUT        /corporation-tax-registration/:registrationID/progress               
 PUT        /corporation-tax-registration/:registrationId/update-email                       @controllers.EmailController.updateEmail(registrationId: String)
 GET        /corporation-tax-registration/:registrationId/retrieve-email                     @controllers.EmailController.retrieveEmail(registrationId: String)
 
+GET        /corporation-tax-registration/:registrationId/language                           @controllers.LanguageController.getLanguage(registrationId: String)
+PUT        /corporation-tax-registration/:registrationId/language                           @controllers.LanguageController.updateLanguage(registrationId: String)
 
 PUT        /corporation-tax-registration/:registrationId/handOff2Reference-ackRef-save      @controllers.CompanyDetailsController.saveHandOff2ReferenceAndGenerateAckRef(registrationId: String)
 

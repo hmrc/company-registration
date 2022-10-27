@@ -33,14 +33,14 @@ import repositories.CorporationTaxRegistrationMongoRepository
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, InternalServerException}
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
-import uk.gov.hmrc.play.bootstrap.tools.LogCapturing
+import uk.gov.hmrc.play.bootstrap.tools.LogCapturingHelper
 
 import java.time.LocalDate
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
-class ProcessIncorporationServiceSpec extends PlaySpec with MockitoSugar with CorporationTaxRegistrationFixture with BeforeAndAfterEach with Eventually with LogCapturing {
+class ProcessIncorporationServiceSpec extends PlaySpec with MockitoSugar with CorporationTaxRegistrationFixture with BeforeAndAfterEach with Eventually with LogCapturingHelper {
 
   val mockIncorporationCheckAPIConnector = mock[IncorporationCheckAPIConnector]
   val mockCTRepository = mock[CorporationTaxRegistrationMongoRepository]

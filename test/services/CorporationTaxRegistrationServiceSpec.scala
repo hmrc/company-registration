@@ -35,14 +35,14 @@ import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.{HeaderCarrier, SessionId}
 import uk.gov.hmrc.mongo.lock.LockService
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.bootstrap.tools.LogCapturing
+import uk.gov.hmrc.play.bootstrap.tools.LogCapturingHelper
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
-class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationMocks with LogCapturing with Eventually {
+class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationMocks with LogCapturingHelper with Eventually {
 
   implicit val hc = HeaderCarrier(sessionId = Some(SessionId("testSessionId")))
   implicit val req = FakeRequest("GET", "/test-path")
