@@ -16,38 +16,31 @@
 
 package services
 
-import config.{LangConstants, MicroserviceAppConfig}
 import connectors.SendEmailConnector
 import models.SendEmailRequest
-import utils.Logging
 import uk.gov.hmrc.http.HeaderCarrier
+import utils.Logging
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class SendEmailService @Inject()(val emailConnector: SendEmailConnector
-                                )(implicit val ec: ExecutionContext, appConfig: MicroserviceAppConfig) extends Logging {
+                                )(implicit val ec: ExecutionContext) extends Logging {
 
-  private[services] def template(lang: String): String =
-    (lang.toLowerCase, appConfig.welshVatEmailEnabled) match {
-      case (LangConstants.welsh, true) => "register_your_company_register_vat_email_cy"
-      case _ => "register_your_company_register_vat_email"
-    }
+  val template: String = "register_your_company_register_vat_email"
 
-  private[services] def generateVATEmailRequest(emailAddress: Seq[String], lang: String): SendEmailRequest = {
+  private[services] def generateVATEmailRequest(emailAddress: Seq[String]): SendEmailRequest =
     SendEmailRequest(
       to = emailAddress,
-      templateId = template(lang),
+      templateId = template,
       parameters = Map(),
       force = true
     )
-  }
 
-  def sendVATEmail(emailAddress: String, regId: String, lang: String)(implicit hc: HeaderCarrier): Future[Boolean] = {
-    emailConnector.requestEmail(generateVATEmailRequest(Seq(emailAddress), lang)).map {
+  def sendVATEmail(emailAddress: String, regId: String)(implicit hc: HeaderCarrier): Future[Boolean] =
+    emailConnector.requestEmail(generateVATEmailRequest(Seq(emailAddress))).map {
       res =>
-        logger.info(s"[sendVATEmail] VAT email sent with template name: '${template(lang)}' for journey id " + regId)
+        logger.info(s"[sendVATEmail] VAT email sent with template name: '$template' for journey id " + regId)
         res
     }
-  }
 }
