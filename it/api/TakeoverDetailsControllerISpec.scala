@@ -16,7 +16,6 @@
 
 package api
 
-import config.LangConstants
 import itutil.WiremockHelper._
 import itutil.{IntegrationSpecBase, LoginStub, MongoIntegrationSpec, WiremockHelper}
 import models.{Address, CorporationTaxRegistration, RegistrationStatus, TakeoverDetails}
@@ -70,7 +69,7 @@ class TakeoverDetailsControllerISpec extends IntegrationSpecBase with MongoInteg
     registrationId,
     RegistrationStatus.DRAFT,
     formCreationTimestamp = "testTimestamp",
-    language = LangConstants.english,
+    language = "EN",
     takeoverDetails = details)
 
   val validTakeoverDetailsModel: TakeoverDetails = TakeoverDetails(

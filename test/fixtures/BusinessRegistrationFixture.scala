@@ -16,7 +16,6 @@
 
 package fixtures
 
-import config.LangConstants
 import models.BusinessRegistration
 
 trait BusinessRegistrationFixture {
@@ -26,7 +25,7 @@ trait BusinessRegistrationFixture {
   def businessRegistrationResponse(regId: String) = BusinessRegistration(
     regId,
     "2016-08-03T10:49:11Z",
-    LangConstants.english,
+    "en",
     Some("CompCap")
   )
 }

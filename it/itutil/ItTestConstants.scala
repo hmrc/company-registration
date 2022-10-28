@@ -16,7 +16,6 @@
 
 package itutil
 
-import config.LangConstants
 import models._
 import play.api.libs.json._
 
@@ -38,7 +37,7 @@ object ItTestConstants {
     val testRegistrationId = "0123456789"
     val testStatus = "held"
     val testFormCreationTimestamp = "2001-12-31T12:00:00Z"
-    val testLanguage = LangConstants.english
+    val testLanguage = "en"
     val testCreatedTime: Long = 1485859623928L
     val testLastSignedIn: Long = 1485859613928L
 

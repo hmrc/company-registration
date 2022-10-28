@@ -16,7 +16,6 @@
 
 package api
 
-import config.LangConstants
 import controllers.routes
 import itutil.WiremockHelper._
 import itutil.{IntegrationSpecBase, LoginStub, MongoIntegrationSpec, WiremockHelper}
@@ -71,7 +70,7 @@ class CompanyDetailsApiISpec extends IntegrationSpecBase with MongoIntegrationSp
   val normalisedAddressMaxLengthCheck = PPOB("MANUAL", Some(PPOBAddress("aeae aeaeaeae aeaeaeaeae", "abcdcgasfgfags fgafsggafgae", Some("aeaeaeaeaeaeae aeaeaeaeae"), Some("taest county"), Some("XX1 1OZ"), Some("test country"), None, "txid")))
   val normalisedDefaultPPOBAddress = PPOB("MANUAL", Some(PPOBAddress("10 taest beet", "test tOwn", Some("taest area"), Some("taest county"), Some("XX1 1OZ"), Some("test country"), None, "txid")))
   val validPPOBAddress = PPOB("MANUAL", Some(PPOBAddress("10 test beet", "test tOwn", Some("test area"), Some("test county"), Some("XX1 1OZ"), Some("test country"), None, "txid")))
-  val ctDoc = CorporationTaxRegistration(internalId, regId, RegistrationStatus.DRAFT, formCreationTimestamp = "testTimestamp", language = LangConstants.english)
+  val ctDoc = CorporationTaxRegistration(internalId, regId, RegistrationStatus.DRAFT, formCreationTimestamp = "testTimestamp", language = "EN")
   val validCompanyDetails = CompanyDetails("testCompanyName", defaultCHROAddress, defaulPPOBAddress, "testJurisdiction")
   val ctDocWithCompDetails: CorporationTaxRegistration = ctDoc.copy(companyDetails = Some(validCompanyDetails))
   val nonNormalisedSpecialCharCheck = PPOB("MANUAL", Some(PPOBAddress("<123> {ABC} !*^%$£", "BDT & CFD /|@", Some("A¥€ 1 «»"), Some("B~ ¬` 2^ -+=_"), Some("XX1 1ØZ"), Some("test coûntry"), None, "txid")))

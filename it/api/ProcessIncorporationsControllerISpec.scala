@@ -19,7 +19,6 @@ package api
 import auth.CryptoSCRS
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
-import config.LangConstants
 import itutil.WiremockHelper._
 import itutil.{IntegrationSpecBase, LoginStub, MongoIntegrationSpec, WiremockHelper}
 import models.RegistrationStatus.{DRAFT, HELD, LOCKED}
@@ -99,7 +98,7 @@ class ProcessIncorporationsControllerISpec extends IntegrationSpecBase with Mong
     registrationID = regId,
     status = HELD,
     formCreationTimestamp = "2001-12-31T12:00:00Z",
-    language = LangConstants.english,
+    language = "en",
     confirmationReferences = Some(ConfirmationReferences(
       acknowledgementReference = ackRef,
       transactionId = transId,

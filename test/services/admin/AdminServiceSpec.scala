@@ -16,7 +16,6 @@
 
 package services.admin
 
-import config.LangConstants
 import connectors.{BusinessRegistrationConnector, DesConnector, IncorporationInformationConnector}
 import models._
 import org.mockito.ArgumentMatchers
@@ -87,7 +86,7 @@ class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEac
     internalId = "testID",
     registrationID = "registrationId",
     formCreationTimestamp = "dd-mm-yyyy",
-    language = LangConstants.english,
+    language = "en",
     status = RegistrationStatus.HELD,
     companyDetails = Some(CompanyDetails(
       sessionIds.flatMap(ids => sessionIds.flatMap(_.companyName)).getOrElse("companyName"),
@@ -161,7 +160,7 @@ class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEac
       internalId = "testID",
       registrationID = "registrationId",
       formCreationTimestamp = "dd-mm-yyyy",
-      language = LangConstants.english,
+      language = "en",
       status = RegistrationStatus.HELD,
       companyDetails = Some(CompanyDetails(
         "testCompanyName",
@@ -264,7 +263,7 @@ class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEac
       internalId = "testID",
       registrationID = regId,
       formCreationTimestamp = "dd-mm-yyyy",
-      language = LangConstants.english,
+      language = "en",
       status = status,
       companyDetails = if (companyDetailsExists) {
         Some(CompanyDetails(

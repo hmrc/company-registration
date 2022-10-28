@@ -17,7 +17,6 @@
 package repositories
 
 import auth.CryptoSCRS
-import config.LangConstants
 import fixtures.CorporationTaxRegistrationFixture
 import fixtures.CorporationTaxRegistrationFixture.ctRegistrationJson
 import itutil.ItTestConstants.CorporationTaxRegistration.corpTaxRegModel
@@ -93,7 +92,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     internalId = "testID",
     registrationID = regId,
     formCreationTimestamp = "testDateTime",
-    language = LangConstants.english,
+    language = "en",
     companyDetails = Some(CompanyDetails(
       "testCompanyName",
       CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
@@ -116,7 +115,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     internalId = "testID",
     registrationID = registrationId,
     formCreationTimestamp = "testDateTime",
-    language = LangConstants.english
+    language = "en"
   )
 
   val testRoAddress = CHROAddress("premises", "address line 1", None, "uk", "local", None, None, None)
@@ -129,7 +128,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         internalId = "testID",
         registrationID = registrationId,
         formCreationTimestamp = "testDateTime",
-        language = LangConstants.english,
+        language = "en",
         contactDetails = Some(ContactDetails(
           phone = Some("12345"),
           mobile = Some("1234567890"),
@@ -159,7 +158,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         internalId = "testID",
         registrationID = registrationId,
         formCreationTimestamp = "testDateTime",
-        language = LangConstants.english,
+        language = "en",
         contactDetails = Some(ContactDetails(
           phone = Some("12345"),
           mobile = Some("1234567890"),
@@ -589,7 +588,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
           internalId = "testID",
           registrationID = registrationId,
           formCreationTimestamp = "testDateTime",
-          language = LangConstants.english
+          language = "en"
         )
 
 
@@ -612,7 +611,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
           internalId = "testID",
           registrationID = registrationId,
           formCreationTimestamp = "testDateTime",
-          language = LangConstants.english,
+          language = "en",
           companyDetails = None
         )
 
@@ -637,7 +636,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
           internalId = "testID",
           registrationID = registrationId,
           formCreationTimestamp = "testDateTime",
-          language = LangConstants.english,
+          language = "en",
           companyDetails = None
         )
 
@@ -656,7 +655,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       internalId = "testID",
       registrationID = registrationId,
       formCreationTimestamp = "testDateTime",
-      language = LangConstants.english
+      language = "en"
     )
 
     "return an updated held status" in new Setup {
@@ -680,7 +679,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       internalId = "testID",
       registrationID = registrationId,
       formCreationTimestamp = "testDateTime",
-      language = LangConstants.english,
+      language = "en",
       companyDetails = Some(CompanyDetails(
         "testCompanyName",
         CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
@@ -740,7 +739,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       registrationID = "0123456789",
       status = HELD,
       formCreationTimestamp = "2001-12-31T12:00:00Z",
-      language = LangConstants.english,
+      language = "en",
       acknowledgementReferences = Some(validAckRefs),
       confirmationReferences = Some(validConfirmationReferences),
       companyDetails = None,
@@ -766,7 +765,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       registrationID = "0123456789",
       status = HELD,
       formCreationTimestamp = "2001-12-31T12:00:00Z",
-      language = LangConstants.english,
+      language = "en",
       confirmationReferences = Some(validConfirmationReferences),
       createdTime = now,
       lastSignedIn = now
@@ -792,7 +791,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       registrationID = "0123456789",
       status = HELD,
       formCreationTimestamp = "2001-12-31T12:00:00Z",
-      language = LangConstants.english,
+      language = "en",
       confirmationReferences = Some(ConfirmationReferences(ackRef, "TX1", Some("PY1"), Some("12.00"))),
       accountingDetails = Some(AccountingDetails(AccountingDetails.WHEN_REGISTERED, None)),
       accountsPreparation = Some(AccountPrepDetails(AccountPrepDetails.HMRC_DEFINED, None))
@@ -840,7 +839,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       internalId = "intId",
       registrationID = regId,
       formCreationTimestamp = "testDateTime",
-      language = LangConstants.english,
+      language = "en",
       companyDetails = Some(CompanyDetails(
         "testCompanyName",
         CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
@@ -889,7 +888,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       internalId = "intId",
       registrationID = registrationId,
       formCreationTimestamp = "testDateTime",
-      language = LangConstants.english,
+      language = "en",
       registrationProgress = None
     )
 
@@ -923,7 +922,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       internalId = "testID",
       registrationID = regId,
       formCreationTimestamp = "testDateTime",
-      language = LangConstants.english,
+      language = "en",
       companyDetails = Some(CompanyDetails(
         "testCompanyName",
         CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
@@ -963,7 +962,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
         internalId = "testID",
         registrationID = regId,
         formCreationTimestamp = "testDateTime",
-        language = LangConstants.english,
+        language = "en",
         companyDetails = None,
         contactDetails = None,
         tradingDetails = None,
@@ -996,7 +995,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       internalId = "testID",
       registrationID = regId,
       formCreationTimestamp = "testDateTime",
-      language = LangConstants.english,
+      language = "en",
       companyDetails = Some(CompanyDetails(
         "testCompanyName",
         CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
@@ -1016,7 +1015,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       internalId = "testID",
       registrationID = lockedRegId,
       formCreationTimestamp = "testDateTime",
-      language = LangConstants.english,
+      language = "en",
       companyDetails = Some(CompanyDetails(
         "testCompanyName",
         CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
@@ -1050,7 +1049,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       internalId = "testID",
       registrationID = "regId",
       formCreationTimestamp = "testDateTime",
-      language = LangConstants.english,
+      language = "en",
       companyDetails = Some(CompanyDetails(
         "testCompanyName",
         CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
@@ -1097,7 +1096,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       internalId = "testID",
       registrationID = regId,
       formCreationTimestamp = "testDateTime",
-      language = LangConstants.english,
+      language = "en",
       companyDetails = Some(CompanyDetails(
         "testCompanyName",
         CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
@@ -1146,7 +1145,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       internalId = "testID",
       registrationID = regId,
       formCreationTimestamp = "testDateTime",
-      language = LangConstants.english,
+      language = "en",
       companyDetails = Some(CompanyDetails(
         "testCompanyName",
         CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
@@ -1194,7 +1193,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       internalId = "testID",
       registrationID = regId,
       formCreationTimestamp = "testDateTime",
-      language = LangConstants.english,
+      language = "en",
       companyDetails = Some(CompanyDetails(
         "testCompanyName",
         CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
@@ -1264,7 +1263,7 @@ class CorporationTaxRegistrationMongoRepositoryISpec
           internalId = "testID",
           registrationID = regId,
           formCreationTimestamp = "testDateTime",
-          language = LangConstants.english,
+          language = "en",
           confirmationReferences = Some(ConfirmationReferences("ackRef", transId, None, None))
         )
 

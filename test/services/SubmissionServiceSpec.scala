@@ -19,7 +19,6 @@ package services
 import audit.SubmissionEventDetail
 import cats.data.OptionT
 import com.mongodb.client.result.UpdateResult
-import config.LangConstants
 import connectors._
 import fixtures.CorporationTaxRegistrationFixture
 import helpers.BaseSpec
@@ -94,7 +93,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
       internalId = "testID",
       registrationID = regId,
       formCreationTimestamp = dateTime.toString,
-      language = LangConstants.english,
+      language = "en",
       companyDetails = Some(CompanyDetails(
         "testCompanyName",
         CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
@@ -401,7 +400,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
         internalId = "testID",
         registrationID = regId,
         formCreationTimestamp = dateTime.toString,
-        language = LangConstants.english,
+        language = "en",
         companyDetails = company,
         contactDetails = contact,
         tradingDetails = Some(TradingDetails("false")),
@@ -412,7 +411,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
       internalId = "testID",
       registrationID = registrationId,
       formCreationTimestamp = dateTime.toString,
-      language = LangConstants.english,
+      language = "en",
       companyDetails = Some(CompanyDetails(
         "testCompanyName",
         CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
@@ -931,7 +930,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
       internalId = "testID",
       registrationID = registrationId,
       formCreationTimestamp = dateTime.toString,
-      language = LangConstants.english,
+      language = "en",
       status = RegistrationStatus.LOCKED,
       companyDetails = Some(companyDetails),
       contactDetails = Some(ContactDetails(
@@ -1109,7 +1108,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
       internalId = "testID",
       registrationID = registrationId,
       formCreationTimestamp = "",
-      language = LangConstants.english,
+      language = "en",
       status = RegistrationStatus.LOCKED,
       confirmationReferences = Some(confRefs)
     )
@@ -1118,7 +1117,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
       internalId = "testID",
       registrationID = registrationId,
       formCreationTimestamp = "",
-      language = LangConstants.english,
+      language = "en",
       confirmationReferences = None
 
     )
@@ -1134,7 +1133,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
       internalId = "testID",
       registrationID = registrationId,
       formCreationTimestamp = "",
-      language = LangConstants.english,
+      language = "en",
       status = RegistrationStatus.LOCKED,
       confirmationReferences = Some(refsEmpty)
     )
