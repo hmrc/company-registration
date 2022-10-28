@@ -348,14 +348,14 @@ class ProcessIncorporationServiceSpec extends PlaySpec with MockitoSugar with Co
     "return a future true when processing an accepted incorporation" in new SetupBoolean(true) {
       when(mockCTRepository.findOneBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
         .thenReturn(Future.successful(Some(validCR)))
-      when(mockSendEmailService.sendVATEmail(ArgumentMatchers.eq("testemail.com"), ArgumentMatchers.any(), ArgumentMatchers.eq(LangConstants.english))(ArgumentMatchers.any[HeaderCarrier]())).thenReturn(Future.successful(true))
+      when(mockSendEmailService.sendVATEmail(ArgumentMatchers.eq("testemail.com"), ArgumentMatchers.any())(ArgumentMatchers.any[HeaderCarrier]())).thenReturn(Future.successful(true))
       await(Service.processIncorporationUpdate(incorpSuccess)) mustBe true
     }
 
     "return a future true when processing an accepted incorporation and the email fails to send" in new SetupBoolean(true) {
       when(mockCTRepository.findOneBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
         .thenReturn(Future.successful(Some(validCR)))
-      when(mockSendEmailService.sendVATEmail(ArgumentMatchers.eq("testemail.com"), ArgumentMatchers.any(), ArgumentMatchers.eq(LangConstants.english))(ArgumentMatchers.any[HeaderCarrier]()))
+      when(mockSendEmailService.sendVATEmail(ArgumentMatchers.eq("testemail.com"), ArgumentMatchers.any())(ArgumentMatchers.any[HeaderCarrier]()))
         .thenReturn(Future.failed(new EmailErrorResponse("503")))
 
       await(Service.processIncorporationUpdate(incorpSuccess)) mustBe true

@@ -38,8 +38,7 @@ class SendEmailServiceSpec extends BaseSpec with AuthorisationMocks {
   implicit val req = FakeRequest("GET", "/test-path")
 
   val mockSendEmailConnector = mock[SendEmailConnector]
-  val mockAppConfig = mock[MicroserviceAppConfig]
-  val emailService = new SendEmailService(mockSendEmailConnector)(global, mockAppConfig)
+  val emailService = new SendEmailService(mockSendEmailConnector)(global)
 
   val regId = "reg1234"
   val templateName = "register_your_company_register_vat_email"
@@ -47,12 +46,11 @@ class SendEmailServiceSpec extends BaseSpec with AuthorisationMocks {
 
   override def beforeEach() {
     reset(mockSendEmailConnector)
-    reset(mockAppConfig)
   }
 
-  def testRequest(isWelsh: Boolean = false) = SendEmailRequest(
+  val testRequest = SendEmailRequest(
     to = Seq(testEmail),
-    templateId = if (isWelsh) templateName + "_cy" else templateName,
+    templateId = templateName,
     parameters = Map(),
     force = true
   )
@@ -63,10 +61,10 @@ class SendEmailServiceSpec extends BaseSpec with AuthorisationMocks {
 
       "return the connector result" in {
 
-        when(mockSendEmailConnector.requestEmail(ArgumentMatchers.eq(testRequest()))(ArgumentMatchers.eq(hc)))
+        when(mockSendEmailConnector.requestEmail(ArgumentMatchers.eq(testRequest))(ArgumentMatchers.eq(hc)))
           .thenReturn(Future.successful(true))
 
-        await(emailService.sendVATEmail(testEmail, regId, LangConstants.english)) mustBe true
+        await(emailService.sendVATEmail(testEmail, regId)) mustBe true
       }
     }
 
@@ -74,35 +72,23 @@ class SendEmailServiceSpec extends BaseSpec with AuthorisationMocks {
 
       "throw the Exception" in {
 
-        when(mockSendEmailConnector.requestEmail(ArgumentMatchers.eq(testRequest()))(ArgumentMatchers.eq(hc)))
+        when(mockSendEmailConnector.requestEmail(ArgumentMatchers.eq(testRequest))(ArgumentMatchers.eq(hc)))
           .thenReturn(Future.failed(new Exception("fooBarBang")))
 
-        intercept[Exception](await(emailService.sendVATEmail(testEmail, regId, LangConstants.english))).getMessage mustBe "fooBarBang"
+        intercept[Exception](await(emailService.sendVATEmail(testEmail, regId))).getMessage mustBe "fooBarBang"
       }
     }
   }
 
   "calling .generateVATEmailRequest()" when {
 
-    Seq(true, false).foreach { welshEnabled =>
-
-      s"the Welsh VAT Email feature enabled is '$welshEnabled'" must {
-
-        "return a EmailRequest with the correct email (EN)" in {
-          when(mockAppConfig.welshVatEmailEnabled).thenReturn(welshEnabled)
-          emailService.generateVATEmailRequest(Seq(testEmail), LangConstants.english) mustBe testRequest()
-        }
-
-        "return a EmailRequest with the correct email (CY)" in {
-          when(mockAppConfig.welshVatEmailEnabled).thenReturn(welshEnabled)
-          emailService.generateVATEmailRequest(Seq(testEmail), LangConstants.welsh) mustBe testRequest(welshEnabled)
-        }
-      }
+    "return a EmailRequest with the correct email (EN)" in {
+      emailService.generateVATEmailRequest(Seq(testEmail)) mustBe testRequest
     }
 
     "construct the correct JSON" in {
 
-      val result = emailService.generateVATEmailRequest(Seq("test@email.com"), LangConstants.english)
+      val result = emailService.generateVATEmailRequest(Seq("test@email.com"))
 
       val resultAsJson = Json.toJson(result)
 
