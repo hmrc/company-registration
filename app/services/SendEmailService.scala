@@ -16,6 +16,7 @@
 
 package services
 
+import config.{LangConstants, MicroserviceAppConfig}
 import connectors.SendEmailConnector
 import models.SendEmailRequest
 import utils.Logging
@@ -24,29 +25,28 @@ import uk.gov.hmrc.http.HeaderCarrier
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class SendEmailServiceImpl @Inject()(val emailConnector: SendEmailConnector
-                                    )(implicit val ec: ExecutionContext) extends SendEmailService
+class SendEmailService @Inject()(val emailConnector: SendEmailConnector
+                                )(implicit val ec: ExecutionContext, appConfig: MicroserviceAppConfig) extends Logging {
 
-trait SendEmailService extends Logging {
+  private[services] def template(lang: String): String =
+    (lang.toLowerCase, appConfig.welshVatEmailEnabled) match {
+      case (LangConstants.welsh, true) => "register_your_company_register_vat_email_cy"
+      case _ => "register_your_company_register_vat_email"
+    }
 
-  implicit val ec: ExecutionContext
-
-  val RegisterForVATTemplate = "register_your_company_register_vat_email"
-  val emailConnector: SendEmailConnector
-
-  private[services] def generateVATEmailRequest(emailAddress: Seq[String]): SendEmailRequest = {
+  private[services] def generateVATEmailRequest(emailAddress: Seq[String], lang: String): SendEmailRequest = {
     SendEmailRequest(
       to = emailAddress,
-      templateId = RegisterForVATTemplate,
+      templateId = template(lang),
       parameters = Map(),
       force = true
     )
   }
 
-  def sendVATEmail(emailAddress: String, regId: String)(implicit hc: HeaderCarrier): Future[Boolean] = {
-    emailConnector.requestEmail(generateVATEmailRequest(Seq(emailAddress))).map {
+  def sendVATEmail(emailAddress: String, regId: String, lang: String)(implicit hc: HeaderCarrier): Future[Boolean] = {
+    emailConnector.requestEmail(generateVATEmailRequest(Seq(emailAddress), lang)).map {
       res =>
-        logger.info("[sendVATEmail] VAT email sent for journey id " + regId)
+        logger.info(s"[sendVATEmail] VAT email sent with template name: '${template(lang)}' for journey id " + regId)
         res
     }
   }

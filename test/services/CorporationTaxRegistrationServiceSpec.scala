@@ -16,6 +16,7 @@
 
 package services
 
+import config.LangConstants
 import connectors._
 import fixtures.CorporationTaxRegistrationFixture
 import helpers.BaseSpec
@@ -90,7 +91,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
       internalId = "testID",
       registrationID = regId,
       formCreationTimestamp = dateTime.toString,
-      language = "en",
+      language = LangConstants.english,
       companyDetails = Some(CompanyDetails(
         "testCompanyName",
         CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
@@ -207,7 +208,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
       internalId = "testID",
       registrationID = registrationId,
       formCreationTimestamp = dateTime.toString,
-      language = "en",
+      language = LangConstants.english,
       status = RegistrationStatus.HELD,
       companyDetails = Some(CompanyDetails(
         "testCompanyName",

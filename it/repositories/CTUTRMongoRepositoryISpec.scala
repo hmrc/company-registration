@@ -16,6 +16,7 @@
 
 package repositories
 
+import config.LangConstants
 import itutil.{IntegrationSpecBase, MongoIntegrationSpec}
 import models.RegistrationStatus._
 import models._
@@ -69,7 +70,7 @@ class CTUTRMongoRepositoryISpec extends IntegrationSpecBase with MongoIntegratio
       registrationID = "0123456789",
       status = HELD,
       formCreationTimestamp = "2001-12-31T12:00:00Z",
-      language = "en",
+      language = LangConstants.english,
       acknowledgementReferences = Some(validAckRefs),
       confirmationReferences = Some(validConfirmationReferences),
       companyDetails = None,

@@ -32,5 +32,7 @@ class MicroserviceAppConfig @Inject()(config: ServicesConfig) {
   val compRegUrl: String = config.baseUrl("company-registration")
   lazy val threshold = config.getConfInt("throttle-threshold", throw new Exception("throttle-threshold not found in config"))
 
+  lazy val welshVatEmailEnabled: Boolean = config.getString("features.welshVatEmailEnabled").toBoolean
+
 
 }
