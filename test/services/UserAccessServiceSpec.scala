@@ -97,13 +97,15 @@ class UserAccessServiceSpec extends PlaySpec with MockitoSugar with BusinessRegi
       await(service.checkUserAccess("321")) mustBe Left(Json.toJson(UserAccessLimitReachedResponse(true)))
     }
 
-    "fail if the registration is missing" in new Setup {
+    "fail if the registration is missing and delete BR metadata" in new Setup {
       when(mockBRConnector.retrieveMetadata(any(), any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistrationResponse(regId))))
       when(mockBRConnector.updateLastSignedIn(any(), any())(any()))
         .thenReturn(Future.successful(dateTime.toString))
       when(mockCTService.retrieveCorporationTaxRegistrationRecord(eqTo(regId), any[Option[Instant]]()))
         .thenReturn(Future.successful(None))
+      when(mockBRConnector.removeMetadata(eqTo(regId))(any()))
+        .thenReturn(Future.successful(true))
 
       intercept[MissingRegistration] {
         await(service.checkUserAccess(internalId))

@@ -33,7 +33,7 @@ import repositories.CorporationTaxRegistrationMongoRepository
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, InternalServerException}
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
-import utils.LogCapturing
+import uk.gov.hmrc.play.bootstrap.tools.LogCapturing
 
 import java.time.LocalDate
 import java.util.UUID

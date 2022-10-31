@@ -59,12 +59,15 @@ trait UserAccessService {
         for {
           _ <- brConnector.updateLastSignedIn(metadata.registrationID, now)
           oCrData <- ctService.retrieveCorporationTaxRegistrationRecord(metadata.registrationID, Some(now))
-        } yield {
-          oCrData match {
-            case Some(crData) => Right(UserAccessSuccessResponse(crData.registrationID, false, hasConfRefs(crData), hasPaymentRefs(crData), crData.verifiedEmail, crData.registrationProgress))
-            case _ => throw new MissingRegistration(metadata.registrationID) //todo - after a rejected submission this will always return a failed future - need to delete BR
+          crData <- oCrData match {
+            case Some(crData) =>
+              Future.successful(Right(UserAccessSuccessResponse(crData.registrationID, false, hasConfRefs(crData), hasPaymentRefs(crData), crData.verifiedEmail, crData.registrationProgress)))
+            case _ =>
+              brConnector.removeMetadata(metadata.registrationID).map { _ =>
+                throw new MissingRegistration(metadata.registrationID)
+              }
           }
-        }
+        } yield crData
       case BusinessRegistrationNotFoundResponse =>
         throttleService.checkUserAccess flatMap {
           case false => Future.successful(Left(Json.toJson(UserAccessLimitReachedResponse(limitReached = true))))

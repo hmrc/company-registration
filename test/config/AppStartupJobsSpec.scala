@@ -28,7 +28,7 @@ import org.scalatestplus.mockito.MockitoSugar
 import play.api.test.Helpers._
 import play.api.{Configuration, Logger}
 import repositories._
-import utils.LogCapturing
+import uk.gov.hmrc.play.bootstrap.tools.LogCapturing
 
 import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global

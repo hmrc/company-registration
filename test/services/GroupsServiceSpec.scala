@@ -23,7 +23,7 @@ import org.mockito.ArgumentMatchers.{eq => eqTo}
 import org.mockito.Mockito._
 import play.api.test.Helpers._
 import repositories.CorporationTaxRegistrationMongoRepository
-import utils.LogCapturing
+import uk.gov.hmrc.play.bootstrap.tools.LogCapturing
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
