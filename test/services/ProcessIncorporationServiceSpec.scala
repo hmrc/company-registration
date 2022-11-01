@@ -356,7 +356,7 @@ class ProcessIncorporationServiceSpec extends PlaySpec with MockitoSugar with Co
       when(mockCTRepository.findOneBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
         .thenReturn(Future.successful(Some(validCR)))
       when(mockSendEmailService.sendVATEmail(ArgumentMatchers.eq("testemail.com"), ArgumentMatchers.any())(ArgumentMatchers.any[HeaderCarrier]()))
-        .thenReturn(Future.failed(new EmailErrorResponse("503")))
+        .thenReturn(Future.failed(new EmailErrorResponse(503)))
 
       await(Service.processIncorporationUpdate(incorpSuccess)) mustBe true
     }
