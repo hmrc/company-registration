@@ -273,7 +273,7 @@ trait SubmissionService extends DateHelper with Logging {
   }
 
   private[services] def retrieveBRMetadata(regId: String, isAdmin: Boolean = false)(implicit hc: HeaderCarrier): Future[BusinessRegistration] = {
-    (if (isAdmin) brConnector.adminRetrieveMetadata(regId) else brConnector.retrieveMetadata(regId)) flatMap {
+    (if (isAdmin) brConnector.adminRetrieveMetadata(regId) else brConnector.retrieveMetadataByRegId(regId)) flatMap {
       case BusinessRegistrationSuccessResponse(metadata) if metadata.registrationID == regId => Future.successful(metadata)
       case BusinessRegistrationSuccessResponse(metadata) if metadata.registrationID != regId =>
         Future.failed(new RuntimeException(s"[retrieveBRMetadata] ${metadata.registrationID} does not match $regId with isAdmin $isAdmin"))

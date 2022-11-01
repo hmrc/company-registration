@@ -45,7 +45,7 @@ case object BusinessRegistrationForbiddenResponse extends BusinessRegistrationRe
 
 case class BusinessRegistrationErrorResponse(err: Exception) extends BusinessRegistrationResponse
 
-trait BusinessRegistrationConnector extends BaseConnector with BusinessRegistrationHttpParsers {
+trait BusinessRegistrationConnector extends BaseConnector with BusinessRegistrationHttpParsers with RawResponseReads {
 
   implicit val ec: ExecutionContext
   val businessRegUrl: String
@@ -56,14 +56,14 @@ trait BusinessRegistrationConnector extends BaseConnector with BusinessRegistrat
       BusinessRegistrationRequest.formats, createBusinessRegistrationHttpParser, hc, ec
     )
 
-  def retrieveMetadata(regId: String)(implicit hc: HeaderCarrier, rds: HttpReads[BusinessRegistration]): Future[BusinessRegistrationResponse] =
+  def retrieveMetadataByRegId(regId: String)(implicit hc: HeaderCarrier): Future[BusinessRegistrationResponse] =
     withMetadataRecovery("retrieveMetadata") {
       http.GET[BusinessRegistrationResponse](s"$businessRegUrl/business-registration/business-tax-registration/$regId")(
         retrieveBusinessRegistrationHttpParser(Some(regId)), hc, ec
       )
     }
 
-  def retrieveMetadata(implicit hc: HeaderCarrier, rds: HttpReads[BusinessRegistration]): Future[BusinessRegistrationResponse] =
+  def retrieveMetadata(implicit hc: HeaderCarrier): Future[BusinessRegistrationResponse] =
     withMetadataRecovery("retrieveMetadata") {
       http.GET[BusinessRegistrationResponse](s"$businessRegUrl/business-registration/business-tax-registration")(
         retrieveBusinessRegistrationHttpParser(None), hc, ec

@@ -120,7 +120,8 @@ trait DesConnector extends AuditService with RawResponseReads with HttpErrorFunc
         throw UpstreamErrorResponse("Timeout received from DES submission", 499, 502)
       case status if is4xx(status) =>
         throw UpstreamErrorResponse(upstreamResponseMessage(http, url, status, response.body), status, reportAs = 400, response.headers)
-      case _ => handleResponse(http, url)(response)
+      case _ =>
+        handleResponseEither(http, url)(response).fold(errorResponse => throw errorResponse, identity)
     }
   }
 }

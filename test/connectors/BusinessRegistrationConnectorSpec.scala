@@ -57,7 +57,7 @@ class BusinessRegistrationConnectorSpec extends BaseSpec with BusinessRegistrati
     "return a a metadata response if one is found in business registration using the supplied RegId" in new Setup {
       mockHttpGet[BusinessRegistrationResponse]("testUrl", BusinessRegistrationSuccessResponse(validBusinessRegistrationResponse))
 
-      await(connector.retrieveMetadata(regId)) mustBe BusinessRegistrationSuccessResponse(validBusinessRegistrationResponse)
+      await(connector.retrieveMetadataByRegId(regId)) mustBe BusinessRegistrationSuccessResponse(validBusinessRegistrationResponse)
     }
 
     "return a a metadata response if one is found in business registration micro-service" in new Setup {
