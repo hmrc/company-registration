@@ -16,11 +16,10 @@
 
 package connectors
 
+import connectors.httpParsers.IncorporationCheckHttpParsers
 import models.SubmissionCheckResponse
-import utils.Logging
-import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.{HttpClient, _}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import uk.gov.hmrc.http.HttpClient
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -37,35 +36,16 @@ class IncorporationCheckAPIConnectorImpl @Inject()(servicesConfig: ServicesConfi
 
 }
 
-trait IncorporationCheckAPIConnector extends Logging {
+trait IncorporationCheckAPIConnector extends BaseConnector with IncorporationCheckHttpParsers {
 
   implicit val ec: ExecutionContext
   val proxyUrl: String
   val http: HttpClient
 
-  def logError(ex: HttpException, timepoint: Option[String]) = {
-    logger.error(s"[checkSubmission]" +
-      s" request to SubmissionCheckAPI returned a ${ex.responseCode}. " +
-      s"No incorporations were processed for timepoint ${timepoint} - Reason = ${ex.getMessage}")
-  }
-
   def checkSubmission(timepoint: Option[String] = None)(implicit hc: HeaderCarrier): Future[SubmissionCheckResponse] = {
     val tp = timepoint.fold("")(t => s"timepoint=$t&")
-    http.GET[SubmissionCheckResponse](s"$proxyUrl/internal/check-submission?${tp}items_per_page=1") map {
-      res => res
-    } recover {
-      case ex: BadRequestException =>
-        logError(ex, timepoint)
-        throw new SubmissionAPIFailure
-      case ex: NotFoundException =>
-        logError(ex, timepoint)
-        throw new SubmissionAPIFailure
-      case ex: UpstreamErrorResponse =>
-        logger.error("[checkSubmission]" + ex.statusCode + " " + ex.message)
-        throw new SubmissionAPIFailure
-      case ex: Exception =>
-        logger.error("[checkSubmission]" + ex)
-        throw new SubmissionAPIFailure
+    withRecovery(throw new SubmissionAPIFailure)("checkSubmission") {
+      http.GET[SubmissionCheckResponse](s"$proxyUrl/internal/check-submission?${tp}items_per_page=1")(checkSubmissionHttpParser(tp), hc, ec)
     }
   }
 }

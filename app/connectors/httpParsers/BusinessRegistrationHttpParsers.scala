@@ -19,7 +19,7 @@ package connectors.httpParsers
 import connectors._
 import models.BusinessRegistration
 import play.api.http.Status.{FORBIDDEN, NOT_FOUND, OK}
-import play.api.libs.json.{Reads, __}
+import play.api.libs.json.__
 import uk.gov.hmrc.http.{HttpReads, HttpResponse}
 
 trait BusinessRegistrationHttpParsers extends BaseHttpReads { _: BaseConnector =>
