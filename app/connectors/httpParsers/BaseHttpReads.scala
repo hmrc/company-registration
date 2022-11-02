@@ -19,6 +19,7 @@ package connectors.httpParsers
 import connectors.BaseConnector
 import play.api.http.Status.OK
 import play.api.libs.json.Reads
+import uk.gov.hmrc.http.HttpReads.is2xx
 import uk.gov.hmrc.http.{HttpReads, HttpResponse}
 import utils.Logging
 
@@ -34,7 +35,7 @@ trait BaseHttpReads extends Logging { _: BaseConnector =>
                    txId: Option[String] = None,
                    defaultResponse: Option[T] = None)(implicit reads: Reads[T], mf: Manifest[T]): HttpReads[T] = (_: String, url: String, response: HttpResponse) =>
     response.status match {
-      case OK =>
+      case status if is2xx(status) =>
         jsonParse(response)(functionName, regId, txId)
       case status =>
         unexpectedStatusHandling(defaultResponse)(functionName, url, status, regId, txId)
