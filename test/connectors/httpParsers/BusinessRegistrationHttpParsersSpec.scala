@@ -20,7 +20,7 @@ import ch.qos.logback.classic.Level
 import connectors.{BusinessRegistrationForbiddenResponse, BusinessRegistrationNotFoundResponse, BusinessRegistrationSuccessResponse}
 import fixtures.BusinessRegistrationFixture
 import helpers.BaseSpec
-import play.api.http.Status.{FORBIDDEN, INTERNAL_SERVER_ERROR, NOT_FOUND, OK}
+import play.api.http.Status.{CREATED, FORBIDDEN, INTERNAL_SERVER_ERROR, NOT_FOUND, OK}
 import play.api.libs.json.{JsResultException, Json}
 import uk.gov.hmrc.http.HttpResponse
 import utils.LogCapturingHelper
@@ -35,20 +35,20 @@ class BusinessRegistrationHttpParsersSpec extends BaseSpec with BusinessRegistra
 
       val rds = BusinessRegistrationHttpParsers.createBusinessRegistrationHttpParser
 
-      "response is OK and JSON is valid" must {
+      "response is CREATED and JSON is valid" must {
 
         "return the Business Profile" in {
 
-          val response = HttpResponse(OK, json = Json.toJson(validBusinessRegistrationResponse), Map())
+          val response = HttpResponse(CREATED, json = Json.toJson(validBusinessRegistrationResponse), Map())
           rds.read("", "", response) mustBe validBusinessRegistrationResponse
         }
       }
 
-      "response is OK and JSON is malformed" must {
+      "response is CREATED and JSON is malformed" must {
 
         "return a JsResultException and log an error message" in {
 
-          val response = HttpResponse(OK, json = Json.obj(), Map())
+          val response = HttpResponse(CREATED, json = Json.obj(), Map())
 
           withCaptureOfLoggingFrom(BusinessRegistrationHttpParsers.logger) { logs =>
             intercept[JsResultException](rds.read("", "", response))
