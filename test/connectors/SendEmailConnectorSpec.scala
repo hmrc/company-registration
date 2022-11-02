@@ -51,67 +51,16 @@ class SendEmailConnectorSpec extends BaseSpec {
   "send Email" must {
 
     "Return a true when a request to send a new email is successful" in new Setup {
-      mockHttpPOST(connector.sendEmailURL, HttpResponse(ACCEPTED, ""))
+      mockHttpPOST(connector.sendEmailURL, true)
 
       await(connector.requestEmail(emailRequest)) mustBe true
     }
 
     "Fail the future when the service cannot be found" in new Setup {
       when(mockWSHttp.POST[JsValue, HttpResponse](ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
-        .thenReturn(Future.failed(new NotFoundException("error")))
+        .thenReturn(Future.failed(new EmailErrorResponse(500)))
 
       intercept[EmailErrorResponse](await(connector.requestEmail(emailRequest)))
-    }
-
-    "Fail the future when we send a bad request" in new Setup {
-      when(mockWSHttp.POST[JsValue, HttpResponse](ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
-        .thenReturn(Future.failed(new BadRequestException("error")))
-
-      intercept[EmailErrorResponse](await(connector.requestEmail(emailRequest)))
-    }
-
-    "Fail the future when EVS returns an internal server error" in new Setup {
-      when(mockWSHttp.POST[JsValue, HttpResponse](ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
-        .thenReturn(Future.failed(new InternalServerException("error")))
-
-      intercept[EmailErrorResponse](await(connector.requestEmail(emailRequest)))
-    }
-
-    "Fail the future when EVS returns an upstream error" in new Setup {
-      when(mockWSHttp.POST[JsValue, HttpResponse](ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
-        .thenReturn(Future.failed(new BadGatewayException("error")))
-
-      intercept[EmailErrorResponse](await(connector.requestEmail(emailRequest)))
-    }
-
-  }
-
-  "customRead" must {
-    "return a 200" in new Setup {
-      val expected = HttpResponse(OK, "")
-      val result = connector.customRead("test", "test", expected)
-      result.status mustBe expected.status
-    }
-    "return a 409" in new Setup {
-      val expected = HttpResponse(CONFLICT, "")
-      val result = connector.customRead("test", "test", expected)
-      result.status mustBe expected.status
-    }
-    "return a BadRequestException" in new Setup {
-      intercept[BadRequestException](connector.customRead("test", "test", HttpResponse(BAD_REQUEST, "")))
-    }
-    "return a NotFoundException" in new Setup {
-      intercept[NotFoundException](connector.customRead("test", "test", HttpResponse(NOT_FOUND, "")))
-    }
-    "return an InternalServerException" in new Setup {
-      intercept[InternalServerException](connector.customRead("test", "test", HttpResponse(INTERNAL_SERVER_ERROR, "")))
-    }
-    "return a BadGatewayException" in new Setup {
-      intercept[BadGatewayException](connector.customRead("test", "test", HttpResponse(BAD_GATEWAY, "")))
-    }
-    "return an upstream 4xx" in new Setup {
-      val ex = intercept[UpstreamErrorResponse](connector.customRead("test", "test", HttpResponse(UNAUTHORIZED, "")))
-      UpstreamErrorResponse.Upstream4xxResponse.unapply(ex) mustBe Some(ex)
     }
   }
 }

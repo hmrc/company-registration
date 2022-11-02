@@ -51,14 +51,14 @@ class CorporationTaxRegistrationSpec extends BaseSpec with JsonFormatValidation 
       ) mustBe ct.get
     }
     "parse the takeover details section" in {
-      val testDateTime = Instant.now()
       val ctrJson = fullCorpTaxRegJson(optAccountingDetails = Some(testAccountingDetails), optTakeoverDetails = Some(testTakeoverDetails))
+      val ct = Json.fromJson[CorporationTaxRegistration](ctrJson)(CorporationTaxRegistration.format(APIValidation, mockInstanceOfCrypto))
       val expected = validHeldCorporationTaxRegistration.copy(
-        createdTime = testDateTime,
-        lastSignedIn = testDateTime,
+        createdTime = ct.get.createdTime,
+        lastSignedIn = ct.get.lastSignedIn,
         takeoverDetails = Some(testTakeoverDetailsModel)
       )
-      //TODO: Add assertion here
+      ct.get mustBe expected
     }
   }
 

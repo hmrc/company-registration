@@ -16,6 +16,7 @@
 
 package connectors
 
+import connectors.httpParsers.BusinessRegistrationHttpParsers
 import models.{BusinessRegistration, BusinessRegistrationRequest}
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.http._
@@ -44,91 +45,64 @@ case object BusinessRegistrationForbiddenResponse extends BusinessRegistrationRe
 
 case class BusinessRegistrationErrorResponse(err: Exception) extends BusinessRegistrationResponse
 
-trait BusinessRegistrationConnector extends Logging {
+trait BusinessRegistrationConnector extends BaseConnector with BusinessRegistrationHttpParsers with RawResponseReads {
 
   implicit val ec: ExecutionContext
   val businessRegUrl: String
   val http: HttpClient
 
-  def createMetadataEntry(implicit hc: HeaderCarrier): Future[BusinessRegistration] = {
-    val json = Json.toJson[BusinessRegistrationRequest](BusinessRegistrationRequest("ENG"))
-    http.POST[JsValue, BusinessRegistration](s"$businessRegUrl/business-registration/business-tax-registration", json)
-  }
+  def createMetadataEntry(implicit hc: HeaderCarrier): Future[BusinessRegistration] =
+    http.POST[BusinessRegistrationRequest, BusinessRegistration](s"$businessRegUrl/business-registration/business-tax-registration", BusinessRegistrationRequest("ENG"))(
+      BusinessRegistrationRequest.formats, createBusinessRegistrationHttpParser, hc, ec
+    )
 
-  def retrieveMetadata(regId: String)(implicit hc: HeaderCarrier, rds: HttpReads[BusinessRegistration]): Future[BusinessRegistrationResponse] = {
-    http.GET[BusinessRegistration](s"$businessRegUrl/business-registration/business-tax-registration/$regId") map {
-      metaData =>
-        BusinessRegistrationSuccessResponse(metaData)
-    } recover handleMetadataResponse
-  }
+  def retrieveMetadataByRegId(regId: String)(implicit hc: HeaderCarrier): Future[BusinessRegistrationResponse] =
+    withMetadataRecovery("retrieveMetadata") {
+      http.GET[BusinessRegistrationResponse](s"$businessRegUrl/business-registration/business-tax-registration/$regId")(
+        retrieveBusinessRegistrationHttpParser(Some(regId)), hc, ec
+      )
+    }
 
-  def retrieveMetadata(implicit hc: HeaderCarrier, rds: HttpReads[BusinessRegistration]): Future[BusinessRegistrationResponse] = {
-    http.GET[BusinessRegistration](s"$businessRegUrl/business-registration/business-tax-registration") map {
-      metaData =>
-        BusinessRegistrationSuccessResponse(metaData)
-    } recover handleMetadataResponse
-  }
+  def retrieveMetadata(implicit hc: HeaderCarrier): Future[BusinessRegistrationResponse] =
+    withMetadataRecovery("retrieveMetadata") {
+      http.GET[BusinessRegistrationResponse](s"$businessRegUrl/business-registration/business-tax-registration")(
+        retrieveBusinessRegistrationHttpParser(None), hc, ec
+      )
+    }
 
-  def adminRetrieveMetadata(regId: String)(implicit hc: HeaderCarrier): Future[BusinessRegistrationResponse] = {
-    http.GET[BusinessRegistration](s"$businessRegUrl/business-registration/admin/business-tax-registration/$regId") map {
-      metaData =>
-        BusinessRegistrationSuccessResponse(metaData)
-    } recover handleMetadataResponse
-  }
+  def adminRetrieveMetadata(regId: String)(implicit hc: HeaderCarrier): Future[BusinessRegistrationResponse] =
+    withMetadataRecovery("adminRetrieveMetadata") {
+      http.GET[BusinessRegistrationResponse](s"$businessRegUrl/business-registration/admin/business-tax-registration/$regId")(
+        retrieveBusinessRegistrationHttpParser(Some(regId)), hc, ec
+      )
+    }
 
-  private def handleMetadataResponse: PartialFunction[Throwable, BusinessRegistrationResponse] = {
-    case _: NotFoundException =>
-      logger.info(s"[retrieveMetadata] - Received a NotFound status code when expecting metadata from Business-Registration")
-      BusinessRegistrationNotFoundResponse
-    case _: ForbiddenException =>
-      logger.error(s"[retrieveMetadata] - Received a Forbidden status code when expecting metadata from Business-Registration")
-      BusinessRegistrationForbiddenResponse
+  def removeMetadata(registrationId: String)(implicit hc: HeaderCarrier): Future[Boolean] =
+    withRecovery(Some(false))("removeMetadata", Some(registrationId)) {
+      http.GET[Boolean](s"$businessRegUrl/business-registration/business-tax-registration/remove/$registrationId")(removeMetadataHttpReads(registrationId), hc, ec)
+    }
+
+  def adminRemoveMetadata(registrationId: String): Future[Boolean] =
+    withRecovery()("adminRemoveMetadata") {
+      implicit val hc = HeaderCarrier()
+      http.GET[Boolean](s"$businessRegUrl/business-registration/admin/business-tax-registration/remove/$registrationId")(removeMetadataAdminHttpReads(registrationId), hc, ec)
+    }
+
+  def dropMetadataCollection(implicit hc: HeaderCarrier): Future[String] =
+    withRecovery()("dropMetadataCollection") {
+      http.GET[String](s"$businessRegUrl/business-registration/test-only/drop-collection")(dropMetadataCollectionHttpReads, hc, ec)
+    }
+
+  def updateLastSignedIn(registrationId: String, timestamp: Instant)(implicit hc: HeaderCarrier): Future[String] =
+    withRecovery()("updateLastSignedIn", Some(registrationId)) {
+      http.PATCH[Instant, HttpResponse](s"$businessRegUrl/business-registration/business-tax-registration/last-signed-in/$registrationId", timestamp).map {
+        res => res.body
+      }
+    }
+
+  private def withMetadataRecovery(functionName: String)(f: => Future[BusinessRegistrationResponse]): Future[BusinessRegistrationResponse] = f recover {
     case e: Exception =>
-      logger.error(s"[retrieveMetadata] - Received error when expecting metadata from Business-Registration - Error ${e.getMessage}")
+      logger.error(s"[$functionName] Received error when expecting metadata from Business-Registration - Error ${e.getMessage}")
       BusinessRegistrationErrorResponse(e)
-  }
-
-  def removeMetadata(registrationId: String)(implicit hc: HeaderCarrier): Future[Boolean] = {
-    http.GET[HttpResponse](s"$businessRegUrl/business-registration/business-tax-registration/remove/$registrationId").map {
-      _.status match {
-        case 200 => true
-      }
-    } recover {
-      case _ =>
-        logger.info(s"[removeMetadata] - Received a NotFound status code when attempting to remove a metadata document for regId - $registrationId")
-        false
-    }
-  }
-
-  def adminRemoveMetadata(registrationId: String): Future[Boolean] = {
-    implicit val hc = HeaderCarrier()
-    http.GET[HttpResponse](s"$businessRegUrl/business-registration/admin/business-tax-registration/remove/$registrationId") map {
-      _.status match {
-        case 200 => true
-      }
-    } recover {
-      case _: NotFoundException =>
-        logger.info(s"[adminRemoveMetadata] - Received a NotFound status code when attempting to remove a metadata document for regId - $registrationId")
-        false
-      case e =>
-        throw e
-    }
-  }
-
-  def dropMetadataCollection(implicit hc: HeaderCarrier) = {
-    http.GET[JsValue](s"$businessRegUrl/business-registration/test-only/drop-collection") map { res =>
-      (res \ "message").as[String]
-    }
-  }
-
-  def updateLastSignedIn(registrationId: String, timestamp: Instant)(implicit hc: HeaderCarrier): Future[String] = {
-    val json = Json.toJson(timestamp)
-    http.PATCH[JsValue, HttpResponse](s"$businessRegUrl/business-registration/business-tax-registration/last-signed-in/$registrationId", json).map {
-      res => res.body
-    } recover {
-      case ex: HttpException =>
-        logger.error(s"[updateLastSignedIn] - ${ex.responseCode} Could not update lastSignedIn for regId: $registrationId - reason: ${ex.getMessage}")
-        throw new Exception(ex.getMessage)
-    }
   }
 }

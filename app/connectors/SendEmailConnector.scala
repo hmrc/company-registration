@@ -16,6 +16,7 @@
 
 package connectors
 
+import connectors.httpParsers.SendEmailHttpParsers
 import models.SendEmailRequest
 import utils.Logging
 import play.api.http.Status._
@@ -27,7 +28,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NoStackTrace
 
-class EmailErrorResponse(s: String) extends NoStackTrace
+class EmailErrorResponse(s: Int) extends NoStackTrace
 
 @Singleton
 class SendEmailConnectorImpl @Inject()(servicesConfig: ServicesConfig,
@@ -36,39 +37,14 @@ class SendEmailConnectorImpl @Inject()(servicesConfig: ServicesConfig,
   val sendEmailURL = servicesConfig.getConfString("email.sendEmailURL", throw new Exception("email.sendEmailURL not found"))
 }
 
-trait SendEmailConnector extends HttpErrorFunctions with Logging {
+trait SendEmailConnector extends BaseConnector with SendEmailHttpParsers {
   implicit val ec: ExecutionContext
   val http: HttpClient
   val sendEmailURL: String
 
   def requestEmail(EmailRequest: SendEmailRequest)(implicit hc: HeaderCarrier): Future[Boolean] = {
-    def errorMsg(status: String, ex: HttpException) = {
-      logger.error(s"[sendEmail] request to send email returned a $status - email not sent - reason = ${ex.getMessage}")
-      throw new EmailErrorResponse(status)
-    }
-
-    http.POST[SendEmailRequest, HttpResponse](s"$sendEmailURL", EmailRequest) map { r =>
-      r.status match {
-        case ACCEPTED => {
-          logger.debug("[sendEmail] request to email service was successful")
-          true
-        }
-      }
-    } recover {
-      case ex: BadRequestException => errorMsg("400", ex)
-      case ex: NotFoundException => errorMsg("404", ex)
-      case ex: InternalServerException => errorMsg("500", ex)
-      case ex: BadGatewayException => errorMsg("502", ex)
+    withRecovery()("requestEmail") {
+      http.POST[SendEmailRequest, Boolean](s"$sendEmailURL", EmailRequest)(SendEmailRequest.format, sendEmailHttpReads, hc, ec)
     }
   }
-
-  private[connectors] def customRead(http: String, url: String, response: HttpResponse) =
-    response.status match {
-      case 400 => throw new BadRequestException("Provided incorrect data to Email Service")
-      case 404 => throw new NotFoundException("Email not found")
-      case 409 => response
-      case 500 => throw new InternalServerException("Email service returned an error")
-      case 502 => throw new BadGatewayException("Email service returned an upstream error")
-      case _ => handleResponse(http, url)(response)
-    }
 }

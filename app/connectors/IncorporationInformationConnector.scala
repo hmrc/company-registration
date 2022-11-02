@@ -17,7 +17,8 @@
 package connectors
 
 import config.MicroserviceAppConfig
-import play.api.http.Status.{ACCEPTED, NO_CONTENT, OK}
+import connectors.httpParsers.IncorporationInformationHttpParsers
+import play.api.http.Status.{ACCEPTED, NOT_FOUND, NO_CONTENT, OK}
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.Request
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, NotFoundException}
@@ -42,7 +43,7 @@ class IncorporationInformationConnectorImpl @Inject()(config: MicroserviceAppCon
   lazy val subscriber: String = config.subscriber
 }
 
-trait IncorporationInformationConnector extends AlertLogging {
+trait IncorporationInformationConnector extends BaseConnector with AlertLogging with IncorporationInformationHttpParsers {
 
   implicit val ec: ExecutionContext
   val iiUrl: String
@@ -70,53 +71,25 @@ trait IncorporationInformationConnector extends AlertLogging {
   }
 
   def registerInterest(regId: String, transactionId: String, admin: Boolean = false)(implicit hc: HeaderCarrier, req: Request[_]): Future[Boolean] = {
+
     val json = Json.obj("SCRSIncorpSubscription" -> Json.obj("callbackUrl" -> callBackurl(admin)))
-    http.POST[JsObject, HttpResponse](s"$iiUrl${buildUri(transactionId)}", json) map { res =>
-      res.status match {
-        case ACCEPTED =>
-          logger.info(s"[registerInterest] Registration forced returned 202 for regId: $regId txId: $transactionId ")
-          true
-        case other =>
-          logger.error(s"[registerInterest] returned a $other response for regId: $regId txId: $transactionId")
-          throw new RuntimeException(s"forced registration of interest for regId : $regId - transactionId : $transactionId failed - reason : status code was $other instead of 202")
-      }
-    } recover {
-      case e =>
-        logger.error(s"[registerInterest] failure registering interest for regId: $regId txId: $transactionId", e)
-        throw new RuntimeException(s"forced registration of interest for regId : $regId - transactionId : $transactionId failed - reason : ", e)
+
+    withRecovery()("registerInterest", Some(regId), Some(transactionId)) {
+      http.POST[JsObject, Boolean](s"$iiUrl${buildUri(transactionId)}", json)(implicitly, registerInterestHttpParser(regId, transactionId), hc, ec)
     }
   }
 
   def cancelSubscription(regId: String, transactionId: String, useOldRegime: Boolean = false)(implicit hc: HeaderCarrier): Future[Boolean] = {
+
     val cancelUri = if (useOldRegime) buildCancelUri(transactionId) else buildUri(transactionId)
 
-    http.DELETE[HttpResponse](s"$iiUrl$cancelUri") map { res =>
-      res.status match {
-        case OK =>
-          logger.info(s"[cancelSubscription] Cancelled subscription for regId: $regId txId: $transactionId ")
-          true
-      }
-    } recover {
-      case e: NotFoundException =>
-        logger.info(s"[cancelSubscription] No subscription to cancel for regId: $regId txId: $transactionId ")
-        throw e
-      case e =>
-        logger.error(s"[cancelSubscription] Error cancelling subscription for regId: $regId txId: $transactionId", e)
-        throw new RuntimeException(s"Failure to cancel subscription", e)
+    withRecovery()("cancelSubscription", Some(regId), Some(transactionId)) {
+      http.DELETE[Boolean](s"$iiUrl$cancelUri")(cancelSubscriptionHttpParser(regId, transactionId), hc, ec)
     }
   }
 
-  def checkCompanyIncorporated(transactionID: String)(implicit hc: HeaderCarrier): Future[Option[String]] = {
-    http.GET[HttpResponse](s"$iiUrl/incorporation-information/$transactionID/incorporation-update") map { res =>
-      res.status match {
-        case OK =>
-          val crn = (res.json \ "crn").asOpt[String]
-          if (crn.nonEmpty) {
-            pagerduty(PagerDutyKeys.STALE_DOCUMENTS_DELETE_WARNING_CRN_FOUND)
-          }
-          crn
-        case NO_CONTENT => None
-      }
+  def checkCompanyIncorporated(transactionID: String)(implicit hc: HeaderCarrier): Future[Option[String]] =
+    withRecovery()("checkCompanyIncorporated", txId = Some(transactionID)) {
+      http.GET[Option[String]](s"$iiUrl/incorporation-information/$transactionID/incorporation-update")(checkCompanyIncorporatedHttpParser, hc, ec)
     }
-  }
 }

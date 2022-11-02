@@ -74,7 +74,7 @@ class UserAccessServiceSpec extends PlaySpec with MockitoSugar with BusinessRegi
     val dateTime = Instant.now()
 
     "return a UserAccessSuccessResponse with the created and confirmation ref flags set to false" in new Setup {
-      when(mockBRConnector.retrieveMetadata(any(), any()))
+      when(mockBRConnector.retrieveMetadata(any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistrationResponse(regId))))
       when(mockBRConnector.updateLastSignedIn(any(), any())(any()))
         .thenReturn(Future.successful(dateTime.toString))
@@ -85,7 +85,7 @@ class UserAccessServiceSpec extends PlaySpec with MockitoSugar with BusinessRegi
     }
 
     "return a UserAccessLimitReachedResponse when the throttle service returns a false" in new Setup {
-      when(mockBRConnector.retrieveMetadata(any(), any()))
+      when(mockBRConnector.retrieveMetadata(any()))
         .thenReturn(Future.successful(BusinessRegistrationNotFoundResponse))
       when(mockThrottleService.checkUserAccess)
         .thenReturn(Future(false))
@@ -97,13 +97,15 @@ class UserAccessServiceSpec extends PlaySpec with MockitoSugar with BusinessRegi
       await(service.checkUserAccess("321")) mustBe Left(Json.toJson(UserAccessLimitReachedResponse(true)))
     }
 
-    "fail if the registration is missing" in new Setup {
-      when(mockBRConnector.retrieveMetadata(any(), any()))
+    "fail if the registration is missing and delete BR metadata" in new Setup {
+      when(mockBRConnector.retrieveMetadata(any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistrationResponse(regId))))
       when(mockBRConnector.updateLastSignedIn(any(), any())(any()))
         .thenReturn(Future.successful(dateTime.toString))
       when(mockCTService.retrieveCorporationTaxRegistrationRecord(eqTo(regId), any[Option[Instant]]()))
         .thenReturn(Future.successful(None))
+      when(mockBRConnector.removeMetadata(eqTo(regId))(any()))
+        .thenReturn(Future.successful(true))
 
       intercept[MissingRegistration] {
         await(service.checkUserAccess(internalId))
@@ -114,7 +116,7 @@ class UserAccessServiceSpec extends PlaySpec with MockitoSugar with BusinessRegi
       val expectedEmail = Email("a@a.a", "GG", true, false, false)
       val draftCTReg = draftCorporationTaxRegistration(regId).copy(verifiedEmail = Some(expectedEmail))
 
-      when(mockBRConnector.retrieveMetadata(any(), any()))
+      when(mockBRConnector.retrieveMetadata(any()))
         .thenReturn(Future.successful(BusinessRegistrationNotFoundResponse))
       when(mockThrottleService.checkUserAccess)
         .thenReturn(Future(true))
@@ -128,7 +130,7 @@ class UserAccessServiceSpec extends PlaySpec with MockitoSugar with BusinessRegi
     }
 
     "return a UserAccessSuccessResponse with the created flag set to true" in new Setup {
-      when(mockBRConnector.retrieveMetadata(any(), any()))
+      when(mockBRConnector.retrieveMetadata(any()))
         .thenReturn(Future.successful(BusinessRegistrationNotFoundResponse))
       when(mockThrottleService.checkUserAccess)
         .thenReturn(Future(true))
@@ -141,7 +143,7 @@ class UserAccessServiceSpec extends PlaySpec with MockitoSugar with BusinessRegi
     }
 
     "return a UserAccessSuccessResponse with the confirmation refs flag set to true" in new Setup {
-      when(mockBRConnector.retrieveMetadata(any(), any()))
+      when(mockBRConnector.retrieveMetadata(any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistrationResponse(regId))))
       when(mockBRConnector.updateLastSignedIn(any(), any())(any()))
         .thenReturn(Future.successful(dateTime.toString))
@@ -152,7 +154,7 @@ class UserAccessServiceSpec extends PlaySpec with MockitoSugar with BusinessRegi
     }
 
     "return an error when retrieving metadata returns a forbidden response" in new Setup {
-      when(mockBRConnector.retrieveMetadata(any(), any()))
+      when(mockBRConnector.retrieveMetadata(any()))
         .thenReturn(Future.successful(BusinessRegistrationForbiddenResponse))
 
       val ex = intercept[Exception](await(service.checkUserAccess(internalId)))

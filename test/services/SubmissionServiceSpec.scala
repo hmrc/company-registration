@@ -39,7 +39,8 @@ import play.api.test.Helpers._
 import repositories._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, SessionId, UpstreamErrorResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
-import utils.{LogCapturing, PagerDutyKeys}
+import uk.gov.hmrc.play.bootstrap.tools.LogCapturing
+import utils.PagerDutyKeys
 
 import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -171,7 +172,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
       when(mockCorpTaxRepo.retrieveConfirmationReferences(eqTo(regId)))
         .thenReturn(Future.successful(Some(confRefs)))
 
-      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockBRConnector.retrieveMetadataByRegId(ArgumentMatchers.any())(ArgumentMatchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
 
       when(mockIIConnector.registerInterest(eqTo(regId), any(), any())(any(), any()))
@@ -328,7 +329,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
     )
 
     "return a business registration" in new Setup {
-      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockBRConnector.retrieveMetadataByRegId(ArgumentMatchers.any())(ArgumentMatchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
 
       val result: BusinessRegistration = await(service.retrieveBRMetadata(regId))
@@ -336,14 +337,14 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
     }
 
     "return future failed if success response but regId's do not match" in new Setup {
-      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockBRConnector.retrieveMetadataByRegId(ArgumentMatchers.any())(ArgumentMatchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
 
       intercept[Exception](await(service.retrieveBRMetadata("123DoesNotMatch")))
     }
 
     "return future failed if anything but success response" in new Setup {
-      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockBRConnector.retrieveMetadataByRegId(ArgumentMatchers.any())(ArgumentMatchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationNotFoundResponse))
 
       intercept[Exception](await(service.retrieveBRMetadata(regId)))
@@ -364,7 +365,6 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
       Some("Director")
     )
 
-    // TODO - refactor and tweak tests - couple more scenarios for optionality
     val companyDetails1 = CompanyDetails(
       "name",
       CHROAddress("P", "1", Some("2"), "C", "L", Some("PO"), Some("PC"), Some("R")),
@@ -440,7 +440,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
           BusinessContactDetails(Some("0123456789"), Some("0123456789"), Some("test@email.co.uk"))
         )
       )
-      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockBRConnector.retrieveMetadataByRegId(ArgumentMatchers.any())(ArgumentMatchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
       when(mockCorpTaxRepo.findOneBySelector(mockCorpTaxRepo.regIDSelector(eqTo(registrationId))))
         .thenReturn(Future.successful(Some(corporationTaxRegistration)))
@@ -450,7 +450,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
     }
 
     "return a valid InterimDesRegistration with full contact details" in new Setup {
-      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockBRConnector.retrieveMetadataByRegId(ArgumentMatchers.any())(ArgumentMatchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
       when(mockCorpTaxRepo.findOneBySelector(mockCorpTaxRepo.regIDSelector(eqTo(registrationId))))
         .thenReturn(Future.successful(Some(corporationTaxRegistration)))
@@ -472,7 +472,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
 
     "return a valid InterimDesRegistration with minimal details" in new Setup {
 
-      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockBRConnector.retrieveMetadataByRegId(ArgumentMatchers.any())(ArgumentMatchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
       when(mockCorpTaxRepo.findOneBySelector(mockCorpTaxRepo.regIDSelector(eqTo(registrationId))))
         .thenReturn(Future.successful(Some(corporationTaxRegistration)))
@@ -495,7 +495,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
 
     "return a valid InterimDesRegistration with RO address as the PPOB" in new Setup {
 
-      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockBRConnector.retrieveMetadataByRegId(ArgumentMatchers.any())(ArgumentMatchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
       when(mockCorpTaxRepo.findOneBySelector(mockCorpTaxRepo.regIDSelector(eqTo(registrationId))))
         .thenReturn(Future.successful(Some(corporationTaxRegistration)))
@@ -520,7 +520,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
 
     "return a valid InterimDesRegistration and transpose any illegal address chars with RO address as the PPOB" in new Setup {
 
-      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockBRConnector.retrieveMetadataByRegId(ArgumentMatchers.any())(ArgumentMatchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
       when(mockCorpTaxRepo.findOneBySelector(mockCorpTaxRepo.regIDSelector(eqTo(registrationId))))
         .thenReturn(Future.successful(Some(corporationTaxRegistration)))
@@ -569,7 +569,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
     }
 
     "return a valid DES Submission if groups is provided but relief is false" in new Setup {
-      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockBRConnector.retrieveMetadataByRegId(ArgumentMatchers.any())(ArgumentMatchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
       when(mockCorpTaxRepo.findOneBySelector(mockCorpTaxRepo.regIDSelector(eqTo(registrationId))))
         .thenReturn(Future.successful(Some(corporationTaxRegistration)))
@@ -591,7 +591,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
     }
 
     "return a valid DES submission if groups is provided but relief is false and data is provided - setting this data to None" in new Setup {
-      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockBRConnector.retrieveMetadataByRegId(ArgumentMatchers.any())(ArgumentMatchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
       when(mockCorpTaxRepo.findOneBySelector(mockCorpTaxRepo.regIDSelector(eqTo(registrationId))))
         .thenReturn(Future.successful(Some(corporationTaxRegistration)))
@@ -620,7 +620,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
 
     "return a valid des submission if groups is provided but name needs normalising" in new Setup {
 
-      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockBRConnector.retrieveMetadataByRegId(ArgumentMatchers.any())(ArgumentMatchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
       when(mockCorpTaxRepo.findOneBySelector(mockCorpTaxRepo.regIDSelector(eqTo(registrationId))))
         .thenReturn(Future.successful(Some(corporationTaxRegistration)))
@@ -657,7 +657,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
 
     "return a valid des submission if groups is provided but there are illegal characters in the address supplied by Coho" in new Setup {
 
-      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockBRConnector.retrieveMetadataByRegId(ArgumentMatchers.any())(ArgumentMatchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
       when(mockCorpTaxRepo.findOneBySelector(mockCorpTaxRepo.regIDSelector(eqTo(registrationId))))
         .thenReturn(Future.successful(Some(corporationTaxRegistration)))
@@ -693,7 +693,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
     }
 
     "return a valid des submission if takeover block is provided" in new Setup {
-      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockBRConnector.retrieveMetadataByRegId(ArgumentMatchers.any())(ArgumentMatchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
       when(mockCorpTaxRepo.findOneBySelector(mockCorpTaxRepo.regIDSelector(eqTo(registrationId))))
         .thenReturn(Future.successful(Some(corporationTaxRegistration)))
@@ -753,7 +753,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
     }
 
     "return a valid DES Submission if takeovers is false" in new Setup {
-      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockBRConnector.retrieveMetadataByRegId(ArgumentMatchers.any())(ArgumentMatchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
       when(mockCorpTaxRepo.findOneBySelector(mockCorpTaxRepo.regIDSelector(eqTo(registrationId))))
         .thenReturn(Future.successful(Some(corporationTaxRegistration)))
@@ -782,7 +782,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
     }
 
     "throw a RuntimeException if there is no name in group block but relief is true" in new Setup {
-      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockBRConnector.retrieveMetadataByRegId(ArgumentMatchers.any())(ArgumentMatchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
       when(mockCorpTaxRepo.findOneBySelector(mockCorpTaxRepo.regIDSelector(eqTo(registrationId))))
         .thenReturn(Future.successful(Some(corporationTaxRegistration)))
@@ -795,7 +795,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
     }
 
     "throw a RuntimeException if there is no address in group block but relief is true" in new Setup {
-      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockBRConnector.retrieveMetadataByRegId(ArgumentMatchers.any())(ArgumentMatchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
       when(mockCorpTaxRepo.findOneBySelector(mockCorpTaxRepo.regIDSelector(eqTo(registrationId))))
         .thenReturn(Future.successful(Some(corporationTaxRegistration)))
@@ -808,7 +808,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
     }
 
     "throw a RuntimeException if there is no utr block in group block but relief is true" in new Setup {
-      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockBRConnector.retrieveMetadataByRegId(ArgumentMatchers.any())(ArgumentMatchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
       when(mockCorpTaxRepo.findOneBySelector(mockCorpTaxRepo.regIDSelector(eqTo(registrationId))))
         .thenReturn(Future.successful(Some(corporationTaxRegistration)))
@@ -830,7 +830,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
     }
 
     "throw a RuntimeException if all blocks are there but name is invalid" in new Setup {
-      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockBRConnector.retrieveMetadataByRegId(ArgumentMatchers.any())(ArgumentMatchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
       when(mockCorpTaxRepo.findOneBySelector(mockCorpTaxRepo.regIDSelector(eqTo(registrationId))))
         .thenReturn(Future.successful(Some(corporationTaxRegistration)))
@@ -863,7 +863,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
         )
       )
 
-      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockBRConnector.retrieveMetadataByRegId(ArgumentMatchers.any())(ArgumentMatchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
       when(mockCorpTaxRepo.findOneBySelector(mockCorpTaxRepo.regIDSelector(eqTo(registrationId))))
         .thenReturn(Future.successful(Some(corporationTaxRegistration)))
@@ -977,7 +977,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
         .thenReturn(Future.successful(Success))
       when(mockCorpTaxRepo.updateRegistrationToHeld(eqTo(registrationId), eqTo(confRefs)))
         .thenReturn(Future.successful(Some(lockedSubmission.copy(status = RegistrationStatus.HELD))))
-      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(any(), any()))
+      when(mockBRConnector.retrieveMetadataByRegId(ArgumentMatchers.any())(any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
 
       val result: Boolean = await(service.setupPartialForTopupOnLocked(tID))
@@ -1007,7 +1007,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
         .thenReturn(Future.failed(new RuntimeException))
       when(mockCorpTaxRepo.updateRegistrationToHeld(eqTo(registrationId), eqTo(confRefs)))
         .thenReturn(Future.successful(Some(lockedSubmission.copy(status = RegistrationStatus.HELD))))
-      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(any(), any()))
+      when(mockBRConnector.retrieveMetadataByRegId(ArgumentMatchers.any())(any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
 
       val result: Boolean = await(service.setupPartialForTopupOnLocked(tID))
@@ -1056,7 +1056,7 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
         .thenReturn(Future.successful(Some(lockedSubmission)))
       when(mockCorpTaxRepo.retrieveSessionIdentifiers(any()))
         .thenReturn(Future.successful(None))
-      when(mockBRConnector.retrieveMetadata(ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(mockBRConnector.retrieveMetadataByRegId(ArgumentMatchers.any())(ArgumentMatchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
       when(mockCorpTaxRepo.findOneBySelector(ArgumentMatchers.any()))
         .thenReturn(Future.successful(Some(lockedSubmission)))
