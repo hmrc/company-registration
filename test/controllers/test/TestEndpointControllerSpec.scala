@@ -30,12 +30,12 @@ import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import repositories._
-import uk.gov.hmrc.play.bootstrap.tools.LogCapturing
+import utils.LogCapturingHelper
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
-class TestEndpointControllerSpec extends BaseSpec with LogCapturing {
+class TestEndpointControllerSpec extends BaseSpec with LogCapturingHelper {
 
   implicit val system = ActorSystem("CR")
   implicit val mat = Materializer(system)

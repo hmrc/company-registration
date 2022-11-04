@@ -26,8 +26,7 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{AnyContent, Request}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, NotFoundException, UpstreamErrorResponse}
-import uk.gov.hmrc.play.bootstrap.tools.LogCapturing
+import uk.gov.hmrc.http.HeaderCarrier
 import utils.LogCapturingHelper
 
 import java.time.{Instant, LocalDate}

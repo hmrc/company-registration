@@ -559,6 +559,33 @@ class CorporationTaxRegistrationMongoRepositoryISpec
     }
   }
 
+  "updateLanguage" must {
+    "update the stored language" in new Setup {
+
+      insert(newCTDoc)
+      retrieve(registrationId).map(_.language) mustBe Some(LangConstants.english)
+
+      await(repository.updateLanguage(registrationId, Language(LangConstants.welsh))) mustBe Some(Language(LangConstants.welsh))
+
+      retrieve(registrationId).map(_.language) mustBe Some(LangConstants.welsh)
+    }
+
+    "return None if no document exists" in new Setup {
+      retrieve(registrationId).map(_.language) mustBe None
+    }
+  }
+
+  "retrieveLanguage" must {
+    "return none when there is no document" in new Setup {
+      await(repository.retrieveLanguage(registrationId)) mustBe None
+    }
+
+    "return Some(Language) when there is a document" in new Setup {
+      insert(newCTDoc)
+      await(repository.retrieveLanguage(registrationId)) mustBe Some(Language(LangConstants.english))
+    }
+  }
+
   "updateRegistrationProgress" must {
     "return some registrationPrgoress if document exists" in new Setup {
       val registrationPrgoress: String = "progress"

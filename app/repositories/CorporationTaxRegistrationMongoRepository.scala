@@ -319,6 +319,14 @@ class CorporationTaxRegistrationMongoRepository @Inject()(val mongo: MongoCompon
   def retrieveEmail(registrationId: String): Future[Option[Email]] =
     OptionT(findOneBySelector(regIDSelector(registrationId))).subflatMap(_.verifiedEmail).value
 
+  def updateLanguage(registrationId: String, language: Language): Future[Option[Language]] =
+    OptionT(findOneBySelector(regIDSelector(registrationId))).semiflatMap { registration =>
+      replace(regIDSelector(registrationId), registration.copy(language = language.code)).map(_ => language)
+    }.value
+
+  def retrieveLanguage(registrationId: String): Future[Option[Language]] =
+    OptionT(findOneBySelector(regIDSelector(registrationId))).subflatMap(ct => Some(Language(ct.language))).value
+
   def updateRegistrationProgress(regId: String, progress: String): Future[Option[String]] =
     OptionT(findOneBySelector(regIDSelector(regId))).semiflatMap { registration =>
       replace(regIDSelector(regId), registration.copy(registrationProgress = Some(progress))).map(_ => progress)

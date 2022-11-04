@@ -19,7 +19,7 @@ package jobs
 import com.google.inject.name.Names
 import config.LangConstants
 import itutil.WiremockHelper._
-import itutil.{IntegrationSpecBase, MongoIntegrationSpec, WiremockHelper}
+import itutil.{IntegrationSpecBase, LogCapturingHelper, MongoIntegrationSpec, WiremockHelper}
 import models._
 import org.mongodb.scala.result.InsertOneResult
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -28,14 +28,13 @@ import play.api.libs.json.{JsObject, Json, OWrites}
 import play.api.test.Helpers._
 import play.api.{Application, Logger}
 import repositories.CorporationTaxRegistrationMongoRepository
-import uk.gov.hmrc.play.bootstrap.tools.LogCapturing
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with MongoIntegrationSpec with LogCapturing {
+class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with MongoIntegrationSpec with LogCapturingHelper {
 
   val mockHost = WiremockHelper.wiremockHost
   val mockPort = WiremockHelper.wiremockPort

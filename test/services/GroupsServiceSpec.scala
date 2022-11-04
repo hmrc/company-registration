@@ -23,12 +23,12 @@ import org.mockito.ArgumentMatchers.{eq => eqTo}
 import org.mockito.Mockito._
 import play.api.test.Helpers._
 import repositories.CorporationTaxRegistrationMongoRepository
-import uk.gov.hmrc.play.bootstrap.tools.LogCapturing
+import utils.LogCapturingHelper
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
-class GroupsServiceSpec extends BaseSpec with LogCapturing {
+class GroupsServiceSpec extends BaseSpec with LogCapturingHelper {
 
   val regId = "testRegId"
 

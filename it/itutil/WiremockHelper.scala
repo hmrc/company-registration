@@ -22,7 +22,9 @@ import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import org.scalatest.concurrent.{Eventually, IntegrationPatience}
+import play.api.http.Status
 import play.api.libs.json.{JsObject, Json}
+import play.api.test.Helpers.WWW_AUTHENTICATE
 
 object WiremockHelper extends Eventually with IntegrationPatience {
   val wiremockPort = 11111
@@ -94,6 +96,18 @@ object WiremockHelper extends Eventually with IntegrationPatience {
   }
 
   def stubAuthorise(internalId: String): StubMapping = stubAuthorise(200, "internalId" -> internalId)
+
+  def stubUnauthorised(reason: String) = {
+    stubFor(post(urlMatching("/auth/authorise"))
+      .willReturn(
+        aResponse()
+          .withStatus(Status.UNAUTHORIZED)
+          .withHeader(WWW_AUTHENTICATE, s"""MDTP detail="$reason"""")
+      ))
+  }
+
+  def stubAudit() =
+    stubFor(post(urlPathMatching("/write/audit.*")).willReturn(aResponse().withStatus(Status.OK)))
 
 }
 
