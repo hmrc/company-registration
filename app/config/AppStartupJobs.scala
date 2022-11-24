@@ -17,8 +17,10 @@
 package config
 
 import akka.actor.ActorSystem
+import models.TakeoverDetails
 import play.api.Configuration
 import repositories.CorporationTaxRegistrationMongoRepository
+import services.TakeoverDetailsService
 import utils.Logging
 
 import java.util.Base64
@@ -36,7 +38,8 @@ class Startup @Inject()(appStartupJobs: AppStartupJobs,
 }
 
 class AppStartupJobsImpl @Inject()(val config: Configuration,
-                                   val ctRepo: CorporationTaxRegistrationMongoRepository
+                                   val ctRepo: CorporationTaxRegistrationMongoRepository,
+                                   val takeoverDetailsService: TakeoverDetailsService
                                   )(implicit val ec: ExecutionContext) extends AppStartupJobs
 
 trait AppStartupJobs extends Logging {
@@ -44,6 +47,7 @@ trait AppStartupJobs extends Logging {
   implicit val ec: ExecutionContext
   val config: Configuration
   val ctRepo: CorporationTaxRegistrationMongoRepository
+  val takeoverDetailsService: TakeoverDetailsService
 
   def startupStats: Future[Unit] =
     ctRepo.getRegistrationStats map {
@@ -101,10 +105,22 @@ trait AppStartupJobs extends Logging {
       }
     }
 
+  def updateTakeoverData(regIds: List[String]): Future[Seq[TakeoverDetails]] = {
+    Future.traverse(regIds){
+      regId =>
+        logger.info(s" $regId has had its takeover section rectified to false")
+        takeoverDetailsService.updateTakeoverDetailsBlock(regId, TakeoverDetails(replacingAnotherBusiness = false, None, None, None, None))
+    }
+  }
+
   def runEverythingOnStartUp(): Future[Unit] = {
     logger.info("[runEverythingOnStartUp] Running Startup Jobs")
     lazy val regid = config.get[String]("companyNameRegID")
     getCTCompanyName(regid)
+
+    lazy val base64TakeoverRegIds = config.get[String]("list-of-takeover-regids")
+    lazy val listOfTakeoverRegIds = new String(Base64.getDecoder.decode(base64TakeoverRegIds), "UTF-8").split(",").toList
+    updateTakeoverData(listOfTakeoverRegIds)
 
     lazy val base64RegIds = config.get[String]("list-of-regids")
     lazy val listOftxIDs = new String(Base64.getDecoder.decode(base64RegIds), "UTF-8").split(",").toList
