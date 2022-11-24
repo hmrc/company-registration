@@ -151,14 +151,14 @@ class TakeoverJobISpec extends IntegrationSpecBase with MongoIntegrationSpec wit
   lazy val runStartupJob: AppStartupJobsImpl = app.injector.instanceOf[AppStartupJobsImpl]
 
   "update takeover" should {
-    "modify 1 record" when {
+    "modify a record" when {
       "there is an entry with incomplete takeover blocks" in new Setup {
         insert(takeOverCorporationTaxRegistration(regId = regId2, incompleteTakeoverBlock = true))
         insert(takeOverCorporationTaxRegistration(regId = regId3, incompleteTakeoverBlock = true))
         insert(takeOverCorporationTaxRegistration(regId = regId4, incompleteTakeoverBlock = false))
 
-        count mustBe 4
-        runStartupJob.runEverythingOnStartUp()
+        count mustBe 3
+        runStartupJob.runEverythingOnStartUp
         retrieve("regID2") mustBe Some(takeOverCorporationTaxRegistrationResult(regId = regId2))
         retrieve("regID3") mustBe Some(takeOverCorporationTaxRegistrationResult(regId = regId3))
         retrieve("regID4") mustBe Some(takeOverCorporationTaxRegistration(regId = regId4, incompleteTakeoverBlock = false))
