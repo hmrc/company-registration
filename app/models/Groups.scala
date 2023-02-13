@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -100,7 +100,7 @@ object Groups {
 object GroupNameListValidator {
   val formats = new Format[Seq[String]] {
     override def reads(json: JsValue): JsResult[Seq[String]] = {
-      val seq = json.validate[JsArray].map(js => js.value)
+      val seq = json.validate[JsArray].map(js => js.value.toSeq)
       seq.map(_.collect {
         case jsVal if jsVal.validate[String](APIValidation.parentGroupNameValidator).isSuccess => jsVal.as[String]
       })

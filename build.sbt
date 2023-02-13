@@ -3,9 +3,8 @@ import sbt.Keys.{javaOptions, parallelExecution, _}
 import sbt._
 import uk.gov.hmrc.DefaultBuildSettings._
 import uk.gov.hmrc.SbtAutoBuildPlugin
-import uk.gov.hmrc.SbtBobbyPlugin.BobbyKeys.bobbyRulesURL
+import uk.gov.hmrc.bobby.SbtBobbyPlugin.BobbyKeys.bobbyRulesURL
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
-import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin._
 import uk.gov.hmrc.versioning.SbtGitVersioning.autoImport.majorVersion
 
 
@@ -27,7 +26,6 @@ lazy val microservice = Project(appName, file("."))
   .settings(PlayKeys.playDefaultPort := 9973)
   .settings(scalaSettings: _*)
   .settings(scoverageSettings: _*)
-  .settings(publishingSettings: _*)
   .settings(defaultSettings(): _*)
   .settings(bobbyRulesURL := Some(new URL("https://webstore.tax.service.gov.uk/bobby-config/deprecated-dependencies.json")))
   .settings(
@@ -39,7 +37,7 @@ lazy val microservice = Project(appName, file("."))
     retrieveManaged := true,
     scalacOptions ++= List("-Xlint:-missing-interpolator"),
     resolvers += Resolver.jcenterRepo,
-    scalaVersion := "2.12.15"
+    scalaVersion := "2.13.8"
   )
   .configs(IntegrationTest)
   .settings(integrationTestSettings())
