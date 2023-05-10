@@ -56,4 +56,9 @@ object StringNormaliser {
     val normalisedString = normaliseString(string, APIValidation.lineInvert)
     removeIllegalCharacters(normalisedString)
   }
+
+  def normaliseAndRemoveIllegalNameCharacters(string: String) = {
+    val normalisedString = normaliseString(string, APIValidation.takeoverNameInvert)
+    removeIllegalCharacters(normalisedString)
+  }
 }
