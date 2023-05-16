@@ -161,6 +161,7 @@ trait AddressValidator extends Logging {
   val countryInvert = regexWrap("[A-Za-z0-9 ]")
   //Groups
   val parentGroupNameInvert = regexWrap("""[A-Z a-z 0-9\\'-]""")
+  val takeoverNameInvert = regexWrap("""[A-Za-z 0-9\\'-]""")
 
   def normaliseStringReads(regex: Regex, amountToTake: Int)(implicit implReads: Reads[String]): Reads[String] = new Reads[String] {
     override def reads(json: JsValue): JsResult[String] = {

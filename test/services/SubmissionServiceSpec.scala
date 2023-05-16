@@ -751,6 +751,72 @@ class SubmissionServiceSpec extends BaseSpec with AuthorisationMocks with Corpor
         ))
     }
 
+
+    "return a valid des submission if takeover block is provided with illegal characters in the previous business and owner names" in new Setup {
+      when(mockBRConnector.retrieveMetadataByRegId(ArgumentMatchers.any())(ArgumentMatchers.any()))
+        .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))
+      when(mockCorpTaxRepo.findOneBySelector(mockCorpTaxRepo.regIDSelector(eqTo(registrationId))))
+        .thenReturn(Future.successful(Some(corporationTaxRegistration)))
+
+      val testAddress: Address = Address(
+        line1 = "line1",
+        line2 = "line2",
+        line3 = Some("line3"),
+        line4 = Some("line4"),
+        postcode = Some("aa11aa"),
+        country = Some("UK")
+      )
+
+      val anotherTestAddress: Address = Address(
+        line1 = "anotherLine1",
+        line2 = "anotherLine2",
+        line3 = Some("anotherLine3"),
+        line4 = Some("anotherLine4"),
+        postcode = Some("bb11bb"),
+        country = Some("UK")
+      )
+
+      val ctReg: CorporationTaxRegistration =
+        getCTReg(
+          regId,
+          Some(companyDetails2),
+          Some(contactDetails2)).copy(
+          takeoverDetails =
+            Some(TakeoverDetails(
+              replacingAnotherBusiness = true,
+              businessName = Some("testBusinessNameæ\t\tf"),
+              businessTakeoverAddress = Some(testAddress),
+              prevOwnersName = Some("previousOwnerName\t\t"),
+              prevOwnersAddress = Some(anotherTestAddress)
+            ))
+        )
+
+      val result: InterimDesRegistration = service.buildPartialDesSubmission(regId, ackRef, credId, businessRegistration, ctReg)
+
+      result mustBe InterimDesRegistration(
+        ackRef,
+        Metadata(sessionId, credId, "en", dateTime, Director),
+        InterimCorporationTax(
+          "name",
+          returnsOnCT61 = false,
+          Some(BusinessAddress("1", "1", None, None, Some("ZZ1 1ZZ"), None)),
+          BusinessContactDetails(None, None, Some("a@b.c")),
+          takeOver =
+            Some(TakeoverDetails(
+              replacingAnotherBusiness = true,
+              businessName = Some("testBusinessNameaef"),
+              businessTakeoverAddress = Some(testAddress),
+              prevOwnersName = Some("previousOwnerName"),
+              prevOwnersAddress = Some(anotherTestAddress)
+            ))
+        ))
+    }
+
+
+
+
+
+
     "return a valid DES Submission if takeovers is false" in new Setup {
       when(mockBRConnector.retrieveMetadataByRegId(ArgumentMatchers.any())(ArgumentMatchers.any()))
         .thenReturn(Future.successful(BusinessRegistrationSuccessResponse(businessRegistration)))

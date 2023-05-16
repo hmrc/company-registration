@@ -16,16 +16,20 @@
 
 package models
 
+import models.validation.APIValidation
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
+import utils.StringNormaliser
 
 case class TakeoverDetails(replacingAnotherBusiness: Boolean,
                            businessName: Option[String],
                            businessTakeoverAddress: Option[Address],
                            prevOwnersName: Option[String],
                            prevOwnersAddress: Option[Address]) {
-  def withSanitisedAddresses: TakeoverDetails = copy(
+  def withSanitisedFields: TakeoverDetails = copy(
+    businessName = businessName.map(StringNormaliser.normaliseAndRemoveIllegalNameCharacters),
     businessTakeoverAddress = businessTakeoverAddress.map(_.sanitised),
+    prevOwnersName = prevOwnersName.map(StringNormaliser.normaliseAndRemoveIllegalNameCharacters),
     prevOwnersAddress = prevOwnersAddress.map(_.sanitised)
   )
 }
