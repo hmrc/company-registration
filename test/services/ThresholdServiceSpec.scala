@@ -143,7 +143,7 @@ class ThresholdServiceSpec extends BaseSpec {
 
         when(mockConfig.thresholds).thenReturn(Seq(testThreshold, testThreshold2))
 
-        val expectedResult = "£90,000"
+        val expectedResult = "90,000"
         val actualResult = service(dateTime2.plusDays(1)).formattedVatThreshold
 
         expectedResult mustBe actualResult
