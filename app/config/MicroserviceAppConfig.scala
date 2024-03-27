@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,21 @@
 
 package config
 
+import models.VatThreshold
+import com.typesafe.config.{ConfigList, ConfigRenderOptions}
 import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import play.api.Configuration
+import play.api.libs.json.Json
 
 @Singleton
-class MicroserviceAppConfig @Inject()(config: ServicesConfig) {
+class MicroserviceAppConfig @Inject()(config: ServicesConfig,configuration: Configuration) {
 
   def getConfigString(key: String): String = config.getConfString(key, throw new RuntimeException(s"Could not find $key in config"))
+
+  private val thresholdString: String = configuration.get[ConfigList]("vat-threshold").render(ConfigRenderOptions.concise())
+  val thresholds: Seq[VatThreshold] = Json.parse(thresholdString).as[List[VatThreshold]]
+
 
 
   val regime: String = getConfigString("regime")

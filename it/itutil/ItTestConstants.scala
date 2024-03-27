@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import models._
 import play.api.libs.json._
 
 import java.time.Instant
+import scala.collection.immutable.List
 
 
 object ItTestConstants {
@@ -239,5 +240,4 @@ object ItTestConstants {
       prevOwnersAddress = Some(testPrevOwnerAddressModel)
     )
   }
-
 }

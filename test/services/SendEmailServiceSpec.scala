@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import models._
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
 import play.api.libs.json.Json
+import play.api.mvc.AnyContentAsEmpty
 import play.api.test.FakeRequest
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import uk.gov.hmrc.http.HeaderCarrier
@@ -34,14 +35,15 @@ import scala.concurrent.Future
 
 class SendEmailServiceSpec extends BaseSpec with AuthorisationMocks {
 
-  implicit val hc = HeaderCarrier()
-  implicit val req = FakeRequest("GET", "/test-path")
+  implicit val hc: HeaderCarrier = HeaderCarrier()
+  implicit val req: FakeRequest[AnyContentAsEmpty.type] = FakeRequest("GET", "/test-path")
 
-  val mockSendEmailConnector = mock[SendEmailConnector]
-  val emailService = new SendEmailService(mockSendEmailConnector)(global)
+  val mockSendEmailConnector: SendEmailConnector = mock[SendEmailConnector]
+  val mockThresholdService: ThresholdService = mock[ThresholdService]
+  val emailService = new SendEmailService(mockSendEmailConnector,mockThresholdService)(global)
 
   val regId = "reg1234"
-  val templateName = "register_your_company_register_vat_email"
+  val templateName = "register_your_company_register_vat_email_v2"
   val testEmail = "myTestEmail@test.test"
 
   override def beforeEach() {
@@ -51,7 +53,7 @@ class SendEmailServiceSpec extends BaseSpec with AuthorisationMocks {
   val testRequest = SendEmailRequest(
     to = Seq(testEmail),
     templateId = templateName,
-    parameters = Map(),
+    parameters = Map("vatThreshold" -> "85,000"),
     force = true
   )
 
@@ -63,7 +65,7 @@ class SendEmailServiceSpec extends BaseSpec with AuthorisationMocks {
 
         when(mockSendEmailConnector.requestEmail(ArgumentMatchers.eq(testRequest))(ArgumentMatchers.eq(hc)))
           .thenReturn(Future.successful(true))
-
+        when(mockThresholdService.formattedVatThreshold).thenReturn("85,000")
         await(emailService.sendVATEmail(testEmail, regId)) mustBe true
       }
     }
@@ -83,12 +85,12 @@ class SendEmailServiceSpec extends BaseSpec with AuthorisationMocks {
   "calling .generateVATEmailRequest()" when {
 
     "return a EmailRequest with the correct email (EN)" in {
-      emailService.generateVATEmailRequest(Seq(testEmail)) mustBe testRequest
+      emailService.generateVATEmailRequest(Seq(testEmail),vatThresholdValue = "85,000") mustBe testRequest
     }
 
     "construct the correct JSON" in {
 
-      val result = emailService.generateVATEmailRequest(Seq("test@email.com"))
+      val result = emailService.generateVATEmailRequest(Seq("test@email.com"),vatThresholdValue = "85,000")
 
       val resultAsJson = Json.toJson(result)
 
@@ -97,7 +99,7 @@ class SendEmailServiceSpec extends BaseSpec with AuthorisationMocks {
            |{
            |  "to":["test@email.com"],
            |  "templateId":"${templateName}",
-           |  "parameters":{},
+           |  "parameters":{"vatThreshold":"85,000"},
            |  "force":true
            |}
          """.stripMargin
