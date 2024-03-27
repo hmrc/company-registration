@@ -20,27 +20,29 @@ import connectors.SendEmailConnector
 import models.SendEmailRequest
 import uk.gov.hmrc.http.HeaderCarrier
 import utils.Logging
-
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class SendEmailService @Inject()(val emailConnector: SendEmailConnector
+class SendEmailService @Inject()(val emailConnector: SendEmailConnector,
+                                 val thresholdService: ThresholdService
                                 )(implicit val ec: ExecutionContext) extends Logging {
 
-  val template: String = "register_your_company_register_vat_email"
+  val template: String = "register_your_company_register_vat_email_v2"
 
-  private[services] def generateVATEmailRequest(emailAddress: Seq[String]): SendEmailRequest =
+  private[services] def generateVATEmailRequest(emailAddress: Seq[String], vatThresholdValue: String): SendEmailRequest =
     SendEmailRequest(
       to = emailAddress,
       templateId = template,
-      parameters = Map(),
+      parameters = Map("vatThreshold" -> vatThresholdValue),
       force = true
     )
 
-  def sendVATEmail(emailAddress: String, regId: String)(implicit hc: HeaderCarrier): Future[Boolean] =
-    emailConnector.requestEmail(generateVATEmailRequest(Seq(emailAddress))).map {
-      res =>
-        logger.info(s"[sendVATEmail] VAT email sent with template name: '$template' for journey id " + regId)
-        res
-    }
+  def sendVATEmail(emailAddress: String, regId: String)(implicit hc: HeaderCarrier): Future[Boolean] = {
+        val formattedVatThreshold = thresholdService.formattedVatThreshold
+        emailConnector.requestEmail(generateVATEmailRequest(Seq(emailAddress),formattedVatThreshold)).map {
+          res =>
+            logger.info(s"[sendVATEmail] VAT email sent with template name: '$template' with threshold value: '${formattedVatThreshold}'  journey id " + regId)
+            res
+        }
+  }
 }

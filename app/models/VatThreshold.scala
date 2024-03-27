@@ -14,15 +14,14 @@
  * limitations under the License.
  */
 
-package helpers
+package models
 
-import org.mockito.Mockito._
+import play.api.libs.json._
 
-trait MockHelper {
+import java.time.LocalDateTime
 
-  def collectMocks[T <: AnyRef](mocks: T*): Seq[T] = mocks
+case class VatThreshold(dateTime: LocalDateTime, amount: BigDecimal)
 
-  def resetMocks[T <: AnyRef](mocks: Seq[T]): Unit = {
-    mocks.foreach(reset(_))
-  }
+object VatThreshold {
+  implicit val format: Format[VatThreshold] = Json.format[VatThreshold]
 }

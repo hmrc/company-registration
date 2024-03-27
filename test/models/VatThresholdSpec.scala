@@ -19,15 +19,36 @@ package models
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsObject, Json}
 
-class ElementsFromH02ReadsSpec extends PlaySpec {
+import java.time.LocalDateTime
 
-  val validJson: JsObject = Json.obj("transaction_id" -> "testTransactionId")
+class VatThresholdSpec extends PlaySpec {
 
-  "reads should return a string when jsObject provided containing transaction_id" in {
-    validJson.as[String](ElementsFromH02Reads.reads) mustBe "testTransactionId"
+  val dateTime: LocalDateTime = LocalDateTime.of(2024, 4, 1, 0, 0, 0)
+  val amount: BigDecimal = BigDecimal(90000)
+
+  val model: VatThreshold = VatThreshold(dateTime, amount)
+
+  val json: JsObject = Json.obj(
+    "dateTime" -> "2024-04-01T00:00:00",
+    "amount" -> 90000
+  )
+
+  "VatThreshold" must {
+
+    "Write to json" in {
+
+      val expectedResult = json
+      val actualResult = Json.toJson(model)
+
+      expectedResult mustBe actualResult
+    }
+
+    "read from json" in {
+
+      val expectedResult = model
+      val actualResult = json.as[VatThreshold]
+
+      expectedResult mustBe actualResult
+    }
   }
-  "reads should return jsError if element transaction_id not in obj" in {
-    Json.obj().validate[String](ElementsFromH02Reads.reads).isError mustBe true
-  }
-
 }

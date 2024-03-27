@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,7 +50,17 @@ class RemoveStaleDocumentsJobISpec extends IntegrationSpecBase with MongoIntegra
     "microservice.services.des-service.host" -> s"$mockHost",
     "microservice.services.des-service.port" -> s"$mockPort",
     "staleDocumentAmount" -> 4,
-    "microservice.services.skipStaleDocs" -> "MSwyLDM="
+    "microservice.services.skipStaleDocs" -> "MSwyLDM=",
+    "vat-threshold" -> List(
+      Map(
+      "dateTime" -> "2017-04-01T00:00:00",
+      "amount" ->  85000),
+      Map(
+        "dateTime"-> "2024-03-31T23:00:00",
+        "amount"-> 90000
+      )
+    )
+
   )
   override implicit lazy val app: Application = new GuiceApplicationBuilder()
     .configure(additionalConfiguration)

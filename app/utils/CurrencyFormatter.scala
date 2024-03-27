@@ -14,15 +14,10 @@
  * limitations under the License.
  */
 
-package helpers
+package utils
 
-import org.mockito.Mockito._
-
-trait MockHelper {
-
-  def collectMocks[T <: AnyRef](mocks: T*): Seq[T] = mocks
-
-  def resetMocks[T <: AnyRef](mocks: Seq[T]): Unit = {
-    mocks.foreach(reset(_))
-  }
+trait CurrencyFormatter {
+  def currencyFormat(amt: BigDecimal): String = f"£$amt%,1.2f".replace(".00","")
 }
+
+object CurrencyFormatter extends CurrencyFormatter
