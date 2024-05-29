@@ -25,22 +25,22 @@ class PPOBAddressSpec extends PlaySpec with JsonFormatValidation {
   type OS = Option[String]
   type S = String
 
-  def lineEnd(comma: Boolean) = if (comma) "," else ""
+  def lineEnd(comma: Boolean): S = if (comma) "," else ""
 
-  def jsonLine(key: S, value: S): OS = jsonLine(key, value, true)
+  def jsonLine(key: S, value: S): OS = jsonLine(key, value, comma = true)
 
-  def jsonLine(key: S, value: S, comma: Boolean): OS = Some(s""""${key}" : "${value}"${lineEnd(comma)}""")
+  def jsonLine(key: S, value: S, comma: Boolean): OS = Some(s""""$key" : "$value"${lineEnd(comma)}""")
 
-  def jsonLine(key: S, value: OS, comma: Boolean = true): OS = value.map(v => s""""${key}" : "${v}"${lineEnd(comma)}""")
+  def jsonLine(key: S, value: OS, comma: Boolean = true): OS = value.map(v => s""""$key" : "$v"${lineEnd(comma)}""")
 
   def j(line1: S = "1", line3: OS = None, line4: OS = None, pc: OS = None, country: OS = None, uprn: OS = None): S = {
     val extra: S = Seq(
-      jsonLine("addressLine1", line1, false),
-      jsonLine("addressLine3", line3, false),
-      jsonLine("addressLine4", line4, false),
-      jsonLine("postCode", pc, false),
-      jsonLine("country", country, false),
-      jsonLine("uprn", uprn, false)
+      jsonLine("addressLine1", line1, comma = false),
+      jsonLine("addressLine3", line3, comma = false),
+      jsonLine("addressLine4", line4, comma = false),
+      jsonLine("postCode", pc, comma = false),
+      jsonLine("country", country, comma = false),
+      jsonLine("uprn", uprn, comma = false)
     ).flatten.mkString(", ")
     s"""
        |{
@@ -48,7 +48,7 @@ class PPOBAddressSpec extends PlaySpec with JsonFormatValidation {
        |  "addressLine2" : "2",
        |  "addressLine4" : "4",
        |  "txid" : "txid",
-       |  ${extra}
+       |  $extra
        |}
      """.stripMargin
   }

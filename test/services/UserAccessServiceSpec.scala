@@ -19,7 +19,7 @@ package services
 import connectors._
 import fixtures.{BusinessRegistrationFixture, CorporationTaxRegistrationFixture}
 import helpers.MockHelper
-import models.{Email, UserAccessLimitReachedResponse, UserAccessSuccessResponse}
+import models.{CorporationTaxRegistration, Email, UserAccessLimitReachedResponse, UserAccessSuccessResponse}
 import org.mockito.ArgumentMatchers.{any, anyString, eq => eqTo}
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
@@ -37,22 +37,22 @@ import scala.concurrent.{ExecutionContext, Future}
 class UserAccessServiceSpec extends PlaySpec with MockitoSugar with BusinessRegistrationFixture
   with CorporationTaxRegistrationFixture with BeforeAndAfterEach with MockHelper {
 
-  val mockBRConnector = mock[BusinessRegistrationConnector]
-  val mockCTRepo = mock[CorporationTaxRegistrationMongoRepository]
-  val mockCTService = mock[CorporationTaxRegistrationService]
-  val mockThrottleService = mock[ThrottleService]
+  val mockBRConnector: BusinessRegistrationConnector = mock[BusinessRegistrationConnector]
+  val mockCTRepo: CorporationTaxRegistrationMongoRepository = mock[CorporationTaxRegistrationMongoRepository]
+  val mockCTService: CorporationTaxRegistrationService = mock[CorporationTaxRegistrationService]
+  val mockThrottleService: ThrottleService = mock[ThrottleService]
 
-  val mocks = collectMocks(mockBRConnector, mockCTRepo, mockCTService, mockThrottleService)
+  val mocks: Seq[Object] = collectMocks(mockBRConnector, mockCTRepo, mockCTService, mockThrottleService)
 
-  implicit val hc = HeaderCarrier()
+  implicit val hc: HeaderCarrier = HeaderCarrier()
 
   trait Setup {
-    val service = new UserAccessService {
+    val service: UserAccessService = new UserAccessService {
       val threshold = 10
-      val brConnector = mockBRConnector
-      val ctService = mockCTService
-      val ctRepository = mockCTRepo
-      val throttleService = mockThrottleService
+      val brConnector: BusinessRegistrationConnector = mockBRConnector
+      val ctService: CorporationTaxRegistrationService = mockCTService
+      val ctRepository: CorporationTaxRegistrationMongoRepository = mockCTRepo
+      val throttleService: ThrottleService = mockThrottleService
       implicit val ec: ExecutionContext = global
     }
   }
@@ -81,7 +81,7 @@ class UserAccessServiceSpec extends PlaySpec with MockitoSugar with BusinessRegi
       when(mockCTService.retrieveCorporationTaxRegistrationRecord(eqTo(regId), any[Option[Instant]]()))
         .thenReturn(Future.successful(Some(draftCorporationTaxRegistration(regId))))
 
-      await(service.checkUserAccess(internalId)) mustBe Right(UserAccessSuccessResponse(regId, false, false, false))
+      await(service.checkUserAccess(internalId)) mustBe Right(UserAccessSuccessResponse(regId, created = false, confRefs = false, paymentRefs = false))
     }
 
     "return a UserAccessLimitReachedResponse when the throttle service returns a false" in new Setup {
@@ -113,8 +113,8 @@ class UserAccessServiceSpec extends PlaySpec with MockitoSugar with BusinessRegi
     }
 
     "be successful with no conf refs but with email info" in new Setup {
-      val expectedEmail = Email("a@a.a", "GG", true, false, false)
-      val draftCTReg = draftCorporationTaxRegistration(regId).copy(verifiedEmail = Some(expectedEmail))
+      val expectedEmail: Email = Email("a@a.a", "GG", linkSent = true, verified = false, returnLinkEmailSent = false)
+      val draftCTReg: CorporationTaxRegistration = draftCorporationTaxRegistration(regId).copy(verifiedEmail = Some(expectedEmail))
 
       when(mockBRConnector.retrieveMetadata(any()))
         .thenReturn(Future.successful(BusinessRegistrationNotFoundResponse))
@@ -126,7 +126,7 @@ class UserAccessServiceSpec extends PlaySpec with MockitoSugar with BusinessRegi
         .thenReturn(Future.successful(draftCTReg))
 
       await(service.checkUserAccess(internalId)) mustBe
-        Right(UserAccessSuccessResponse(regId, true, false, false, Some(expectedEmail)))
+        Right(UserAccessSuccessResponse(regId, created = true, confRefs = false, paymentRefs = false, Some(expectedEmail)))
     }
 
     "return a UserAccessSuccessResponse with the created flag set to true" in new Setup {
@@ -139,7 +139,7 @@ class UserAccessServiceSpec extends PlaySpec with MockitoSugar with BusinessRegi
       when(mockCTService.createCorporationTaxRegistrationRecord(anyString(), anyString(), anyString()))
         .thenReturn(Future.successful(draftCorporationTaxRegistration(regId)))
 
-      await(service.checkUserAccess("321")) mustBe Right(UserAccessSuccessResponse("12345", true, false, false))
+      await(service.checkUserAccess("321")) mustBe Right(UserAccessSuccessResponse("12345", created = true, confRefs = false, paymentRefs = false))
     }
 
     "return a UserAccessSuccessResponse with the confirmation refs flag set to true" in new Setup {
@@ -150,14 +150,14 @@ class UserAccessServiceSpec extends PlaySpec with MockitoSugar with BusinessRegi
       when(mockCTService.retrieveCorporationTaxRegistrationRecord(eqTo(regId), any()))
         .thenReturn(Future.successful(Some(validHeldCTRegWithData(regId))))
 
-      await(service.checkUserAccess(internalId)) mustBe Right(UserAccessSuccessResponse(regId, false, true, true))
+      await(service.checkUserAccess(internalId)) mustBe Right(UserAccessSuccessResponse(regId, created = false, confRefs = true, paymentRefs = true))
     }
 
     "return an error when retrieving metadata returns a forbidden response" in new Setup {
       when(mockBRConnector.retrieveMetadata(any()))
         .thenReturn(Future.successful(BusinessRegistrationForbiddenResponse))
 
-      val ex = intercept[Exception](await(service.checkUserAccess(internalId)))
+      val ex: Exception = intercept[Exception](await(service.checkUserAccess(internalId)))
       ex.getMessage mustBe "Something went wrong"
     }
   }

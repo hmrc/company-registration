@@ -55,6 +55,6 @@ object Address {
       (JsPath \ "line4").writeNullable[String] and
       (JsPath \ "postcode").writeNullable[String] and
       (JsPath \ "country").writeNullable[String]
-    ) (unlift(Address.unapply _))
+    ) (unlift(Address.unapply))
 
 }

@@ -16,14 +16,14 @@
 
 package auth
 
-import utils.Logging
 import play.api.mvc._
 import repositories.MissingCTDocument
 import uk.gov.hmrc.auth.core.AuthProvider.GovernmentGateway
+import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
 import uk.gov.hmrc.auth.core.retrieve.{Retrieval, ~}
-import uk.gov.hmrc.auth.core._
-import uk.gov.hmrc.play.bootstrap.backend.controller.{BackendBaseController, BackendController}
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendBaseController
+import utils.Logging
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -41,7 +41,7 @@ trait AuthenticatedActions extends MicroserviceAuthorisedFunctions with Logging 
     override protected val executionContext: ExecutionContext = controllerComponents.executionContext
 
 
-    override def invokeBlock[T](request: Request[T], block: (Request[T]) => Future[Result]): Future[Result] = {
+    override def invokeBlock[T](request: Request[T], block: Request[T] => Future[Result]): Future[Result] = {
       implicit val req: Request[T] = request
       authorised(predicate)(block(request)).recover(authenticationErrorHandling[T])
     }
@@ -81,7 +81,7 @@ trait AuthorisedActions extends AuthenticatedActions with AuthResource with Logg
     override protected val executionContext: ExecutionContext = controllerComponents.executionContext
 
 
-    override def invokeBlock[A](request: Request[A], block: (Request[A]) => Future[Result]): Future[Result] = {
+    override def invokeBlock[A](request: Request[A], block: Request[A] => Future[Result]): Future[Result] = {
       implicit val req: Request[A] = request
       authorised(ConfidenceLevel.L50).retrieve(internalId) {
         case Some(authIntId) =>

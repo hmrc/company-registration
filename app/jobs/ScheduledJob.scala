@@ -16,9 +16,9 @@
 
 package jobs
 
-import akka.actor.{ActorRef, ActorSystem}
-import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 import jobs.SchedulingActor.ScheduledMessage
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.extension.quartz.QuartzSchedulerExtension
 import org.quartz.CronExpression
 import play.api.{Configuration, Logging}
 
@@ -38,7 +38,7 @@ trait ScheduledJob extends Logging {
 
   lazy val expression: String = config.get[String](s"schedules.$jobName.expression").replaceAll("_", " ")
 
-  lazy val expressionValid = CronExpression.isValidExpression(expression)
+  lazy val expressionValid: Boolean = CronExpression.isValidExpression(expression)
 
   lazy val schedule: Boolean = {
     (enabled, expressionValid) match {

@@ -19,23 +19,23 @@ package models
 import helpers.BaseSpec
 import models.des.BusinessAddress
 import models.validation.{APIValidation, MongoValidation}
-import play.api.libs.json.Json
+import play.api.libs.json.{Format, JsValue, Json}
 import utils.LogCapturingHelper
 
 class GroupsSpec extends BaseSpec with LogCapturingHelper {
 
-  val formatsOfGroupsAPI = Groups.formats(APIValidation, mockInstanceOfCrypto)
-  val formatsOfGroupsMongo = Groups.formats(MongoValidation, mockInstanceOfCrypto)
+  val formatsOfGroupsAPI: Format[Groups] = Groups.formats(APIValidation, mockInstanceOfCrypto)
+  val formatsOfGroupsMongo: Format[Groups] = Groups.formats(MongoValidation, mockInstanceOfCrypto)
 
-  val validGroupsModel = Groups(
+  val validGroupsModel: Groups = Groups(
     groupRelief = true,
     nameOfCompany = Some(GroupCompanyName("testGroupName", GroupCompanyNameEnum.Other)),
     addressAndType = Some(GroupsAddressAndType(GroupAddressTypeEnum.ALF, BusinessAddress("1 abc", "2 abc", Some("3 abc"), Some("4 abc"), Some("ZZ1 1ZZ"), Some("country A")))),
     groupUTR = Some(GroupUTR(Some("1234567890"))))
 
-  val encryptedUTR = mockInstanceOfCrypto.wts.writes("1234567890")
+  val encryptedUTR: JsValue = mockInstanceOfCrypto.wts.writes("1234567890")
 
-  val fullGroupJson = Json.parse(
+  val fullGroupJson: JsValue = Json.parse(
     """
       |{
       |   "groupRelief": true,
@@ -168,7 +168,7 @@ class GroupsSpec extends BaseSpec with LogCapturingHelper {
 
         val res = groupJsonNameOfCompanyValidButLong.as[Groups](formatsOfGroupsAPI)
         res mustBe Groups(
-          true,
+          groupRelief = true,
           nameOfCompany = Some(GroupCompanyName("This is longerÆ than 20 characters but thats fine because it can be normalised and trimmed to 20 chars and matches Des regex", GroupCompanyNameEnum.CohoEntered)),
           None,
           None)
@@ -214,7 +214,7 @@ class GroupsSpec extends BaseSpec with LogCapturingHelper {
          }
         """.stripMargin)
       withCaptureOfLoggingFrom(APIValidation.logger) { logEvents =>
-        json.as[Groups](formatsOfGroupsAPI) mustBe Groups(true, Some(GroupCompanyName("123456789012345678901", GroupCompanyNameEnum.Other)), None, None)
+        json.as[Groups](formatsOfGroupsAPI) mustBe Groups(groupRelief = true, Some(GroupCompanyName("123456789012345678901", GroupCompanyNameEnum.Other)), None, None)
         val expectedMessage = s"[APIValidation][Groups API Reads] nameOfCompany.nameType = ${GroupCompanyNameEnum.Other} but name.size > 20, could indicate frontend validation issue"
         logEvents.map(events => (events.getLevel.toString, events.getMessage)).contains(("WARN", expectedMessage)) mustBe true
 
@@ -232,7 +232,7 @@ class GroupsSpec extends BaseSpec with LogCapturingHelper {
          }
         """.stripMargin)
       withCaptureOfLoggingFrom(MongoValidation.logger) { logEvents =>
-        json.as[Groups](formatsOfGroupsAPI) mustBe Groups(true, Some(GroupCompanyName("123456789012345678901", GroupCompanyNameEnum.CohoEntered)), None, None)
+        json.as[Groups](formatsOfGroupsAPI) mustBe Groups(groupRelief = true, Some(GroupCompanyName("123456789012345678901", GroupCompanyNameEnum.CohoEntered)), None, None)
         val expectedMessage = s"[APIValidation][Groups API Reads] nameOfCompany.nameType = ${GroupCompanyNameEnum.Other} but name.size > 20, could indicate frontend validation issue"
         logEvents.map(events => (events.getLevel.toString, events.getMessage)).contains(("WARN", expectedMessage)) mustBe false
       }
@@ -402,7 +402,7 @@ class GroupsSpec extends BaseSpec with LogCapturingHelper {
       Json.toJson[Groups](validGroupsModel)(formatsOfGroupsAPI) mustBe fullGroupJson
     }
     "write mimimum data in groups model to json" in {
-      Json.toJson[Groups](Groups(false, None, None, None))(formatsOfGroupsAPI) mustBe Json.obj("groupRelief" -> false)
+      Json.toJson[Groups](Groups(groupRelief = false, None, None, None))(formatsOfGroupsAPI) mustBe Json.obj("groupRelief" -> false)
     }
     "write group utr not entered to json" in {
       val expectedFullGroupJsonEmptyUTR = Json.parse(
@@ -473,7 +473,7 @@ class GroupsSpec extends BaseSpec with LogCapturingHelper {
            |}
           """.stripMargin)
       withCaptureOfLoggingFrom(MongoValidation.logger) { logEvents =>
-        json.as[Groups](formatsOfGroupsMongo) mustBe Groups(true, Some(GroupCompanyName("testGroupName", GroupCompanyNameEnum.Other)), None, None)
+        json.as[Groups](formatsOfGroupsMongo) mustBe Groups(groupRelief = true, Some(GroupCompanyName("testGroupName", GroupCompanyNameEnum.Other)), None, None)
         val expectedMessage = "[MongoValidation][Groups Mongo Reads] nameOfCompany.nameType was: TEST, converted to Other"
         logEvents.map(events => (events.getLevel.toString, events.getMessage)).contains(("WARN", expectedMessage)) mustBe true
       }
@@ -543,7 +543,7 @@ class GroupsSpec extends BaseSpec with LogCapturingHelper {
         """.stripMargin)
       withCaptureOfLoggingFrom(MongoValidation.logger) { logEvents =>
         jsonUhOh.as[Groups](formatsOfGroupsMongo) mustBe Groups(
-          true,
+          groupRelief = true,
           Some(GroupCompanyName("testGroupName", GroupCompanyNameEnum.Other)),
           Some(GroupsAddressAndType(
             GroupAddressTypeEnum.ALF,
@@ -622,7 +622,7 @@ class GroupsSpec extends BaseSpec with LogCapturingHelper {
     }
     "write minimum model to json" in {
       val expected = Json.obj("groupRelief" -> true)
-      Json.toJson[Groups](Groups(true, None, None, None))(formatsOfGroupsMongo) mustBe expected
+      Json.toJson[Groups](Groups(groupRelief = true, None, None, None))(formatsOfGroupsMongo) mustBe expected
     }
     "write utr block with empty utr correctly" in {
 

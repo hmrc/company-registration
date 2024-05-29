@@ -121,7 +121,7 @@ class CorporationTaxRegistrationMongoRepository @Inject()(val mongo: MongoCompon
       case _ => throw new NoSuchElementException()
     }
 
-  def replace(selector: Bson, replacement: CorporationTaxRegistration) =
+  def replace(selector: Bson, replacement: CorporationTaxRegistration): Future[UpdateResult] =
     collection.replaceOne(
       selector,
       replacement,
@@ -404,7 +404,7 @@ class CorporationTaxRegistrationMongoRepository @Inject()(val mongo: MongoCompon
   }
 
   def updateRegistrationWithAdminCTReference(ackRef: String, ctUtr: String): Future[Option[CorporationTaxRegistration]] = {
-    val timestamp = CorporationTaxRegistration.now.toString()
+    val timestamp = CorporationTaxRegistration.now.toString
     val ackRefs = AcknowledgementReferences(Some(ctUtr), timestamp, "04")
 
     val selector = equal("confirmationReferences.acknowledgement-reference", ackRef)

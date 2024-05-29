@@ -1,14 +1,16 @@
 
-import sbt.Keys.{javaOptions, parallelExecution, _}
-import sbt._
-import uk.gov.hmrc.DefaultBuildSettings._
-import uk.gov.hmrc.SbtAutoBuildPlugin
-import uk.gov.hmrc.bobby.SbtBobbyPlugin.BobbyKeys.bobbyRulesURL
+import sbt.Keys.{javaOptions, parallelExecution, *}
+import sbt.*
+import uk.gov.hmrc.DefaultBuildSettings.*
+import uk.gov.hmrc.DefaultBuildSettings
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
 import uk.gov.hmrc.versioning.SbtGitVersioning.autoImport.majorVersion
 
 
 val appName = "company-registration"
+
+ThisBuild / majorVersion := 1
+ThisBuild / scalaVersion := "2.13.14"
 
 lazy val scoverageSettings = {
   // Semicolon-separated list of regexs matching classes to exclude
@@ -22,13 +24,12 @@ lazy val scoverageSettings = {
 }
 
 lazy val microservice = Project(appName, file("."))
-  .enablePlugins(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtDistributablesPlugin, SbtArtifactory)
+  .enablePlugins(play.sbt.PlayScala, SbtDistributablesPlugin)
   .disablePlugins(JUnitXmlReportPlugin) //Required to prevent https://github.com/scalatest/scalatest/issues/1427
   .settings(PlayKeys.playDefaultPort := 9973)
-  .settings(scalaSettings: _*)
-  .settings(scoverageSettings: _*)
-  .settings(defaultSettings(): _*)
-  .settings(bobbyRulesURL := Some(new URL("https://webstore.tax.service.gov.uk/bobby-config/deprecated-dependencies.json")))
+  .settings(scalaSettings *)
+  .settings(scoverageSettings *)
+  .settings(defaultSettings() *)
   .settings(
     scalacOptions += "-Xlint:-unused",
     targetJvm := "jvm-1.8",
@@ -38,9 +39,12 @@ lazy val microservice = Project(appName, file("."))
     retrieveManaged := true,
     scalacOptions ++= List("-Xlint:-missing-interpolator"),
     resolvers += Resolver.jcenterRepo,
-    scalaVersion := "2.13.8"
   )
-  .configs(IntegrationTest)
-  .settings(integrationTestSettings())
-  .settings(majorVersion := 1)
-  .settings(IntegrationTest / javaOptions += "-Dlogger.resource=logback-test.xml")
+
+lazy val it = project
+  .enablePlugins(PlayScala)
+  .dependsOn(microservice % "test->test") // the "test->test" allows reusing test code and test dependencies
+  .settings(DefaultBuildSettings.itSettings())
+  .settings(libraryDependencies ++= AppDependencies.test)
+
+Test / javaOptions += "-Dlogger.resource=logback-test.xml"

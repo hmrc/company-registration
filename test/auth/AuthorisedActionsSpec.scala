@@ -18,11 +18,12 @@ package auth
 
 import helpers.BaseSpec
 import mocks.AuthorisationMocks
+import play.api.mvc.Result
 import play.api.mvc.Results.Ok
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import repositories.MissingCTDocument
-import uk.gov.hmrc.auth.core.{BearerTokenExpired, InvalidBearerToken, MissingBearerToken, SessionRecordNotFound}
+import uk.gov.hmrc.auth.core.{AuthConnector, BearerTokenExpired, InvalidBearerToken, MissingBearerToken, SessionRecordNotFound}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -34,8 +35,8 @@ class AuthorisedActionsSpec extends BaseSpec with AuthorisationMocks {
 
     object AuthorisedController extends BackendController(stubControllerComponents()) with AuthorisedActions {
       implicit val ec: ExecutionContext = global
-      val authConnector = mockAuthConnector
-      val resource = mockResource
+      val authConnector: AuthConnector = mockAuthConnector
+      val resource: AuthorisationResource[String] = mockResource
     }
 
   }
@@ -53,7 +54,7 @@ class AuthorisedActionsSpec extends BaseSpec with AuthorisationMocks {
       mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(internalId))
 
-      val result = AuthorisedController.AuthorisedAction(registrationID).async(block)(request)
+      val result: Future[Result] = AuthorisedController.AuthorisedAction(registrationID).async(block)(request)
       status(result) mustBe OK
     }
 
@@ -61,7 +62,7 @@ class AuthorisedActionsSpec extends BaseSpec with AuthorisationMocks {
       mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.failed(new MissingCTDocument("hfbhdbf")))
 
-      val result = AuthorisedController.AuthorisedAction(registrationID).async(block)(request)
+      val result: Future[Result] = AuthorisedController.AuthorisedAction(registrationID).async(block)(request)
       status(result) mustBe NOT_FOUND
     }
 
@@ -69,14 +70,14 @@ class AuthorisedActionsSpec extends BaseSpec with AuthorisationMocks {
       mockAuthorise(Future.successful(Some(internalId)))
       mockGetInternalId(Future.successful(otherInternalID))
 
-      val result = AuthorisedController.AuthorisedAction(registrationID).async(block)(request)
+      val result: Future[Result] = AuthorisedController.AuthorisedAction(registrationID).async(block)(request)
       status(result) mustBe FORBIDDEN
     }
 
     "return a 403 when the request is authorised but no internalId is retrieved from Auth" in new Setup {
       mockAuthorise(Future.successful(None))
 
-      val result = AuthorisedController.AuthorisedAction(registrationID).async(block)(request)
+      val result: Future[Result] = AuthorisedController.AuthorisedAction(registrationID).async(block)(request)
       status(result) mustBe FORBIDDEN
     }
 

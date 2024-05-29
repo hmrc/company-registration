@@ -17,7 +17,6 @@
 package services
 
 import audit.FailedIncorporationAuditEventDetail
-import config.LangConstants
 import connectors._
 import fixtures.CorporationTaxRegistrationFixture
 import models._
@@ -42,20 +41,20 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class ProcessIncorporationServiceSpec extends PlaySpec with MockitoSugar with CorporationTaxRegistrationFixture with BeforeAndAfterEach with Eventually with LogCapturingHelper {
 
-  val mockIncorporationCheckAPIConnector = mock[IncorporationCheckAPIConnector]
-  val mockCTRepository = mock[CorporationTaxRegistrationMongoRepository]
-  val mockAccountService = mock[AccountingDetailsService]
-  val mockDesConnector = mock[DesConnector]
-  val mockBRConnector = mock[BusinessRegistrationConnector]
-  val mockAuthConnector = mock[AuthConnector]
-  val mockAuditService = mock[AuditService]
-  val mockSendEmailService = mock[SendEmailService]
+  val mockIncorporationCheckAPIConnector: IncorporationCheckAPIConnector = mock[IncorporationCheckAPIConnector]
+  val mockCTRepository: CorporationTaxRegistrationMongoRepository = mock[CorporationTaxRegistrationMongoRepository]
+  val mockAccountService: AccountingDetailsService = mock[AccountingDetailsService]
+  val mockDesConnector: DesConnector = mock[DesConnector]
+  val mockBRConnector: BusinessRegistrationConnector = mock[BusinessRegistrationConnector]
+  val mockAuthConnector: AuthConnector = mock[AuthConnector]
+  val mockAuditService: AuditService = mock[AuditService]
+  val mockSendEmailService: SendEmailService = mock[SendEmailService]
 
-  override def beforeEach() {
+  override def beforeEach(): Unit = {
     resetMocks()
   }
 
-  def resetMocks() = reset(
+  def resetMocks(): Unit = reset(
     mockAuthConnector,
     mockAuditService,
     mockIncorporationCheckAPIConnector,
@@ -68,14 +67,14 @@ class ProcessIncorporationServiceSpec extends PlaySpec with MockitoSugar with Co
 
 
   trait mockService extends ProcessIncorporationService {
-    val incorporationCheckAPIConnector = mockIncorporationCheckAPIConnector
-    val ctRepository = mockCTRepository
-    val accountingService = mockAccountService
-    val desConnector = mockDesConnector
-    val brConnector = mockBRConnector
-    val auditService = mockAuditService
-    val microserviceAuthConnector = mockAuthConnector
-    val sendEmailService = mockSendEmailService
+    val incorporationCheckAPIConnector: IncorporationCheckAPIConnector = mockIncorporationCheckAPIConnector
+    val ctRepository: CorporationTaxRegistrationMongoRepository = mockCTRepository
+    val accountingService: AccountingDetailsService = mockAccountService
+    val desConnector: DesConnector = mockDesConnector
+    val brConnector: BusinessRegistrationConnector = mockBRConnector
+    val auditService: AuditService = mockAuditService
+    val microserviceAuthConnector: AuthConnector = mockAuthConnector
+    val sendEmailService: SendEmailService = mockSendEmailService
     override val addressLine4FixRegID: String = "false"
     override val amendedAddressLine4: String = ""
     override val blockageLoggingDay: String = "MON,TUE,WED,THU,FRI"
@@ -98,30 +97,30 @@ class ProcessIncorporationServiceSpec extends PlaySpec with MockitoSugar with Co
     }
   }
 
-  def date(yyyyMMdd: String) = LocalDate.parse(yyyyMMdd)
+  def date(yyyyMMdd: String): LocalDate = LocalDate.parse(yyyyMMdd)
 
-  implicit val hc = HeaderCarrier()
+  implicit val hc: HeaderCarrier = HeaderCarrier()
 
   val timepoint = "123456789"
-  val testAckRef = UUID.randomUUID.toString
-  val testRegId = UUID.randomUUID.toString
-  val transId = UUID.randomUUID().toString
-  val validCR = validHeldCTRegWithData(ackRef = Some(testAckRef)).copy(
-    accountsPreparation = Some(AccountPrepDetails(AccountPrepDetails.COMPANY_DEFINED, Some(date("2017-01-01")))), verifiedEmail = Some(Email("testemail.com", "", true, true, true))
+  val testAckRef: String = UUID.randomUUID.toString
+  val testRegId: String = UUID.randomUUID.toString
+  val transId: String = UUID.randomUUID().toString
+  val validCR: CorporationTaxRegistration = validHeldCTRegWithData(ackRef = Some(testAckRef)).copy(
+    accountsPreparation = Some(AccountPrepDetails(AccountPrepDetails.COMPANY_DEFINED, Some(date("2017-01-01")))), verifiedEmail = Some(Email("testemail.com", "", linkSent = true, verified = true, returnLinkEmailSent = true))
   )
 
   import models.RegistrationStatus._
 
-  val submittedCR = validCR.copy(status = SUBMITTED)
-  val acknowledgedCR = validCR.copy(status = ACKNOWLEDGED)
-  val failCaseCR = validCR.copy(status = DRAFT)
-  val incorpSuccess = IncorpUpdate(transId, "accepted", Some("012345"), Some(LocalDate.of(2016, 8, 10)), timepoint)
-  val incorpRejected = IncorpUpdate(transId, "rejected", None, None, timepoint, Some("testReason"))
-  val submissionCheckResponseSingle = SubmissionCheckResponse(Seq(incorpSuccess), "testNextLink")
-  val submissionCheckResponseDouble = SubmissionCheckResponse(Seq(incorpSuccess, incorpSuccess), "testNextLink")
-  val submissionCheckResponseNone = SubmissionCheckResponse(Seq(), "testNextLink")
+  val submittedCR: CorporationTaxRegistration = validCR.copy(status = SUBMITTED)
+  val acknowledgedCR: CorporationTaxRegistration = validCR.copy(status = ACKNOWLEDGED)
+  val failCaseCR: CorporationTaxRegistration = validCR.copy(status = DRAFT)
+  val incorpSuccess: IncorpUpdate = IncorpUpdate(transId, "accepted", Some("012345"), Some(LocalDate.of(2016, 8, 10)), timepoint)
+  val incorpRejected: IncorpUpdate = IncorpUpdate(transId, "rejected", None, None, timepoint, Some("testReason"))
+  val submissionCheckResponseSingle: SubmissionCheckResponse = SubmissionCheckResponse(Seq(incorpSuccess), "testNextLink")
+  val submissionCheckResponseDouble: SubmissionCheckResponse = SubmissionCheckResponse(Seq(incorpSuccess, incorpSuccess), "testNextLink")
+  val submissionCheckResponseNone: SubmissionCheckResponse = SubmissionCheckResponse(Seq(), "testNextLink")
 
-  def sub(a: String, others: Option[(String, String, String, String)] = None) = {
+  def sub(a: String, others: Option[(String, String, String, String)] = None): String = {
     val extra = others match {
       case None => ""
       case Some((crn, active, firstPrep, intended)) =>
@@ -162,7 +161,7 @@ class ProcessIncorporationServiceSpec extends PlaySpec with MockitoSugar with Co
        |}""".stripMargin
   }
 
-  def topUpSub(s: String, a: String, crn: String, active: String, firstPrep: String, intended: String) =
+  def topUpSub(s: String, a: String, crn: String, active: String, firstPrep: String, intended: String): String =
     s"""{
        |  "status" : "$s",
        |  "acknowledgementReference" : "$a",
@@ -176,7 +175,7 @@ class ProcessIncorporationServiceSpec extends PlaySpec with MockitoSugar with Co
        |""".stripMargin
 
 
-  def topUpRejSub(s: String, a: String) =
+  def topUpRejSub(s: String, a: String): String =
     s"""{
        |  "status" : "$s",
        |  "acknowledgementReference" : "$a"
@@ -188,13 +187,13 @@ class ProcessIncorporationServiceSpec extends PlaySpec with MockitoSugar with Co
   val exampleDate = "2012-12-12"
   val exampleDate1 = "2020-05-10"
   val exampleDate2 = "2025-06-06"
-  val dates = SubmissionDates(date(exampleDate), date(exampleDate1), date(exampleDate2))
+  val dates: SubmissionDates = SubmissionDates(date(exampleDate), date(exampleDate1), date(exampleDate2))
   val acceptedStatus = "Accepted"
   val rejectedStatus = "Rejected"
-  val interimSubmission = Json.parse(sub(testAckRef)).as[JsObject]
-  val validDesSubmission = Json.parse(sub(testAckRef, Some((crn, exampleDate, exampleDate1, exampleDate2)))).as[JsObject]
-  val validTopUpDesSubmission = Json.parse(topUpSub(acceptedStatus, testAckRef, crn, exampleDate, exampleDate1, exampleDate2)).as[JsObject]
-  val validRejectedTopUpDesSubmission = Json.parse(topUpRejSub(rejectedStatus, testAckRef)).as[JsObject]
+  val interimSubmission: JsObject = Json.parse(sub(testAckRef)).as[JsObject]
+  val validDesSubmission: JsObject = Json.parse(sub(testAckRef, Some((crn, exampleDate, exampleDate1, exampleDate2)))).as[JsObject]
+  val validTopUpDesSubmission: JsObject = Json.parse(topUpSub(acceptedStatus, testAckRef, crn, exampleDate, exampleDate1, exampleDate2)).as[JsObject]
+  val validRejectedTopUpDesSubmission: JsObject = Json.parse(topUpRejSub(rejectedStatus, testAckRef)).as[JsObject]
 
   "formatDate" must {
     "format a LocalDate into the format yyyy-mm-dd" in new Setup {
@@ -285,7 +284,7 @@ class ProcessIncorporationServiceSpec extends PlaySpec with MockitoSugar with Co
       when(mockAccountService.calculateSubmissionDates(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(dates)
 
-      val result = Service.calculateDates(incorpSuccess, validCR.accountingDetails, validCR.accountsPreparation)
+      val result: Future[SubmissionDates] = Service.calculateDates(incorpSuccess, validCR.accountingDetails, validCR.accountsPreparation)
 
       await(result) mustBe dates
     }
@@ -294,10 +293,10 @@ class ProcessIncorporationServiceSpec extends PlaySpec with MockitoSugar with Co
   "updateSubmission" must {
     trait SetupNoProcess {
       object Service extends mockService {
-        implicit val hc = new HeaderCarrier()
+        implicit val hc: HeaderCarrier = new HeaderCarrier()
         implicit val ec: ExecutionContext = global
 
-        override def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration, journeyId: String, isAdmin: Boolean = false)(implicit hc: HeaderCarrier) = Future.successful(true)
+        override def updateHeldSubmission(item: IncorpUpdate, ctReg: CorporationTaxRegistration, journeyId: String, isAdmin: Boolean = false)(implicit hc: HeaderCarrier): Future[Boolean] = Future.successful(true)
       }
     }
     "return true for a DES ready submission" in new SetupNoProcess {
@@ -307,7 +306,7 @@ class ProcessIncorporationServiceSpec extends PlaySpec with MockitoSugar with Co
       await(Service.updateSubmissionWithIncorporation(incorpSuccess, validCR)) mustBe true
     }
     "return false for a Locked registration" in new SetupNoProcess {
-      val lockedReg = validCR.copy(status = LOCKED)
+      val lockedReg: CorporationTaxRegistration = validCR.copy(status = LOCKED)
       when(mockCTRepository.findOneBySelector(mockCTRepository.transIdSelector(ArgumentMatchers.eq(transId))))
         .thenReturn(Future.successful(Some(lockedReg)))
 
@@ -341,7 +340,7 @@ class ProcessIncorporationServiceSpec extends PlaySpec with MockitoSugar with Co
     class SetupBoolean(boole: Boolean) {
       object Service extends mockService {
         implicit val ec: ExecutionContext = global
-        override def updateSubmissionWithIncorporation(item: IncorpUpdate, ctReg: CorporationTaxRegistration, isAdmin: Boolean = false)(implicit hc: HeaderCarrier) = Future.successful(boole)
+        override def updateSubmissionWithIncorporation(item: IncorpUpdate, ctReg: CorporationTaxRegistration, isAdmin: Boolean = false)(implicit hc: HeaderCarrier): Future[Boolean] = Future.successful(boole)
       }
     }
 
@@ -472,12 +471,12 @@ class ProcessIncorporationServiceSpec extends PlaySpec with MockitoSugar with Co
     val addressLine4Json = JsString(addressLine4)
 
     "amend a held submissions' address line 4 with the one provided through config if the reg id's match" in new SetupWithAddressLine4Fix(regId, encodedAddressLine4) {
-      val result = Service.addressLine4Fix(regId, heldJson)
+      val result: JsObject = Service.addressLine4Fix(regId, heldJson)
       (result \ "registration" \ "corporationTax" \ "businessAddress" \ "line4").toOption mustBe Some(addressLine4Json)
     }
 
     "do not amend a held submissions' address line 4 if the reg id's do not match" in new SetupWithAddressLine4Fix("otherRegID", encodedAddressLine4) {
-      val result = Service.addressLine4Fix(regId, heldJson)
+      val result: JsObject = Service.addressLine4Fix(regId, heldJson)
       result mustBe heldJson
     }
   }

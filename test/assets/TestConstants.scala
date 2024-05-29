@@ -37,7 +37,7 @@ object TestConstants {
     val testRegistrationId = "0123456789"
     val testStatus = "held"
     val testFormCreationTimestamp = "2001-12-31T12:00:00Z"
-    val testLanguage = LangConstants.english
+    val testLanguage: String = LangConstants.english
     val testCreatedTime: Long = 1485859623928L
     val testLastSignedIn: Long = 1485859613928L
 
@@ -46,7 +46,7 @@ object TestConstants {
     val testPaymentReference = "testPaymentReference"
     val testPaymentAmount = "12.00"
 
-    val testConfirmationReferences = Json.obj(fields =
+    val testConfirmationReferences: JsObject = Json.obj(fields =
       "acknowledgement-reference" -> testAcknowledgementReference,
       "transaction-id" -> testTransactionId,
       "payment-reference" -> testPaymentReference,
@@ -56,7 +56,7 @@ object TestConstants {
     val testAccountingDateStatus = "FUTURE_DATE"
     val testStartDateOfBusiness = "2019-12-31"
 
-    val testAccountingDetails = Json.obj(fields =
+    val testAccountingDetails: JsObject = Json.obj(fields =
       "accountingDateStatus" -> testAccountingDateStatus,
       "startDateOfBusiness" -> testStartDateOfBusiness
     )
@@ -69,7 +69,7 @@ object TestConstants {
     val testPPOBPostcode = "ZZ1 1ZZ"
     val testPPOBCountry = "ppob country"
 
-    val testPPOBAddress = Json.obj(fields =
+    val testPPOBAddress: JsObject = Json.obj(fields =
       "addressType" -> testPPOBAddrType,
       "address" -> Json.obj(fields =
         "addressLine1" -> testPPOBLine1,
@@ -91,7 +91,7 @@ object TestConstants {
     val testRegOffPoBox = "reg office po box"
     val testRegOffRegion = "reg office region"
 
-    val testRegisteredOfficeAddress = Json.obj(
+    val testRegisteredOfficeAddress: JsObject = Json.obj(
       "premises" -> testPremises,
       "address_line_1" -> testRegOffLine1,
       "address_line_2" -> testRegOffLine2,
@@ -176,7 +176,7 @@ object TestConstants {
     val testTakeoverPostcode = "ZZ1 1ZZ"
     val testTakeoverCountry = "takeover country"
 
-    val testTakeoverAddress = TestAddress(
+    val testTakeoverAddress: TestAddress = TestAddress(
       line1 = testTakeoverAddrLine1,
       line2 = testTakeoverAddrLine2,
       optLine3 = Some(JsString(testTakeoverAddrLine3)),
@@ -185,7 +185,7 @@ object TestConstants {
       optCountry = Some(JsString(testTakeoverCountry))
     )
 
-    val testTakeoverAddressModel = Address(
+    val testTakeoverAddressModel: Address = Address(
       line1 = testTakeoverAddrLine1,
       line2 = testTakeoverAddrLine2,
       line3 = Some(testTakeoverAddrLine3),
@@ -203,7 +203,7 @@ object TestConstants {
     val testPrevOwnerPostcode = "AB1 3YZ"
     val testPrevOwnerCountry = "Prev owner country"
 
-    val testPrevOwnerAddress = TestAddress(
+    val testPrevOwnerAddress: TestAddress = TestAddress(
       line1 = testPrevOwnerAddrLine1,
       line2 = testPrevOwnerAddrLine2,
       optLine3 = Some(JsString(testPrevOwnerAddrLine3)),
@@ -212,7 +212,7 @@ object TestConstants {
       optCountry = Some(JsString(testPrevOwnerCountry))
     )
 
-    val testPrevOwnerAddressModel = Address(
+    val testPrevOwnerAddressModel: Address = Address(
       line1 = testPrevOwnerAddrLine1,
       line2 = testPrevOwnerAddrLine2,
       line3 = Some(testPrevOwnerAddrLine3),

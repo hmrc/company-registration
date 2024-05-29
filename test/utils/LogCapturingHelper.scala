@@ -18,13 +18,14 @@ package utils
 
 import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.spi.ILoggingEvent
+import org.scalatest.Assertion
 import org.scalatest.Assertions.{fail, succeed}
 import uk.gov.hmrc.play.bootstrap.tools.LogCapturing
 
 trait LogCapturingHelper extends LogCapturing {
 
   implicit class LogCapturingExtensions(logs: List[ILoggingEvent]) {
-    def containsMsg(level: Level, msg: String) =
+    def containsMsg(level: Level, msg: String): Assertion =
       logs.find(_.getMessage.contains(msg)) match {
         case Some(log) => if(log.getLevel == level) succeed else fail(
           s"Found a log with the correct message, but the Level was '${log.getLevel}' when expecting '$level'"

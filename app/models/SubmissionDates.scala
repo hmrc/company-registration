@@ -16,7 +16,7 @@
 
 package models
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 
 import java.time.LocalDate
 
@@ -25,5 +25,5 @@ case class SubmissionDates(companyActiveDate: LocalDate,
                            intendedAccountsPreparationDate: LocalDate)
 
 object SubmissionDates {
-  implicit val formats = Json.format[SubmissionDates]
+  implicit val formats: OFormat[SubmissionDates] = Json.format[SubmissionDates]
 }

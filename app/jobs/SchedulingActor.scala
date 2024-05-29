@@ -17,8 +17,8 @@
 package jobs
 
 
-import akka.actor.{Actor, ActorLogging, Props}
-import jobs.SchedulingActor._
+import jobs.SchedulingActor.ScheduledMessage
+import org.apache.pekko.actor.{Actor, ActorLogging, Props}
 import utils.Logging
 import services._
 import services.admin.AdminService

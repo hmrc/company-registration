@@ -24,11 +24,11 @@ import java.time.format.DateTimeFormatter
 import javax.inject.{Inject, Singleton}
 
 object PagerDutyKeys extends Enumeration {
-  val CT_REJECTED = Value
-  val CT_ACCEPTED_MISSING_UTR = Value
-  val STALE_DOCUMENTS_DELETE_WARNING_CRN_FOUND = Value
-  val CT_ACCEPTED_NO_REG_DOC_II_SUBS_DELETED = Value
-  val TXID_IN_CR_DOESNT_MATCH_HANDOFF_TXID = Value
+  val CT_REJECTED: PagerDutyKeys.Value = Value
+  val CT_ACCEPTED_MISSING_UTR: PagerDutyKeys.Value = Value
+  val STALE_DOCUMENTS_DELETE_WARNING_CRN_FOUND: PagerDutyKeys.Value = Value
+  val CT_ACCEPTED_NO_REG_DOC_II_SUBS_DELETED: PagerDutyKeys.Value = Value
+  val TXID_IN_CR_DOESNT_MATCH_HANDOFF_TXID: PagerDutyKeys.Value = Value
 }
 
 @Singleton
@@ -42,7 +42,7 @@ trait AlertLogging extends Logging {
   protected val loggingDays: String = "MON,TUE,WED,THU,FRI"
   protected val loggingTimes: String = "08:00:00_17:00:00"
 
-  def pagerduty(key: PagerDutyKeys.Value, message: Option[String] = None) {
+  def pagerduty(key: PagerDutyKeys.Value, message: Option[String] = None): Unit = {
     val log = s"${key.toString}${message.fold("")(msg => s" - $msg")}"
     if (inWorkingHours) logger.error(log) else logger.info(log)
   }

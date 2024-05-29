@@ -26,7 +26,7 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.Eventually
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
-import play.api.libs.json.Json
+import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.{AnyContent, Request}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
@@ -45,12 +45,12 @@ class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEac
   val mockAuditService: AuditService = mock[AuditService]
   val mockIncorpInfoConnector: IncorporationInformationConnector = mock[IncorporationInformationConnector]
   val mockCorpTaxRegistrationRepo: CorporationTaxRegistrationMongoRepository = mock[CorporationTaxRegistrationMongoRepository]
-  val mockBusRegConnector = mock[BusinessRegistrationConnector]
-  val mockDesConnector = mock[DesConnector]
-  val mockLockService = mock[LockService]
+  val mockBusRegConnector: BusinessRegistrationConnector = mock[BusinessRegistrationConnector]
+  val mockDesConnector: DesConnector = mock[DesConnector]
+  val mockLockService: LockService = mock[LockService]
 
   class Setup {
-    val service = new AdminService {
+    val service: AdminService = new AdminService {
       val auditService: AuditService = mockAuditService
       val incorpInfoConnector: IncorporationInformationConnector = mockIncorpInfoConnector
       val corpTaxRegRepo: CorporationTaxRegistrationMongoRepository = mockCorpTaxRegistrationRepo
@@ -62,10 +62,10 @@ class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEac
       override val clearAfterXDays: Int = 90
       override val ignoredDocs: Set[String] = Set("1", "2", "3", "4", "5")
     }
-    val docInfo = service.DocumentInfo(regId, "draft", Instant.now)
+    val docInfo: service.DocumentInfo = service.DocumentInfo(regId, "draft", Instant.now)
   }
 
-  override def beforeEach() {
+  override def beforeEach(): Unit = {
     reset(mockAuditService)
     reset(mockBusRegConnector)
     reset(mockCorpTaxRegistrationRepo)
@@ -78,12 +78,12 @@ class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEac
   val ackRef = "ack-ref-12345"
   val transId = "trans-12345"
 
-  implicit val hc = HeaderCarrier()
+  implicit val hc: HeaderCarrier = HeaderCarrier()
   implicit val req: Request[AnyContent] = FakeRequest()
 
-  val sessionIdData = SessionIdData(Some("session-id"), Some("credId"), Some("fakeCompanyName"), Some(ackRef))
+  val sessionIdData: SessionIdData = SessionIdData(Some("session-id"), Some("credId"), Some("fakeCompanyName"), Some(ackRef))
 
-  def makeSessionReg(sessionIds: Option[SessionIdData]) = CorporationTaxRegistration(
+  def makeSessionReg(sessionIds: Option[SessionIdData]): CorporationTaxRegistration = CorporationTaxRegistration(
     internalId = "testID",
     registrationID = "registrationId",
     formCreationTimestamp = "dd-mm-yyyy",
@@ -113,8 +113,8 @@ class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEac
 
   "fetchSessionIdData" must {
     "fetch session id data if it exists" in new Setup {
-      val data = Some(sessionIdData)
-      val reg = makeSessionReg(data)
+      val data: Some[SessionIdData] = Some(sessionIdData)
+      val reg: CorporationTaxRegistration = makeSessionReg(data)
 
       when(mockCorpTaxRegistrationRepo.findOneBySelector(any()))
         .thenReturn(Future.successful(Some(reg)))
@@ -127,7 +127,7 @@ class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEac
     "return the Status and presence of CTUTR as valid JSON" when {
       "using a valid AckRef" in new Setup {
         val id = "BRCT09876543210"
-        val expected = Json.parse(
+        val expected: JsValue = Json.parse(
           """
             |{
             | "status": "04",
@@ -139,7 +139,7 @@ class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEac
         when(mockCorpTaxRegistrationRepo.retrieveStatusAndExistenceOfCTUTR(any()))
           .thenReturn(Future.successful(Option("04" -> true)))
 
-        val result = await(service.ctutrCheck(id))
+        val result: JsObject = await(service.ctutrCheck(id))
 
         result mustBe expected
       }
@@ -148,7 +148,7 @@ class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEac
         when(mockCorpTaxRegistrationRepo.retrieveStatusAndExistenceOfCTUTR(any()))
           .thenReturn(Future.successful(None))
 
-        val result = await(service.ctutrCheck(id))
+        val result: JsObject = await(service.ctutrCheck(id))
         result mustBe Json.parse("{}")
       }
     }
@@ -203,7 +203,7 @@ class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEac
     }
     "not delete a registration" when {
       "it does not exist any of the databases" in new Setup {
-        val inputs = List((true, false), (false, true), (false, false))
+        val inputs: List[(Boolean, Boolean)] = List((true, false), (false, true), (false, false))
 
         for ((brResult, crResult) <- inputs) {
           when(mockBusRegConnector.adminRemoveMetadata(any()))
@@ -362,7 +362,7 @@ class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEac
       }
 
       "the document is draft, has confirmation references and successfully deletes BR and CR document" in new Setup {
-        val confRefExampleDoc = exampleDoc.copy(confirmationReferences = Some(ConfirmationReferences("", "", None, None)))
+        val confRefExampleDoc: CorporationTaxRegistration = exampleDoc.copy(confirmationReferences = Some(ConfirmationReferences("", "", None, None)))
 
         when(mockIncorpInfoConnector.checkCompanyIncorporated(any())(any()))
           .thenReturn(Future.successful(None))
@@ -379,7 +379,7 @@ class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEac
       }
 
       "the document is draft, has confirmation references and successfully deletes BR and CR document but the subscription has an old regime" in new Setup {
-        val confRefExampleDoc = exampleDoc.copy(confirmationReferences = Some(ConfirmationReferences("", "", None, None)))
+        val confRefExampleDoc: CorporationTaxRegistration = exampleDoc.copy(confirmationReferences = Some(ConfirmationReferences("", "", None, None)))
 
         when(mockIncorpInfoConnector.checkCompanyIncorporated(any())(any()))
           .thenReturn(Future.successful(None))
@@ -400,7 +400,7 @@ class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEac
       }
 
       "the document is draft, has confirmation references and successfully deletes BR and CR document, but no subs" in new Setup {
-        val confRefExampleDoc = exampleDoc.copy(confirmationReferences = Some(ConfirmationReferences("", "", None, None)))
+        val confRefExampleDoc: CorporationTaxRegistration = exampleDoc.copy(confirmationReferences = Some(ConfirmationReferences("", "", None, None)))
 
         when(mockIncorpInfoConnector.checkCompanyIncorporated(any())(any()))
           .thenReturn(Future.successful(None))
@@ -421,7 +421,7 @@ class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEac
       }
 
       "the document is held or locked, has confirmation references and successfully deletes BR and CR document" in new Setup {
-        val confRefExampleDoc = exampleDoc.copy(status = "held", confirmationReferences = Some(ConfirmationReferences("", "", None, None)))
+        val confRefExampleDoc: CorporationTaxRegistration = exampleDoc.copy(status = "held", confirmationReferences = Some(ConfirmationReferences("", "", None, None)))
 
         when(mockIncorpInfoConnector.checkCompanyIncorporated(any())(any()))
           .thenReturn(Future.successful(None))
@@ -444,7 +444,7 @@ class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEac
 
     "return false" when {
       "the document is held or locked with a CRN" in new Setup {
-        val confRefWithCRNExampleDoc = exampleDoc.copy(status = "held", confirmationReferences = Some(ConfirmationReferences("", "transID", None, None)))
+        val confRefWithCRNExampleDoc: CorporationTaxRegistration = exampleDoc.copy(status = "held", confirmationReferences = Some(ConfirmationReferences("", "transID", None, None)))
 
         when(mockIncorpInfoConnector.checkCompanyIncorporated(any())(any()))
           .thenReturn(Future.successful(Some("CRN found")))
@@ -453,7 +453,7 @@ class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEac
       }
 
       "the document is held or locked with failure to send a rejection topup" in new Setup {
-        val confRefWithCRNExampleDoc = exampleDoc.copy(status = "locked", confirmationReferences = Some(ConfirmationReferences("", "transID", None, None)))
+        val confRefWithCRNExampleDoc: CorporationTaxRegistration = exampleDoc.copy(status = "locked", confirmationReferences = Some(ConfirmationReferences("", "transID", None, None)))
 
         when(mockIncorpInfoConnector.checkCompanyIncorporated(any())(any()))
           .thenReturn(Future.successful(None))
@@ -463,7 +463,7 @@ class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEac
         await(service.processStaleDocument(confRefWithCRNExampleDoc)) mustBe false
       }
       "the document is held or locked with failure to delete the BR document" in new Setup {
-        val confRefWithCRNExampleDoc = exampleDoc.copy(status = "held", confirmationReferences = Some(ConfirmationReferences("", "transID", None, None)))
+        val confRefWithCRNExampleDoc: CorporationTaxRegistration = exampleDoc.copy(status = "held", confirmationReferences = Some(ConfirmationReferences("", "transID", None, None)))
 
         when(mockIncorpInfoConnector.checkCompanyIncorporated(any())(any()))
           .thenReturn(Future.successful(None))
@@ -475,7 +475,7 @@ class AdminServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEac
         await(service.processStaleDocument(confRefWithCRNExampleDoc)) mustBe false
       }
       "the document is held or locked with failure to delete the CR document" in new Setup {
-        val confRefWithCRNExampleDoc = exampleDoc.copy(status = "held", confirmationReferences = Some(ConfirmationReferences("", "transID", None, None)))
+        val confRefWithCRNExampleDoc: CorporationTaxRegistration = exampleDoc.copy(status = "held", confirmationReferences = Some(ConfirmationReferences("", "transID", None, None)))
 
         when(mockIncorpInfoConnector.checkCompanyIncorporated(any())(any()))
           .thenReturn(Future.successful(None))

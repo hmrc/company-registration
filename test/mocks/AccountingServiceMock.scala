@@ -29,7 +29,7 @@ import scala.concurrent.Future
 trait AccountingServiceMock {
   this: MockitoSugar =>
 
-  lazy val mockAccountingDetailsService = mock[AccountingDetailsService]
+  lazy val mockAccountingDetailsService: AccountingDetailsService = mock[AccountingDetailsService]
 
   object AccountingDetailsServiceMocks {
     def retrieveAccountingDetails(registrationID: String, result: Option[AccountingDetails]): OngoingStubbing[Future[Option[AccountingDetails]]] = {

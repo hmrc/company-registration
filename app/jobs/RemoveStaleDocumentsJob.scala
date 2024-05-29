@@ -16,9 +16,10 @@
 
 package jobs
 
-import akka.actor.ActorSystem
-import javax.inject.{Inject, Singleton}
 import jobs.SchedulingActor.RemoveStaleDocuments
+
+import javax.inject.{Inject, Singleton}
+import org.apache.pekko.actor.ActorSystem
 import play.api.Configuration
 import repositories.Repositories
 import services.admin.AdminService
@@ -30,7 +31,7 @@ class RemoveStaleDocumentsJob @Inject()(val config: Configuration,
                                        ) extends ScheduledJob {
   val jobName = "remove-stale-documents-job"
 
-  val actorSystem = ActorSystem(jobName)
-  val scheduledMessage = RemoveStaleDocuments(adminService)
+  val actorSystem: ActorSystem = ActorSystem(jobName)
+  val scheduledMessage: RemoveStaleDocuments = RemoveStaleDocuments(adminService)
   schedule
 }

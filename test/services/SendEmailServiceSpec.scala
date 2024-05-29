@@ -16,7 +16,6 @@
 
 package services
 
-import config.{LangConstants, MicroserviceAppConfig}
 import connectors.SendEmailConnector
 import helpers.BaseSpec
 import mocks.AuthorisationMocks
@@ -46,11 +45,11 @@ class SendEmailServiceSpec extends BaseSpec with AuthorisationMocks {
   val templateName = "register_your_company_register_vat_email_v2"
   val testEmail = "myTestEmail@test.test"
 
-  override def beforeEach() {
+  override def beforeEach(): Unit = {
     reset(mockSendEmailConnector)
   }
 
-  val testRequest = SendEmailRequest(
+  val testRequest: SendEmailRequest = SendEmailRequest(
     to = Seq(testEmail),
     templateId = templateName,
     parameters = Map("vatThreshold" -> "85,000"),
@@ -98,7 +97,7 @@ class SendEmailServiceSpec extends BaseSpec with AuthorisationMocks {
         s"""
            |{
            |  "to":["test@email.com"],
-           |  "templateId":"${templateName}",
+           |  "templateId":"$templateName",
            |  "parameters":{"vatThreshold":"85,000"},
            |  "force":true
            |}

@@ -16,8 +16,7 @@
 
 package connectors.httpParsers
 
-import connectors._
-import models.SubmissionCheckResponse
+import connectors.BaseConnector
 import play.api.http.Status.{ACCEPTED, NOT_FOUND, NO_CONTENT, OK}
 import uk.gov.hmrc.http.{HttpReads, HttpResponse, NotFoundException}
 import utils.{AlertLogging, PagerDutyKeys}

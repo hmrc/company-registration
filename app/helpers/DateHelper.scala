@@ -22,9 +22,7 @@ import java.time._
 import java.time.format.DateTimeFormatter
 
 trait DateFormatter extends DateHelper {
-  val zonedDateTimeWrites: Writes[ZonedDateTime] = new Writes[ZonedDateTime] {
-    def writes(z: ZonedDateTime) = JsString(formatTimestamp(z))
-  }
+  val zonedDateTimeWrites: Writes[ZonedDateTime] = (z: ZonedDateTime) => JsString(formatTimestamp(z))
 }
 
 trait DateHelper {

@@ -25,7 +25,7 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 
 trait SCRSSpec extends PlaySpec with MockitoSugar with GuiceOneAppPerSuite with SCRSMocks with BeforeAndAfterEach {
 
-	override def beforeEach() {
+	override def beforeEach(): Unit = {
 		reset(mockCTDataService)
 		reset(mockCTDataRepository)
 		reset(mockContactDetailsService)

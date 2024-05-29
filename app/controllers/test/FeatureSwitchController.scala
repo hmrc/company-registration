@@ -16,13 +16,13 @@
 
 package controllers.test
 
-import akka.actor.ActorSystem
-import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
-import javax.inject.{Inject, Singleton}
+import org.apache.pekko.extension.quartz.QuartzSchedulerExtension
+import org.apache.pekko.actor.ActorSystem
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import utils.{BooleanFeatureSwitch, FeatureSwitch, SCRSFeatureSwitches}
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
 
 @Singleton
@@ -31,16 +31,16 @@ class FeatureSwitchController @Inject()(val actorSystem: ActorSystem, controller
 
   val featureSwitch = FeatureSwitch
 
-  def switch(featureName: String, featureState: String) = Action.async {
+  def switch(featureName: String, featureState: String): Action[AnyContent] = Action.async {
     implicit request =>
 
       def feature = (featureName, featureState) match {
         case (jobName, "enable") =>
           scheduler.resumeJob(jobName)
-          BooleanFeatureSwitch(featureName, true)
+          BooleanFeatureSwitch(featureName, enabled = true)
         case (jobName, "disable") =>
           scheduler.suspendJob(jobName)
-          BooleanFeatureSwitch(featureName, false)
+          BooleanFeatureSwitch(featureName, enabled = false)
       }
 
       Future.successful(Ok(feature.toString))

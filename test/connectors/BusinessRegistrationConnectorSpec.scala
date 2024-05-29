@@ -21,9 +21,8 @@ import helpers.BaseSpec
 import models.{BusinessRegistration, BusinessRegistrationRequest}
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
-import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers._
-import uk.gov.hmrc.http.{ForbiddenException, HeaderCarrier, NotFoundException}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
@@ -33,14 +32,14 @@ class BusinessRegistrationConnectorSpec extends BaseSpec with BusinessRegistrati
   val busRegBaseUrl = "testBusinessRegUrl"
 
   trait Setup {
-    val connector = new BusinessRegistrationConnector {
+    val connector: BusinessRegistrationConnector = new BusinessRegistrationConnector {
       implicit val ec: ExecutionContext = global
-      override val businessRegUrl = busRegBaseUrl
-      override val http = mockWSHttp
+      override val businessRegUrl: String = busRegBaseUrl
+      override val http: HttpClient = mockWSHttp
     }
   }
 
-  implicit val hc = HeaderCarrier()
+  implicit val hc: HeaderCarrier = HeaderCarrier()
 
   val regId = "reg-id-12345"
 
@@ -97,7 +96,7 @@ class BusinessRegistrationConnectorSpec extends BaseSpec with BusinessRegistrati
       when(mockWSHttp.GET[String](ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful("success"))
 
-      val result = connector.dropMetadataCollection
+      val result: Future[String] = connector.dropMetadataCollection
 
       await(result) mustBe "success"
     }
@@ -106,7 +105,7 @@ class BusinessRegistrationConnectorSpec extends BaseSpec with BusinessRegistrati
       when(mockWSHttp.GET[String](ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful("failed"))
 
-      val result = connector.dropMetadataCollection
+      val result: Future[String] = connector.dropMetadataCollection
 
       await(result) mustBe "failed"
     }

@@ -52,12 +52,12 @@ object StringNormaliser {
     )
   }
 
-  def normaliseAndRemoveIllegalCharacters(string: String) = {
+  def normaliseAndRemoveIllegalCharacters(string: String): String = {
     val normalisedString = normaliseString(string, APIValidation.lineInvert)
     removeIllegalCharacters(normalisedString)
   }
 
-  def normaliseAndRemoveIllegalNameCharacters(string: String) = {
+  def normaliseAndRemoveIllegalNameCharacters(string: String): String = {
     val normalisedString = normaliseString(string, APIValidation.takeoverNameInvert)
     removeIllegalCharacters(normalisedString)
   }

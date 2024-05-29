@@ -23,13 +23,13 @@ import helpers.BaseSpec
 import models.validation.APIValidation
 import org.scalacheck.Prop.forAll
 import org.scalacheck.{Gen, Prop, Test}
-import play.api.libs.json.{JsonValidationError, _}
+import play.api.libs.json._
 
 import java.time.Instant
 
 class CorporationTaxRegistrationSpec extends BaseSpec with JsonFormatValidation with CorporationTaxRegistrationFixture {
 
-  def now = Instant.now()
+  def now: Instant = Instant.now()
 
   "CorporationTaxRegistration" must {
 

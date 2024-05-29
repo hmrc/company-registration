@@ -16,11 +16,11 @@
 
 package controllers
 
-import akka.actor.ActorSystem
-import akka.stream.{ActorMaterializer, Materializer}
 import helpers.BaseSpec
 import mocks.AuthorisationMocks
 import models.{Address, TakeoverDetails}
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.stream.Materializer
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
 import play.api.libs.json.{JsObject, Json}

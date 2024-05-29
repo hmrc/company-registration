@@ -22,10 +22,10 @@ import play.api.libs.json._
 
 class ConfirmationReferencesSpec extends PlaySpec with JsonFormatValidation {
 
-  def j(ackRef: String) = {
+  def j(ackRef: String): String = {
     s"""
        |{
-       |  "acknowledgement-reference" : "${ackRef}",
+       |  "acknowledgement-reference" : "$ackRef",
        |  "transaction-id" : "testTransactionId",
        |  "payment-reference" : "testPaymentReference",
        |  "payment-amount" : "£100.00"

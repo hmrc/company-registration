@@ -16,10 +16,10 @@
 
 package services
 
-import javax.inject.Inject
-import models.{Email, Language}
-import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
+import models.Language
+import repositories.CorporationTaxRegistrationMongoRepository
 
+import javax.inject.Inject
 import scala.concurrent.Future
 
 

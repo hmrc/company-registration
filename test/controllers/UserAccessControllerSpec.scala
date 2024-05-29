@@ -16,11 +16,11 @@
 
 package controllers
 
-import akka.actor.ActorSystem
-import akka.stream.{ActorMaterializer, Materializer}
 import helpers.BaseSpec
 import mocks.{AuthorisationMocks, MockMetricsService}
 import models.{UserAccessLimitReachedResponse, UserAccessSuccessResponse}
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.stream.Materializer
 import org.mockito.ArgumentMatchers.{any, anyString}
 import org.mockito.Mockito._
 import play.api.libs.json.Json
@@ -36,12 +36,12 @@ import scala.concurrent.Future
 
 class UserAccessControllerSpec extends BaseSpec with AuthorisationMocks {
 
-  implicit val system = ActorSystem("CR")
-  implicit val materializer = Materializer(system)
+  implicit val system: ActorSystem = ActorSystem("CR")
+  implicit val materializer: Materializer = Materializer(system)
 
-  val mockUserAccessService = mock[UserAccessService]
+  val mockUserAccessService: UserAccessService = mock[UserAccessService]
 
-  implicit val hc = HeaderCarrier()
+  implicit val hc: HeaderCarrier = HeaderCarrier()
 
   trait Setup {
     val controller = new UserAccessController(
@@ -59,7 +59,7 @@ class UserAccessControllerSpec extends BaseSpec with AuthorisationMocks {
     "return a unauthorised status code when user is not in session" in new Setup {
       mockAuthorise(Future.failed(MissingBearerToken()))
 
-      val result = controller.checkUserAccess(FakeRequest())
+      val result: Future[Result] = controller.checkUserAccess(FakeRequest())
       status(result) mustBe UNAUTHORIZED
     }
 
@@ -69,7 +69,7 @@ class UserAccessControllerSpec extends BaseSpec with AuthorisationMocks {
       when(mockUserAccessService.checkUserAccess(anyString())(any()))
         .thenReturn(Future.successful(Right(UserAccessSuccessResponse("123", created = false, confRefs = false, paymentRefs = false))))
 
-      val result = controller.checkUserAccess(FakeRequest())
+      val result: Future[Result] = controller.checkUserAccess(FakeRequest())
       status(result) mustBe OK
       contentAsJson(result) mustBe Json.toJson(UserAccessSuccessResponse("123", created = false, confRefs = false, paymentRefs = false))
     }
@@ -80,7 +80,7 @@ class UserAccessControllerSpec extends BaseSpec with AuthorisationMocks {
       when(mockUserAccessService.checkUserAccess(anyString())(any()))
         .thenReturn(Future.successful(Left(Json.toJson(UserAccessLimitReachedResponse(limitReached = true)))))
 
-      val result = controller.checkUserAccess(FakeRequest())
+      val result: Future[Result] = controller.checkUserAccess(FakeRequest())
       status(result) mustBe TOO_MANY_REQUESTS
     }
 

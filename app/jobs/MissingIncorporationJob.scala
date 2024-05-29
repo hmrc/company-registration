@@ -16,18 +16,19 @@
 
 package jobs
 
-import akka.actor.ActorSystem
-import javax.inject.Inject
 import jobs.SchedulingActor.MissingIncorporation
+import org.apache.pekko.actor.ActorSystem
 import play.api.Configuration
 import repositories.Repositories
 import services.CorporationTaxRegistrationService
+
+import javax.inject.Inject
 
 class MissingIncorporationJob @Inject()(val config: Configuration,
                                         val ctRegService: CorporationTaxRegistrationService,
                                         val repositories: Repositories) extends ScheduledJob {
   val jobName = "missing-incorporation-job"
-  val actorSystem = ActorSystem(jobName)
-  val scheduledMessage = MissingIncorporation(ctRegService)
+  val actorSystem: ActorSystem = ActorSystem(jobName)
+  val scheduledMessage: MissingIncorporation = MissingIncorporation(ctRegService)
   schedule
 }

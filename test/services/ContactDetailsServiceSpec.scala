@@ -19,12 +19,13 @@ package services
 import fixtures.ContactDetailsFixture
 import helpers.BaseSpec
 import play.api.test.Helpers._
+import repositories.CorporationTaxRegistrationMongoRepository
 
 class ContactDetailsServiceSpec extends BaseSpec with ContactDetailsFixture {
 
   trait Setup {
-    val service = new ContactDetailsService {
-      override val corporationTaxRegistrationMongoRepository = mockCTDataRepository
+    val service: ContactDetailsService = new ContactDetailsService {
+      override val corporationTaxRegistrationMongoRepository: CorporationTaxRegistrationMongoRepository = mockCTDataRepository
     }
   }
 

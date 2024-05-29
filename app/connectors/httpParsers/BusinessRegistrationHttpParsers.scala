@@ -16,7 +16,7 @@
 
 package connectors.httpParsers
 
-import connectors._
+import connectors.{BaseConnector, BusinessRegistrationForbiddenResponse, BusinessRegistrationNotFoundResponse, BusinessRegistrationResponse, BusinessRegistrationSuccessResponse}
 import models.BusinessRegistration
 import play.api.http.Status.{FORBIDDEN, NOT_FOUND, OK}
 import play.api.libs.json.__
@@ -65,7 +65,7 @@ trait BusinessRegistrationHttpParsers extends BaseHttpReads { _: BaseConnector =
           unexpectedStatusHandling()("removeMetadataAdminHttpReads", url, status, Some(regId))
       }
 
-  val dropMetadataCollectionHttpReads =
+  val dropMetadataCollectionHttpReads: HttpReads[String] =
     httpReads[String]("dropMetadataCollectionHttpReads")((__ \ "message").read[String], manifest[String])
 
 }

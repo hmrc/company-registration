@@ -18,7 +18,7 @@ package fixtures
 
 import controllers.routes
 import models.{ContactDetails, Links}
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 
 case class ContactDetailsResponse(contactDaytimeTelephoneNumber: Option[String],
                                   contactMobileNumber: Option[String],
@@ -26,19 +26,19 @@ case class ContactDetailsResponse(contactDaytimeTelephoneNumber: Option[String],
                                   links: Links)
 
 object ContactDetailsResponse {
-  implicit val formatsLinks = Json.format[Links]
-  implicit val formats = Json.format[ContactDetailsResponse]
+  implicit val formatsLinks: OFormat[Links] = Json.format[Links]
+  implicit val formats: OFormat[ContactDetailsResponse] = Json.format[ContactDetailsResponse]
 }
 
 trait ContactDetailsFixture {
 
-   val contactDetails = ContactDetails(
+   val contactDetails: ContactDetails = ContactDetails(
     Some("02072899066"),
     Some("07567293726"),
     Some("test@email.co.uk")
   )
 
-  def contactDetailsResponse(regId: String) = ContactDetailsResponse(
+  def contactDetailsResponse(regId: String): ContactDetailsResponse = ContactDetailsResponse(
     contactDetails.phone,
     contactDetails.mobile,
     contactDetails.email,
@@ -46,7 +46,7 @@ trait ContactDetailsFixture {
       Some(routes.CorporationTaxRegistrationController.retrieveCorporationTaxRegistration(regId).url))
   )
 
-   val contactDetailsResponse = ContactDetailsResponse(
+   val contactDetailsResponse: ContactDetailsResponse = ContactDetailsResponse(
     contactDetails.phone,
     contactDetails.mobile,
     contactDetails.email,

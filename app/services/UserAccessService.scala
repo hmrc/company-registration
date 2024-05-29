@@ -19,7 +19,6 @@ package services
 import connectors.{BusinessRegistrationConnector, BusinessRegistrationNotFoundResponse, BusinessRegistrationSuccessResponse}
 import models.{CorporationTaxRegistration, UserAccessLimitReachedResponse, UserAccessSuccessResponse}
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.Request
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
@@ -37,8 +36,8 @@ class UserAccessServiceImpl @Inject()(val throttleService: ThrottleService,
                                       servicesConfig: ServicesConfig
                                      )(implicit val ec: ExecutionContext) extends UserAccessService {
 
-  lazy val ctRepository = repositories.cTRepository
-  lazy val threshold = servicesConfig.getConfInt("throttle-threshold", throw new Exception("Could not find Threshold in config"))
+  lazy val ctRepository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
+  lazy val threshold: Int = servicesConfig.getConfInt("throttle-threshold", throw new Exception("Could not find Threshold in config"))
 }
 
 private[services] class MissingRegistration(regId: String) extends NoStackTrace
@@ -61,7 +60,7 @@ trait UserAccessService {
           oCrData <- ctService.retrieveCorporationTaxRegistrationRecord(metadata.registrationID, Some(now))
           crData <- oCrData match {
             case Some(crData) =>
-              Future.successful(Right(UserAccessSuccessResponse(crData.registrationID, false, hasConfRefs(crData), hasPaymentRefs(crData), crData.verifiedEmail, crData.registrationProgress)))
+              Future.successful(Right(UserAccessSuccessResponse(crData.registrationID, created = false, confRefs = hasConfRefs(crData), paymentRefs = hasPaymentRefs(crData), crData.verifiedEmail, crData.registrationProgress)))
             case _ =>
               brConnector.removeMetadata(metadata.registrationID).map { _ =>
                 throw new MissingRegistration(metadata.registrationID)
@@ -74,7 +73,7 @@ trait UserAccessService {
           case true => for {
             metaData <- brConnector.createMetadataEntry
             crData <- ctService.createCorporationTaxRegistrationRecord(internalId, metaData.registrationID, "en")
-          } yield Right(UserAccessSuccessResponse(crData.registrationID, true, hasConfRefs(crData), hasPaymentRefs(crData), crData.verifiedEmail, crData.registrationProgress))
+          } yield Right(UserAccessSuccessResponse(crData.registrationID, created = true, confRefs = hasConfRefs(crData), paymentRefs = hasPaymentRefs(crData), crData.verifiedEmail, crData.registrationProgress))
         }
       case _ => throw new Exception("Something went wrong")
     }

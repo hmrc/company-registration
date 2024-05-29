@@ -22,9 +22,9 @@ import uk.gov.hmrc.http.HeaderCarrier
 
 class FailedIncorporationAuditEventSpec extends PlaySpec {
 
-  implicit val hc = HeaderCarrier()
+  implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  val testModel = FailedIncorporationAuditEventDetail(
+  val testModel: FailedIncorporationAuditEventDetail = FailedIncorporationAuditEventDetail(
     "1234567890",
     "testReason"
   )

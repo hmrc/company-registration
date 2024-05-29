@@ -21,9 +21,9 @@ import models.BusinessRegistration
 
 trait BusinessRegistrationFixture {
 
-  lazy val validBusinessRegistrationResponse = businessRegistrationResponse("12345")
+  lazy val validBusinessRegistrationResponse: BusinessRegistration = businessRegistrationResponse("12345")
 
-  def businessRegistrationResponse(regId: String) = BusinessRegistration(
+  def businessRegistrationResponse(regId: String): BusinessRegistration = BusinessRegistration(
     regId,
     "2016-08-03T10:49:11Z",
     LangConstants.english,

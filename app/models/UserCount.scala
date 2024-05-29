@@ -16,10 +16,10 @@
 
 package models
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 
 case class UserCount(_id: String, users_in: Int, threshold: Int)
 
 object UserCount {
-  implicit val formats = Json.format[UserCount]
+  implicit val formats: OFormat[UserCount] = Json.format[UserCount]
 }

@@ -18,7 +18,7 @@ package controllers
 
 import models._
 import utils.Logging
-import play.api.libs.json.JsValue
+import play.api.libs.json.{JsValue, Reads}
 import play.api.mvc.{Action, AnyContentAsJson, ControllerComponents, Request}
 import services._
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -33,13 +33,13 @@ class ProcessIncorporationsController @Inject()(val processIncorporationService:
                                                 controllerComponents: ControllerComponents
                                                )(implicit val ec: ExecutionContext) extends BackendController(controllerComponents) with Logging {
 
-  private def logFailedTopup(txId: String, method: String) =
+  private def logFailedTopup(txId: String, method: String): Unit =
     logger.error(s"[$method] FAILED_DES_TOPUP - Topup failed for transaction ID: $txId")
 
   def processIncorporationNotification: Action[JsValue] = Action.async[JsValue](parse.json) {
     implicit request =>
 
-      implicit val reads = IncorpStatus.reads
+      implicit val reads: Reads[IncorpStatus] = IncorpStatus.reads
       withJsonBody[IncorpStatus] { incorp =>
         val requestAsAnyContentAsJson: Request[AnyContentAsJson] = request.map(AnyContentAsJson)
         processIncorporationService.processIncorporationUpdate(incorp.toIncorpUpdate) flatMap {
@@ -60,7 +60,7 @@ class ProcessIncorporationsController @Inject()(val processIncorporationService:
 
   def processAdminIncorporation: Action[JsValue] = Action.async[JsValue](parse.json) {
     implicit request =>
-      implicit val reads = IncorpStatus.reads
+      implicit val reads: Reads[IncorpStatus] = IncorpStatus.reads
       withJsonBody[IncorpStatus] { incorp =>
         processIncorporationService.processIncorporationUpdate(incorp.toIncorpUpdate, isAdmin = true) map {
           if (_) {

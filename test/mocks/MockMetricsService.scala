@@ -17,23 +17,23 @@
 package mocks
 
 import com.codahale.metrics.{Counter, Timer}
-import com.kenshoo.play.metrics.Metrics
 import org.scalatestplus.mockito.MockitoSugar
 import repositories.CorporationTaxRegistrationMongoRepository
 import services._
 import uk.gov.hmrc.mongo.lock.LockService
+import uk.gov.hmrc.play.bootstrap.metrics.Metrics
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
 
 object MockMetricsService extends MetricsService with MockitoSugar {
-  override val metrics = mock[Metrics]
-  val fakeCounter = mock[Counter]
-  lazy val mockContext = mock[Timer.Context]
+  override val metrics: Metrics = mock[Metrics]
+  val fakeCounter: Counter = mock[Counter]
+  lazy val mockContext: Timer.Context = mock[Timer.Context]
   val mockTimer = new Timer()
 
   implicit val ec: ExecutionContext = global
-  val ctRepository = mock[CorporationTaxRegistrationMongoRepository]
+  val ctRepository: CorporationTaxRegistrationMongoRepository = mock[CorporationTaxRegistrationMongoRepository]
 
   override val ctutrConfirmationCounter: Counter = fakeCounter
 

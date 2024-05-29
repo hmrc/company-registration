@@ -30,7 +30,7 @@ import scala.concurrent.Future
 class TradingDetailsServiceSpec extends BaseSpec with CorporationTaxRegistrationFixture {
 
   class Setup {
-    val mockRepositories = mock[Repositories]
+    val mockRepositories: Repositories = mock[Repositories]
 
     object TestService extends TradingDetailsService(mockRepositories,stubControllerComponents()) {
       override lazy val corporationTaxRegistrationMongoRepository: CorporationTaxRegistrationMongoRepository = mockCTDataRepository
@@ -44,7 +44,7 @@ class TradingDetailsServiceSpec extends BaseSpec with CorporationTaxRegistration
 
       when(mockCTDataRepository.retrieveTradingDetails(ArgumentMatchers.anyString())).thenReturn(Future.successful(Some(TradingDetails("true"))))
 
-      val result = TestService.retrieveTradingDetails("testRegID")
+      val result: Future[Option[TradingDetails]] = TestService.retrieveTradingDetails("testRegID")
       await(result) mustBe Some(TradingDetails("true"))
     }
 
@@ -54,7 +54,7 @@ class TradingDetailsServiceSpec extends BaseSpec with CorporationTaxRegistration
       when(mockCTDataRepository.retrieveTradingDetails(ArgumentMatchers.anyString()))
         .thenReturn(Future.successful(None))
 
-      val result = TestService.retrieveTradingDetails("testRegID")
+      val result: Future[Option[TradingDetails]] = TestService.retrieveTradingDetails("testRegID")
       await(result) mustBe None
     }
   }
@@ -66,7 +66,7 @@ class TradingDetailsServiceSpec extends BaseSpec with CorporationTaxRegistration
       when(mockCTDataRepository.updateTradingDetails(ArgumentMatchers.anyString(), ArgumentMatchers.eq[TradingDetails](TradingDetails("true"))))
         .thenReturn(Future.successful(Some(TradingDetails("true"))))
 
-      val result = TestService.updateTradingDetails("testRegID", TradingDetails("true"))
+      val result: Future[Option[TradingDetails]] = TestService.updateTradingDetails("testRegID", TradingDetails("true"))
       await(result) mustBe Some(TradingDetails("true"))
     }
   }

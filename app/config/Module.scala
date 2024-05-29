@@ -19,10 +19,10 @@ package config
 import auth.{CryptoSCRS, CryptoSCRSImpl}
 import com.google.inject.AbstractModule
 import com.google.inject.name.Names
-import connectors._
+import connectors.{BusinessRegistrationConnector, BusinessRegistrationConnectorImpl, DesConnector, DesConnectorImpl, IncorporationCheckAPIConnector, IncorporationCheckAPIConnectorImpl, IncorporationInformationConnector, IncorporationInformationConnectorImpl, SendEmailConnector, SendEmailConnectorImpl}
 import controllers.test.{TestEndpointController, TestEndpointControllerImpl}
-import jobs._
-import repositories._
+import jobs.{MetricsJob, MissingIncorporationJob, RemoveStaleDocumentsJob, ScheduledJob}
+import repositories.{CorporationTaxRegistrationMongoRepository, Repositories, SequenceMongoRepository, ThrottleMongoRepository}
 import services._
 import services.admin.{AdminService, AdminServiceImpl}
 import utils.{AlertLogging, AlertLoggingImpl}
@@ -38,7 +38,7 @@ class Module extends AbstractModule {
     bindJobs()
   }
 
-  private def bindJobs() = {
+  private def bindJobs(): Unit = {
     bind(classOf[ScheduledJob]).annotatedWith(Names.named("missing-incorporation-job")).to(classOf[MissingIncorporationJob]).asEagerSingleton()
     bind(classOf[ScheduledJob]).annotatedWith(Names.named("remove-stale-documents-job")).to(classOf[RemoveStaleDocumentsJob]).asEagerSingleton()
     bind(classOf[ScheduledJob]).annotatedWith(Names.named("metrics-job")).to(classOf[MetricsJob]).asEagerSingleton()
@@ -46,12 +46,12 @@ class Module extends AbstractModule {
     bind(classOf[Startup]).asEagerSingleton()
   }
 
-  private def bindConfig() = {
+  private def bindConfig(): Unit = {
     bind(classOf[CryptoSCRS]).to(classOf[CryptoSCRSImpl]).asEagerSingleton()
     bind(classOf[AlertLogging]).to(classOf[AlertLoggingImpl]).asEagerSingleton()
   }
 
-  private def bindControllers() = {
+  private def bindControllers(): Unit = {
     bind(classOf[TestEndpointController]).to(classOf[TestEndpointControllerImpl]).asEagerSingleton()
   }
 
@@ -74,7 +74,7 @@ class Module extends AbstractModule {
 
   }
 
-  private def bindConnectors() = {
+  private def bindConnectors(): Unit = {
     bind(classOf[IncorporationInformationConnector]).to(classOf[IncorporationInformationConnectorImpl]).asEagerSingleton()
     bind(classOf[BusinessRegistrationConnector]).to(classOf[BusinessRegistrationConnectorImpl]).asEagerSingleton()
     bind(classOf[DesConnector]).to(classOf[DesConnectorImpl]).asEagerSingleton()
@@ -83,7 +83,7 @@ class Module extends AbstractModule {
     bind(classOf[IncorporationCheckAPIConnector]).to(classOf[IncorporationCheckAPIConnectorImpl]).asEagerSingleton()
   }
 
-  private def bindRepositories() = {
+  private def bindRepositories(): Unit = {
     bind(classOf[CorporationTaxRegistrationMongoRepository]).asEagerSingleton()
     bind(classOf[SequenceMongoRepository]).asEagerSingleton()
     bind(classOf[ThrottleMongoRepository]).asEagerSingleton()

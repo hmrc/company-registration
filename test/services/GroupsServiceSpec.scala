@@ -32,7 +32,7 @@ class GroupsServiceSpec extends BaseSpec with LogCapturingHelper {
 
   val regId = "testRegId"
 
-  val validGroupsModel = Groups(
+  val validGroupsModel: Groups = Groups(
     groupRelief = true,
     nameOfCompany = Some(GroupCompanyName("testGroupName", GroupCompanyNameEnum.Other)),
     addressAndType = Some(GroupsAddressAndType(
@@ -43,7 +43,7 @@ class GroupsServiceSpec extends BaseSpec with LogCapturingHelper {
 
 
   class Setup {
-    val service = new GroupsService {
+    val service: GroupsService = new GroupsService {
       reset(mockCTDataRepository)
       override val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository = mockCTDataRepository
       implicit val ec: ExecutionContext = global
@@ -53,12 +53,12 @@ class GroupsServiceSpec extends BaseSpec with LogCapturingHelper {
   "returnGroups" must {
     "return groups if they exist in db" in new Setup {
       when(mockCTDataRepository.returnGroupsBlock(eqTo(regId))).thenReturn(Future.successful(Some(validGroupsModel)))
-      val res = await(service.returnGroups(regId))
+      val res: Option[Groups] = await(service.returnGroups(regId))
       res mustBe Some(validGroupsModel)
     }
     "return None if db returns nothing" in new Setup {
       when(mockCTDataRepository.returnGroupsBlock(eqTo(regId))).thenReturn(Future.successful(None))
-      val res = await(service.returnGroups(regId))
+      val res: Option[Groups] = await(service.returnGroups(regId))
       res mustBe None
     }
 
@@ -67,7 +67,7 @@ class GroupsServiceSpec extends BaseSpec with LogCapturingHelper {
   "deleteGroups" must {
     "return true if delete was successful" in new Setup {
       when(mockCTDataRepository.deleteGroupsBlock(eqTo(regId))).thenReturn(Future.successful(true))
-      val res = await(service.deleteGroups(regId))
+      val res: Boolean = await(service.deleteGroups(regId))
       res mustBe true
     }
     "return future failed if delete was unsuccessful db returned an exception" in new Setup {
@@ -79,7 +79,7 @@ class GroupsServiceSpec extends BaseSpec with LogCapturingHelper {
   "updateGroups" must {
     "return success of groups when db returns a success" in new Setup {
       when(mockCTDataRepository.updateGroups(eqTo(regId), eqTo(validGroupsModel))).thenReturn(Future.successful(validGroupsModel))
-      val res = await(service.updateGroups(regId, validGroupsModel))
+      val res: Groups = await(service.updateGroups(regId, validGroupsModel))
       res mustBe validGroupsModel
     }
     "return a future failed if db returns an exception" in new Setup {

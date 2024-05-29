@@ -16,9 +16,9 @@
 
 package services
 
-import akka.actor.ActorSystem
-import akka.stream.Materializer
 import models.AccountPrepDetails
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.stream.Materializer
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 
 import javax.inject.Inject
@@ -28,9 +28,9 @@ class PrepareAccountServiceImpl @Inject()(system: ActorSystem,
                                           val repositories: Repositories
                                          )(implicit val ec: ExecutionContext) extends PrepareAccountService {
 
-  implicit val materializer = Materializer(system)
+  implicit val materializer: Materializer = Materializer(system)
 
-  lazy val repository = repositories.cTRepository
+  lazy val repository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 
 }
 

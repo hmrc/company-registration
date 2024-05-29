@@ -53,7 +53,7 @@ case class IncorpStatus(transactionId: String,
 }
 
 object IncorpStatus {
-  implicit val reads = (
+  implicit val reads: Reads[IncorpStatus] = (
     (__ \ "SCRSIncorpStatus" \ "IncorpSubscriptionKey" \ "transactionId").read[String] and
       (__ \ "SCRSIncorpStatus" \ "IncorpStatusEvent" \ "status").read[String] and
       (__ \ "SCRSIncorpStatus" \ "IncorpStatusEvent" \ "crn").readNullable[String] and

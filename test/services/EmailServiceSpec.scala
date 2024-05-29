@@ -28,16 +28,16 @@ import scala.concurrent.Future
 
 class EmailServiceSpec extends PlaySpec with MockitoSugar {
 
-  val mockCTRepository = mock[CorporationTaxRegistrationMongoRepository]
+  val mockCTRepository: CorporationTaxRegistrationMongoRepository = mock[CorporationTaxRegistrationMongoRepository]
 
   class Setup {
-    val emailService = new EmailService {
-      val ctRepository = mockCTRepository
+    val emailService: EmailService = new EmailService {
+      val ctRepository: CorporationTaxRegistrationMongoRepository = mockCTRepository
     }
   }
 
   val registrationId = "12345"
-  val email = Email("testAddress", "GG", linkSent = true, verified = true, returnLinkEmailSent = true)
+  val email: Email = Email("testAddress", "GG", linkSent = true, verified = true, returnLinkEmailSent = true)
 
   "updateEmail" must {
 

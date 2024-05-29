@@ -175,7 +175,7 @@ class InterimDesRegistrationSpec extends PlaySpec {
 
       val desModel = InterimCorporationTax(
                                   "DG Limited",
-                                  false,
+                                  returnsOnCT61 = false,
                                   Some(desBusinessAddress),
                                   desBusinessContactContactDetails
                                 )
@@ -244,7 +244,7 @@ class InterimDesRegistrationSpec extends PlaySpec {
 
       val testInterimCorporationTax = InterimCorporationTax(
         "DG Limited",
-        false,
+        returnsOnCT61 = false,
         Some(desBusinessAddress),
         desBusinessContactContactDetails,
         groups = None
@@ -335,7 +335,7 @@ class InterimDesRegistrationSpec extends PlaySpec {
 
       val testInterimCorporationTax = InterimCorporationTax(
         "DG Limited",
-        false,
+        returnsOnCT61 = false,
         Some(desBusinessAddress),
         desBusinessContactContactDetails,
         groups = validGroups
@@ -404,7 +404,7 @@ class InterimDesRegistrationSpec extends PlaySpec {
 
       val testInterimCorporationTax = InterimCorporationTax(
         "DG Limited",
-        false,
+        returnsOnCT61 = false,
         Some(desBusinessAddress),
         desBusinessContactContactDetails,
         groups = validGroups
@@ -494,7 +494,7 @@ class InterimDesRegistrationSpec extends PlaySpec {
 
       val testInterimCorporationTax = InterimCorporationTax(
         "DG Limited",
-        false,
+        returnsOnCT61 = false,
         Some(desBusinessAddress),
         desBusinessContactContactDetails,
         groups = validGroups
@@ -628,7 +628,7 @@ class InterimDesRegistrationSpec extends PlaySpec {
 
       val testInterimCorporationTax = InterimCorporationTax(
         "DG Limited",
-        false,
+        returnsOnCT61 = false,
         Some(desBusinessAddress),
         desBusinessContactContactDetails,
         groups = validGroups,
@@ -685,7 +685,7 @@ class InterimDesRegistrationSpec extends PlaySpec {
 
       val testInterimCorporationTax = InterimCorporationTax(
         "DG Limited",
-        false,
+        returnsOnCT61 = false,
         None,
         desBusinessContactContactDetails
       )
@@ -732,7 +732,7 @@ class InterimDesRegistrationSpec extends PlaySpec {
       
               val testInterimCorporationTax = InterimCorporationTax(
                 "ß Ǭscar ég ànt",
-                false,
+                returnsOnCT61 = false,
                 None,
                 desBusinessContactContactDetails
                 )
@@ -782,7 +782,7 @@ class InterimDesRegistrationSpec extends PlaySpec {
       
               val testInterimCorporationTax = InterimCorporationTax(
                 "[Test Company]»",
-                false,
+                returnsOnCT61 = false,
                 None,
                 desBusinessContactContactDetails
                 )

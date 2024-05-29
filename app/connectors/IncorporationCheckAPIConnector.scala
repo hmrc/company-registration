@@ -31,8 +31,8 @@ class SubmissionAPIFailure extends NoStackTrace
 class IncorporationCheckAPIConnectorImpl @Inject()(servicesConfig: ServicesConfig,
                                                    val http: HttpClient
                                                   )(implicit val ec: ExecutionContext) extends IncorporationCheckAPIConnector {
-  lazy val businessRegUrl = servicesConfig.baseUrl("business-registration")
-  override lazy val proxyUrl = servicesConfig.baseUrl("company-registration-frontend")
+  lazy val businessRegUrl: String = servicesConfig.baseUrl("business-registration")
+  override lazy val proxyUrl: String = servicesConfig.baseUrl("company-registration-frontend")
 
 }
 

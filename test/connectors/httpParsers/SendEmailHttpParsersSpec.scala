@@ -20,8 +20,7 @@ import ch.qos.logback.classic.Level
 import connectors.EmailErrorResponse
 import helpers.BaseSpec
 import play.api.http.Status._
-import play.api.libs.json.Json
-import uk.gov.hmrc.http.{HttpResponse, NotFoundException}
+import uk.gov.hmrc.http.HttpResponse
 import utils.LogCapturingHelper
 
 class SendEmailHttpParsersSpec extends BaseSpec with LogCapturingHelper {

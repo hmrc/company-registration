@@ -21,8 +21,9 @@ import helpers.BaseSpec
 import models.ConfirmationReferences
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
-import play.api.libs.json.Json
+import play.api.libs.json.{JsObject, Json}
 import play.api.test.Helpers._
+import repositories.CorporationTaxRegistrationMongoRepository
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
@@ -33,8 +34,8 @@ class CompanyDetailsServiceSpec extends BaseSpec with CompanyDetailsFixture {
     reset(mockCTDataRepository)
     reset(mockSubmissionService)
 
-    val service = new CompanyDetailsService {
-      override val corporationTaxRegistrationMongoRepository = mockCTDataRepository
+    val service: CompanyDetailsService = new CompanyDetailsService {
+      override val corporationTaxRegistrationMongoRepository: CorporationTaxRegistrationMongoRepository = mockCTDataRepository
       override val submissionService: SubmissionService = mockSubmissionService
       implicit val ec: ExecutionContext = global
     }
@@ -84,7 +85,7 @@ class CompanyDetailsServiceSpec extends BaseSpec with CompanyDetailsFixture {
       when(mockSubmissionService.generateAckRef).thenReturn(Future.successful("testAckRef"))
       when(mockCTDataRepository.updateConfirmationReferences(any(), eqTo(conf)))
         .thenReturn(Future.successful(Some(conf)))
-      val res = await(service.saveTxIdAndAckRef(registrationID, "txId"))
+      val res: JsObject = await(service.saveTxIdAndAckRef(registrationID, "txId"))
       verify(mockSubmissionService, times(1)).generateAckRef
       res mustBe ackRefJsObject
     }
@@ -92,7 +93,7 @@ class CompanyDetailsServiceSpec extends BaseSpec with CompanyDetailsFixture {
       when(mockCTDataRepository.retrieveConfirmationReferences(any())).thenReturn(Future.successful(Some(conf.copy(transactionId = "willnotbethis"))))
       when(mockCTDataRepository.updateConfirmationReferences(any(), eqTo(conf)))
         .thenReturn(Future.successful(Some(conf)))
-      val res = await(service.saveTxIdAndAckRef(registrationID, "txId"))
+      val res: JsObject = await(service.saveTxIdAndAckRef(registrationID, "txId"))
       verify(mockSubmissionService, times(0)).generateAckRef
       verify(mockCTDataRepository, times(1)).updateConfirmationReferences(any(), any())
       res mustBe ackRefJsObject
@@ -110,7 +111,7 @@ class CompanyDetailsServiceSpec extends BaseSpec with CompanyDetailsFixture {
       when(mockSubmissionService.generateAckRef).thenReturn(Future.successful("testAckRef"))
       when(mockCTDataRepository.updateConfirmationReferences(any(), any())).thenReturn(Future.failed(ex))
 
-      val res = intercept[Exception](await(service.saveTxIdAndAckRef(registrationID, "txId")))
+      val res: Exception = intercept[Exception](await(service.saveTxIdAndAckRef(registrationID, "txId")))
       verify(mockSubmissionService, times(1)).generateAckRef
 
     }

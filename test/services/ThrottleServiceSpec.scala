@@ -29,14 +29,14 @@ import scala.concurrent.Future
 
 class ThrottleServiceSpec extends BaseSpec {
 
-  val mockThrottleMongoRepository = mock[ThrottleMongoRepository]
-  val mockRepositories = mock[Repositories]
-  val mockConfig = mock[MicroserviceAppConfig]
+  val mockThrottleMongoRepository: ThrottleMongoRepository = mock[ThrottleMongoRepository]
+  val mockRepositories: Repositories = mock[Repositories]
+  val mockConfig: MicroserviceAppConfig = mock[MicroserviceAppConfig]
 
   trait Setup {
-    val service = new ThrottleService(mockRepositories, mockConfig, stubControllerComponents()) {
-      override lazy val throttleMongoRepository = mockThrottleMongoRepository
-      override def date = LocalDate.parse("2000-02-01")
+    val service: ThrottleService = new ThrottleService(mockRepositories, mockConfig, stubControllerComponents()) {
+      override lazy val throttleMongoRepository: ThrottleMongoRepository = mockThrottleMongoRepository
+      override def date: LocalDate = LocalDate.parse("2000-02-01")
       override lazy val threshold = 10
     }
   }

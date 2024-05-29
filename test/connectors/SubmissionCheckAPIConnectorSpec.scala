@@ -34,19 +34,19 @@ import scala.concurrent.{ExecutionContext, Future}
 class SubmissionCheckAPIConnectorSpec extends PlaySpec with MockitoSugar {
 
   val testProxyUrl = "testBusinessRegUrl"
-  implicit val hc = HeaderCarrier()
+  implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  val mockWSHttp = mock[HttpClient]
+  val mockWSHttp: HttpClient = mock[HttpClient]
 
   trait Setup {
-    val connector = new IncorporationCheckAPIConnector {
+    val connector: IncorporationCheckAPIConnector = new IncorporationCheckAPIConnector {
       implicit val ec: ExecutionContext = global
-      val proxyUrl = testProxyUrl
-      val http = mockWSHttp
+      val proxyUrl: String = testProxyUrl
+      val http: HttpClient = mockWSHttp
     }
   }
 
-  val validSubmissionResponse = SubmissionCheckResponse(
+  val validSubmissionResponse: SubmissionCheckResponse = SubmissionCheckResponse(
     Seq(
       IncorpUpdate(
         transactionId = "transactionId",

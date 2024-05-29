@@ -28,10 +28,10 @@ import scala.concurrent.Future
 
 class MetricsServiceSpec extends PlaySpec with MockitoSugar {
 
-  val mockRegistry = mock[MetricRegistry]
+  val mockRegistry: MetricRegistry = mock[MetricRegistry]
 
   trait Setup {
-    val service = MockMetricsService
+    val service: MockMetricsService.type = MockMetricsService
   }
 
   "Metrics" must {
@@ -60,7 +60,7 @@ class MetricsServiceSpec extends PlaySpec with MockitoSugar {
       when(service.metrics.defaultRegistry).thenReturn(mockRegistry)
       when(service.ctRepository.getRegistrationStats).thenReturn(Future.successful(Map[String, Int]("testOne" -> 1, "testTwo" -> 2, "testThree" -> 3)))
 
-      val result = await(service.updateDocumentMetrics())
+      val result: Map[String, Int] = await(service.updateDocumentMetrics())
 
       result mustBe Map("testOne" -> 1, "testTwo" -> 2, "testThree" -> 3)
 

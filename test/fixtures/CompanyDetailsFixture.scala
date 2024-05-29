@@ -18,7 +18,7 @@ package fixtures
 
 import controllers.routes
 import models._
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 
 case class CompanyDetailsResponse(companyName: String,
                                   cHROAddress: CHROAddress,
@@ -28,7 +28,7 @@ case class CompanyDetailsResponse(companyName: String,
                                   links: Links)
 
 object CompanyDetailsResponse {
-  implicit val formats = Json.format[CompanyDetailsResponse]
+  implicit val formats: OFormat[CompanyDetailsResponse] = Json.format[CompanyDetailsResponse]
 
   def buildLinks(registrationID: String): Links = {
     Links(
@@ -40,7 +40,7 @@ object CompanyDetailsResponse {
 
 trait CompanyDetailsFixture {
 
-  lazy val validCompanyDetails = CompanyDetails(
+  lazy val validCompanyDetails: CompanyDetails = CompanyDetails(
     "testCompanyName",
     CHROAddress(
       "Premises",
@@ -67,7 +67,7 @@ trait CompanyDetailsFixture {
     "testJurisdiction"
   )
 
-  lazy val validCompanyDetailsNormalisableAddress = CompanyDetails(
+  lazy val validCompanyDetailsNormalisableAddress: CompanyDetails = CompanyDetails(
     "testCompanyName",
     CHROAddress(
       "Premises",
@@ -95,7 +95,7 @@ trait CompanyDetailsFixture {
   )
 
   import CompanyDetailsResponse.buildLinks
-  lazy val validCompanyDetailsResponse = CompanyDetailsResponse(
+  lazy val validCompanyDetailsResponse: CompanyDetailsResponse = CompanyDetailsResponse(
     companyName = validCompanyDetails.companyName,
     cHROAddress = validCompanyDetails.registeredOffice,
     pPOBAddress = validCompanyDetails.ppob,
@@ -104,7 +104,7 @@ trait CompanyDetailsFixture {
     buildLinks("12345")
     )
 
-  def validCompanyDetailsResponse(regId: String) = CompanyDetailsResponse(
+  def validCompanyDetailsResponse(regId: String): CompanyDetailsResponse = CompanyDetailsResponse(
     companyName = validCompanyDetails.companyName,
     cHROAddress = validCompanyDetails.registeredOffice,
     pPOBAddress = validCompanyDetails.ppob,

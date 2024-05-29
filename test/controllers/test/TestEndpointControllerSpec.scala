@@ -16,20 +16,22 @@
 
 package controllers.test
 
-import akka.actor.ActorSystem
-import akka.stream.Materializer
 import com.mongodb.MongoException
 import com.mongodb.client.result.DeleteResult
+import connectors.BusinessRegistrationConnector
 import helpers.BaseSpec
 import models.{ConfirmationReferences, CorporationTaxRegistration}
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.stream.Materializer
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
 import org.mongodb.scala.{MongoCollection, SingleObservable}
-import play.api.mvc.Result
+import play.api.mvc.{ControllerComponents, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import repositories._
+import services.SubmissionService
 import utils.LogCapturingHelper
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -37,21 +39,21 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class TestEndpointControllerSpec extends BaseSpec with LogCapturingHelper {
 
-  implicit val system = ActorSystem("CR")
-  implicit val mat = Materializer(system)
+  implicit val system: ActorSystem = ActorSystem("CR")
+  implicit val mat: Materializer = Materializer(system)
 
-  val mockThrottleRepository = mock[ThrottleMongoRepository]
-  val mockCTRepository = mock[CorporationTaxRegistrationMongoRepository]
-  val mockCTCollection = mock[MongoCollection[CorporationTaxRegistration]]
-  val mockDeleteResult = mock[SingleObservable[DeleteResult]]
+  val mockThrottleRepository: ThrottleMongoRepository = mock[ThrottleMongoRepository]
+  val mockCTRepository: CorporationTaxRegistrationMongoRepository = mock[CorporationTaxRegistrationMongoRepository]
+  val mockCTCollection: MongoCollection[CorporationTaxRegistration] = mock[MongoCollection[CorporationTaxRegistration]]
+  val mockDeleteResult: SingleObservable[DeleteResult] = mock[SingleObservable[DeleteResult]]
 
   class Setup {
     object Controller extends TestEndpointController {
-      val throttleMongoRepository = mockThrottleRepository
-      val cTMongoRepository = mockCTRepository
-      val bRConnector = mockBusRegConnector
-      val submissionService = mockSubmissionService
-      val controllerComponents = stubControllerComponents()
+      val throttleMongoRepository: ThrottleMongoRepository = mockThrottleRepository
+      val cTMongoRepository: CorporationTaxRegistrationMongoRepository = mockCTRepository
+      val bRConnector: BusinessRegistrationConnector = mockBusRegConnector
+      val submissionService: SubmissionService = mockSubmissionService
+      val controllerComponents: ControllerComponents = stubControllerComponents()
       implicit val ec: ExecutionContext = global
     }
   }

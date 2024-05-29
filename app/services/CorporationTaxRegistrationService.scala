@@ -16,20 +16,19 @@
 
 package services
 
-import connectors._
+import cats.implicits._
+import connectors.{BusinessRegistrationConnector, DesConnector, IncorporationCheckAPIConnector, IncorporationInformationConnector}
 import helpers.DateHelper
 import jobs.{LockResponse, MongoLocked, ScheduledService, UnlockingFailed}
 import models.des.BusinessAddress
 import models.validation.APIValidation._
 import models.{HttpResponse => _, _}
-import repositories._
+import repositories.{CorporationTaxRegistrationMongoRepository, Repositories, SequenceMongoRepository}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.lock.LockService
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import utils.{Logging, StringNormaliser}
-import cats._
-import cats.implicits._
 
 import java.time.Instant
 import javax.inject.{Inject, Singleton}
@@ -51,7 +50,7 @@ class CorporationTaxRegistrationServiceImpl @Inject()(val submissionCheckAPIConn
   lazy val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
   lazy val sequenceRepository: SequenceMongoRepository = repositories.sequenceRepository
 
-  lazy val lockoutTimeout = servicesConfig.getInt("schedules.missing-incorporation-job.lockTimeout")
+  lazy val lockoutTimeout: Int = servicesConfig.getInt("schedules.missing-incorporation-job.lockTimeout")
 
   def instantNow: Instant = Instant.now()
 
@@ -166,7 +165,7 @@ trait CorporationTaxRegistrationService extends ScheduledService[Either[String, 
     cTRegistrationRepository.retrieveConfirmationReferences(rID)
 
   def invoke(implicit ec: ExecutionContext): Future[Either[String, LockResponse]] = {
-    implicit val hc = HeaderCarrier()
+    implicit val hc: HeaderCarrier = HeaderCarrier()
     lockKeeper.withLock(locateOldHeldSubmissions).map {
       case None => Right(MongoLocked)
       case Some(res) =>
@@ -185,7 +184,7 @@ trait CorporationTaxRegistrationService extends ScheduledService[Either[String, 
         logger.error("ALERT_missing_incorporations")
         submissions.map { submission =>
           val txID = submission.confirmationReferences.fold("")(cr => cr.transactionId)
-          val heldTimestamp = submission.heldTimestamp.fold("")(ht => ht.toString())
+          val heldTimestamp = submission.heldTimestamp.fold("")(ht => ht.toString)
 
           logger.warn(s"[locateOldHeldSubmissions] Held submission older than one week of regID: ${submission.registrationID} txID: $txID heldDate: $heldTimestamp)")
           true

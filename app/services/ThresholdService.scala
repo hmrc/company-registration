@@ -36,7 +36,7 @@ class ThresholdService @Inject()()(implicit microserviceAppConfig: MicroserviceA
         .sortWith(_.dateTime isAfter _.dateTime)
         .find(model => now.isAfter(model.dateTime) || now.isEqual(model.dateTime))
     }
-    logger.debug(s"[ThresholdService][getVatThreshold] thresholds from config \n ${currentVatThreshold}")
+    logger.debug(s"[ThresholdService][getVatThreshold] thresholds from config \n $currentVatThreshold")
     currentVatThreshold
   }
 

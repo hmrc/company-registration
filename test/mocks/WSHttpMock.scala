@@ -28,7 +28,7 @@ import scala.concurrent.Future
 trait WSHttpMock {
   this: MockitoSugar =>
 
-  lazy val mockWSHttp = mock[HttpClient]
+  lazy val mockWSHttp: HttpClient = mock[HttpClient]
 
   def mockHttpGet[T](url: String, thenReturn: T): OngoingStubbing[Future[T]] = {
     when(mockWSHttp.GET[T](ArgumentMatchers.anyString(), ArgumentMatchers.any(), ArgumentMatchers.any())

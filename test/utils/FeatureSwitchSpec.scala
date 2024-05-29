@@ -23,7 +23,7 @@ import java.time.Instant
 
 class FeatureSwitchSpec extends PlaySpec with BeforeAndAfterEach {
 
-  override def beforeEach() {
+  override def beforeEach(): Unit = {
     System.clearProperty("feature.test")
   }
 

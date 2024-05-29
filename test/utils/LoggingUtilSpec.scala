@@ -18,7 +18,6 @@ package utils
 
 import ch.qos.logback.classic.Level
 import org.scalatestplus.play.PlaySpec
-import uk.gov.hmrc.play.bootstrap.tools.LogCapturing
 
 class LoggingUtilSpec extends PlaySpec with LogCapturingHelper {
 

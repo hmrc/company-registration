@@ -18,7 +18,6 @@ package models.validation
 
 import auth.CryptoSCRS
 import models._
-import org.joda.time.DateTime
 import play.api.libs.json._
 import utils.Logging
 

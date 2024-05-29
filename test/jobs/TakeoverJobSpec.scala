@@ -19,9 +19,8 @@ package jobs
 
 import config.AppStartupJobs
 import models.RegistrationStatus._
-import models.{ContactDetails, PPOBAddress, TradingDetails, _}
-import org.joda.time.DateTime
-import org.mockito.Mockito.{when, _}
+import models._
+import org.mockito.Mockito._
 import org.scalatest.concurrent.Eventually
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
@@ -29,8 +28,9 @@ import play.api.Configuration
 import play.api.test.Helpers._
 import repositories._
 import services.TakeoverDetailsService
-import services.admin.{AdminService, AdminServiceImpl}
+import services.admin.AdminServiceImpl
 import utils.Logging
+import java.time.LocalDateTime
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
@@ -41,12 +41,12 @@ class TakeoverJobSpec extends PlaySpec with MockitoSugar with Logging with Event
   val mockCTRepository: CorporationTaxRegistrationMongoRepository = mock[CorporationTaxRegistrationMongoRepository]
   val mockAdminService: AdminServiceImpl = mock[AdminServiceImpl]
   val mockTakeoverDetailsService: TakeoverDetailsService = mock[TakeoverDetailsService]
-  val expectedLockedReg = List()
+  val expectedLockedReg: List[Nothing] = List()
   val expectedRegStats = Map.empty[String, Int]
 
   "updateTakeoverData" should {
 
-    val dateTime: DateTime = DateTime.parse("2016-10-27T16:28:59.000")
+    val dateTime: LocalDateTime = LocalDateTime.parse("2016-10-27T16:28:59.000")
 
     def takeOverCorporationTaxRegistration(regId: String,
                                            incompleteTakeoverBlock: Boolean): CorporationTaxRegistration = {
@@ -96,10 +96,10 @@ class TakeoverJobSpec extends PlaySpec with MockitoSugar with Logging with Event
       val appStartupJobs: AppStartupJobs = new AppStartupJobs {
         override val config: Configuration = mockConfig
         implicit val ec: ExecutionContext = global
-        override val takeoverDetailsService = mockTakeoverDetailsService
+        override val takeoverDetailsService: TakeoverDetailsService = mockTakeoverDetailsService
         override val ctRepo: CorporationTaxRegistrationMongoRepository = mockCTRepository
 
-        override def runEverythingOnStartUp: Future[Unit] = Future.successful(())
+        override def runEverythingOnStartUp(): Future[Unit] = Future.successful(())
 
       }
 

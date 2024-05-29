@@ -52,7 +52,7 @@ class AdminServiceImpl @Inject()(val corpTaxRegRepo: CorporationTaxRegistrationM
   lazy val clearAfterXDays: Int = servicesConfig.getInt("clearAfterXDays")
   lazy val ignoredDocs: Set[String] = new String(Base64.getDecoder.decode(microserviceAppConfig.getConfigString("skipStaleDocs")), "UTF-8").split(",").toSet
 
-  lazy val lockoutTimeout = servicesConfig.getInt("schedules.remove-stale-documents-job.lockTimeout")
+  lazy val lockoutTimeout: Int = servicesConfig.getInt("schedules.remove-stale-documents-job.lockTimeout")
   lazy val lockKeeper: LockService = LockService(repositories.lockRepository, "remove-stale-documents-job-lock", lockoutTimeout.seconds)
 }
 
@@ -138,7 +138,7 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
   }
 
   def invoke(implicit ec: ExecutionContext): Future[Either[Int, LockResponse]] = {
-    implicit val hc = HeaderCarrier()
+    implicit val hc: HeaderCarrier = HeaderCarrier()
     lockKeeper.withLock(deleteStaleDocuments()).map {
       case None => Right(MongoLocked)
       case Some(res) =>
@@ -177,13 +177,13 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
   }
 
   private[services] def processStaleDocument(doc: CorporationTaxRegistration): Future[Boolean] = {
-    implicit val hc = HeaderCarrier()
+    implicit val hc: HeaderCarrier = HeaderCarrier()
     val documentInfo = DocumentInfo(doc.registrationID, doc.status, doc.lastSignedIn)
 
     logger.info(s"[processStaleDocument] Processing stale document of $documentInfo")
 
     ((doc.status, doc.confirmationReferences) match {
-      case ((DRAFT | HELD | LOCKED), optRefs) => removeStaleDocument(documentInfo, optRefs)
+      case (DRAFT | HELD | LOCKED, optRefs) => removeStaleDocument(documentInfo, optRefs)
       case _ => Future.successful(false)
     }) recover {
       case e: Throwable =>

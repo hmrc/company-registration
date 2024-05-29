@@ -17,6 +17,7 @@
 package controllers
 
 import auth._
+
 import javax.inject.{Inject, Singleton}
 import models.{AccountingDetails, ErrorResponse}
 import play.api.libs.json.{JsObject, JsValue, Json}

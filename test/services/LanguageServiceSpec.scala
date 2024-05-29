@@ -29,11 +29,11 @@ import scala.concurrent.Future
 
 class LanguageServiceSpec extends PlaySpec with MockitoSugar {
 
-  val mockCTRepository = mock[CorporationTaxRegistrationMongoRepository]
+  val mockCTRepository: CorporationTaxRegistrationMongoRepository = mock[CorporationTaxRegistrationMongoRepository]
   val languageService = new LanguageService(mockCTRepository)
 
   val registrationId = "12345"
-  val language = Language(LangConstants.english)
+  val language: Language = Language(LangConstants.english)
 
   "calling .updateLanguage(regId: String, lang: Language)" when {
 

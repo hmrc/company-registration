@@ -30,18 +30,18 @@ import scala.concurrent.{ExecutionContext, Future}
 class SendEmailConnectorSpec extends BaseSpec {
 
   trait Setup {
-    val connector = new SendEmailConnector {
+    val connector: SendEmailConnector = new SendEmailConnector {
       override val sendEmailURL = "testSendEmailURL"
-      override val http = mockWSHttp
+      override val http: HttpClient = mockWSHttp
       implicit val ec: ExecutionContext = global
     }
   }
 
-  implicit val hc = HeaderCarrier()
+  implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  val verifiedEmail = Array("verified@email.com")
+  val verifiedEmail: Array[String] = Array("verified@email.com")
   val returnLinkURL = "testReturnLinkUrl"
-  val emailRequest = SendEmailRequest(
+  val emailRequest: SendEmailRequest = SendEmailRequest(
     to = verifiedEmail,
     templateId = "register_your_company_register_vat_email",
     parameters = Map(),

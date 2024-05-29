@@ -17,6 +17,7 @@
 package utils
 
 import java.time.Instant
+import scala.util.matching.Regex
 
 
 sealed trait FeatureSwitch {
@@ -46,14 +47,14 @@ case class BooleanFeatureSwitch(name: String, enabled: Boolean) extends FeatureS
 case class EnabledTimedFeatureSwitch(name: String, start: Option[Instant], end: Option[Instant], target: Instant) extends TimedFeatureSwitch
 
 case class DisabledTimedFeatureSwitch(name: String, start: Option[Instant], end: Option[Instant], target: Instant) extends TimedFeatureSwitch {
-  override def enabled = !super.enabled
+  override def enabled: Boolean = !super.enabled
 }
 
 
 object FeatureSwitch {
 
-  val DisabledIntervalExtractor = """!(\S+)_(\S+)""".r
-  val EnabledIntervalExtractor = """(\S+)_(\S+)""".r
+  val DisabledIntervalExtractor: Regex = """!(\S+)_(\S+)""".r
+  val EnabledIntervalExtractor: Regex = """(\S+)_(\S+)""".r
   val UNSPECIFIED = "X"
 
   private[utils] def getProperty(name: String): FeatureSwitch = {

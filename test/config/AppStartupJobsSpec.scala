@@ -23,10 +23,10 @@ import models._
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
 import org.scalatest.concurrent.Eventually
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.mockito.MockitoSugar
+import org.scalatestplus.play.PlaySpec
+import play.api.Configuration
 import play.api.test.Helpers._
-import play.api.{Configuration, Logger}
 import repositories._
 import services.TakeoverDetailsService
 import utils.LogCapturingHelper
@@ -42,13 +42,13 @@ class AppStartupJobsSpec extends PlaySpec with MockitoSugar with LogCapturingHel
   val mockCTRepository: CorporationTaxRegistrationMongoRepository = mock[CorporationTaxRegistrationMongoRepository]
   val mockTakeoverDetailsService: TakeoverDetailsService = mock[TakeoverDetailsService]
 
-  val expectedLockedReg = List()
+  val expectedLockedReg: Seq[Nothing] = List()
   val expectedRegStats = Map.empty[String,  Int]
 
   object TestAppStartupJobs extends AppStartupJobs {
     override val config: Configuration = mockConfig
     implicit val ec: ExecutionContext = global
-    override val takeoverDetailsService = mockTakeoverDetailsService
+    override val takeoverDetailsService: TakeoverDetailsService = mockTakeoverDetailsService
     override val ctRepo: CorporationTaxRegistrationMongoRepository = mockCTRepository
     override def runEverythingOnStartUp: Future[Unit] = Future.successful(())
   }
