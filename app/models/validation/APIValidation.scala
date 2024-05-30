@@ -150,42 +150,40 @@ trait AddressValidator extends Logging {
     regex.r
   }
 
-  val linePattern = regexWrap("""[a-zA-Z0-9\/\\("),.'&:;-]{1}[a-zA-Z0-9\/\\("), .'&:;-]{0,26}""")
-  val line4Pattern = regexWrap("""[a-zA-Z0-9\/\\("),.'&:;-]{1}[a-zA-Z0-9\/\\("), .'&:;-]{0,17}""")
-  val postCodePattern = regexWrap("[A-Z]{1,2}[0-9][0-9A-Z]? [0-9][A-Z]{2}")
-  val countryPattern = regexWrap("[A-Za-z0-9]{1}[A-Za-z 0-9]{0,19}")
-  val parentGroupNamePattern = regexWrap("""[A-Z a-z 0-9\\'-]{1,20}$""")
+  val linePattern: Regex = regexWrap("""[a-zA-Z0-9\/\\("),.'&:;-]{1}[a-zA-Z0-9\/\\("), .'&:;-]{0,26}""")
+  val line4Pattern: Regex = regexWrap("""[a-zA-Z0-9\/\\("),.'&:;-]{1}[a-zA-Z0-9\/\\("), .'&:;-]{0,17}""")
+  val postCodePattern: Regex = regexWrap("[A-Z]{1,2}[0-9][0-9A-Z]? [0-9][A-Z]{2}")
+  val countryPattern: Regex = regexWrap("[A-Za-z0-9]{1}[A-Za-z 0-9]{0,19}")
+  val parentGroupNamePattern: Regex = regexWrap("""[A-Z a-z 0-9\\'-]{1,20}$""")
 
-  val lineInvert = regexWrap("""[a-zA-Z0-9\/\\("), .'&;:-]""")
-  val postCodeInvert = regexWrap("[A-Z0-9 ]")
-  val countryInvert = regexWrap("[A-Za-z0-9 ]")
+  val lineInvert: Regex = regexWrap("""[a-zA-Z0-9\/\\("), .'&;:-]""")
+  val postCodeInvert: Regex = regexWrap("[A-Z0-9 ]")
+  val countryInvert: Regex = regexWrap("[A-Za-z0-9 ]")
   //Groups
-  val parentGroupNameInvert = regexWrap("""[A-Z a-z 0-9\\'-]""")
-  val takeoverNameInvert = regexWrap("""[A-Za-z 0-9\\'-]""")
+  val parentGroupNameInvert: Regex = regexWrap("""[A-Z a-z 0-9\\'-]""")
+  val takeoverNameInvert: Regex = regexWrap("""[A-Za-z 0-9\\'-]""")
 
-  def normaliseStringReads(regex: Regex, amountToTake: Int)(implicit implReads: Reads[String]): Reads[String] = new Reads[String] {
-    override def reads(json: JsValue): JsResult[String] = {
-      implReads.reads(json).flatMap { theString =>
-        val string = StringNormaliser.normaliseString(theString, regex)
-        if (theString.nonEmpty && string.isEmpty) {
-          JsError("error.not.normalisable")
-        } else {
-          JsSuccess(string.take(amountToTake))
-        }
+  def normaliseStringReads(regex: Regex, amountToTake: Int)(implicit implReads: Reads[String]): Reads[String] = (json: JsValue) => {
+    implReads.reads(json).flatMap { theString =>
+      val string = StringNormaliser.normaliseString(theString, regex)
+      if (theString.nonEmpty && string.isEmpty) {
+        JsError("error.not.normalisable")
+      } else {
+        JsSuccess(string.take(amountToTake))
       }
     }
   }
 
-  def chainedNormaliseReads(regex: Regex, maxLength: Int) = {
+  def chainedNormaliseReads(regex: Regex, maxLength: Int): Reads[String] = {
     length(maxLength)(normaliseStringReads(regex, maxLength))
   }
 
-  val parentGroupNameValidator = readToFmt(pattern(parentGroupNamePattern)(chainedNormaliseReads(parentGroupNameInvert, 20)))
+  val parentGroupNameValidator: Format[String] = readToFmt(pattern(parentGroupNamePattern)(chainedNormaliseReads(parentGroupNameInvert, 20)))
 
-  val lineValidator = readToFmt(pattern(linePattern)(chainedNormaliseReads(lineInvert, 27)))
-  val line4Validator = readToFmt(pattern(line4Pattern)(chainedNormaliseReads(lineInvert, 18)))
-  val postcodeValidator = readToFmt(pattern(postCodePattern)(chainedNormaliseReads(postCodeInvert, 20)))
-  val countryValidator = readToFmt(pattern(countryPattern)(chainedNormaliseReads(countryInvert, 20)))
+  val lineValidator: Format[String] = readToFmt(pattern(linePattern)(chainedNormaliseReads(lineInvert, 27)))
+  val line4Validator: Format[String] = readToFmt(pattern(line4Pattern)(chainedNormaliseReads(lineInvert, 18)))
+  val postcodeValidator: Format[String] = readToFmt(pattern(postCodePattern)(chainedNormaliseReads(postCodeInvert, 20)))
+  val countryValidator: Format[String] = readToFmt(pattern(countryPattern)(chainedNormaliseReads(countryInvert, 20)))
 
   override def groupNameValidation: Format[String] = new Format[String] {
     override def reads(json: JsValue): JsResult[String] = {

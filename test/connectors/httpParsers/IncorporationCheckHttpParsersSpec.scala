@@ -17,19 +17,18 @@
 package connectors.httpParsers
 
 import ch.qos.logback.classic.Level
-import connectors.{BusinessRegistrationForbiddenResponse, BusinessRegistrationNotFoundResponse, BusinessRegistrationSuccessResponse, SubmissionAPIFailure}
-import fixtures.BusinessRegistrationFixture
+import connectors.SubmissionAPIFailure
 import helpers.BaseSpec
-import models.{IncorpUpdate, SubmissionCheckResponse}
-import play.api.http.Status.{FORBIDDEN, INTERNAL_SERVER_ERROR, NOT_FOUND, OK}
-import play.api.libs.json.{JsResultException, Json}
+import models.SubmissionCheckResponse
+import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK}
+import play.api.libs.json.{JsObject, JsResultException, Json}
 import uk.gov.hmrc.http.HttpResponse
 import utils.LogCapturingHelper
 
 class IncorporationCheckHttpParsersSpec extends BaseSpec with LogCapturingHelper {
 
-  val submissionCheckResponse = SubmissionCheckResponse(Seq(), "/foo/bar")
-  val submissionCheckResponseJson = Json.obj(
+  val submissionCheckResponse: SubmissionCheckResponse = SubmissionCheckResponse(Seq(), "/foo/bar")
+  val submissionCheckResponseJson: JsObject = Json.obj(
     "items" -> Json.arr(),
     "links" -> Json.obj(
       "next" -> "/foo/bar"

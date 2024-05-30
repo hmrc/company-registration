@@ -24,7 +24,7 @@ import org.mongodb.scala.bson.BsonDocument
 import utils.Logging
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
-import repositories._
+import repositories.{CorporationTaxRegistrationMongoRepository, Repositories, ThrottleMongoRepository}
 import services.SubmissionService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendBaseController
 
@@ -37,8 +37,8 @@ class TestEndpointControllerImpl @Inject()(val submissionService: SubmissionServ
                                            val repositories: Repositories,
                                            val controllerComponents: ControllerComponents
                                           )(implicit val ec: ExecutionContext) extends TestEndpointController {
-  lazy val throttleMongoRepository = repositories.throttleRepository
-  lazy val cTMongoRepository = repositories.cTRepository
+  lazy val throttleMongoRepository: ThrottleMongoRepository = repositories.throttleRepository
+  lazy val cTMongoRepository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 }
 
 trait TestEndpointController extends BackendBaseController with Logging {
@@ -48,18 +48,18 @@ trait TestEndpointController extends BackendBaseController with Logging {
   val bRConnector: BusinessRegistrationConnector
   val submissionService: SubmissionService
 
-  def modifyThrottledUsers(usersIn: Int) = Action.async {
+  def modifyThrottledUsers(usersIn: Int): Action[AnyContent] = Action.async {
     val date = DateHelper.getCurrentDay
     throttleMongoRepository.modifyThrottledUsers(date, usersIn).map(x => Ok(Json.parse(s"""{"users_in" : $x}""")))
   }
 
-  def dropCTCollection = {
+  private def dropCTCollection = {
     cTMongoRepository.collection.deleteMany(BsonDocument()).toFuture() map { _ => "CT collection was dropped" } recover {
       case _ => "A problem occurred and the CT Collection could not be dropped"
     }
   }
 
-  def dropJourneyCollections = Action.async {
+  def dropJourneyCollections: Action[AnyContent] = Action.async {
     implicit request =>
       for {
         cTDrop <- dropCTCollection
@@ -69,10 +69,6 @@ trait TestEndpointController extends BackendBaseController with Logging {
       }
   }
 
-  def updateSubmissionStatusToHeld(registrationId: String) = Action.async {
-    cTMongoRepository.updateSubmissionStatus(registrationId, "Held").map(_ => Ok)
-  }
-
   def updateConfirmationRefs(registrationId: String): Action[AnyContent] = Action.async {
     implicit request =>
       val confirmationRefs = ConfirmationReferences("", "testOnlyTransactionId", Some("testOnlyPaymentRef"), Some("12"))
@@ -80,11 +76,11 @@ trait TestEndpointController extends BackendBaseController with Logging {
         .map(_ => Ok)
   }
 
-  def removeTaxRegistrationInformation(registrationId: String) = Action.async {
+  def removeTaxRegistrationInformation(registrationId: String): Action[AnyContent] = Action.async {
     cTMongoRepository.removeTaxRegistrationInformation(registrationId) map (if (_) Ok else BadRequest)
   }
 
-  def pagerDuty(name: String) = Action.async {
+  def pagerDuty(name: String): Action[AnyContent] = Action.async {
     logger.error(name)
     Future.successful(Ok)
   }

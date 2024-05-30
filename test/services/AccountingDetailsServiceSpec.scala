@@ -22,14 +22,15 @@ import models.SubmissionDates
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import play.api.test.Helpers._
+import repositories.CorporationTaxRegistrationMongoRepository
 
 import java.time.LocalDate
 
 class AccountingDetailsServiceSpec extends PlaySpec with MockitoSugar with SCRSMocks with AccountingDetailsFixture {
 
   trait Setup {
-    val service = new AccountingDetailsService {
-      override val corporationTaxRegistrationMongoRepository = mockCTDataRepository
+    val service: AccountingDetailsService = new AccountingDetailsService {
+      override val corporationTaxRegistrationMongoRepository: CorporationTaxRegistrationMongoRepository = mockCTDataRepository
       override val doNotIndendToTradeDefaultDate = "1900-01-01"
     }
   }
@@ -98,8 +99,8 @@ class AccountingDetailsServiceSpec extends PlaySpec with MockitoSugar with SCRSM
     "called with 'Date of incorporation' selected" must {
 
       "return the date of Incorporation and Accounting preparation date as provided by user" in new Setup {
-        val dateOfIncorp = date("2020-01-01")
-        val providedDate = date("2020-01-01")
+        val dateOfIncorp: LocalDate = date("2020-01-01")
+        val providedDate: LocalDate = date("2020-01-01")
 
         val result: SubmissionDates = service.calculateSubmissionDates(dateOfIncorp, ActiveOnIncorporation, Some(providedDate))
 
@@ -109,8 +110,8 @@ class AccountingDetailsServiceSpec extends PlaySpec with MockitoSugar with SCRSM
       }
 
       "return the date of Incorporation and Accounting preparation date calculated as the end of the month 1 year from the Incorporation date" in new Setup {
-        val dateOfIncorp = date("2020-01-01")
-        val targetPrepDate = date("2021-01-31")
+        val dateOfIncorp: LocalDate = date("2020-01-01")
+        val targetPrepDate: LocalDate = date("2021-01-31")
 
         val result: SubmissionDates = service.calculateSubmissionDates(dateOfIncorp, ActiveOnIncorporation, None)
 
@@ -124,9 +125,9 @@ class AccountingDetailsServiceSpec extends PlaySpec with MockitoSugar with SCRSM
     "called with 'Future start date' provided" must {
 
       "return the date of Incorporation and Accounting preparation date as provided by user" in new Setup {
-        val futureDate = date("2020-01-01")
-        val providedDate = date("2021-01-01")
-        val dateOfIncorp = date("2020-01-01")
+        val futureDate: LocalDate = date("2020-01-01")
+        val providedDate: LocalDate = date("2021-01-01")
+        val dateOfIncorp: LocalDate = date("2020-01-01")
 
         val result: SubmissionDates = service.calculateSubmissionDates(dateOfIncorp, ActiveInFuture(futureDate), Some(providedDate))
 
@@ -136,9 +137,9 @@ class AccountingDetailsServiceSpec extends PlaySpec with MockitoSugar with SCRSM
       }
 
       "return the date of Incorporation and Accounting preparation date calculated as the end of the month 1 year from the Future date" in new Setup {
-        val futureDate = date("2020-01-01")
+        val futureDate: LocalDate = date("2020-01-01")
         val dateOfIncorp: LocalDate = date("2019-06-08")
-        val targetPrepDate = date("2021-01-31")
+        val targetPrepDate: LocalDate = date("2021-01-31")
 
         val result: SubmissionDates = service.calculateSubmissionDates(dateOfIncorp, ActiveInFuture(futureDate), None)
 

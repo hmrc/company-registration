@@ -19,7 +19,7 @@ package fixtures
 import config.LangConstants
 import controllers.routes
 import models._
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsObject, Json, OFormat}
 
 case class CorporationTaxRegistrationResponse(
   registrationID: String,
@@ -29,19 +29,19 @@ case class CorporationTaxRegistrationResponse(
 )
 
 object CorporationTaxRegistrationResponse {
-  implicit val linksFormats = Json.format[Links]
-  implicit val formats = Json.format[CorporationTaxRegistrationResponse]
+  implicit val linksFormats: OFormat[Links] = Json.format[Links]
+  implicit val formats: OFormat[CorporationTaxRegistrationResponse] = Json.format[CorporationTaxRegistrationResponse]
 }
 
 trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with AccountingDetailsFixture with ContactDetailsFixture {
 
   import RegistrationStatus._
 
-  val validCorporationTaxRegistrationRequest = CorporationTaxRegistrationRequest("en")
+  val validCorporationTaxRegistrationRequest: CorporationTaxRegistrationRequest = CorporationTaxRegistrationRequest("en")
 
-  val validDraftCorporationTaxRegistration = draftCorporationTaxRegistration("0123456789")
+  val validDraftCorporationTaxRegistration: CorporationTaxRegistration = draftCorporationTaxRegistration("0123456789")
 
-  def draftCorporationTaxRegistration(regId: String, doneHO5: Boolean = false) = CorporationTaxRegistration(
+  def draftCorporationTaxRegistration(regId: String, doneHO5: Boolean = false): CorporationTaxRegistration = CorporationTaxRegistration(
     internalId = "tiid",
     registrationID = regId,
     status = DRAFT,
@@ -56,16 +56,16 @@ trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with Accou
     registrationProgress = if(doneHO5) Some("ho5") else None
   )
 
-  def validConfRefsWithData(ackRef: Option[String] = None) = ConfirmationReferences(
+  def validConfRefsWithData(ackRef: Option[String] = None): ConfirmationReferences = ConfirmationReferences(
     acknowledgementReference = ackRef.getOrElse("BRCT12345678910"),
     transactionId = "testTransactionId",
     paymentReference = Some("testPaymentReference"),
     paymentAmount = Some("12.00")
   )
 
-  val validConfirmationReferences = validConfRefsWithData()
+  val validConfirmationReferences: ConfirmationReferences = validConfRefsWithData()
 
-  def validHeldCTRegWithData(regId: String = "0123456789", ackRef: Option[String] = None) = CorporationTaxRegistration(
+  def validHeldCTRegWithData(regId: String = "0123456789", ackRef: Option[String] = None): CorporationTaxRegistration = CorporationTaxRegistration(
     internalId = "testInternalId",
     registrationID = regId,
     status = HELD,
@@ -78,7 +78,7 @@ trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with Accou
     contactDetails = None
   )
 
-  def validCTRegWithCompanyName(regId: String = "0123456789", companyName: String) = CorporationTaxRegistration(
+  def validCTRegWithCompanyName(regId: String = "0123456789", companyName: String): CorporationTaxRegistration = CorporationTaxRegistration(
     internalId = "testInternalId",
     registrationID = regId,
     status = HELD,
@@ -92,9 +92,9 @@ trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with Accou
     takeoverDetails = None
   )
 
-  val validHeldCorporationTaxRegistration = validHeldCTRegWithData()
+  val validHeldCorporationTaxRegistration: CorporationTaxRegistration = validHeldCTRegWithData()
 
-  val validCorporationTaxRegistrationResponse = CorporationTaxRegistrationResponse(
+  val validCorporationTaxRegistrationResponse: CorporationTaxRegistrationResponse = CorporationTaxRegistrationResponse(
     registrationID = "0123456789",
     status = DRAFT,
     formCreationTimestamp = "2001-12-31T12:00:00Z",
@@ -103,7 +103,7 @@ trait CorporationTaxRegistrationFixture extends CompanyDetailsFixture with Accou
 
   def buildCTRegistrationResponse(regId: String = "0123456789",
                                   status: String = DRAFT,
-                                  timeStamp: String = "2001-12-31T12:00:00Z") = {
+                                  timeStamp: String = "2001-12-31T12:00:00Z"): CorporationTaxRegistrationResponse = {
     CorporationTaxRegistrationResponse(
       registrationID = regId,
       status = status,

@@ -16,12 +16,10 @@
 
 package connectors.httpParsers
 
-import connectors._
-import models.{BusinessRegistration, SubmissionCheckResponse}
-import play.api.http.Status.{BAD_REQUEST, FORBIDDEN, NOT_FOUND, OK}
-import play.api.libs.json.__
-import play.api.mvc.Results.Status
-import uk.gov.hmrc.http.{HttpException, HttpReads, HttpResponse}
+import connectors.{BaseConnector, SubmissionAPIFailure}
+import models.SubmissionCheckResponse
+import play.api.http.Status.OK
+import uk.gov.hmrc.http.{HttpReads, HttpResponse}
 
 trait IncorporationCheckHttpParsers extends BaseHttpReads { _: BaseConnector =>
 

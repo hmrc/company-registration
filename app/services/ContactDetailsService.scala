@@ -23,7 +23,7 @@ import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import scala.concurrent.Future
 
 class ContactDetailsServiceImpl @Inject()(val repositories: Repositories) extends ContactDetailsService {
-  lazy val corporationTaxRegistrationMongoRepository = repositories.cTRepository
+  lazy val corporationTaxRegistrationMongoRepository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 }
 
 trait ContactDetailsService {

@@ -16,12 +16,12 @@
 
 package services
 
-import audit.FailedIncorporationAuditEventDetail
+import audit.{CTRegistrationSubmissionAuditEventDetails, FailedIncorporationAuditEventDetail}
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
-import play.api.libs.json.Json
+import play.api.libs.json.{JsObject, Json}
 import play.api.test.DefaultAwaitTimeout
 import play.api.test.Helpers.await
 import uk.gov.hmrc.http.HeaderCarrier
@@ -33,37 +33,37 @@ import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
 import java.time.Instant
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
 class AuditServiceSpec extends PlaySpec with MockitoSugar with DefaultAwaitTimeout {
 
-  val mockAuditConnector = mock[AuditConnector]
+  val mockAuditConnector: AuditConnector = mock[AuditConnector]
 
-  implicit val hc = HeaderCarrier()
+  implicit val hc: HeaderCarrier = HeaderCarrier()
 
   class Setup(otherHcHeaders: Seq[(String, String)] = Seq()) {
 
-    implicit val hc = HeaderCarrier(otherHeaders = otherHcHeaders)
-    implicit val ec = ExecutionContext.global
+    implicit val hc: HeaderCarrier = HeaderCarrier(otherHeaders = otherHcHeaders)
+    implicit val ec: ExecutionContextExecutor = ExecutionContext.global
 
-    val mockAuditConnector = mock[AuditConnector]
-    val mockAuditingConfig = mock[AuditingConfig]
+    val mockAuditConnector: AuditConnector = mock[AuditConnector]
+    val mockAuditingConfig: AuditingConfig = mock[AuditingConfig]
 
-    val instantNow = Instant.now()
+    val instantNow: Instant = Instant.now()
     val appName = "business-registration-notification"
     val auditType = "testAudit"
-    val testEventId = UUID.randomUUID().toString
+    val testEventId: String = UUID.randomUUID().toString
     val txnName = "transactionName"
 
     when(mockAuditConnector.auditingConfig) thenReturn mockAuditingConfig
     when(mockAuditingConfig.auditSource) thenReturn appName
 
-    val event = FailedIncorporationAuditEventDetail("journeyId", "REJECTED")
+    val event: FailedIncorporationAuditEventDetail = FailedIncorporationAuditEventDetail("journeyId", "REJECTED")
 
     object TestService extends AuditService {
 
       implicit val ec: ExecutionContext = global
-      override val auditConnector = mockAuditConnector
+      override val auditConnector: AuditConnector = mockAuditConnector
 
       override private[services] def now() = instantNow
       override private[services] def eventId() = testEventId
@@ -73,12 +73,12 @@ class AuditServiceSpec extends PlaySpec with MockitoSugar with DefaultAwaitTimeo
   "ctRegSubmissionFromJson" must {
     "construct a CTRegistrationSubmissionAuditEventDetails with ackRef and processingDate defined" when {
       "given a successful DES Response" in new Setup {
-        val desResponse = Json.obj(
+        val desResponse: JsObject = Json.obj(
           "processingDate" -> "testDate",
           "acknowledgementReference" -> "testAckRef"
         )
 
-        val result = TestService.ctRegSubmissionFromJson("testJourneyId", desResponse)
+        val result: CTRegistrationSubmissionAuditEventDetails = TestService.ctRegSubmissionFromJson("testJourneyId", desResponse)
 
         result.processingDate mustBe Some("testDate")
         result.acknowledgementReference mustBe Some("testAckRef")
@@ -88,11 +88,11 @@ class AuditServiceSpec extends PlaySpec with MockitoSugar with DefaultAwaitTimeo
 
     "construct a CTRegistrationSubmissionAuditEventDetails with only the reason defined" when {
       "given a failed DES Response" in new Setup {
-        val desResponse = Json.obj(
+        val desResponse: JsObject = Json.obj(
           "reason" -> "testReason"
         )
 
-        val result = TestService.ctRegSubmissionFromJson("testJourneyId", desResponse)
+        val result: CTRegistrationSubmissionAuditEventDetails = TestService.ctRegSubmissionFromJson("testJourneyId", desResponse)
 
         result.processingDate mustBe None
         result.acknowledgementReference mustBe None
@@ -125,7 +125,7 @@ class AuditServiceSpec extends PlaySpec with MockitoSugar with DefaultAwaitTimeo
             )
           ) thenReturn Future.successful(AuditResult.Success)
 
-          val actual = await(TestService.sendEvent(auditType, event, Some(txnName)))
+          val actual: AuditResult = await(TestService.sendEvent(auditType, event, Some(txnName)))
 
           actual mustBe AuditResult.Success
         }
@@ -154,7 +154,7 @@ class AuditServiceSpec extends PlaySpec with MockitoSugar with DefaultAwaitTimeo
             )
           ) thenReturn Future.successful(AuditResult.Success)
 
-          val actual = await(TestService.sendEvent(auditType, event, None))
+          val actual: AuditResult = await(TestService.sendEvent(auditType, event, None))
 
           actual mustBe AuditResult.Success
         }
@@ -184,7 +184,7 @@ class AuditServiceSpec extends PlaySpec with MockitoSugar with DefaultAwaitTimeo
           )
         ) thenReturn Future.failed(exception)
 
-        val actual = intercept[Exception](await(TestService.sendEvent(auditType, event, Some(txnName))))
+        val actual: Exception = intercept[Exception](await(TestService.sendEvent(auditType, event, Some(txnName))))
 
         actual.getMessage mustBe exception.getMessage
       }

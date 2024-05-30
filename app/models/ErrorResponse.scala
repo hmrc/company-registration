@@ -16,7 +16,7 @@
 
 package models
 
-import play.api.libs.json.{JsValue, Json, Writes}
+import play.api.libs.json.{JsValue, Json, OFormat, Writes}
 
 case class ErrorResponse(statusCode: String, message: String) {
   def toJson(implicit writes: Writes[ErrorResponse]): JsValue = {
@@ -25,13 +25,13 @@ case class ErrorResponse(statusCode: String, message: String) {
 }
 
 object ErrorResponse {
-  implicit val formats = Json.format[ErrorResponse]
+  implicit val formats: OFormat[ErrorResponse] = Json.format[ErrorResponse]
 
-  lazy val MetadataNotFound = ErrorResponse("404", "Could not find metadata record").toJson
-  lazy val companyDetailsNotFound = ErrorResponse("404", "Could not find company details record").toJson
-  lazy val chHandoffDetailsNotFound = ErrorResponse("404", "Could not find CH handoff data").toJson
-  lazy val chHandoffDetailsNotStored = ErrorResponse("400", "Could not store the CH handoff data").toJson
-  lazy val accountingDetailsNotFound = ErrorResponse("404", "Could not find accounting details record").toJson
-  lazy val tradingDetailsNotFound = ErrorResponse("404", "Could not find trading details record").toJson
-  lazy val contactDetailsNotFound = ErrorResponse("404", "Could not find company details record").toJson
+  lazy val MetadataNotFound: JsValue = ErrorResponse("404", "Could not find metadata record").toJson
+  lazy val companyDetailsNotFound: JsValue = ErrorResponse("404", "Could not find company details record").toJson
+  lazy val chHandoffDetailsNotFound: JsValue = ErrorResponse("404", "Could not find CH handoff data").toJson
+  lazy val chHandoffDetailsNotStored: JsValue = ErrorResponse("400", "Could not store the CH handoff data").toJson
+  lazy val accountingDetailsNotFound: JsValue = ErrorResponse("404", "Could not find accounting details record").toJson
+  lazy val tradingDetailsNotFound: JsValue = ErrorResponse("404", "Could not find trading details record").toJson
+  lazy val contactDetailsNotFound: JsValue = ErrorResponse("404", "Could not find company details record").toJson
 }

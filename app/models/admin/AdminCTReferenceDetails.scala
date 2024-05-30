@@ -23,7 +23,7 @@ case class AdminCTReferenceDetails(previousUtr: Option[String], newUtr: String, 
 object AdminCTReferenceDetails {
   val format: Format[AdminCTReferenceDetails] = Json.format[AdminCTReferenceDetails]
 
-  val adminAuditWrites = new Writes[AdminCTReferenceDetails] {
+  val adminAuditWrites: Writes[AdminCTReferenceDetails] = new Writes[AdminCTReferenceDetails] {
     override def writes(o: AdminCTReferenceDetails): JsValue = {
       val prevUtr = o.previousUtr.getOrElse("NO-UTR")
 

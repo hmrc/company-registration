@@ -18,7 +18,7 @@ package fixtures
 
 import controllers.routes
 import models._
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 
 case class AccountingDetailsResponse(accountingDateStatus : String,
                                      startDateOfBusiness : Option[String],
@@ -26,7 +26,7 @@ case class AccountingDetailsResponse(accountingDateStatus : String,
 }
 
 object AccountingDetailsResponse {
-  implicit val formats = Json.format[AccountingDetailsResponse]
+  implicit val formats: OFormat[AccountingDetailsResponse] = Json.format[AccountingDetailsResponse]
   def buildLinks(registrationID: String): Links = {
     Links(
       self = Some(routes.AccountingDetailsController.retrieveAccountingDetails(registrationID).url),
@@ -38,12 +38,12 @@ object AccountingDetailsResponse {
 
 trait AccountingDetailsFixture {
 
-  val validAccountingDetails = AccountingDetails( AccountingDetails.FUTURE_DATE, Some("2016-08-16") )
+  val validAccountingDetails: AccountingDetails = AccountingDetails( AccountingDetails.FUTURE_DATE, Some("2016-08-16") )
 
-  val accountingDetailsNoStartDateOfBusiness = AccountingDetails( AccountingDetails.WHEN_REGISTERED, None )
+  val accountingDetailsNoStartDateOfBusiness: AccountingDetails = AccountingDetails( AccountingDetails.WHEN_REGISTERED, None )
 
   import AccountingDetailsResponse.buildLinks
-  val validAccountingDetailsResponse = AccountingDetailsResponse(
+  val validAccountingDetailsResponse: AccountingDetailsResponse = AccountingDetailsResponse(
     accountingDateStatus = validAccountingDetails.status,
     startDateOfBusiness = validAccountingDetails.activeDate,
     buildLinks("12345")

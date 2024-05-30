@@ -16,9 +16,9 @@
 
 package controllers
 
-import akka.actor.ActorSystem
-import akka.stream.Materializer
 import models.IncorpStatus
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.stream.Materializer
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.concurrent.Eventually
@@ -26,6 +26,7 @@ import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.Reads._
 import play.api.libs.json.{JsObject, Json}
+import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import services._
@@ -37,17 +38,17 @@ import scala.concurrent.Future
 
 class ProcessIncorporationsControllerSpec extends PlaySpec with MockitoSugar with LogCapturingHelper with Eventually {
 
-  implicit val as = ActorSystem()
-  implicit val mat = Materializer(as)
+  implicit val as: ActorSystem = ActorSystem()
+  implicit val mat: Materializer = Materializer(as)
 
   val regId = "1234"
-  val incDate = LocalDate.parse("2000-12-12")
+  val incDate: LocalDate = LocalDate.parse("2000-12-12")
   val transactionId = "trans-12345"
   val crn = "crn-12345"
 
-  val mockProcessIncorporationService = mock[ProcessIncorporationService]
-  val mockCorpRegTaxService = mock[CorporationTaxRegistrationService]
-  val mockSubmissionService = mock[SubmissionService]
+  val mockProcessIncorporationService: ProcessIncorporationService = mock[ProcessIncorporationService]
+  val mockCorpRegTaxService: CorporationTaxRegistrationService = mock[CorporationTaxRegistrationService]
+  val mockSubmissionService: SubmissionService = mock[SubmissionService]
 
   class Setup {
     object Controller extends ProcessIncorporationsController(mockProcessIncorporationService,
@@ -57,7 +58,7 @@ class ProcessIncorporationsControllerSpec extends PlaySpec with MockitoSugar wit
     }
   }
 
-  val rejectedIncorpJson = Json.parse(
+  val rejectedIncorpJson: JsObject = Json.parse(
     s"""
        |{
        |  "SCRSIncorpStatus":{
@@ -77,9 +78,9 @@ class ProcessIncorporationsControllerSpec extends PlaySpec with MockitoSugar wit
        |}
     """.stripMargin).as[JsObject]
 
-  val rejectedIncorpStatus = IncorpStatus(transactionId, "rejected", None, Some("description"), None)
+  val rejectedIncorpStatus: IncorpStatus = IncorpStatus(transactionId, "rejected", None, Some("description"), None)
 
-  val acceptedIncorpJson = Json.parse(
+  val acceptedIncorpJson: JsObject = Json.parse(
     s"""
        |{
        |  "SCRSIncorpStatus":{
@@ -100,13 +101,13 @@ class ProcessIncorporationsControllerSpec extends PlaySpec with MockitoSugar wit
        |}
     """.stripMargin).as[JsObject]
 
-  val DESFailedJson = Json.parse(
+  val DESFailedJson: JsObject = Json.parse(
     s"""
        |{
        |}
     """.stripMargin).as[JsObject]
 
-  val acceptedIncorpStatus = IncorpStatus(transactionId, "accepted", Some(crn), None, Some(incDate))
+  val acceptedIncorpStatus: IncorpStatus = IncorpStatus(transactionId, "accepted", Some(crn), None, Some(incDate))
 
   "ProcessAdminIncorp" must {
 
@@ -122,9 +123,9 @@ class ProcessIncorporationsControllerSpec extends PlaySpec with MockitoSugar wit
 
       when(mockProcessIncorporationService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.successful(true))
 
-      val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
+      val request: FakeRequest[JsObject] = FakeRequest().withBody[JsObject](rejectedIncorpJson)
 
-      val result = call(Controller.processAdminIncorporation, request)
+      val result: Future[Result] = call(Controller.processAdminIncorporation, request)
 
       status(result) mustBe 200
 
@@ -140,8 +141,8 @@ class ProcessIncorporationsControllerSpec extends PlaySpec with MockitoSugar wit
     "return a 200 response " in new Setup {
       when(mockProcessIncorporationService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.successful(true))
 
-      val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
-      val result = call(Controller.processIncorporationNotification, request)
+      val request: FakeRequest[JsObject] = FakeRequest().withBody[JsObject](rejectedIncorpJson)
+      val result: Future[Result] = call(Controller.processIncorporationNotification, request)
 
       status(result) mustBe 200
     }
@@ -151,7 +152,7 @@ class ProcessIncorporationsControllerSpec extends PlaySpec with MockitoSugar wit
     "log the correct error message" in new Setup {
       when(mockProcessIncorporationService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.failed(new RuntimeException))
 
-      val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
+      val request: FakeRequest[JsObject] = FakeRequest().withBody[JsObject](rejectedIncorpJson)
       withCaptureOfLoggingFrom(Controller.logger) { logEvents =>
         intercept[RuntimeException](await(call(Controller.processIncorporationNotification, request)))
         eventually {
@@ -167,8 +168,8 @@ class ProcessIncorporationsControllerSpec extends PlaySpec with MockitoSugar wit
     "return a 202 response for non admin flow" in new Setup {
       when(mockProcessIncorporationService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.successful(false))
       when(mockSubmissionService.setupPartialForTopupOnLocked(any())(any(), any())).thenReturn(Future.successful(false))
-      val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
-      val result = call(Controller.processIncorporationNotification, request)
+      val request: FakeRequest[JsObject] = FakeRequest().withBody[JsObject](rejectedIncorpJson)
+      val result: Future[Result] = call(Controller.processIncorporationNotification, request)
 
       status(result) mustBe 202
     }
@@ -176,8 +177,8 @@ class ProcessIncorporationsControllerSpec extends PlaySpec with MockitoSugar wit
 
     "return a 500 response for admin flow" in new Setup {
       when(mockProcessIncorporationService.processIncorporationUpdate(any(), any())(any())).thenReturn(Future.successful(false))
-      val request = FakeRequest().withBody[JsObject](rejectedIncorpJson)
-      val result = call(Controller.processAdminIncorporation, request)
+      val request: FakeRequest[JsObject] = FakeRequest().withBody[JsObject](rejectedIncorpJson)
+      val result: Future[Result] = call(Controller.processAdminIncorporation, request)
 
       status(result) mustBe 400
 

@@ -18,7 +18,7 @@ package services
 
 import config.MicroserviceAppConfig
 import play.api.mvc.ControllerComponents
-import repositories.Repositories
+import repositories.{Repositories, ThrottleMongoRepository}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import java.time.LocalDate
@@ -39,11 +39,11 @@ class ThrottleService @Inject()(val repositories: Repositories,
                                )(implicit val ec: ExecutionContext) extends BackendController(controllerComponents) {
 
 
-  lazy val throttleMongoRepository = repositories.throttleRepository
+  lazy val throttleMongoRepository: ThrottleMongoRepository = repositories.throttleRepository
 
-  def date = LocalDate.now()
+  def date: LocalDate = LocalDate.now()
 
-  lazy val threshold = config.threshold
+  lazy val threshold: Int = config.threshold
 
 
   def checkUserAccess: Future[Boolean] = {

@@ -16,8 +16,9 @@
 
 package config
 
-import akka.actor.ActorSystem
 import com.typesafe.config.Config
+import org.apache.pekko.actor.ActorSystem
+
 import javax.inject.Inject
 import play.api.Configuration
 import uk.gov.hmrc.http._
@@ -40,7 +41,7 @@ trait WSHttpSCRS extends
   HttpPatch with WSPatch
 
 abstract class WSHttpSCRSImpl @Inject()(val actorSystem: ActorSystem, val appNameConfiguration: Configuration, val auditConnector: AuditConnector) extends WSHttpSCRS with HttpClient {
-  override val hooks = NoneRequired
+  override val hooks: Seq[Nothing] = NoneRequired
 
   override protected def configuration: Config = appNameConfiguration.underlying
 }

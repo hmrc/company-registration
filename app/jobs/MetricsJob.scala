@@ -16,16 +16,17 @@
 
 package jobs
 
-import akka.actor.ActorSystem
-import javax.inject.Inject
 import jobs.SchedulingActor.UpdateMetrics
+import org.apache.pekko.actor.ActorSystem
 import play.api.Configuration
 import services.MetricsService
+
+import javax.inject.Inject
 
 class MetricsJob @Inject()(val metricsService: MetricsService,
                            val config: Configuration) extends ScheduledJob {
   val jobName = "metrics-job"
-  val actorSystem = ActorSystem(jobName)
-  val scheduledMessage = UpdateMetrics(metricsService)
+  val actorSystem: ActorSystem = ActorSystem(jobName)
+  val scheduledMessage: UpdateMetrics = UpdateMetrics(metricsService)
   schedule
 }

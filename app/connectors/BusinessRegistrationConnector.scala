@@ -18,11 +18,8 @@ package connectors
 
 import connectors.httpParsers.BusinessRegistrationHttpParsers
 import models.{BusinessRegistration, BusinessRegistrationRequest}
-import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.{HttpClient, _}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import uk.gov.hmrc.http.HttpClient
-import utils.Logging
 
 import java.time.Instant
 import javax.inject.{Inject, Singleton}
@@ -32,7 +29,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class BusinessRegistrationConnectorImpl @Inject()(val http: HttpClient, servicesConfig: ServicesConfig
                                                  )(implicit val ec: ExecutionContext) extends BusinessRegistrationConnector {
 
-  lazy val businessRegUrl = servicesConfig.baseUrl("business-registration")
+  lazy val businessRegUrl: String = servicesConfig.baseUrl("business-registration")
 }
 
 sealed trait BusinessRegistrationResponse
@@ -84,7 +81,7 @@ trait BusinessRegistrationConnector extends BaseConnector with BusinessRegistrat
 
   def adminRemoveMetadata(registrationId: String): Future[Boolean] =
     withRecovery()("adminRemoveMetadata") {
-      implicit val hc = HeaderCarrier()
+      implicit val hc: HeaderCarrier = HeaderCarrier()
       http.GET[Boolean](s"$businessRegUrl/business-registration/admin/business-tax-registration/remove/$registrationId")(removeMetadataAdminHttpReads(registrationId), hc, ec)
     }
 

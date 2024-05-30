@@ -37,7 +37,7 @@ class DesConnectorImpl @Inject()(val metricsService: MetricsService,
                                  val auditConnector: AuditConnector
                                 )(implicit val ec: ExecutionContext) extends DesConnector {
 
-  lazy val serviceURL = servicesConfig.baseUrl("des-service")
+  lazy val serviceURL: String = servicesConfig.baseUrl("des-service")
   lazy val urlHeaderEnvironment: String = microserviceAppConfig.getConfigString("des-service.environment")
   lazy val urlHeaderAuthorization: String = s"Bearer ${
     microserviceAppConfig.getConfigString("des-service.authorization-token")
@@ -59,7 +59,7 @@ trait DesConnector extends AuditService with RawResponseReads with HttpErrorFunc
   val metricsService: MetricsService
 
   def ctSubmission(ackRef: String, submission: JsObject, journeyId: String, isAdmin: Boolean = false)(implicit headerCarrier: HeaderCarrier): Future[HttpResponse] = {
-    val url: String = s"""${serviceURL}${baseURI}${ctRegistrationURI}"""
+    val url: String = s"""$serviceURL$baseURI$ctRegistrationURI"""
     metricsService.processDataResponseWithMetrics[HttpResponse](metricsService.desSubmissionCRTimer.time()) {
       cPOST(url, submission) map { response =>
         logger.info(s"[ctSubmission] Submission to DES successful for regId: $journeyId AckRef: $ackRef")
@@ -75,8 +75,8 @@ trait DesConnector extends AuditService with RawResponseReads with HttpErrorFunc
     }
   }
 
-  implicit val httpRds = new HttpReads[HttpResponse] {
-    def read(http: String, url: String, res: HttpResponse) = customDESRead(http, url, res)
+  implicit val httpRds: HttpReads[HttpResponse] = new HttpReads[HttpResponse] {
+    def read(http: String, url: String, res: HttpResponse): HttpResponse = customDESRead(http, url, res)
   }
 
   def topUpCTSubmission(ackRef: String, submission: JsObject, journeyId: String, isAdmin: Boolean = false)(implicit headerCarrier: HeaderCarrier): Future[HttpResponse] = {

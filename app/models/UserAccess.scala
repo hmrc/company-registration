@@ -17,7 +17,7 @@
 package models
 
 import play.api.libs.functional.syntax._
-import play.api.libs.json.{JsPath, Json, Writes}
+import play.api.libs.json.{JsPath, Json, OFormat, Writes}
 
 case class UserAccessSuccessResponse
 (
@@ -43,5 +43,5 @@ object UserAccessSuccessResponse {
 case class UserAccessLimitReachedResponse(limitReached: Boolean)
 
 object UserAccessLimitReachedResponse {
-  implicit val formats = Json.format[UserAccessLimitReachedResponse]
+  implicit val formats: OFormat[UserAccessLimitReachedResponse] = Json.format[UserAccessLimitReachedResponse]
 }

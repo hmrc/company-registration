@@ -17,6 +17,7 @@
 package controllers
 
 import auth.AuthorisedActions
+
 import javax.inject.{Inject, Singleton}
 import models.{CompanyDetails, ElementsFromH02Reads, ErrorResponse, TradingDetails}
 import play.api.libs.json._

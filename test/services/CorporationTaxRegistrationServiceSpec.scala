@@ -28,6 +28,7 @@ import org.mockito.ArgumentMatchers.{eq => eqTo}
 import org.mockito.Mockito._
 import org.scalatest.concurrent.Eventually
 import play.api.libs.json.{JsObject, Json}
+import play.api.mvc.AnyContentAsEmpty
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import repositories._
@@ -36,16 +37,17 @@ import uk.gov.hmrc.http.{HeaderCarrier, SessionId}
 import uk.gov.hmrc.mongo.lock.LockService
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import utils.LogCapturingHelper
-import scala.language.postfixOps
+
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
+import scala.language.postfixOps
 
 class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationMocks with LogCapturingHelper with Eventually {
 
-  implicit val hc = HeaderCarrier(sessionId = Some(SessionId("testSessionId")))
-  implicit val req = FakeRequest("GET", "/test-path")
+  implicit val hc: HeaderCarrier = HeaderCarrier(sessionId = Some(SessionId("testSessionId")))
+  implicit val req: FakeRequest[AnyContentAsEmpty.type] = FakeRequest("GET", "/test-path")
 
   val mockBRConnector: BusinessRegistrationConnector = mock[BusinessRegistrationConnector]
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
@@ -69,7 +71,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
   }
 
   class Setup extends CorporationTaxRegistrationFixture {
-    val service = new CorporationTaxRegistrationService {
+    val service: CorporationTaxRegistrationService = new CorporationTaxRegistrationService {
       val cTRegistrationRepository: CorporationTaxRegistrationMongoRepository = mockCTDataRepository
       val sequenceRepository: SequenceMongoRepository = mockSequenceMongoRepository
       val microserviceAuthConnector: AuthConnector = mockAuthConnector
@@ -155,7 +157,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
     "create a new ctData record and return a 201 - Created response" in new Setup {
       CTDataRepositoryMocks.createCorporationTaxRegistration(validDraftCorporationTaxRegistration)
 
-      val result = service.createCorporationTaxRegistrationRecord("54321", "12345", "en")
+      val result: Future[CorporationTaxRegistration] = service.createCorporationTaxRegistrationRecord("54321", "12345", "en")
       await(result) mustBe validDraftCorporationTaxRegistration
     }
   }
@@ -165,14 +167,14 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
     "return Corporation Tax registration response Json and a 200 - Ok when a record is retrieved" in new Setup {
       CTDataRepositoryMocks.retrieveCorporationTaxRegistration(Some(validDraftCorporationTaxRegistration))
 
-      val result = service.retrieveCorporationTaxRegistrationRecord("testRegID")
+      val result: Future[Option[CorporationTaxRegistration]] = service.retrieveCorporationTaxRegistrationRecord("testRegID")
       await(result) mustBe Some(validDraftCorporationTaxRegistration)
     }
 
     "return a 404 - Not found when no record is retrieved" in new Setup {
       CTDataRepositoryMocks.retrieveCorporationTaxRegistration(None)
 
-      val result = service.retrieveCorporationTaxRegistrationRecord("testRegID")
+      val result: Future[Option[CorporationTaxRegistration]] = service.retrieveCorporationTaxRegistrationRecord("testRegID")
       await(result) mustBe None
     }
   }
@@ -180,7 +182,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
   "retrieveConfirmationReference" must {
 
     "return an refs if found" in new Setup {
-      val expected = ConfirmationReferences("testTransaction", "testPayRef", Some("testPayAmount"), Some("12"))
+      val expected: ConfirmationReferences = ConfirmationReferences("testTransaction", "testPayRef", Some("testPayAmount"), Some("12"))
 
       when(mockCTDataRepository.retrieveConfirmationReferences(eqTo(regId)))
         .thenReturn(Future.successful(Some(expected)))
@@ -235,7 +237,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
       when(mockCTDataRepository.retrieveAllWeekOldHeldSubmissions())
         .thenReturn(Future.successful(List()))
 
-      val result = await(service.locateOldHeldSubmissions)
+      val result: String = await(service.locateOldHeldSubmissions)
       result mustBe "No week old held submissions found"
     }
 
@@ -272,7 +274,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
     "convert a RO address to a PPOB address" when {
 
       "the RO address is valid with no special characters" in new Setup {
-        val roAddress = CHROAddress(
+        val roAddress: CHROAddress = CHROAddress(
           premise, "-1 Test Road", Some("-1 Test Town"), country, local, pobox, testPost, region
         )
 
@@ -289,7 +291,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
       }
 
       "the RO address line 1 contains an accented character" in new Setup {
-        val roAddress = CHROAddress(
+        val roAddress: CHROAddress = CHROAddress(
           premise, "-1 Tést Road", Some("-1 Test Town"), country, local, pobox, testPost, region
         )
 
@@ -306,7 +308,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
       }
 
       "the RO address line 1 contains unexpected punctation" in new Setup {
-        val roAddress = CHROAddress(
+        val roAddress: CHROAddress = CHROAddress(
           premise, "-1 Test![][@~~ Road", Some("-1 Test Town"), country, local, pobox, testPost, region
         )
 
@@ -323,7 +325,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
       }
 
       s"the RO address line 1 contains $concatenatedCharacters" in new Setup {
-        val roAddress = CHROAddress(
+        val roAddress: CHROAddress = CHROAddress(
           premise, s"-1 Test $concatenatedCharacters", Some("-1 Test Town"), country, local, pobox, testPost, region
         )
 
@@ -342,9 +344,9 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
       }
 
       "the RO address has more than 27 characters" in new Setup {
-        val stringOf27Chars = List.fill(25)("a").mkString
+        val stringOf27Chars: String = List.fill(25)("a").mkString
 
-        val roAddress = CHROAddress(
+        val roAddress: CHROAddress = CHROAddress(
           premise, stringOf27Chars, Some("-1 Test Town"), country, local, pobox, testPost, region
         )
 
@@ -361,10 +363,10 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
       }
 
       "the RO address expands beyond after converting characters" in new Setup {
-        val twentyPlusConcat = List.fill(23 - concatenatedCharacters.length)("a").mkString + concatenatedCharacters
+        val twentyPlusConcat: String = List.fill(23 - concatenatedCharacters.length)("a").mkString + concatenatedCharacters
         twentyPlusConcat.length mustBe 23
 
-        val roAddress = CHROAddress(
+        val roAddress: CHROAddress = CHROAddress(
           premise, twentyPlusConcat, Some("-1 Test Town"), country, local, pobox, testPost, region
         )
 
@@ -381,7 +383,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
       }
 
       "the RO address contains no address line 2" in new Setup {
-        val roAddress = CHROAddress(
+        val roAddress: CHROAddress = CHROAddress(
           premise, "-1 Test Road", None, country, local, pobox, None, region
         )
 
@@ -400,7 +402,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
     }
     "fail to convert" when {
       "the RO address contains only a pipe character in address line 1" in new Setup {
-        val roAddress = CHROAddress(
+        val roAddress: CHROAddress = CHROAddress(
           "", "|", Some("-1 Test Town"), country, local, pobox, testPost, region
         )
 
@@ -410,7 +412,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
 
     "fail to convert" when {
       "the RO address contains a pipe in the post code" in new Setup {
-        val roAddress = CHROAddress(
+        val roAddress: CHROAddress = CHROAddress(
           ">", "Test Two", Some("-1 Test Town"), country, local, pobox, Some("|"), region
         )
 
@@ -432,7 +434,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
     "convert a RO address to a BusinessAddress address" when {
 
       "the RO address is valid with no special characters" in new Setup {
-        val roAddress = CHROAddress(
+        val roAddress: CHROAddress = CHROAddress(
           premise, "-1 Test Road", Some("-1 Test Town"), country, local, pobox, testPost, region
         )
 
@@ -447,7 +449,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
       }
 
       "the RO address line 1 contains an accented character" in new Setup {
-        val roAddress = CHROAddress(
+        val roAddress: CHROAddress = CHROAddress(
           premise, "-1 Tést Road", Some("-1 Test Town"), country, local, pobox, testPost, region
         )
 
@@ -462,7 +464,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
       }
 
       "the RO address line 1 contains unexpected punctation" in new Setup {
-        val roAddress = CHROAddress(
+        val roAddress: CHROAddress = CHROAddress(
           premise, "-1 Test![][@~~ Road", Some("-1 Test Town"), country, local, pobox, testPost, region
         )
 
@@ -477,7 +479,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
       }
 
       s"the RO address line 1 contains $concatenatedCharacters" in new Setup {
-        val roAddress = CHROAddress(
+        val roAddress: CHROAddress = CHROAddress(
           premise, s"-1 Test $concatenatedCharacters", Some("-1 Test Town"), country, local, pobox, testPost, region
         )
 
@@ -494,9 +496,9 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
       }
 
       "the RO address has more than 27 characters" in new Setup {
-        val stringOf27Chars = List.fill(25)("a").mkString
+        val stringOf27Chars: String = List.fill(25)("a").mkString
 
-        val roAddress = CHROAddress(
+        val roAddress: CHROAddress = CHROAddress(
           premise, stringOf27Chars, Some("-1 Test Town"), country, local, pobox, testPost, region
         )
 
@@ -511,10 +513,10 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
       }
 
       "the RO address expands beyond after converting characters" in new Setup {
-        val twentyPlusConcat = List.fill(23 - concatenatedCharacters.length)("a").mkString + concatenatedCharacters
+        val twentyPlusConcat: String = List.fill(23 - concatenatedCharacters.length)("a").mkString + concatenatedCharacters
         twentyPlusConcat.length mustBe 23
 
-        val roAddress = CHROAddress(
+        val roAddress: CHROAddress = CHROAddress(
           premise, twentyPlusConcat, Some("-1 Test Town"), country, local, pobox, testPost, region
         )
 
@@ -529,7 +531,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
       }
 
       "the RO address contains no address line 2" in new Setup {
-        val roAddress = CHROAddress(
+        val roAddress: CHROAddress = CHROAddress(
           premise, "-1 Test Road", None, country, local, pobox, None, region
         )
 
@@ -546,7 +548,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
     }
     "fail to convert" when {
       "the RO address contains only a pipe character in address line 1" in new Setup {
-        val roAddress = CHROAddress(
+        val roAddress: CHROAddress = CHROAddress(
           "", "|", Some("-1 Test Town"), country, local, pobox, testPost, region
         )
 
@@ -556,7 +558,7 @@ class CorporationTaxRegistrationServiceSpec extends BaseSpec with AuthorisationM
 
     "fail to convert" when {
       "the RO address contains a pipe in the post code" in new Setup {
-        val roAddress = CHROAddress(
+        val roAddress: CHROAddress = CHROAddress(
           ">", "Test Two", Some("-1 Test Town"), country, local, pobox, Some("|"), region
         )
 

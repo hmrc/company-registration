@@ -18,12 +18,10 @@ package connectors
 
 import config.MicroserviceAppConfig
 import connectors.httpParsers.IncorporationInformationHttpParsers
-import play.api.http.Status.{ACCEPTED, NOT_FOUND, NO_CONTENT, OK}
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.Request
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, NotFoundException}
-import uk.gov.hmrc.http.HttpClient
-import utils.{AlertLogging, PagerDutyKeys}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient}
+import utils.AlertLogging
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -38,7 +36,7 @@ class IncorporationInformationConnectorImpl @Inject()(config: MicroserviceAppCon
                                                       val http: HttpClient
                                                      )(implicit val ec: ExecutionContext) extends IncorporationInformationConnector {
   lazy val iiUrl: String = config.incorpInfoUrl
-  lazy val companyRegUrl = config.compRegUrl
+  lazy val companyRegUrl: String = config.compRegUrl
   lazy val regime: String = config.regime
   lazy val subscriber: String = config.subscriber
 }
@@ -52,7 +50,7 @@ trait IncorporationInformationConnector extends BaseConnector with AlertLogging 
   val regime: String
   val subscriber: String
 
-  private[connectors] val callBackurl = (isAdmin: Boolean) => {
+  def callBackurl: Boolean => String = (isAdmin: Boolean) => {
     companyRegUrl + {
       if (isAdmin) {
         controllers.routes.ProcessIncorporationsController.processAdminIncorporation.url

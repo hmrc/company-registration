@@ -55,3 +55,10 @@ The error scenarios will return an error document, for example:
 }
 ``` 
 
+# Running the App
+
+To run the app you can run the service manager profile ```sm2 -start SCRS_ALL``` then run the```./run.sh``` script
+
+# Testing the App
+
+To run the tests for the application, you can run: ```sbt coverage test it/test coverageReport```

@@ -21,6 +21,7 @@ import models.AccountPrepDetails
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
 import play.api.test.Helpers._
+import repositories.CorporationTaxRegistrationMongoRepository
 
 import java.time.LocalDate
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -29,8 +30,8 @@ import scala.concurrent.{ExecutionContext, Future}
 class PrepareAccountServiceSpec extends BaseSpec {
 
   class Setup {
-    val prepareAccountService = new PrepareAccountService {
-      override val repository = mockCTDataRepository
+    val prepareAccountService: PrepareAccountService = new PrepareAccountService {
+      override val repository: CorporationTaxRegistrationMongoRepository = mockCTDataRepository
       implicit val ec: ExecutionContext = global
     }
   }
@@ -45,7 +46,7 @@ class PrepareAccountServiceSpec extends BaseSpec {
       when(mockCTDataRepository.updateCompanyEndDate(ArgumentMatchers.eq(rID), ArgumentMatchers.any()))
         .thenReturn(Future.successful(Some(prepareAccountModel)))
 
-      val result = prepareAccountService.updateEndDate(rID)
+      val result: Future[Option[AccountPrepDetails]] = prepareAccountService.updateEndDate(rID)
       await(result) mustBe Some(prepareAccountModel)
     }
 
@@ -53,7 +54,7 @@ class PrepareAccountServiceSpec extends BaseSpec {
       when(mockCTDataRepository.updateCompanyEndDate(ArgumentMatchers.eq(rID), ArgumentMatchers.any()))
         .thenReturn(Future.successful(None))
 
-      val result = prepareAccountService.updateEndDate(rID)
+      val result: Future[Option[AccountPrepDetails]] = prepareAccountService.updateEndDate(rID)
       await(result) mustBe None
     }
   }

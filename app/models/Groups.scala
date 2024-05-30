@@ -24,8 +24,8 @@ import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
 object GroupCompanyNameEnum extends Enumeration {
-  val Other = Value
-  val CohoEntered = Value
+  val Other: GroupCompanyNameEnum.Value = Value
+  val CohoEntered: GroupCompanyNameEnum.Value = Value
 }
 
 case class GroupCompanyName(name: String, nameType: GroupCompanyNameEnum.Value)
@@ -59,8 +59,8 @@ object GroupCompanyName {
 }
 
 object GroupAddressTypeEnum extends Enumeration {
-  val ALF = Value
-  val CohoEntered = Value
+  val ALF: GroupAddressTypeEnum.Value = Value
+  val CohoEntered: GroupAddressTypeEnum.Value = Value
 }
 
 case class GroupsAddressAndType(addressType: GroupAddressTypeEnum.Value, address: BusinessAddress)
@@ -98,7 +98,7 @@ object Groups {
 }
 
 object GroupNameListValidator {
-  val formats = new Format[Seq[String]] {
+  val formats: Format[Seq[String]] = new Format[Seq[String]] {
     override def reads(json: JsValue): JsResult[Seq[String]] = {
       val seq = json.validate[JsArray].map(js => js.value.toSeq)
       seq.map(_.collect {

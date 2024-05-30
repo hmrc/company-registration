@@ -60,7 +60,7 @@ object CorporationTaxRegistration {
 
   def now: Instant = Instant.now()
 
-  implicit val timestampFormat = new Format[Instant] {
+  implicit val timestampFormat: Format[Instant] = new Format[Instant] {
     override def reads(json: JsValue): JsResult[Instant] = json match {
       case n: JsNumber => n.validate[Long].map(Instant.ofEpochMilli)
       case s => s.validate[String].map(Instant.parse)
@@ -137,7 +137,7 @@ case class AcknowledgementReferences(ctUtr: Option[String],
                                      status: String)
 
 object AcknowledgementReferences {
-  def format(formatter: BaseJsonFormatting, crypto: CryptoSCRS) = {
+  def format(formatter: BaseJsonFormatting, crypto: CryptoSCRS): OFormat[AcknowledgementReferences] = {
     val pathCTUtr = formatter match {
       case APIValidation => "ctUtr"
       case MongoValidation => "ct-utr"
@@ -163,11 +163,11 @@ object ConfirmationReferences {
       (__ \ "payment-amount").formatNullable[String]
     ) (ConfirmationReferences.apply, unlift(ConfirmationReferences.unapply))
 
-  implicit val apiFormat = format(APIValidation)
+  implicit val apiFormat: Format[ConfirmationReferences] = format(APIValidation)
 }
 
 object ElementsFromH02Reads {
-  val reads = new Reads[String] {
+  val reads: Reads[String] = new Reads[String] {
     override def reads(json: JsValue): JsResult[String] =
       for {
         obj <- json.validate[JsObject]
@@ -189,7 +189,7 @@ object CompanyDetails {
       (__ \ "jurisdiction").format[String]
     ) (CompanyDetails.apply, unlift(CompanyDetails.unapply))
 
-  implicit val apiFormat = format(APIValidation)
+  implicit val apiFormat: Format[CompanyDetails] = format(APIValidation)
 }
 
 case class CHROAddress(premises: String,
@@ -213,7 +213,7 @@ object CHROAddress {
       (__ \ "region").formatNullable[String](formatter.chRegionValidator)
     ) (CHROAddress.apply, unlift(CHROAddress.unapply))
 
-  implicit val apiFormat = format(APIValidation)
+  implicit val apiFormat: Format[CHROAddress] = format(APIValidation)
 }
 
 case class PPOBAddress(line1: String,
@@ -226,7 +226,7 @@ case class PPOBAddress(line1: String,
                        txid: String)
 
 object PPOBAddress {
-  val normalisingReads: (BaseJsonFormatting) => Reads[PPOBAddress] = (formatter) => (
+  val normalisingReads: BaseJsonFormatting => Reads[PPOBAddress] = formatter => (
     (__ \ "addressLine1").read[String](formatter.lineValidator) and
       (__ \ "addressLine2").read[String](formatter.lineValidator) and
       (__ \ "addressLine3").readNullable[String](formatter.lineValidator) and
@@ -247,7 +247,7 @@ object PPOBAddress {
       (__ \ "country").writeNullable[String] and
       (__ \ "uprn").writeNullable[String] and
       (__ \ "txid").write[String]
-    ) (unlift(PPOBAddress.unapply _))
+    ) (unlift(PPOBAddress.unapply))
 }
 
 case class PPOB(addressType: String,
@@ -263,7 +263,7 @@ object PPOB {
     Format[PPOB](readsFormatter(formatter), Json.writes[PPOB])
   }
 
-  implicit val apiFormat = format(APIValidation)
+  implicit val apiFormat: Format[PPOB] = format(APIValidation)
 
   lazy val RO = "RO"
   lazy val LOOKUP = "LOOKUP"
@@ -273,7 +273,7 @@ object PPOB {
 case class CorporationTaxRegistrationRequest(language: String)
 
 object CorporationTaxRegistrationRequest {
-  implicit val format = Json.format[CorporationTaxRegistrationRequest]
+  implicit val format: OFormat[CorporationTaxRegistrationRequest] = Json.format[CorporationTaxRegistrationRequest]
 }
 
 case class ContactDetails(phone: Option[String],
@@ -292,7 +292,7 @@ object ContactDetails {
     formatter.contactDetailsFormatWithFilter(formatDef)
   }
 
-  implicit val apiFormat = format(APIValidation)
+  implicit val apiFormat: Format[ContactDetails] = format(APIValidation)
 }
 
 case class TradingDetails(regularPayments: String = "")
@@ -315,7 +315,7 @@ object TradingDetails {
     Format(reads, writes)
   }
 
-  implicit val apiFormat = format(APIValidation)
+  implicit val apiFormat: Format[TradingDetails] = format(APIValidation)
 }
 
 
@@ -335,7 +335,7 @@ object AccountingDetails {
     formatter.accountingDetailsFormatWithFilter(formatDef)
   }
 
-  implicit val apiFormat = format(APIValidation)
+  implicit val apiFormat: Format[AccountingDetails] = format(APIValidation)
 }
 
 case class AccountPrepDetails(status: String = AccountPrepDetails.HMRC_DEFINED,
@@ -354,7 +354,7 @@ object AccountPrepDetails {
     formatter.accountPrepDetailsFormatWithFilter(formatDef)
   }
 
-  implicit val apiFormat = format(APIValidation)
+  implicit val apiFormat: Format[AccountPrepDetails] = format(APIValidation)
 }
 
 case class HO6RegistrationInformation(status: String,
@@ -362,7 +362,7 @@ case class HO6RegistrationInformation(status: String,
                                       ho5Flag: Option[String])
 
 object HO6RegistrationInformation {
-  val writes = (
+  val writes: OWrites[HO6RegistrationInformation] = (
     (__ \ "status").write[String] and
       (__ \ "companyName").writeNullable[String] and
       (__ \ "registrationProgress").writeNullable[String]
@@ -375,7 +375,7 @@ case class SessionIdData(sessionId: Option[String],
                          ackRef: Option[String])
 
 object SessionIdData {
-  implicit val writes = (
+  implicit val writes: OWrites[SessionIdData] = (
     (__ \ "sessionId").writeNullable[String] and
       (__ \ "credId").writeNullable[String] and
       (__ \ "companyName").writeNullable[String] and
@@ -388,7 +388,7 @@ case class SessionIds(sessionId: String,
                       credId: String)
 
 object SessionIds {
-  def format(cryptoSCRS: CryptoSCRS) = (
+  def format(cryptoSCRS: CryptoSCRS): OFormat[SessionIds] = (
     (__ \ "sessionId").format[String](MongoValidation.cryptoFormat(cryptoSCRS)) and
       (__ \ "credId").format[String](MongoValidation.cryptoFormat(cryptoSCRS))
     ) (SessionIds.apply, unlift(SessionIds.unapply))

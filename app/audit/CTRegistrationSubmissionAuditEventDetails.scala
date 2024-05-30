@@ -16,7 +16,7 @@
 
 package audit
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 
 case class CTRegistrationSubmissionAuditEventDetails(journeyId: String,
                                                      processingDate: Option[String],
@@ -24,5 +24,5 @@ case class CTRegistrationSubmissionAuditEventDetails(journeyId: String,
                                                      reason: Option[String])
 
 object CTRegistrationSubmissionAuditEventDetails {
-  implicit val format = Json.format[CTRegistrationSubmissionAuditEventDetails]
+  implicit val format: OFormat[CTRegistrationSubmissionAuditEventDetails] = Json.format[CTRegistrationSubmissionAuditEventDetails]
 }

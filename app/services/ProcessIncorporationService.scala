@@ -18,11 +18,11 @@ package services
 
 import audit._
 import config.MicroserviceAppConfig
-import connectors._
+import connectors.{BusinessRegistrationConnector, DesConnector, EmailErrorResponse, IncorporationCheckAPIConnector}
 import helpers.DateHelper
 import models._
 import play.api.libs.json.{JsObject, Json}
-import repositories._
+import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpErrorFunctions}
 import utils.{DateCalculators, Logging, PagerDutyKeys}
 
@@ -42,11 +42,11 @@ class ProcessIncorporationServiceImpl @Inject()(val desConnector: DesConnector,
                                                 val microserviceAppConfig: MicroserviceAppConfig
                                                )(implicit val ec: ExecutionContext) extends ProcessIncorporationService {
 
-  lazy val ctRepository = repositories.cTRepository
-  lazy val addressLine4FixRegID = microserviceAppConfig.getConfigString("address-line-4-fix.regId")
-  lazy val amendedAddressLine4 = microserviceAppConfig.getConfigString("address-line-4-fix.address-line-4")
-  lazy val blockageLoggingDay = microserviceAppConfig.getConfigString("check-submission-job.schedule.blockage-logging-day")
-  lazy val blockageLoggingTime = microserviceAppConfig.getConfigString("check-submission-job.schedule.blockage-logging-time")
+  lazy val ctRepository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
+  lazy val addressLine4FixRegID: String = microserviceAppConfig.getConfigString("address-line-4-fix.regId")
+  lazy val amendedAddressLine4: String = microserviceAppConfig.getConfigString("address-line-4-fix.address-line-4")
+  lazy val blockageLoggingDay: String = microserviceAppConfig.getConfigString("check-submission-job.schedule.blockage-logging-day")
+  lazy val blockageLoggingTime: String = microserviceAppConfig.getConfigString("check-submission-job.schedule.blockage-logging-time")
 }
 
 private[services] class MissingAckRef(val message: String) extends NoStackTrace

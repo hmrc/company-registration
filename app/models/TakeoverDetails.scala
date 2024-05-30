@@ -16,7 +16,6 @@
 
 package models
 
-import models.validation.APIValidation
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import utils.StringNormaliser

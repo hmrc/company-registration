@@ -26,19 +26,19 @@ class ContactDetailsSpec extends PlaySpec with JsonFormatValidation {
   type OS = Option[String]
   type S = String
 
-  def lineEnd(comma: Boolean) = if (comma) "," else ""
+  def lineEnd(comma: Boolean): S = if (comma) "," else ""
 
-  def jsonLine(key: S, value: OS, comma: Boolean = true): OS = value.map(v => s""""${key}" : "${v}"${lineEnd(comma)}""")
+  def jsonLine(key: S, value: OS, comma: Boolean = true): OS = value.map(v => s""""$key" : "$v"${lineEnd(comma)}""")
 
   def j(p: OS = None, m: OS = None, e: OS = Some("a@b.c")): S = {
     val extra: S = Seq(
-      jsonLine("contactDaytimeTelephoneNumber", p, false),
-      jsonLine("contactMobileNumber", m, false),
-      jsonLine("contactEmail", e, false)
+      jsonLine("contactDaytimeTelephoneNumber", p, comma = false),
+      jsonLine("contactMobileNumber", m, comma = false),
+      jsonLine("contactEmail", e, comma = false)
     ).flatten.mkString(", ")
     s"""
        |{
-       |  ${extra}
+       |  $extra
        |}
      """.stripMargin
   }

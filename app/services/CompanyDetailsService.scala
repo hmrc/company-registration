@@ -27,7 +27,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class CompanyDetailsServiceImpl @Inject()(val repositories: Repositories,
                                           val submissionService: SubmissionService
                                          )(implicit val ec: ExecutionContext) extends CompanyDetailsService {
-  lazy val corporationTaxRegistrationMongoRepository = repositories.cTRepository
+  lazy val corporationTaxRegistrationMongoRepository: CorporationTaxRegistrationMongoRepository = repositories.cTRepository
 }
 
 trait CompanyDetailsService extends Logging {

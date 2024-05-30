@@ -1,43 +1,44 @@
 
-import sbt._
+import sbt.*
 
 object AppDependencies {
 
   import play.core.PlayVersion
-  import play.sbt.PlayImport._
+  import play.sbt.PlayImport.*
 
-  private val playVersion                 =  "-play-28"
-  private val bootstrapPlayVersion        =  "7.13.0"
-  private val domainVersion               = s"8.1.0$playVersion"
-  private val scalaTestVersion            =  "3.2.15"
-  private val scalatestPlusPlayVersion    =  "5.1.0"
-  private val akkaVersion                 =  "1.9.3-akka-2.6.x"
-  private val catsVersion                 =  "2.9.0"
-  private val wiremockVersion             =  "2.35.0"
-  private val hmrcMongoVersion            =  "0.74.0"
+  private val playVersion                 =  "-play-30"
+  private val bootstrapPlayVersion        =  "8.6.0"
+  private val domainVersion               = s"9.0.0"
+  private val scalaTestVersion            =  "3.2.18"
+  private val scalatestPlusPlayVersion    =  "7.0.1"
+  private val pekkoVersion                =  "1.2.0-pekko-1.0.x"
+  private val catsVersion                 =  "2.10.0"
+  private val wiremockVersion             =  "3.5.4"
+  private val hmrcMongoVersion            =  "1.9.0"
   private val flexmarkVersion             =  "0.64.0"
 
-  val compile = Seq(
+  val compile: Seq[ModuleID] = Seq(
     ws,
-    "com.enragedginger"         %%  "akka-quartz-scheduler"         % akkaVersion,
+    "io.github.samueleresca"    %%  "pekko-quartz-scheduler"        % pekkoVersion,
     "uk.gov.hmrc"               %% s"bootstrap-backend$playVersion" % bootstrapPlayVersion,
-    "uk.gov.hmrc"               %%  "domain"                        % domainVersion,
+    "uk.gov.hmrc"               %%  "domain-play-30"                % domainVersion,
     "org.typelevel"             %%  "cats-core"                     % catsVersion,
     "uk.gov.hmrc.mongo"         %% s"hmrc-mongo$playVersion"        % hmrcMongoVersion
   )
 
-  val test = Seq(
-    "uk.gov.hmrc"               %% s"bootstrap-test$playVersion"    % bootstrapPlayVersion      % "test, it",
-    "uk.gov.hmrc.mongo"         %% s"hmrc-mongo-test$playVersion"   % hmrcMongoVersion          % "test, it",
-    "org.scalatest"             %%  "scalatest"                     % scalaTestVersion          % "test, it",
-    "org.scalatestplus.play"    %%  "scalatestplus-play"            % scalatestPlusPlayVersion  % "test, it",
-    "com.vladsch.flexmark"      %   "flexmark-all"                  % flexmarkVersion           % "test, it",
-    "com.typesafe.play"         %%  "play-test"                     % PlayVersion.current       % "test, it",
-    "org.scalatestplus"         %%  "mockito-4-5"                   % "3.2.12.0"                % "test",
-    "org.scalatestplus"         %%  "scalacheck-1-16"               % "3.2.14.0"    % "test",
-    "com.github.tomakehurst"    %   "wiremock-jre8-standalone"      % wiremockVersion           % "it"
+  val test: Seq[ModuleID] = Seq(
+    "uk.gov.hmrc"               %% s"bootstrap-test$playVersion"    % bootstrapPlayVersion      % Test,
+    "uk.gov.hmrc.mongo"         %% s"hmrc-mongo-test$playVersion"   % hmrcMongoVersion          % Test,
+    "org.scalatest"             %%  "scalatest"                     % scalaTestVersion          % Test,
+    "org.scalatestplus.play"    %%  "scalatestplus-play"            % scalatestPlusPlayVersion  % Test,
+    "com.vladsch.flexmark"      %   "flexmark-all"                  % flexmarkVersion           % Test,
+    "org.playframework"         %%  "play-test"                     % PlayVersion.current       % Test,
+    "org.scalatestplus"         %%  "mockito-4-5"                   % "3.2.12.0"                % Test,
+    "org.scalatestplus"         %%  "scalacheck-1-17"               % "3.2.18.0"                % Test,
+    "org.wiremock"              %   "wiremock-standalone"           % wiremockVersion           % Test
+
   )
 
-  def apply() = compile ++ test
+  def apply(): Seq[sbt.ModuleID] = compile ++ test
 }
 

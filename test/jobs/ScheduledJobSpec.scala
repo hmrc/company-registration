@@ -16,9 +16,9 @@
 
 package jobs
 
-import akka.actor.{ActorRef, ActorSystem}
-import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 import jobs.SchedulingActor.MissingIncorporation
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.extension.quartz.QuartzSchedulerExtension
 import org.mockito.Mockito.reset
 import org.quartz.CronExpression
 import org.scalatestplus.play.PlaySpec
@@ -28,12 +28,12 @@ import services.CorporationTaxRegistrationService
 
 class ScheduledJobSpec extends PlaySpec with MockitoSugar {
   val jobNameTest = "testJobName"
-  val mockActorSystem = mock[ActorSystem]
-  val mockService = mock[CorporationTaxRegistrationService]
-  val mockQuartzSchedulerExtension = mock[QuartzSchedulerExtension]
+  val mockActorSystem: ActorSystem = mock[ActorSystem]
+  val mockService: CorporationTaxRegistrationService = mock[CorporationTaxRegistrationService]
+  val mockQuartzSchedulerExtension: QuartzSchedulerExtension = mock[QuartzSchedulerExtension]
 
   class Setup(cronString: String, enabled: Boolean = false) {
-    val testConfig = Configuration(
+    val testConfig: Configuration = Configuration(
       s"schedules.$jobNameTest.expression" -> s"$cronString",
       s"schedules.$jobNameTest.enabled" -> enabled,
       s"schedules.$jobNameTest.description" -> "testDescription"
@@ -44,13 +44,13 @@ class ScheduledJobSpec extends PlaySpec with MockitoSugar {
       mockService,
       mockActorSystem)
 
-    val job = new ScheduledJob {
+    val job: ScheduledJob = new ScheduledJob {
       override lazy val scheduledMessage: SchedulingActor.ScheduledMessage[_] = MissingIncorporation(mockService)
       override val config: Configuration = testConfig
       override lazy val actorSystem: ActorSystem = mockActorSystem
       override lazy val jobName: String = jobNameTest
-      override lazy val scheduler = mockQuartzSchedulerExtension
-      override lazy val schedulingActorRef = mock[ActorRef]
+      override lazy val scheduler: QuartzSchedulerExtension = mockQuartzSchedulerExtension
+      override lazy val schedulingActorRef: ActorRef = mock[ActorRef]
     }
   }
 

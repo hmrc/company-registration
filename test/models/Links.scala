@@ -16,11 +16,11 @@
 
 package models
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 
 case class Links(self: Option[String],
                  registration: Option[String] = None)
 
 object Links {
-  implicit val format = Json.format[Links]
+  implicit val format: OFormat[Links] = Json.format[Links]
 }

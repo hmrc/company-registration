@@ -17,13 +17,12 @@
 package services
 
 import com.codahale.metrics.{Counter, Gauge, Timer}
-import com.kenshoo.play.metrics.{Metrics, MetricsDisabledException}
 import jobs.{LockResponse, MongoLocked, ScheduledService, UnlockingFailed}
-import utils.Logging
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
-import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.lock.LockService
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import uk.gov.hmrc.play.bootstrap.metrics.Metrics
+import utils.Logging
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration.DurationInt
@@ -66,7 +65,7 @@ class MetricsServiceImpl @Inject()(metricsInstance: Metrics,
   override val desSubmissionCRTimer: Timer = metrics.defaultRegistry.timer("des-submission-CR-timer")
 
 
-  lazy val lockoutTimeout = servicesConfig.getInt("schedules.metrics-job.lockTimeout")
+  lazy val lockoutTimeout: Int = servicesConfig.getInt("schedules.metrics-job.lockTimeout")
 
   lazy val lockKeeper: LockService = LockService(repositories.lockRepository, "metrics-job-lock", lockoutTimeout.seconds)
 }
@@ -107,7 +106,6 @@ trait MetricsService extends ScheduledService[Either[Map[String, Int], LockRespo
   protected val metrics: Metrics
 
   def invoke(implicit ec: ExecutionContext): Future[Either[Map[String, Int], LockResponse]] = {
-    implicit val hc = HeaderCarrier()
     lockKeeper.withLock(updateDocumentMetrics()).map {
       case None => Right(MongoLocked)
       case Some(res) =>
@@ -130,18 +128,19 @@ trait MetricsService extends ScheduledService[Either[Map[String, Int], LockRespo
     }
   }
 
+  private class MetricsDisabledException extends Throwable
+
   private def recordStatusCountStat(status: String, count: Int) = {
     val metricName = s"status-count-stat.$status"
     try {
-      val gauge = new Gauge[Int] {
+      val gauge: Gauge[Int] = new Gauge[Int] {
         val getValue: Int = count
       }
       metrics.defaultRegistry.remove(metricName)
       metrics.defaultRegistry.register(metricName, gauge)
     } catch {
-      case ex: MetricsDisabledException => {
+      case _: MetricsDisabledException =>
         logger.warn(s"[recordStatusCountStat] Metrics disabled - $metricName -> $count")
-      }
     }
   }
 

@@ -16,10 +16,10 @@
 
 package connectors.httpParsers
 
-import connectors._
-import play.api.http.Status.{ACCEPTED, NOT_FOUND, NO_CONTENT, OK}
-import uk.gov.hmrc.http.{HttpReads, HttpResponse, NotFoundException}
-import utils.{AlertLogging, PagerDutyKeys}
+import connectors.{BaseConnector, EmailErrorResponse}
+import play.api.http.Status.ACCEPTED
+import uk.gov.hmrc.http.{HttpReads, HttpResponse}
+import utils.AlertLogging
 
 trait SendEmailHttpParsers extends BaseHttpReads with AlertLogging { _: BaseConnector =>
 

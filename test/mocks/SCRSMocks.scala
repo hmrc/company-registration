@@ -28,7 +28,7 @@ import play.api.Configuration
 import play.api.libs.json.JsObject
 import repositories.{CorporationTaxRegistrationMongoRepository, SequenceMongoRepository}
 import services._
-import uk.gov.hmrc.crypto.ApplicationCrypto
+import uk.gov.hmrc.crypto.{ApplicationCrypto, Decrypter, Encrypter}
 import uk.gov.hmrc.mongo.lock.LockService
 
 import scala.concurrent.Future
@@ -38,19 +38,19 @@ trait SCRSMocks
     with AccountingServiceMock {
   this: MockitoSugar =>
 
-  lazy val mockCTDataService = mock[CorporationTaxRegistrationService]
-  lazy val mockCTDataRepository = mock[CorporationTaxRegistrationMongoRepository]
-  lazy val mockCompanyDetailsService = mock[CompanyDetailsService]
-  lazy val mockContactDetailsService = mock[ContactDetailsService]
-  lazy val mockSequenceMongoRepository = mock[SequenceMongoRepository]
-  lazy val mockIncorporationCheckAPIConnector = mock[IncorporationCheckAPIConnector]
-  lazy val mockMetrics = mock[MetricsService]
-  lazy val mockProcessIncorporationService = mock[ProcessIncorporationService]
-  lazy val mockSubmissionService = mock[SubmissionService]
-  val mockBusRegConnector = mock[BusinessRegistrationConnector]
-  val mockLockService = mock[LockService]
-  val mockInstanceOfCrypto = new CryptoSCRS {
-    val crypto = new ApplicationCrypto(Configuration("json.encryption.key" -> "MTIzNDU2Nzg5MDEyMzQ1Ng==").underlying).JsonCrypto
+  lazy val mockCTDataService: CorporationTaxRegistrationService = mock[CorporationTaxRegistrationService]
+  lazy val mockCTDataRepository: CorporationTaxRegistrationMongoRepository = mock[CorporationTaxRegistrationMongoRepository]
+  lazy val mockCompanyDetailsService: CompanyDetailsService = mock[CompanyDetailsService]
+  lazy val mockContactDetailsService: ContactDetailsService = mock[ContactDetailsService]
+  lazy val mockSequenceMongoRepository: SequenceMongoRepository = mock[SequenceMongoRepository]
+  lazy val mockIncorporationCheckAPIConnector: IncorporationCheckAPIConnector = mock[IncorporationCheckAPIConnector]
+  lazy val mockMetrics: MetricsService = mock[MetricsService]
+  lazy val mockProcessIncorporationService: ProcessIncorporationService = mock[ProcessIncorporationService]
+  lazy val mockSubmissionService: SubmissionService = mock[SubmissionService]
+  val mockBusRegConnector: BusinessRegistrationConnector = mock[BusinessRegistrationConnector]
+  val mockLockService: LockService = mock[LockService]
+  val mockInstanceOfCrypto: CryptoSCRS = new CryptoSCRS {
+    val crypto: Encrypter with Decrypter = new ApplicationCrypto(Configuration("json.encryption.key" -> "MTIzNDU2Nzg5MDEyMzQ1Ng==").underlying).JsonCrypto
   }
   val mockGroupsService: GroupsService = mock[GroupsService]
 
@@ -97,12 +97,12 @@ trait SCRSMocks
         .thenReturn(Future.successful(accountingDetails))
     }
 
-    def retrieveContactDetails(response: Option[ContactDetails]) = {
+    def retrieveContactDetails(response: Option[ContactDetails]): OngoingStubbing[Future[Option[ContactDetails]]] = {
       when(mockCTDataRepository.retrieveContactDetails(ArgumentMatchers.anyString()))
         .thenReturn(Future.successful(response))
     }
 
-    def updateContactDetails(response: Option[ContactDetails]) = {
+    def updateContactDetails(response: Option[ContactDetails]): OngoingStubbing[Future[Option[ContactDetails]]] = {
       when(mockCTDataRepository.updateContactDetails(ArgumentMatchers.anyString(), ArgumentMatchers.any[ContactDetails]()))
         .thenReturn(Future.successful(response))
     }
@@ -126,19 +126,19 @@ trait SCRSMocks
   }
 
   object ContactDetailsServiceMocks {
-    def retrieveContactDetails(registrationID: String, response: Option[ContactDetails]) = {
+    def retrieveContactDetails(registrationID: String, response: Option[ContactDetails]): OngoingStubbing[Future[Option[ContactDetails]]] = {
       when(mockContactDetailsService.retrieveContactDetails(ArgumentMatchers.contains(registrationID)))
         .thenReturn(Future.successful(response))
     }
 
-    def updateContactDetails(registrationID: String, response: Option[ContactDetails]) = {
+    def updateContactDetails(registrationID: String, response: Option[ContactDetails]): OngoingStubbing[Future[Option[ContactDetails]]] = {
       when(mockContactDetailsService.updateContactDetails(ArgumentMatchers.any(), ArgumentMatchers.any[ContactDetails]()))
         .thenReturn(Future.successful(response))
     }
   }
 
   object SequenceMongoRepositoryMocks {
-    def getNext(sequenceID: String, returns: Int) = {
+    def getNext(sequenceID: String, returns: Int): OngoingStubbing[Future[Int]] = {
       when(mockSequenceMongoRepository.getNext(ArgumentMatchers.any()))
         .thenReturn(Future.successful(returns))
     }

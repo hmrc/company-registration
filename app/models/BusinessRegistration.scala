@@ -16,12 +16,12 @@
 
 package models
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 
 case class BusinessRegistrationRequest(language: String)
 
 object BusinessRegistrationRequest {
-  implicit val formats = Json.format[BusinessRegistrationRequest]
+  implicit val formats: OFormat[BusinessRegistrationRequest] = Json.format[BusinessRegistrationRequest]
 }
 
 
@@ -31,5 +31,5 @@ case class BusinessRegistration(registrationID: String,
                                 completionCapacity: Option[String])
 
 object BusinessRegistration {
-  implicit val formats = Json.format[BusinessRegistration]
+  implicit val formats: OFormat[BusinessRegistration] = Json.format[BusinessRegistration]
 }

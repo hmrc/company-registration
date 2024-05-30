@@ -17,11 +17,9 @@
 package connectors.httpParsers
 
 import ch.qos.logback.classic.Level
-import connectors.SubmissionAPIFailure
 import helpers.BaseSpec
-import models.SubmissionCheckResponse
-import play.api.http.Status.{ACCEPTED, INTERNAL_SERVER_ERROR, NOT_FOUND, NO_CONTENT, OK}
-import play.api.libs.json.{JsResultException, Json}
+import play.api.http.Status._
+import play.api.libs.json.Json
 import uk.gov.hmrc.http.{HttpResponse, NotFoundException}
 import utils.LogCapturingHelper
 

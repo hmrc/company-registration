@@ -39,14 +39,12 @@ trait BaseJsonFormatting {
   def readToFmt(rds: Reads[String])(implicit wts: Writes[String]): Format[String] = Format(rds, wts)
 
   def digitLength(minLength: Int, maxLength: Int)(implicit wts: Writes[String]): Format[String] = {
-    val reads: Reads[String] = new Reads[String] {
-      override def reads(json: JsValue) = {
-        val str = json.as[String]
-        if (str.replaceAll(" ", "").matches(s"[0-9]{$minLength,$maxLength}")) {
-          JsSuccess(str)
-        } else {
-          JsError(s"field must contain between $minLength and $maxLength numbers")
-        }
+    val reads: Reads[String] = (json: JsValue) => {
+      val str = json.as[String]
+      if (str.replaceAll(" ", "").matches(s"[0-9]{$minLength,$maxLength}")) {
+        JsSuccess(str)
+      } else {
+        JsError(s"field must contain between $minLength and $maxLength numbers")
       }
     }
 
@@ -55,7 +53,7 @@ trait BaseJsonFormatting {
 
   def lengthFmt(maxLen: Int, minLen: Int = 1): Format[String] = readToFmt(length(maxLen, minLen))
 
-  def withFilter[A](fmt: Format[A], error: JsonValidationError)(f: (A) => Boolean): Format[A] = {
+  def withFilter[A](fmt: Format[A], error: JsonValidationError)(f: A => Boolean): Format[A] = {
     Format(fmt.filter(error)(f), fmt)
   }
 

@@ -18,8 +18,6 @@ package audit
 
 import models.des.{BusinessAddress, BusinessContactDetails}
 import play.api.libs.json._
-import play.api.mvc.{AnyContent, Request}
-import uk.gov.hmrc.http.HeaderCarrier
 
 case class SubmissionEventDetail(regId: String,
                                  authProviderId: String,
@@ -32,19 +30,18 @@ object SubmissionEventDetail {
 
   import RegistrationAuditEventConstants.{ACK_REF, CORP_TAX, JOURNEY_ID, REG_METADATA}
 
-  implicit val writes = new Writes[SubmissionEventDetail] {
-    def writes(detail: SubmissionEventDetail) = {
+  implicit val writes: Writes[SubmissionEventDetail] = (detail: SubmissionEventDetail) => {
 
-      def businessAddressAuditWrites(address: BusinessAddress) = BusinessAddress.auditWrites(detail.transId, detail.addressEventType, detail.uprn, address)
+    def businessAddressAuditWrites(address: BusinessAddress) = BusinessAddress.auditWrites(detail.transId, detail.addressEventType, detail.uprn, address)
 
-      def businessContactAuditWrites(contact: BusinessContactDetails) = BusinessContactDetails.auditWrites(contact)
+    def businessContactAuditWrites(contact: BusinessContactDetails) = BusinessContactDetails.auditWrites(contact)
 
-      def desSubmissionState: JsObject = {
-        Json.obj("desSubmissionState" -> "partial")
-      }
+    def desSubmissionState: JsObject = {
+      Json.obj("desSubmissionState" -> "partial")
+    }
 
-      val address = (detail.jsSubmission \ "registration" \ "corporationTax" \ "businessAddress").
-        asOpt[BusinessAddress].fold {
+    val address = (detail.jsSubmission \ "registration" \ "corporationTax" \ "businessAddress").
+      asOpt[BusinessAddress].fold {
         Json.obj()
       } {
         address =>
@@ -55,25 +52,24 @@ object SubmissionEventDetail {
           }
       }
 
-      val contactDetails = (detail.jsSubmission \ "registration" \ "corporationTax" \ "businessContactDetails").
-        asOpt[BusinessContactDetails].fold {
+    val contactDetails = (detail.jsSubmission \ "registration" \ "corporationTax" \ "businessContactDetails").
+      asOpt[BusinessContactDetails].fold {
         Json.obj()
       } {
         contact => Json.obj("businessContactDetails" -> Json.toJson(contact)(businessContactAuditWrites(contact)).as[JsObject])
       }
 
-      val corporationTax = (detail.jsSubmission \ "registration" \ "corporationTax").as[JsObject] - "businessAddress"
+    val corporationTax = (detail.jsSubmission \ "registration" \ "corporationTax").as[JsObject] - "businessAddress"
 
-      Json.obj(
-        JOURNEY_ID -> detail.regId,
-        ACK_REF -> (detail.jsSubmission \ "acknowledgementReference").as[JsString],
-        REG_METADATA -> (detail.jsSubmission \ "registration" \ "metadata").as[JsObject].++(
-          Json.obj("authProviderId" -> detail.authProviderId)
-        ).-("sessionId").-("credentialId"),
-        CORP_TAX -> corporationTax.++
-        (address).++
-        (contactDetails)
-      ) ++ desSubmissionState
-    }
+    Json.obj(
+      JOURNEY_ID -> detail.regId,
+      ACK_REF -> (detail.jsSubmission \ "acknowledgementReference").as[JsString],
+      REG_METADATA -> (detail.jsSubmission \ "registration" \ "metadata").as[JsObject].++(
+        Json.obj("authProviderId" -> detail.authProviderId)
+      ).-("sessionId").-("credentialId"),
+      CORP_TAX -> corporationTax.++
+      (address).++
+      (contactDetails)
+    ) ++ desSubmissionState
   }
 }

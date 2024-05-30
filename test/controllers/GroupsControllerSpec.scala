@@ -16,12 +16,12 @@
 
 package controllers
 
-import akka.actor.ActorSystem
-import akka.stream.{ActorMaterializer, Materializer}
 import helpers.BaseSpec
 import mocks.AuthorisationMocks
 import models._
 import models.des.BusinessAddress
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.stream.Materializer
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
 import play.api.libs.json.{JsValue, Json}
@@ -67,19 +67,19 @@ class GroupsControllerSpec extends BaseSpec with AuthorisationMocks {
   "private method groupsBlockValidation" must {
 
     "return Left groups when group block is in the correct state to be inserted (everything exists)" in new Setup {
-      controller.groupsBlockValidation(validGroupsModel).left.get mustBe validGroupsModel
+      controller.groupsBlockValidation(validGroupsModel).left.getOrElse(isInstanceOf[Exception]) mustBe validGroupsModel
     }
     "return Left groups when group block has everything apart from utr filled in" in new Setup {
       val noneUTRGroupsModel: Groups = validGroupsModel.copy(groupUTR = None)
-      controller.groupsBlockValidation(noneUTRGroupsModel).left.get mustBe noneUTRGroupsModel
+      controller.groupsBlockValidation(noneUTRGroupsModel).left.getOrElse(isInstanceOf[Exception]) mustBe noneUTRGroupsModel
     }
     "return Left groups when group block has everything apart from utr + address filled in" in new Setup {
       val noneUTRAndAddressGroupsModel: Groups = validGroupsModel.copy(groupUTR = None, addressAndType = None)
-      controller.groupsBlockValidation(noneUTRAndAddressGroupsModel).left.get mustBe noneUTRAndAddressGroupsModel
+      controller.groupsBlockValidation(noneUTRAndAddressGroupsModel).left.getOrElse(isInstanceOf[Exception]) mustBe noneUTRAndAddressGroupsModel
     }
     "return Left groups when group block has everything apart from utr + address + name filled in" in new Setup {
       val noneUTRAndAddressAndNameGroupsModel: Groups = validGroupsModel.copy(groupUTR = None, addressAndType = None, nameOfCompany = None)
-      controller.groupsBlockValidation(noneUTRAndAddressAndNameGroupsModel).left.get mustBe noneUTRAndAddressAndNameGroupsModel
+      controller.groupsBlockValidation(noneUTRAndAddressAndNameGroupsModel).left.getOrElse(isInstanceOf[Exception]) mustBe noneUTRAndAddressAndNameGroupsModel
     }
     "return Right when UTR just filled in" in new Setup {
       val justUTR: Groups = validGroupsModel.copy(nameOfCompany = None, addressAndType = None)

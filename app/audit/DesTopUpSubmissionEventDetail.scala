@@ -31,5 +31,5 @@ case class DesTopUpSubmissionEventDetail(journeyId: String,
                                          rejectedAsNotPaid: Option[Boolean] = None)
 
 object DesTopUpSubmissionEventDetail {
-  implicit val writes = Json.writes[DesTopUpSubmissionEventDetail]
+  implicit val writes: OWrites[DesTopUpSubmissionEventDetail] = Json.writes[DesTopUpSubmissionEventDetail]
 }

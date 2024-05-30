@@ -34,7 +34,7 @@ object DateCalculators {
     validLoggingDays.split(",").contains(todaysDate)
 
   def loggingTime(validLoggingTimes: String, now: LocalTime): Boolean = {
-    implicit val frmt = LocalTime.parse(_: String, DateTimeFormatter.ofPattern("HH:mm:ss"))
+    implicit val frmt: String => LocalTime = LocalTime.parse(_: String, DateTimeFormatter.ofPattern("HH:mm:ss"))
     val validTimes = validLoggingTimes.split("_")
 
     (validTimes.head isBefore now) && (now isBefore validTimes.last)

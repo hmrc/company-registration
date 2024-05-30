@@ -26,7 +26,7 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{AnyContent, Request}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient}
 import utils.LogCapturingHelper
 
 import java.time.{Instant, LocalDate}
@@ -42,15 +42,15 @@ class IncorporationInformationConnectorSpec extends BaseSpec with BusinessRegist
   trait Setup {
     object Connector extends IncorporationInformationConnector {
       override val iiUrl = "testIncorporationInformationUrl"
-      override val http = mockWSHttp
-      override val regime = tRegime
-      override val subscriber = tSubscriber
+      override val http: HttpClient = mockWSHttp
+      override val regime: String = tRegime
+      override val subscriber: String = tSubscriber
       override val companyRegUrl: String = "testCompanyRegistrationUrl"
       implicit val ec: ExecutionContext = global
     }
   }
 
-  implicit val hc = HeaderCarrier()
+  implicit val hc: HeaderCarrier = HeaderCarrier()
   implicit val req: Request[AnyContent] = FakeRequest()
 
   val regId = "reg-id-12345"
@@ -60,7 +60,7 @@ class IncorporationInformationConnectorSpec extends BaseSpec with BusinessRegist
   val description = "Some description"
   val incorpDate = "2017-04-25"
 
-  val incorpInfoResponse = Json.parse(
+  val incorpInfoResponse: JsValue = Json.parse(
     s"""
        |{
        |  "SCRSIncorpStatus":{
@@ -84,7 +84,7 @@ class IncorporationInformationConnectorSpec extends BaseSpec with BusinessRegist
       """.stripMargin)
 
 
-  val expected = IncorpStatus(txId, status, Some(crn), Some(description), Some(LocalDate.parse(incorpDate)))
+  val expected: IncorpStatus = IncorpStatus(txId, status, Some(crn), Some(description), Some(LocalDate.parse(incorpDate)))
 
   "callBackUrl" must {
     "return admin url when admin is true" in new Setup {

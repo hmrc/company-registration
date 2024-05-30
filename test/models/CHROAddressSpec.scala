@@ -22,15 +22,15 @@ import play.api.libs.json.{JsonValidationError, _}
 
 class CHROAddressSpec extends PlaySpec with JsonFormatValidation {
 
-  def lineEnd(comma: Boolean) = if (comma) "," else ""
+  def lineEnd(comma: Boolean): String = if (comma) "," else ""
 
-  def jsonLine(key: String, value: String): String = jsonLine(key, value, true)
+  def jsonLine(key: String, value: String): String = jsonLine(key, value, comma = true)
 
-  def jsonLine(key: String, value: String, comma: Boolean): String = s""""${key}" : "${value}"${lineEnd(comma)}"""
+  def jsonLine(key: String, value: String, comma: Boolean): String = s""""$key" : "$value"${lineEnd(comma)}"""
 
-  def jsonLine(key: String, value: Option[String], comma: Boolean = true): String = value.fold("")(v => s""""${key}" : "${v}"${lineEnd(comma)}""")
+  def jsonLine(key: String, value: Option[String], comma: Boolean = true): String = value.fold("")(v => s""""$key" : "$v"${lineEnd(comma)}""")
 
-  def j(line1: String = "1", line2: Option[String] = None) = {
+  def j(line1: String = "1", line2: Option[String] = None): String = {
     s"""
        |{
        |  "premises" : "p",

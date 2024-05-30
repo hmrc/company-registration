@@ -16,8 +16,8 @@
 
 package config
 
-import akka.actor.ActorSystem
 import models.TakeoverDetails
+import org.apache.pekko.actor.ActorSystem
 import play.api.Configuration
 import repositories.CorporationTaxRegistrationMongoRepository
 import services.TakeoverDetailsService
@@ -49,12 +49,12 @@ trait AppStartupJobs extends Logging {
   val ctRepo: CorporationTaxRegistrationMongoRepository
   val takeoverDetailsService: TakeoverDetailsService
 
-  def startupStats: Future[Unit] =
+  private def startupStats: Future[Unit] =
     ctRepo.getRegistrationStats map {
       stats => logger.info(s"[startupStats] $stats")
     }
 
-  def lockedRegIds: Future[Unit] =
+  private def lockedRegIds: Future[Unit] =
     ctRepo.retrieveLockedRegIDs() map { regIds =>
       val message = regIds.map(rid => s" RegId: $rid")
       logger.info(s"[lockedRegIds] RegIds with locked status:$message")
@@ -95,7 +95,7 @@ trait AppStartupJobs extends Logging {
       }
     })
 
-  def fetchByAckRef(ackRefs: Seq[String]): Unit =
+  private def fetchByAckRef(ackRefs: Seq[String]): Unit =
     for (ackRef <- ackRefs) {
       ctRepo.findOneBySelector(ctRepo.ackRefSelector(ackRef)).map {
         case Some(doc) =>
