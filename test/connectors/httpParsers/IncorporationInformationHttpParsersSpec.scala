@@ -112,7 +112,7 @@ class IncorporationInformationHttpParsersSpec extends BaseSpec with LogCapturing
 
           withCaptureOfLoggingFrom(IncorporationInformationHttpParsers.logger) { logs =>
             rds.read("", "", HttpResponse(OK, json = Json.obj("crn" -> crn), Map())) mustBe Some(crn)
-            logs.containsMsg(Level.ERROR, s"[IncorporationInformationHttpParsers] STALE_DOCUMENTS_DELETE_WARNING_CRN_FOUND")
+            logs.containsMsg(Level.INFO, s"[IncorporationInformationHttpParsers] STALE_DOCUMENTS_DELETE_WARNING_CRN_FOUND")
           }
         }
       }
