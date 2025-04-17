@@ -1,4 +1,3 @@
-
 import sbt.*
 
 object AppDependencies {
@@ -19,26 +18,24 @@ object AppDependencies {
 
   val compile: Seq[ModuleID] = Seq(
     ws,
-    "io.github.samueleresca"    %%  "pekko-quartz-scheduler"        % pekkoVersion,
-    "uk.gov.hmrc"               %% s"bootstrap-backend$playVersion" % bootstrapPlayVersion,
-    "uk.gov.hmrc"               %%  "domain-play-30"                % domainVersion,
-    "org.typelevel"             %%  "cats-core"                     % catsVersion,
-    "uk.gov.hmrc.mongo"         %% s"hmrc-mongo$playVersion"        % hmrcMongoVersion
+    "io.github.samueleresca" %% "pekko-quartz-scheduler"         % pekkoVersion,
+    "uk.gov.hmrc"            %% s"bootstrap-backend$playVersion" % bootstrapPlayVersion,
+    "uk.gov.hmrc"            %% "domain-play-30"                 % domainVersion,
+    "org.typelevel"          %% "cats-core"                      % catsVersion,
+    "uk.gov.hmrc.mongo"      %% s"hmrc-mongo$playVersion"        % hmrcMongoVersion
   )
 
   val test: Seq[ModuleID] = Seq(
-    "uk.gov.hmrc"               %% s"bootstrap-test$playVersion"    % bootstrapPlayVersion      % Test,
-    "uk.gov.hmrc.mongo"         %% s"hmrc-mongo-test$playVersion"   % hmrcMongoVersion          % Test,
-    "org.scalatest"             %%  "scalatest"                     % scalaTestVersion          % Test,
-    "org.scalatestplus.play"    %%  "scalatestplus-play"            % scalatestPlusPlayVersion  % Test,
-    "com.vladsch.flexmark"      %   "flexmark-all"                  % flexmarkVersion           % Test,
-    "org.playframework"         %%  "play-test"                     % PlayVersion.current       % Test,
-    "org.scalatestplus"         %%  "mockito-4-5"                   % "3.2.12.0"                % Test,
-    "org.scalatestplus"         %%  "scalacheck-1-17"               % "3.2.18.0"                % Test,
-    "org.wiremock"              %   "wiremock-standalone"           % wiremockVersion           % Test
-
+    "uk.gov.hmrc"            %% s"bootstrap-test$playVersion"  % bootstrapPlayVersion     % Test,
+    "uk.gov.hmrc.mongo"      %% s"hmrc-mongo-test$playVersion" % hmrcMongoVersion         % Test,
+    "org.scalatest"          %% "scalatest"                    % scalaTestVersion         % Test,
+    "org.scalatestplus.play" %% "scalatestplus-play"           % scalatestPlusPlayVersion % Test,
+    "com.vladsch.flexmark"    % "flexmark-all"                 % flexmarkVersion          % Test,
+    "org.playframework"      %% "play-test"                    % PlayVersion.current      % Test,
+    "org.scalatestplus"      %% "mockito-4-5"                  % "3.2.12.0"               % Test,
+    "org.scalatestplus"      %% "scalacheck-1-17"              % "3.2.18.0"               % Test,
+    "org.wiremock"            % "wiremock-standalone"          % wiremockVersion          % Test
   )
 
   def apply(): Seq[sbt.ModuleID] = compile ++ test
 }
-
