@@ -1,11 +1,9 @@
-
 import sbt.Keys.{javaOptions, parallelExecution, *}
 import sbt.*
 import uk.gov.hmrc.DefaultBuildSettings.*
 import uk.gov.hmrc.DefaultBuildSettings
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
 import uk.gov.hmrc.versioning.SbtGitVersioning.autoImport.majorVersion
-
 
 val appName = "company-registration"
 
@@ -18,14 +16,14 @@ lazy val scoverageSettings = {
   Seq(
     ScoverageKeys.coverageExcludedPackages := "<empty>;Reverse.*;model.*;config.*;.*(AuthService|BuildInfo|Routes).*",
     ScoverageKeys.coverageMinimumStmtTotal := 90,
-    ScoverageKeys.coverageFailOnMinimum := true,
-    ScoverageKeys.coverageHighlighting := true
+    ScoverageKeys.coverageFailOnMinimum    := true,
+    ScoverageKeys.coverageHighlighting     := true
   )
 }
 
 lazy val microservice = Project(appName, file("."))
   .enablePlugins(play.sbt.PlayScala, SbtDistributablesPlugin)
-  .disablePlugins(JUnitXmlReportPlugin) //Required to prevent https://github.com/scalatest/scalatest/issues/1427
+  .disablePlugins(JUnitXmlReportPlugin) // Required to prevent https://github.com/scalatest/scalatest/issues/1427
   .settings(PlayKeys.playDefaultPort := 9973)
   .settings(scalaSettings *)
   .settings(scoverageSettings *)
@@ -35,10 +33,9 @@ lazy val microservice = Project(appName, file("."))
     targetJvm := "jvm-1.8",
     libraryDependencies ++= AppDependencies(),
     Test / parallelExecution := false,
-    Test / fork := false,
-    retrieveManaged := true,
-    scalacOptions ++= List("-Xlint:-missing-interpolator"),
-    resolvers += Resolver.jcenterRepo,
+    Test / fork              := false,
+    retrieveManaged          := true,
+    scalacOptions ++= List("-Xlint:-missing-interpolator")
   )
 
 lazy val it = project
