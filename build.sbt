@@ -35,8 +35,7 @@ lazy val microservice = Project(appName, file("."))
     Test / parallelExecution := false,
     Test / fork              := false,
     retrieveManaged          := true,
-    scalacOptions ++= List("-Xlint:-missing-interpolator"),
-    resolvers += Resolver.jcenterRepo
+    scalacOptions ++= List("-Xlint:-missing-interpolator")
   )
 
 lazy val it = project
