@@ -1,3 +1,4 @@
+
 import sbt.*
 
 object AppDependencies {
@@ -5,16 +6,16 @@ object AppDependencies {
   import play.core.PlayVersion
   import play.sbt.PlayImport.*
 
-  private val playVersion                 =  "-play-30"
-  private val bootstrapPlayVersion        =  "8.6.0"
-  private val domainVersion               = s"9.0.0"
-  private val scalaTestVersion            =  "3.2.18"
-  private val scalatestPlusPlayVersion    =  "7.0.1"
-  private val pekkoVersion                =  "1.2.0-pekko-1.0.x"
-  private val catsVersion                 =  "2.10.0"
-  private val wiremockVersion             =  "3.5.4"
-  private val hmrcMongoVersion            =  "1.9.0"
-  private val flexmarkVersion             =  "0.64.0"
+  private val playVersion              = "-play-30"
+  private val bootstrapPlayVersion     = "8.6.0"
+  private val domainVersion            = s"9.0.0"
+  private val scalaTestVersion         = "3.2.19"
+  private val scalatestPlusPlayVersion = "7.0.1"
+  private val pekkoVersion             = "1.2.0-pekko-1.0.x"
+  private val catsVersion              = "2.13.0"
+  private val wiremockVersion          = "3.13.0"
+  private val hmrcMongoVersion         = "2.3.0"
+  private val flexmarkVersion          = "0.64.8"
 
   val compile: Seq[ModuleID] = Seq(
     ws,
