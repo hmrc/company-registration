@@ -333,20 +333,11 @@ class CorporationTaxRegistrationMongoRepository @Inject()(val mongo: MongoCompon
     }.value
 
   def getRegistrationStats: Future[Map[String, Int]] = {
-    // needed to make it pick up the index
-    val matchQuery: Bson = Aggregates.`match`(BsonDocument())
-    val project = Aggregates.project(BsonDocument("status" -> 1, "_id" -> 0))
-    // calculate the regime counts
-    val group = Aggregates.group("$status", BsonField("count", BsonDocument("$sum" -> 1)))
-
-    val fList = collection.aggregate[JsObject](Seq(matchQuery, project, group)).toFuture()
-    fList.map {
-      _.map { statusDoc =>
-        val status = (statusDoc \ "_id").as[String]
-        val count = (statusDoc \ "count").as[Int]
-        status -> count
-      }.toMap
+    val statusCounts: Seq[Future[(String, Int)]] = RegistrationStatus.allStatuses.map { status =>
+      collection.countDocuments(equal("status", status)).toFuture().map(count => status -> count.toInt)
     }
+
+    Future.sequence(statusCounts).map(_.toMap)
   }
 
   def fetchHO6Information(regId: String): Future[Option[HO6RegistrationInformation]] =

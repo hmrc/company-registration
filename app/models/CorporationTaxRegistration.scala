@@ -30,6 +30,8 @@ object RegistrationStatus {
   val SUBMITTED = "submitted"
   val REJECTED = "rejected"
   val ACKNOWLEDGED = "acknowledged"
+
+  val allStatuses: Seq[String] = Seq(DRAFT, LOCKED, HELD, SUBMITTED, REJECTED, ACKNOWLEDGED)
 }
 
 case class CorporationTaxRegistration(internalId: String,
