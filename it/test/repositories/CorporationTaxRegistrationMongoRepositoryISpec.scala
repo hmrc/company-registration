@@ -18,7 +18,7 @@ package test.repositories
 
 import auth.CryptoSCRS
 import config.LangConstants
-import models.RegistrationStatus._
+import models.RegistrationStatus.{LOCKED, _}
 import models._
 import models.des.BusinessAddress
 import models.validation.MongoValidation
@@ -28,7 +28,7 @@ import org.mongodb.scala.result.{InsertOneResult, UpdateResult}
 import org.scalatest.Assertion
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{JsObject, JsValue, Json, OFormat, OWrites}
+import play.api.libs.json._
 import play.api.test.Helpers._
 import repositories.{CorporationTaxRegistrationMongoRepository, MissingCTDocument}
 import test.fixtures.CorporationTaxRegistrationFixture
@@ -68,6 +68,11 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       val currentCount = count
       repository.insert(reg)
       count mustBe currentCount + 1
+    }
+    def insertMultiple(reg: Seq[CorporationTaxRegistration]): Assertion = {
+      val currentCount = count
+      repository.insertMany(reg)
+      count mustBe currentCount + reg.length
     }
 
     def count: Int = repository.count
@@ -1714,4 +1719,48 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       }
     }
   }
+
+  "getRegistrationStats" must {
+    "count for number of documents in the collection for each status" which {
+      def buildDocumentWithStatus(status: String) = CorporationTaxRegistration(
+        internalId = "testID",
+        registrationID = registrationId,
+        formCreationTimestamp = "testDateTime",
+        language = LangConstants.english,
+        status = status
+      )
+
+      val heldDoc = buildDocumentWithStatus(HELD)
+      val draftDoc = buildDocumentWithStatus(DRAFT)
+      val lockedDoc = buildDocumentWithStatus(LOCKED)
+      val submittedDoc = buildDocumentWithStatus(SUBMITTED)
+      val rejectedDoc = buildDocumentWithStatus(REJECTED)
+      val acknowledgedDoc = buildDocumentWithStatus(ACKNOWLEDGED)
+      val multipleValidDocuments =
+        Seq(heldDoc, draftDoc, draftDoc, lockedDoc, lockedDoc, lockedDoc, submittedDoc,
+          rejectedDoc, rejectedDoc, acknowledgedDoc, acknowledgedDoc, acknowledgedDoc)
+
+      val invalidDoc1 = buildDocumentWithStatus("invalid")
+      val invalidDoc2 = buildDocumentWithStatus("")
+      val invalidDoc3 = buildDocumentWithStatus("HELD")
+      val multipleInvalidDocuments =
+        Seq(invalidDoc1, invalidDoc2, invalidDoc3)
+
+      "returns the count for each status in a map, " +
+        "ignoring any documents without a status or with a status that is not recognised" in new Setup {
+        insertMultiple(multipleValidDocuments ++ multipleInvalidDocuments)
+        val result: Map[String, Int] = await(repository.getRegistrationStats)
+
+        result mustBe Map(
+          "held" -> 1,
+          "draft" -> 2,
+          "locked" -> 3,
+          "submitted" -> 1,
+          "rejected" -> 2,
+          "acknowledged" -> 3,
+        )
+      }
+    }
+  }
+
 }

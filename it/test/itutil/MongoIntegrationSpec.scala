@@ -19,7 +19,7 @@ package test.itutil
 import org.bson.codecs.configuration.CodecRegistries
 import org.mongodb.scala.MongoClient.DEFAULT_CODEC_REGISTRY
 import org.mongodb.scala.bson.BsonDocument
-import org.mongodb.scala.result.{DeleteResult, InsertOneResult}
+import org.mongodb.scala.result.{DeleteResult, InsertManyResult, InsertOneResult}
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.libs.json.{Format, JsObject}
@@ -40,6 +40,7 @@ trait MongoIntegrationSpec extends GuiceOneAppPerSuite {
     def findAll: Seq[T] = await(repo.collection.find(BsonDocument()).toFuture())
     def deleteAll(): DeleteResult = await(repo.collection.deleteMany(BsonDocument()).toFuture())
     def insert(data: T): InsertOneResult = await(repo.collection.insertOne(data).toFuture())
+    def insertMany(multipleData: Seq[T]): InsertManyResult = await(repo.collection.insertMany(multipleData).toFuture())
     def insertRaw(raw: JsObject): InsertOneResult = {
       val db = mongoComponent.database.withCodecRegistry(
         CodecRegistries.fromRegistries(
