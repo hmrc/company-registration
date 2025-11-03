@@ -109,11 +109,11 @@ class CompanyDetailsApiISpec extends IntegrationSpecBase with MongoIntegrationSp
     val ctRepository: CorporationTaxRegistrationMongoRepository = app.injector.instanceOf[CorporationTaxRegistrationMongoRepository]
     val seqRepo: SequenceMongoRepository = app.injector.instanceOf[SequenceMongoRepository]
 
-    ctRepository.deleteAll
-    await(ctRepository.ensureIndexes)
+    ctRepository.deleteAll()
+    await(ctRepository.ensureIndexes())
 
-    seqRepo.deleteAll
-    await(seqRepo.ensureIndexes)
+    seqRepo.deleteAll()
+    await(seqRepo.ensureIndexes())
 
     System.clearProperty("feature.registerInterest")
 

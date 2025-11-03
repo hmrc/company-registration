@@ -103,7 +103,7 @@ trait AdminService extends ScheduledService[Either[Int, LockResponse]] with Date
     val cancelSub = txId match {
       case Some(tId) =>
         incorpInfoConnector.cancelSubscription(info.regId, tId) recoverWith {
-          case e: NotFoundException =>
+          case ex: NotFoundException =>
             logger.info(s"[processStaleDocument] Registration ${info.regId} - $tId does not have CTAX subscription. Now trying to delete CT sub.")
             incorpInfoConnector.cancelSubscription(info.regId, tId, useOldRegime = true) recoverWith {
               case e: NotFoundException =>

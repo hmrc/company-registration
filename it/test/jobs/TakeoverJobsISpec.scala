@@ -56,7 +56,7 @@ class TakeoverJobISpec extends IntegrationSpecBase with MongoIntegrationSpec wit
   class Setup {
     val repository: CorporationTaxRegistrationMongoRepository = app.injector.instanceOf[CorporationTaxRegistrationMongoRepository]
     repository.deleteAll()
-    await(repository.ensureIndexes)
+    await(repository.ensureIndexes())
     repository.count mustBe 0
 
 

@@ -20,7 +20,7 @@ import models.TakeoverDetails
 import org.apache.pekko.actor.ActorSystem
 import play.api.Configuration
 import repositories.CorporationTaxRegistrationMongoRepository
-import services.TakeoverDetailsService
+import services.{MetricsService, TakeoverDetailsService}
 import utils.Logging
 
 import java.util.Base64
@@ -39,7 +39,8 @@ class Startup @Inject()(appStartupJobs: AppStartupJobs,
 
 class AppStartupJobsImpl @Inject()(val config: Configuration,
                                    val ctRepo: CorporationTaxRegistrationMongoRepository,
-                                   val takeoverDetailsService: TakeoverDetailsService
+                                   val takeoverDetailsService: TakeoverDetailsService,
+                                   val metricsService: MetricsService
                                   )(implicit val ec: ExecutionContext) extends AppStartupJobs
 
 trait AppStartupJobs extends Logging {
@@ -48,6 +49,7 @@ trait AppStartupJobs extends Logging {
   val config: Configuration
   val ctRepo: CorporationTaxRegistrationMongoRepository
   val takeoverDetailsService: TakeoverDetailsService
+  val metricsService: MetricsService
 
   private def startupStats: Future[Unit] =
     ctRepo.getRegistrationStats map {
@@ -129,6 +131,8 @@ trait AppStartupJobs extends Logging {
     lazy val base64ackRefs = config.get[String]("list-of-ackrefs")
     lazy val listOfackRefs = new String(Base64.getDecoder.decode(base64ackRefs), "UTF-8").split(",").toList
     fetchByAckRef(listOfackRefs)
+
+    metricsService.invoke
 
     startupStats
     lockedRegIds
