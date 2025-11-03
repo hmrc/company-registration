@@ -108,7 +108,7 @@ trait MetricsService extends ScheduledService[Either[Map[String, Int], LockRespo
     lockKeeper.withLock(updateDocumentMetrics()).map {
       case None => Right(MongoLocked)
       case Some(res) =>
-        logger.info(s"!!!!!!!!!!!!!!!!!!!!! [invoke] acquired lock and returned updateDocumentMetrics: $res")
+        logger.info(s"[invoke] acquired lock and returned updateDocumentMetrics: $res")
         Left(res)
     }.recover {
       case e: Exception => logger.error(s"[invoke] Error running updateDocumentMetrics with message: ${e.getMessage}")
