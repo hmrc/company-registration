@@ -138,7 +138,7 @@ class CorporationTaxRegistrationMongoRepository @Inject()(val mongo: MongoCompon
   def findOneBySelector(selector: Bson): Future[Option[CorporationTaxRegistration]] =
     collection.find(selector).headOption()
 
-  def findAllBySelector(selector: Bson, limit: Int = Int.MaxValue): Future[Seq[CorporationTaxRegistration]] =
+  def findAllBySelector(selector: Bson, limit: Int = 0): Future[Seq[CorporationTaxRegistration]] =
     collection.find(selector).limit(limit).toFuture()
 
   def retrieveMultipleCorporationTaxRegistration(registrationID: String): Future[Seq[CorporationTaxRegistration]] =
