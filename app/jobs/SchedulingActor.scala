@@ -42,9 +42,7 @@ object SchedulingActor {
 
   case class RemoveStaleDocuments(service: AdminService) extends ScheduledMessage[Either[Int, LockResponse]]
 
-  case class UpdateMetrics(service: MetricsService) extends ScheduledMessage[Either[Map[String, Int], LockResponse]]
-
   case class MissingIncorporation(service: CorporationTaxRegistrationService) extends ScheduledMessage[Either[String, LockResponse]]
 
-  def props: Props = Props[SchedulingActor]
+  def props: Props = Props[SchedulingActor]()
 }

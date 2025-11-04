@@ -27,11 +27,11 @@ import org.scalatestplus.play.PlaySpec
 import play.api.Configuration
 import play.api.test.Helpers._
 import repositories._
-import services.TakeoverDetailsService
+import services.{MetricsService, TakeoverDetailsService}
 import services.admin.AdminServiceImpl
 import utils.Logging
-import java.time.LocalDateTime
 
+import java.time.LocalDateTime
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -41,6 +41,7 @@ class TakeoverJobSpec extends PlaySpec with MockitoSugar with Logging with Event
   val mockCTRepository: CorporationTaxRegistrationMongoRepository = mock[CorporationTaxRegistrationMongoRepository]
   val mockAdminService: AdminServiceImpl = mock[AdminServiceImpl]
   val mockTakeoverDetailsService: TakeoverDetailsService = mock[TakeoverDetailsService]
+  val mockMetricsService: MetricsService = mock[MetricsService]
   val expectedLockedReg: List[Nothing] = List()
   val expectedRegStats = Map.empty[String, Int]
 
@@ -97,6 +98,7 @@ class TakeoverJobSpec extends PlaySpec with MockitoSugar with Logging with Event
         override val config: Configuration = mockConfig
         implicit val ec: ExecutionContext = global
         override val takeoverDetailsService: TakeoverDetailsService = mockTakeoverDetailsService
+        override val metricsService: MetricsService = mockMetricsService
         override val ctRepo: CorporationTaxRegistrationMongoRepository = mockCTRepository
 
         override def runEverythingOnStartUp(): Future[Unit] = Future.successful(())

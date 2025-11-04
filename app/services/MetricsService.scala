@@ -64,8 +64,7 @@ class MetricsServiceImpl @Inject()(metricsInstance: Metrics,
 
   override val desSubmissionCRTimer: Timer = metrics.defaultRegistry.timer("des-submission-CR-timer")
 
-
-  lazy val lockoutTimeout: Int = servicesConfig.getInt("schedules.metrics-job.lockTimeout")
+  lazy val lockoutTimeout: Int = servicesConfig.getInt("metrics-job.lockTimeout")
 
   lazy val lockKeeper: LockService = LockService(repositories.lockRepository, "metrics-job-lock", lockoutTimeout.seconds)
 }

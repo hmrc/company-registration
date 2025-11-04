@@ -28,7 +28,7 @@ import org.scalatestplus.play.PlaySpec
 import play.api.Configuration
 import play.api.test.Helpers._
 import repositories._
-import services.TakeoverDetailsService
+import services.{MetricsService, TakeoverDetailsService}
 import utils.LogCapturingHelper
 
 import java.time.Instant
@@ -41,6 +41,7 @@ class AppStartupJobsSpec extends PlaySpec with MockitoSugar with LogCapturingHel
   val mockConfig: Configuration = Configuration.empty
   val mockCTRepository: CorporationTaxRegistrationMongoRepository = mock[CorporationTaxRegistrationMongoRepository]
   val mockTakeoverDetailsService: TakeoverDetailsService = mock[TakeoverDetailsService]
+  val mockMetricsService: MetricsService = mock[MetricsService]
 
   val expectedLockedReg: Seq[Nothing] = List()
   val expectedRegStats = Map.empty[String,  Int]
@@ -49,6 +50,7 @@ class AppStartupJobsSpec extends PlaySpec with MockitoSugar with LogCapturingHel
     override val config: Configuration = mockConfig
     implicit val ec: ExecutionContext = global
     override val takeoverDetailsService: TakeoverDetailsService = mockTakeoverDetailsService
+    override val metricsService: MetricsService = mockMetricsService
     override val ctRepo: CorporationTaxRegistrationMongoRepository = mockCTRepository
     override def runEverythingOnStartUp: Future[Unit] = Future.successful(())
   }

@@ -21,7 +21,7 @@ import com.google.inject.AbstractModule
 import com.google.inject.name.Names
 import connectors.{BusinessRegistrationConnector, BusinessRegistrationConnectorImpl, DesConnector, DesConnectorImpl, IncorporationCheckAPIConnector, IncorporationCheckAPIConnectorImpl, IncorporationInformationConnector, IncorporationInformationConnectorImpl, SendEmailConnector, SendEmailConnectorImpl}
 import controllers.test.{TestEndpointController, TestEndpointControllerImpl}
-import jobs.{MetricsJob, MissingIncorporationJob, RemoveStaleDocumentsJob, ScheduledJob}
+import jobs.{MissingIncorporationJob, RemoveStaleDocumentsJob, ScheduledJob}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories, SequenceMongoRepository, ThrottleMongoRepository}
 import services._
 import services.admin.{AdminService, AdminServiceImpl}
@@ -41,7 +41,6 @@ class Module extends AbstractModule {
   private def bindJobs(): Unit = {
     bind(classOf[ScheduledJob]).annotatedWith(Names.named("missing-incorporation-job")).to(classOf[MissingIncorporationJob]).asEagerSingleton()
     bind(classOf[ScheduledJob]).annotatedWith(Names.named("remove-stale-documents-job")).to(classOf[RemoveStaleDocumentsJob]).asEagerSingleton()
-    bind(classOf[ScheduledJob]).annotatedWith(Names.named("metrics-job")).to(classOf[MetricsJob]).asEagerSingleton()
     bind(classOf[AppStartupJobs]).to(classOf[AppStartupJobsImpl]).asEagerSingleton()
     bind(classOf[Startup]).asEagerSingleton()
   }
@@ -55,7 +54,7 @@ class Module extends AbstractModule {
     bind(classOf[TestEndpointController]).to(classOf[TestEndpointControllerImpl]).asEagerSingleton()
   }
 
-  private def bindServices() {
+  private def bindServices(): Unit = {
     bind(classOf[AdminService]).to(classOf[AdminServiceImpl]).asEagerSingleton()
     bind(classOf[AuditService]).to(classOf[AuditServiceImpl]).asEagerSingleton()
     bind(classOf[AccountingDetailsService]).to(classOf[AccountingDetailsServiceImpl]).asEagerSingleton()
@@ -66,7 +65,6 @@ class Module extends AbstractModule {
     bind(classOf[CorporationTaxRegistrationService]).to(classOf[CorporationTaxRegistrationServiceImpl]).asEagerSingleton()
     bind(classOf[CorporationTaxRegistrationService]).to(classOf[CorporationTaxRegistrationServiceImpl]).asEagerSingleton()
     bind(classOf[EmailService]).to(classOf[EmailServiceImpl]).asEagerSingleton()
-    bind(classOf[MetricsService]).to(classOf[MetricsServiceImpl]).asEagerSingleton()
     bind(classOf[PrepareAccountService]).to(classOf[PrepareAccountServiceImpl]).asEagerSingleton()
     bind(classOf[UserAccessService]).to(classOf[UserAccessServiceImpl]).asEagerSingleton()
     bind(classOf[ProcessIncorporationService]).to(classOf[ProcessIncorporationServiceImpl]).asEagerSingleton()

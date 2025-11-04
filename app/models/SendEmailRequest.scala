@@ -16,7 +16,7 @@
 
 package models
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 
 case class SendEmailRequest(
 
@@ -27,5 +27,5 @@ case class SendEmailRequest(
                            )
 
 object SendEmailRequest {
-  implicit val format = Json.format[SendEmailRequest]
+  implicit val format: OFormat[SendEmailRequest] = Json.format[SendEmailRequest]
 }
