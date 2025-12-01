@@ -20,6 +20,7 @@ import models.TakeoverDetails
 import org.apache.pekko.actor.ActorSystem
 import play.api.Configuration
 import repositories.CorporationTaxRegistrationMongoRepository
+import services.admin.AdminService
 import services.{MetricsService, TakeoverDetailsService}
 import utils.Logging
 
@@ -29,19 +30,17 @@ import javax.inject.Inject
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 
-
-class Startup @Inject()(appStartupJobs: AppStartupJobs,
-                        actorSystem: ActorSystem
-                       )(implicit val ec: ExecutionContext) {
+class Startup @Inject() (appStartupJobs: AppStartupJobs, actorSystem: ActorSystem)(implicit val ec: ExecutionContext) {
 
   actorSystem.scheduler.scheduleOnce(FiniteDuration(1, TimeUnit.MINUTES))(appStartupJobs.runEverythingOnStartUp())
 }
 
-class AppStartupJobsImpl @Inject()(val config: Configuration,
-                                   val ctRepo: CorporationTaxRegistrationMongoRepository,
-                                   val takeoverDetailsService: TakeoverDetailsService,
-                                   val metricsService: MetricsService
-                                  )(implicit val ec: ExecutionContext) extends AppStartupJobs
+class AppStartupJobsImpl @Inject() (val config: Configuration,
+                                    val ctRepo: CorporationTaxRegistrationMongoRepository,
+                                    val takeoverDetailsService: TakeoverDetailsService,
+                                    val metricsService: MetricsService,
+                                    val adminService: AdminService)(implicit val ec: ExecutionContext)
+    extends AppStartupJobs
 
 trait AppStartupJobs extends Logging {
 
@@ -50,10 +49,11 @@ trait AppStartupJobs extends Logging {
   val ctRepo: CorporationTaxRegistrationMongoRepository
   val takeoverDetailsService: TakeoverDetailsService
   val metricsService: MetricsService
+  val adminService: AdminService
 
   private def startupStats: Future[Unit] =
-    ctRepo.getRegistrationStats map {
-      stats => logger.info(s"[startupStats] $stats")
+    ctRepo.getRegistrationStats map { stats =>
+      logger.info(s"[startupStats] $stats")
     }
 
   private def lockedRegIds: Future[Unit] =
@@ -63,15 +63,15 @@ trait AppStartupJobs extends Logging {
     }
 
   def getCTCompanyName(rid: String): Future[Unit] =
-    ctRepo.retrieveMultipleCorporationTaxRegistration(rid) map {
-      list =>
-        list foreach { ctDoc =>
-          logger.info(s"[getCTCompanyName] " +
+    ctRepo.retrieveMultipleCorporationTaxRegistration(rid) map { list =>
+      list foreach { ctDoc =>
+        logger.info(
+          s"[getCTCompanyName] " +
             s"status : ${ctDoc.status} - " +
             s"reg Id : ${ctDoc.registrationID} - " +
             s"Company Name : ${ctDoc.companyDetails.fold("")(companyDetails => companyDetails.companyName)} - " +
             s"Trans ID : ${ctDoc.confirmationReferences.fold("")(confRefs => confRefs.transactionId)}")
-        }
+      }
     }
 
   def fetchDocInfoByRegId(regIds: Seq[String]): Future[Seq[Unit]] =
@@ -98,34 +98,38 @@ trait AppStartupJobs extends Logging {
     })
 
   private def fetchByAckRef(ackRefs: Seq[String]): Unit =
-    for (ackRef <- ackRefs) {
+    for (ackRef <- ackRefs)
       ctRepo.findOneBySelector(ctRepo.ackRefSelector(ackRef)).map {
         case Some(doc) =>
-          logger.info(s"[fetchDocInfoByRegId] Ack Ref: $ackRef, RegId: ${doc.registrationID}, Status: ${doc.status}, LastSignedIn: ${doc.lastSignedIn}, ConfRefs: ${doc.confirmationReferences}")
+          logger.info(
+            s"[fetchDocInfoByRegId] Ack Ref: $ackRef, RegId: ${doc.registrationID}, Status: ${doc.status}, LastSignedIn: ${doc.lastSignedIn}, ConfRefs: ${doc.confirmationReferences}")
         case _ =>
           logger.info(s"[fetchDocInfoByRegId] No registration document found for $ackRef")
       }
-    }
 
-  def updateTakeoverData(regIds: List[String]): Future[Seq[TakeoverDetails]] = {
-    Future.traverse(regIds){
-      regId =>
-        logger.info(s" $regId has had its takeover section rectified to false")
-        takeoverDetailsService.updateTakeoverDetailsBlock(regId, TakeoverDetails(replacingAnotherBusiness = false, None, None, None, None))
+  def updateTakeoverData(regIds: List[String]): Future[Seq[TakeoverDetails]] =
+    Future.traverse(regIds) { regId =>
+      logger.info(s" $regId has had its takeover section rectified to false")
+      takeoverDetailsService.updateTakeoverDetailsBlock(regId, TakeoverDetails(replacingAnotherBusiness = false, None, None, None, None))
     }
-  }
 
   def runEverythingOnStartUp(): Future[Unit] = {
     logger.info("[runEverythingOnStartUp] Running Startup Jobs")
-    lazy val regid = config.get[String]("companyNameRegID")
-    getCTCompanyName(regid)
+    lazy val regId = config.get[String]("companyNameRegID")
+    logger.info("[runEverythingOnStartUp] Get details PRE-update:")
+    getCTCompanyName(regId)
+    adminService
+      .updateTransactionId("089-838162", "099-584905")
+      .map(result => logger.info(s"[runEverythingOnStartUp] Was update TxnID successful? - $result"))
+    logger.info("[runEverythingOnStartUp] Get details POST-update:")
+    getCTCompanyName(regId)
 
     lazy val base64TakeoverRegIds = config.get[String]("list-of-takeover-regids")
     lazy val listOfTakeoverRegIds = new String(Base64.getDecoder.decode(base64TakeoverRegIds), "UTF-8").split(",").toList
     updateTakeoverData(listOfTakeoverRegIds)
 
     lazy val base64RegIds = config.get[String]("list-of-regids")
-    lazy val listOftxIDs = new String(Base64.getDecoder.decode(base64RegIds), "UTF-8").split(",").toList
+    lazy val listOftxIDs  = new String(Base64.getDecoder.decode(base64RegIds), "UTF-8").split(",").toList
     fetchDocInfoByRegId(listOftxIDs)
 
     lazy val base64ackRefs = config.get[String]("list-of-ackrefs")
