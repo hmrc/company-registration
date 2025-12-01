@@ -28,6 +28,7 @@ import org.scalatestplus.play.PlaySpec
 import play.api.Configuration
 import play.api.test.Helpers._
 import repositories._
+import services.admin.AdminService
 import services.{MetricsService, TakeoverDetailsService}
 import utils.LogCapturingHelper
 
@@ -35,35 +36,35 @@ import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
-class AppStartupJobsSpec extends PlaySpec with MockitoSugar with LogCapturingHelper
-  with CorporationTaxRegistrationFixture with Eventually {
+class AppStartupJobsSpec extends PlaySpec with MockitoSugar with LogCapturingHelper with CorporationTaxRegistrationFixture with Eventually {
 
-  val mockConfig: Configuration = Configuration.empty
+  val mockConfig: Configuration                                   = Configuration.empty
   val mockCTRepository: CorporationTaxRegistrationMongoRepository = mock[CorporationTaxRegistrationMongoRepository]
-  val mockTakeoverDetailsService: TakeoverDetailsService = mock[TakeoverDetailsService]
-  val mockMetricsService: MetricsService = mock[MetricsService]
+  val mockTakeoverDetailsService: TakeoverDetailsService          = mock[TakeoverDetailsService]
+  val mockMetricsService: MetricsService                          = mock[MetricsService]
+  val mockAdminService: AdminService                              = mock[AdminService]
 
   val expectedLockedReg: Seq[Nothing] = List()
-  val expectedRegStats = Map.empty[String,  Int]
+  val expectedRegStats                = Map.empty[String, Int]
 
   object TestAppStartupJobs extends AppStartupJobs {
-    override val config: Configuration = mockConfig
-    implicit val ec: ExecutionContext = global
-    override val takeoverDetailsService: TakeoverDetailsService = mockTakeoverDetailsService
-    override val metricsService: MetricsService = mockMetricsService
+    override val config: Configuration                             = mockConfig
+    implicit val ec: ExecutionContext                              = global
+    override val takeoverDetailsService: TakeoverDetailsService    = mockTakeoverDetailsService
+    override val metricsService: MetricsService                    = mockMetricsService
+    override val adminService: AdminService                        = mockAdminService
     override val ctRepo: CorporationTaxRegistrationMongoRepository = mockCTRepository
-    override def runEverythingOnStartUp: Future[Unit] = Future.successful(())
+    override def runEverythingOnStartUp: Future[Unit]              = Future.successful(())
   }
 
   "get Company Name" must {
 
-    val regId1 = "reg-1"
+    val regId1       = "reg-1"
     val companyName1 = "ACME1 ltd"
     val companyName2 = "ACME2 ltd"
 
     val ctDoc1 = validCTRegWithCompanyName(regId1, companyName1)
     val ctDoc2 = validCTRegWithCompanyName(regId1, companyName2)
-
 
     "log specific company name relating to reg id passed in" in {
       when(mockCTRepository.retrieveLockedRegIDs())
@@ -91,31 +92,31 @@ class AppStartupJobsSpec extends PlaySpec with MockitoSugar with LogCapturingHel
 
     val dateTime: Instant = Instant.parse("2016-10-27T16:28:59.000Z")
 
-    def corporationTaxRegistration(regId: String,
-                                   status: String = SUBMITTED,
-                                   transId: String = "transid-1"
-                                  ): CorporationTaxRegistration = {
+    def corporationTaxRegistration(regId: String, status: String = SUBMITTED, transId: String = "transid-1"): CorporationTaxRegistration =
       CorporationTaxRegistration(
         internalId = "testID",
         registrationID = regId,
         formCreationTimestamp = dateTime.toString,
         language = LangConstants.english,
-        companyDetails = Some(CompanyDetails(
-          "testCompanyName",
-          CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
-          PPOB("MANUAL", Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), None, None, "txid"))),
-          "testJurisdiction"
-        )),
-        contactDetails = Some(ContactDetails(
-          Some("0123456789"),
-          Some("0123456789"),
-          Some("test@email.co.uk")
-        )),
+        companyDetails = Some(
+          CompanyDetails(
+            "testCompanyName",
+            CHROAddress("Premises", "Line 1", Some("Line 2"), "Country", "Locality", Some("PO box"), Some("Post code"), Some("Region")),
+            PPOB(
+              "MANUAL",
+              Some(PPOBAddress("10 test street", "test town", Some("test area"), Some("test county"), Some("XX1 1ZZ"), None, None, "txid"))),
+            "testJurisdiction"
+          )),
+        contactDetails = Some(
+          ContactDetails(
+            Some("0123456789"),
+            Some("0123456789"),
+            Some("test@email.co.uk")
+          )),
         tradingDetails = Some(TradingDetails("false")),
         status = status,
         confirmationReferences = Some(ConfirmationReferences(s"ACKFOR-$regId", transId, Some("PAYREF"), Some("12")))
       )
-    }
 
     val regIds = Seq("regId1", "regId2", "regId3")
 
