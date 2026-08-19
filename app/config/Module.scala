@@ -43,6 +43,8 @@ class Module extends AbstractModule {
     bind(classOf[ScheduledJob]).annotatedWith(Names.named("remove-stale-documents-job")).to(classOf[RemoveStaleDocumentsJob]).asEagerSingleton()
     bind(classOf[AppStartupJobs]).to(classOf[AppStartupJobsImpl]).asEagerSingleton()
     bind(classOf[Startup]).asEagerSingleton()
+    bind(classOf[CreatedTimeDataCleanupConfig]).asEagerSingleton()
+    bind(classOf[MongoRemoveInvalidCreatedTimeDataOnStartUp]).asEagerSingleton()
   }
 
   private def bindConfig(): Unit = {
