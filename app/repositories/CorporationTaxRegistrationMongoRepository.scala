@@ -185,7 +185,18 @@ class CorporationTaxRegistrationMongoRepository @Inject()(val mongo: MongoCompon
   }
 
   def updateLastSignedIn(regId: String, timestamp: Instant): Future[Instant] =
-    update(regIDSelector(regId), "lastSignedIn", JsNumber(timestamp.toEpochMilli)).map(_ => timestamp)
+    collection.updateOne(
+      regIDSelector(regId),
+      Updates.combine(
+        set("lastSignedIn", timestamp.toEpochMilli),
+        Updates.setOnInsert("internalId", "unknown"), // getInternalId won't help?
+        Updates.setOnInsert("formCreationTimestamp", timestamp.toString),
+        Updates.setOnInsert("language", LangConstants.english), // default set to english?
+        Updates.setOnInsert("status", RegistrationStatus.DRAFT),
+        Updates.setOnInsert("createdTime", timestamp.toEpochMilli)
+      ),
+      UpdateOptions().upsert(true)
+    ).toFuture().map(_ => timestamp)
 
   def updateCTRecordWithAcknowledgments(ackRef: String, ctRecord: CorporationTaxRegistration): Future[UpdateResult] =
     collection.replaceOne(ackRefSelector(ackRef), ctRecord, ReplaceOptions().upsert(false)).toFuture()
