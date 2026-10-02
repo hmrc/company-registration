@@ -1896,4 +1896,56 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       remainingFreshLegacy mustBe 1L
     }
   }
+
+
+  "updateLastSignedIn" must {
+    "update lastSignedIn when the registration document exists" in new Setup {
+      val registrationId = "testRegId"
+      val initialTimestamp = Instant.parse("2026-09-27T10:00:00Z")
+      val updatedTimestamp = Instant.parse("2026-09-28T10:00:00Z")
+
+      insert(newCTDoc.copy(
+        registrationID = registrationId,
+        lastSignedIn = initialTimestamp
+      ))
+
+      await(repository.updateLastSignedIn(registrationId, updatedTimestamp)) mustBe updatedTimestamp
+
+      retrieve(registrationId).map(_.lastSignedIn) mustBe Some(updatedTimestamp)
+      count mustBe 1
+    }
+
+    "insert a new document when the registration ID does not exist" in new Setup {
+      val registrationId = "newRegId"
+      val timestamp = Instant.parse("2026-09-28T10:00:00Z")
+
+      count mustBe 0
+
+      await(repository.updateLastSignedIn(registrationId, timestamp)) mustBe timestamp
+
+      count mustBe 1
+
+      val result = retrieve(registrationId)
+      result mustBe defined
+      result.get.registrationID mustBe registrationId
+      result.get.lastSignedIn mustBe timestamp
+    }
+
+    "update lastSignedIn without creating a duplicate document" in new Setup {
+      val registrationId = "testRegId"
+      val initialTimestamp = Instant.parse("2026-09-27T10:00:00Z")
+      val updatedTimestamp = Instant.parse("2026-09-28T10:00:00Z")
+
+      insert(newCTDoc.copy(
+        registrationID = registrationId,
+        lastSignedIn = initialTimestamp
+      ))
+
+      await(repository.updateLastSignedIn(registrationId, updatedTimestamp)) mustBe updatedTimestamp
+      await(repository.updateLastSignedIn(registrationId, initialTimestamp)) mustBe initialTimestamp
+
+      count mustBe 1
+      retrieve(registrationId).map(_.lastSignedIn) mustBe Some(initialTimestamp)
+    }
+  }
 }
