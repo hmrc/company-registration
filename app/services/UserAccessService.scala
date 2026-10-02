@@ -17,11 +17,12 @@
 package services
 
 import connectors.{BusinessRegistrationConnector, BusinessRegistrationNotFoundResponse, BusinessRegistrationSuccessResponse}
-import models.{CorporationTaxRegistration, UserAccessLimitReachedResponse, UserAccessSuccessResponse}
+import models.{BusinessRegistration, CorporationTaxRegistration, UserAccessLimitReachedResponse, UserAccessSuccessResponse}
 import play.api.libs.json.{JsValue, Json}
 import repositories.{CorporationTaxRegistrationMongoRepository, Repositories}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import utils.Logging
 
 import java.time.Instant
 import javax.inject.{Inject, Singleton}
@@ -42,7 +43,7 @@ class UserAccessServiceImpl @Inject()(val throttleService: ThrottleService,
 
 private[services] class MissingRegistration(regId: String) extends NoStackTrace
 
-trait UserAccessService {
+trait UserAccessService extends Logging {
 
   implicit val ec: ExecutionContext
   val threshold: Int
@@ -54,28 +55,49 @@ trait UserAccessService {
   def checkUserAccess(internalId: String)(implicit hc: HeaderCarrier): Future[Either[JsValue, UserAccessSuccessResponse]] = {
     brConnector.retrieveMetadata flatMap {
       case BusinessRegistrationSuccessResponse(metadata) =>
-        val now = Instant.now
-        for {
-          _ <- brConnector.updateLastSignedIn(metadata.registrationID, now)
-          oCrData <- ctService.retrieveCorporationTaxRegistrationRecord(metadata.registrationID, Some(now))
-          crData <- oCrData match {
-            case Some(crData) =>
-              Future.successful(Right(UserAccessSuccessResponse(crData.registrationID, created = false, confRefs = hasConfRefs(crData), paymentRefs = hasPaymentRefs(crData), crData.verifiedEmail, crData.registrationProgress)))
-            case _ =>
-              brConnector.removeMetadata(metadata.registrationID).map { _ =>
-                throw new MissingRegistration(metadata.registrationID)
-              }
-          }
-        } yield crData
+        updateExisting(metadata, internalId)
       case BusinessRegistrationNotFoundResponse =>
-        throttleService.checkUserAccess flatMap {
-          case false => Future.successful(Left(Json.toJson(UserAccessLimitReachedResponse(limitReached = true))))
-          case true => for {
-            metaData <- brConnector.createMetadataEntry
-            crData <- ctService.createCorporationTaxRegistrationRecord(internalId, metaData.registrationID, "en")
-          } yield Right(UserAccessSuccessResponse(crData.registrationID, created = true, confRefs = hasConfRefs(crData), paymentRefs = hasPaymentRefs(crData), crData.verifiedEmail, crData.registrationProgress))
-        }
-      case _ => throw new Exception("Something went wrong")
+        createNew(internalId)
+      case unexpected =>
+        throw new Exception(s"[UserAccessService][checkUserAccess] Unexpected result when trying to retrieve metadata: $unexpected")
+    }
+  }
+
+  // 1. How many users are getting the failure? Is there a pattern?
+  // 2. Is the data missing for some reason (not seeing any deletions)
+  // or could the reg ID be inaccurate for some reason?
+  // 3. If has been deleted, should we create new?
+  // If creating new, do we need to run 'throttleService.checkUserAccess'?
+  //  we currently do when creating for new metadata and doc, we don't currently for existing metadata and doc
+  private def updateExisting(metadata: BusinessRegistration, internalId: String)(implicit hc: HeaderCarrier): Future[Either[JsValue, UserAccessSuccessResponse]] = {
+    val now = Instant.now
+    for {
+      _ <- brConnector.updateLastSignedIn(metadata.registrationID, now)
+      oCrData <- ctService.retrieveCorporationTaxRegistrationRecord(metadata.registrationID, Some(now)).recover {
+        case _: NoSuchElementException =>
+          val errorMg = s"[UserAccessService][checkUserAccess] Unable to find data in corporation-tax-registration-information for internal ID '$internalId' and registration ID '${metadata.registrationID}'"
+          logger.warn(errorMg)
+          throw new NoSuchElementException(errorMg)
+      }
+      crData <- oCrData match {
+        case Some(crData) =>
+          Future.successful(Right(UserAccessSuccessResponse(crData.registrationID, created = false, confRefs = hasConfRefs(crData), paymentRefs = hasPaymentRefs(crData), crData.verifiedEmail, crData.registrationProgress)))
+        case _ =>
+          brConnector.removeMetadata(metadata.registrationID).map { _ =>
+            throw new MissingRegistration(metadata.registrationID)
+          }
+      }
+    } yield crData
+
+  }
+
+  private def createNew(internalId: String)(implicit hc: HeaderCarrier): Future[Either[JsValue, UserAccessSuccessResponse]] = {
+    throttleService.checkUserAccess flatMap {
+      case false => Future.successful(Left(Json.toJson(UserAccessLimitReachedResponse(limitReached = true))))
+      case true => for {
+        metaData <- brConnector.createMetadataEntry
+        crData <- ctService.createCorporationTaxRegistrationRecord(internalId, metaData.registrationID, "en")
+      } yield Right(UserAccessSuccessResponse(crData.registrationID, created = true, confRefs = hasConfRefs(crData), paymentRefs = hasPaymentRefs(crData), crData.verifiedEmail, crData.registrationProgress))
     }
   }
 
