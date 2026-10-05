@@ -1915,20 +1915,11 @@ class CorporationTaxRegistrationMongoRepositoryISpec
       count mustBe 1
     }
 
-    "insert a new document when the registration ID does not exist" in new Setup {
-      val registrationId = "newRegId"
-      val timestamp = Instant.parse("2026-09-28T10:00:00Z")
+    "throw NoSuchElementException when the registration ID does not exist" in new Setup {
+      val timestamp: Instant = Instant.parse("2026-09-28T10:00:00Z")
 
+      an[NoSuchElementException] must be thrownBy { await(repository.updateLastSignedIn("non-existent-reg-id", timestamp)) }
       count mustBe 0
-
-      await(repository.updateLastSignedIn(registrationId, timestamp)) mustBe timestamp
-
-      count mustBe 1
-
-      val result = retrieve(registrationId)
-      result mustBe defined
-      result.get.registrationID mustBe registrationId
-      result.get.lastSignedIn mustBe timestamp
     }
 
     "update lastSignedIn without creating a duplicate document" in new Setup {
