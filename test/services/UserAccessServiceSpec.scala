@@ -158,7 +158,7 @@ class UserAccessServiceSpec extends PlaySpec with MockitoSugar with BusinessRegi
         .thenReturn(Future.successful(BusinessRegistrationForbiddenResponse))
 
       val ex: Exception = intercept[Exception](await(service.checkUserAccess(internalId)))
-      ex.getMessage mustBe "Something went wrong"
+      ex.getMessage mustBe "[UserAccessService][checkUserAccess] Unexpected result when trying to retrieve metadata: BusinessRegistrationForbiddenResponse"
     }
   }
 }

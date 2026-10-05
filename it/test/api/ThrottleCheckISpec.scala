@@ -19,7 +19,7 @@ package test.api
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.crypto.DefaultCookieSigner
-import play.api.libs.json.{JsBoolean, JsObject, JsString, Json}
+import play.api.libs.json.{JsBoolean, JsNull, JsObject, JsString, Json}
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers._
 import repositories.{CorporationTaxRegistrationMongoRepository, ThrottleMongoRepository}
@@ -135,6 +135,30 @@ class ThrottleCheckISpec extends IntegrationSpecBase with MongoIntegrationSpec w
         "confirmation-reference" -> JsBoolean(false),
         "payment-reference" -> JsBoolean(false)
       )
+    }
+
+    "return a 500 if the user's registration ID is not found in the corporation-tax-registration-information database" in new Setup {
+      stubAuthorise(internalId)
+
+      private val brURL = "/business-registration/business-tax-registration"
+      stubPatch(s"$brURL/last-signed-in/$registrationId", 200, "")
+      stubGet(brURL, 200, s"""{"registrationID":"$registrationId","formCreationTimestamp":"xxx", "language": "xxx"}""")
+
+      val crDoc1 = Json.parse(
+        s"""
+           |{
+           |"internalId":"$internalId","registrationID":"registrationId","status":"draft","formCreationTimestamp":"testDateTime","language":"en",
+           |"registrationProgress":"HO5",
+           |"createdTime":1488304097470,"lastSignedIn":1488304097486
+           |}
+      """.stripMargin).as[JsObject]
+      crRepo.insertRaw(crDoc1)
+
+      val response: WSResponse = client(s"/throttle/check-user-access").get.futureValue
+
+      response.status mustBe 500
+      response.json mustBe Json.obj("statusCode" -> 500, "message" ->
+        s"[UserAccessService][checkUserAccess] Unable to find data in corporation-tax-registration-information for internal ID '$internalId' and registration ID '$registrationId'")
     }
 
     "prevent a user through if we're at the limit" in new Setup {
