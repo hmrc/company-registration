@@ -157,7 +157,8 @@ class ThrottleCheckISpec extends IntegrationSpecBase with MongoIntegrationSpec w
       val response: WSResponse = client(s"/throttle/check-user-access").get.futureValue
 
       response.status mustBe 500
-      response.json mustBe Json.obj("statusCode" -> 500, "message" -> JsNull)
+      response.json mustBe Json.obj("statusCode" -> 500, "message" ->
+        s"[UserAccessService][checkUserAccess] Unable to find data in corporation-tax-registration-information for internal ID '$internalId' and registration ID '$registrationId'")
     }
 
     "prevent a user through if we're at the limit" in new Setup {
