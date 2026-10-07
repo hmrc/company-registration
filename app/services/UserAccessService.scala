@@ -93,12 +93,39 @@ trait UserAccessService extends Logging {
     result.recoverWith {
       case _: NoSuchElementException =>
         val errorMg =
-          s"[UserAccessService][checkUserAccess] Unable to find data in corporation-tax-registration-information for internal ID '$internalId' and registration ID '${metadata.registrationID}'"
+          s"[UserAccessService][checkUserAccess] Unable to find data in corporation-tax-registration-information for internal ID '$internalId' and registration ID '${metadata.registrationID}'. " +
+            s"So creating a new journey entry in company-registration"
 
         logger.warn(errorMg)
-        createNewJourney(internalId)
+        createNewJourneyInCompanyRegistration(internalId)
     }
   }
+
+  private def createNewJourneyInCompanyRegistration(internalId: String)
+                                                   (implicit hc: HeaderCarrier): Future[Either[JsValue, UserAccessSuccessResponse]] =
+    for {
+      businessRegistrationResponse <- brConnector.retrieveMetadata
+      crData <- businessRegistrationResponse match {
+        case BusinessRegistrationSuccessResponse(businessRegistration) =>
+          ctService.createCorporationTaxRegistrationRecord(
+            internalId,
+            businessRegistration.registrationID,
+            "en"
+          )
+
+        case _ =>
+          Future.failed(new RuntimeException("[UserAccessService][checkUserAccess] Unable to retrieve business registration"))
+      }
+    } yield Right(
+      UserAccessSuccessResponse(
+        crData.registrationID,
+        created = true,
+        confRefs = hasConfRefs(crData),
+        paymentRefs = hasPaymentRefs(crData),
+        crData.verifiedEmail,
+        crData.registrationProgress
+      )
+    )
 
   private def createNew(internalId: String)
                        (implicit hc: HeaderCarrier): Future[Either[JsValue, UserAccessSuccessResponse]] =
