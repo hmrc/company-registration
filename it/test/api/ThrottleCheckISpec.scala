@@ -137,28 +137,30 @@ class ThrottleCheckISpec extends IntegrationSpecBase with MongoIntegrationSpec w
       )
     }
 
-    "return a 500 if the user's registration ID is not found in the corporation-tax-registration-information database" in new Setup {
+    "must create a new registration journey if the user's registration ID is not found in the corporation-tax-registration-information database" in new Setup {
       stubAuthorise(internalId)
 
       private val brURL = "/business-registration/business-tax-registration"
-      stubPatch(s"$brURL/last-signed-in/$registrationId", 200, "")
-      stubGet(brURL, 200, s"""{"registrationID":"$registrationId","formCreationTimestamp":"xxx", "language": "xxx"}""")
+      private val newRegistrationId = UUID.randomUUID().toString
 
-      val crDoc1 = Json.parse(
-        s"""
-           |{
-           |"internalId":"$internalId","registrationID":"registrationId","status":"draft","formCreationTimestamp":"testDateTime","language":"en",
-           |"registrationProgress":"HO5",
-           |"createdTime":1488304097470,"lastSignedIn":1488304097486
-           |}
-      """.stripMargin).as[JsObject]
-      crRepo.insertRaw(crDoc1)
+      stubPatch(s"$brURL/last-signed-in/$registrationId",200,"")
 
-      val response: WSResponse = client(s"/throttle/check-user-access").get.futureValue
+      private val metaData: String = s"""{"registrationID":"$registrationId","formCreationTimestamp":"xxx", "language": "xxx"}"""
+      stubGet(brURL,200,metaData)
 
-      response.status mustBe 500
-      response.json mustBe Json.obj("statusCode" -> 500, "message" ->
-        s"[UserAccessService][checkUserAccess] Unable to find data in corporation-tax-registration-information for internal ID '$internalId' and registration ID '$registrationId'")
+      private val newMetaData: String = s"""{"registrationID":"$newRegistrationId","formCreationTimestamp":"xxx", "language": "xxx"}"""
+      stubPost(brURL,201,newMetaData)
+
+      val response: WSResponse = client("/throttle/check-user-access").get.futureValue
+
+      response.status mustBe 200
+
+      response.json mustBe Json.obj(
+        "registration-id" -> newRegistrationId,
+        "created" -> true,
+        "confirmation-reference" -> false,
+        "payment-reference" -> false
+      )
     }
 
     "prevent a user through if we're at the limit" in new Setup {
