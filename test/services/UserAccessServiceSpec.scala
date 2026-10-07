@@ -207,6 +207,5 @@ class UserAccessServiceSpec extends PlaySpec with MockitoSugar with BusinessRegi
 
       verify(mockThrottleService, never()).checkUserAccess
     }
-
   }
 }

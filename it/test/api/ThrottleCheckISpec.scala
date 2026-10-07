@@ -141,7 +141,6 @@ class ThrottleCheckISpec extends IntegrationSpecBase with MongoIntegrationSpec w
       stubAuthorise(internalId)
 
       private val brURL = "/business-registration/business-tax-registration"
-      private val newRegistrationId = UUID.randomUUID().toString
 
       stubPatch(s"$brURL/last-signed-in/$registrationId",200,"")
 
