@@ -160,5 +160,51 @@ class UserAccessServiceSpec extends PlaySpec with MockitoSugar with BusinessRegi
       val ex: Exception = intercept[Exception](await(service.checkUserAccess(internalId)))
       ex.getMessage mustBe "[UserAccessService][checkUserAccess] Unexpected result when trying to retrieve metadata: BusinessRegistrationForbiddenResponse"
     }
+
+    "create a new registration journey without checking the throttle when the existing CT registration is missing" in new Setup {
+      val newRegId = "67890"
+
+      when(mockBRConnector.retrieveMetadata(any()))
+        .thenReturn(
+          Future.successful(
+            BusinessRegistrationSuccessResponse(businessRegistrationResponse(regId))
+          )
+        )
+
+      when(mockBRConnector.updateLastSignedIn(any(), any())(any()))
+        .thenReturn(Future.successful(dateTime.toString))
+
+      when(mockCTService.retrieveCorporationTaxRegistrationRecord(
+        eqTo(regId),
+        any[Option[Instant]]()
+      )).thenReturn(
+        Future.failed(new NoSuchElementException("registration not found"))
+      )
+
+      when(mockBRConnector.createMetadataEntry(any()))
+        .thenReturn(
+          Future.successful(businessRegistrationResponse(newRegId))
+        )
+
+      when(mockCTService.createCorporationTaxRegistrationRecord(
+        eqTo(internalId),
+        eqTo(newRegId),
+        eqTo("en")
+      )).thenReturn(
+        Future.successful(draftCorporationTaxRegistration(newRegId))
+      )
+
+      await(service.checkUserAccess(internalId)) mustBe
+        Right(
+          UserAccessSuccessResponse(
+            newRegId,
+            created = true,
+            confRefs = false,
+            paymentRefs = false
+          )
+        )
+
+      verify(mockThrottleService, never()).checkUserAccess
+    }
   }
 }

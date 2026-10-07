@@ -63,25 +63,26 @@ trait UserAccessService extends Logging {
     }
   }
 
-  // 1. How many users are getting the failure? Is there a pattern?
-  // 2. Is the data missing for some reason (not seeing any deletions)
-  // or could the reg ID be inaccurate for some reason?
-  // 3. If has been deleted, should we create new?
-  // If creating new, do we need to run 'throttleService.checkUserAccess'?
-  //  we currently do when creating for new metadata and doc, we don't currently for existing metadata and doc
   private def updateExisting(metadata: BusinessRegistration, internalId: String)(implicit hc: HeaderCarrier): Future[Either[JsValue, UserAccessSuccessResponse]] = {
     val now = Instant.now
-    for {
+
+    val result = for {
       _ <- brConnector.updateLastSignedIn(metadata.registrationID, now)
-      oCrData <- ctService.retrieveCorporationTaxRegistrationRecord(metadata.registrationID, Some(now)).recover {
-        case _: NoSuchElementException =>
-          val errorMg = s"[UserAccessService][checkUserAccess] Unable to find data in corporation-tax-registration-information for internal ID '$internalId' and registration ID '${metadata.registrationID}'"
-          logger.warn(errorMg)
-          throw new NoSuchElementException(errorMg)
-      }
+      oCrData <- ctService.retrieveCorporationTaxRegistrationRecord(metadata.registrationID, Some(now))
       crData <- oCrData match {
         case Some(crData) =>
-          Future.successful(Right(UserAccessSuccessResponse(crData.registrationID, created = false, confRefs = hasConfRefs(crData), paymentRefs = hasPaymentRefs(crData), crData.verifiedEmail, crData.registrationProgress)))
+          Future.successful(
+            Right(
+              UserAccessSuccessResponse(
+                crData.registrationID,
+                created = false,
+                confRefs = hasConfRefs(crData),
+                paymentRefs = hasPaymentRefs(crData),
+                crData.verifiedEmail,
+                crData.registrationProgress
+              )
+            )
+          )
         case _ =>
           brConnector.removeMetadata(metadata.registrationID).map { _ =>
             throw new MissingRegistration(metadata.registrationID)
@@ -89,17 +90,45 @@ trait UserAccessService extends Logging {
       }
     } yield crData
 
-  }
+    result.recoverWith {
+      case _: NoSuchElementException =>
+        val errorMg =
+          s"[UserAccessService][checkUserAccess] Unable to find data in corporation-tax-registration-information for internal ID '$internalId' and registration ID '${metadata.registrationID}'"
 
-  private def createNew(internalId: String)(implicit hc: HeaderCarrier): Future[Either[JsValue, UserAccessSuccessResponse]] = {
-    throttleService.checkUserAccess flatMap {
-      case false => Future.successful(Left(Json.toJson(UserAccessLimitReachedResponse(limitReached = true))))
-      case true => for {
-        metaData <- brConnector.createMetadataEntry
-        crData <- ctService.createCorporationTaxRegistrationRecord(internalId, metaData.registrationID, "en")
-      } yield Right(UserAccessSuccessResponse(crData.registrationID, created = true, confRefs = hasConfRefs(crData), paymentRefs = hasPaymentRefs(crData), crData.verifiedEmail, crData.registrationProgress))
+        logger.warn(errorMg)
+        createNewJourney(internalId)
     }
   }
+
+  private def createNew(internalId: String)
+                       (implicit hc: HeaderCarrier): Future[Either[JsValue, UserAccessSuccessResponse]] =
+    throttleService.checkUserAccess.flatMap {
+      case false =>
+        Future.successful(Left(Json.toJson(UserAccessLimitReachedResponse(limitReached = true))))
+
+      case true =>
+        createNewJourney(internalId)
+    }
+
+  private def createNewJourney(internalId: String)
+                              (implicit hc: HeaderCarrier): Future[Either[JsValue, UserAccessSuccessResponse]] =
+    for {
+      metaData <- brConnector.createMetadataEntry
+      crData   <- ctService.createCorporationTaxRegistrationRecord(
+        internalId,
+        metaData.registrationID,
+        "en"
+      )
+    } yield Right(
+      UserAccessSuccessResponse(
+        crData.registrationID,
+        created = true,
+        confRefs = hasConfRefs(crData),
+        paymentRefs = hasPaymentRefs(crData),
+        crData.verifiedEmail,
+        crData.registrationProgress
+      )
+    )
 
   private[services] def hasConfRefs(doc: CorporationTaxRegistration): Boolean = {
     doc.confirmationReferences.isDefined
