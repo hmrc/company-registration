@@ -141,22 +141,19 @@ class ThrottleCheckISpec extends IntegrationSpecBase with MongoIntegrationSpec w
       stubAuthorise(internalId)
 
       private val brURL = "/business-registration/business-tax-registration"
-      private val newRegistrationId = UUID.randomUUID().toString
 
       stubPatch(s"$brURL/last-signed-in/$registrationId",200,"")
 
       private val metaData: String = s"""{"registrationID":"$registrationId","formCreationTimestamp":"xxx", "language": "xxx"}"""
       stubGet(brURL,200,metaData)
-
-      private val newMetaData: String = s"""{"registrationID":"$newRegistrationId","formCreationTimestamp":"xxx", "language": "xxx"}"""
-      stubPost(brURL,201,newMetaData)
+      stubGet(brURL,200,metaData)
 
       val response: WSResponse = client("/throttle/check-user-access").get.futureValue
 
       response.status mustBe 200
 
       response.json mustBe Json.obj(
-        "registration-id" -> newRegistrationId,
+        "registration-id" -> registrationId,
         "created" -> true,
         "confirmation-reference" -> false,
         "payment-reference" -> false

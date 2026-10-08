@@ -162,12 +162,12 @@ class UserAccessServiceSpec extends PlaySpec with MockitoSugar with BusinessRegi
     }
 
     "create a new registration journey without checking the throttle when the existing CT registration is missing" in new Setup {
-      val newRegId = "67890"
-
       when(mockBRConnector.retrieveMetadata(any()))
         .thenReturn(
           Future.successful(
-            BusinessRegistrationSuccessResponse(businessRegistrationResponse(regId))
+            BusinessRegistrationSuccessResponse(
+              businessRegistrationResponse(regId)
+            )
           )
         )
 
@@ -181,6 +181,7 @@ class UserAccessServiceSpec extends PlaySpec with MockitoSugar with BusinessRegi
         Future.failed(new NoSuchElementException("registration not found"))
       )
 
+      val newRegId = "54321"
       when(mockBRConnector.createMetadataEntry(any()))
         .thenReturn(
           Future.successful(businessRegistrationResponse(newRegId))
@@ -188,16 +189,16 @@ class UserAccessServiceSpec extends PlaySpec with MockitoSugar with BusinessRegi
 
       when(mockCTService.createCorporationTaxRegistrationRecord(
         eqTo(internalId),
-        eqTo(newRegId),
+        eqTo(regId),
         eqTo("en")
       )).thenReturn(
-        Future.successful(draftCorporationTaxRegistration(newRegId))
+        Future.successful(draftCorporationTaxRegistration(regId))
       )
 
       await(service.checkUserAccess(internalId)) mustBe
         Right(
           UserAccessSuccessResponse(
-            newRegId,
+            regId,
             created = true,
             confRefs = false,
             paymentRefs = false
