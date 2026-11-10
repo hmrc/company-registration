@@ -62,3 +62,7 @@ To run the app you can run the service manager profile ```sm2 -start SCRS_ALL```
 # Testing the App
 
 To run the tests for the application, you can run: ```sbt coverage test it/test coverageReport```
+
+or
+run the below script
+```./run-all-tests.sh```
