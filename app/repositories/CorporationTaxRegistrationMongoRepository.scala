@@ -31,7 +31,7 @@ import play.api.libs.json._
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import com.mongodb.client.result.DeleteResult
-import config.{LangConstants, MicroserviceAppConfig}
+import config.MicroserviceAppConfig
 import org.bson.{BsonType, Document}
 import org.mongodb.scala.model.Projections.include
 import utils.Logging
@@ -41,7 +41,7 @@ import java.time.{Instant, LocalDateTime, ZoneOffset}
 import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.control.NoStackTrace
+import scala.util.control.{NoStackTrace, NonFatal}
 
 class MissingCTDocument(regId: String) extends NoStackTrace
 
@@ -474,10 +474,10 @@ class CorporationTaxRegistrationMongoRepository @Inject()(val mongo: MongoCompon
     val cutoff = Instant.now()
       .minusSeconds(config.createdTimeExpiryInSeconds).toEpochMilli
 
-      Filters.and(
-        Filters.`type`("createdTime", BsonType.INT64),
-        Filters.lt("createdTime", cutoff)
-      )
+    Filters.and(
+      Filters.`type`("createdTime", BsonType.INT64),
+      Filters.lt("createdTime", cutoff)
+    )
   }
 
   private def errorMessage(e: Throwable, allOrN: String): String =
@@ -488,30 +488,70 @@ class CorporationTaxRegistrationMongoRepository @Inject()(val mongo: MongoCompon
     if (nLimitForDeletion <= 0) {
       Future.successful(DeleteResult.acknowledged(0))
     } else {
-      val filter = staleLegacyCreatedTimeFilter
-      collection
-        .withDocumentClass[Document]()
-        .find(filter)
-        .projection(include("_id"))
-        .limit(nLimitForDeletion)
-        .toFuture()
-        .flatMap { documents =>
-          val ids = documents.map(_.getObjectId("_id"))
-          if (ids.isEmpty) {
-            logger.warn("[MongoRemoveInvalidCreatedTimeData][deleteNStaleLegacyCreatedTimeData] " +
-              "No stale legacy documents found.")
-            Future.successful(DeleteResult.acknowledged(0))
-          } else {
-            collection
-              .deleteMany(Filters.and(Filters.in("_id", ids: _*), filter))
-              .toFuture()
-              .map { result =>
-                logger.warn("[MongoRemoveInvalidCreatedTimeData][deleteNStaleLegacyCreatedTimeData] " +
-                  s"Number of DELETED stale documents: ${result.getDeletedCount}, limit: $nLimitForDeletion")
-                result
+      val batchSize = 10000
+      logger.warn(s"[MongoRemoveInvalidCreatedTimeData] Starting limited cleanup. " +
+        s"Configured limit: $nLimitForDeletion, batch size: $batchSize")
+
+      def withFailureLogging[A](phase: String, batch: Int, total: Long)(operation: => Future[A]): Future[A] =
+        Future.unit.flatMap(_ => operation).recoverWith { case NonFatal(e) =>
+          logger.error(s"[MongoRemoveInvalidCreatedTimeData] $phase failed in batch $batch. " +
+            s"Total deleted: $total, configured limit: $nLimitForDeletion", e)
+          Future.failed(e)
+        }
+
+      def processBatch(filter: Bson, batch: Int, total: Long): Future[Option[Long]] = {
+        val nextLimit = math.min(batchSize.toLong, nLimitForDeletion.toLong - total).toInt
+        withFailureLogging("Mongo query", batch, total) {
+          collection
+            .withDocumentClass[Document]()
+            .find(filter)
+            .projection(include("_id"))
+            .limit(nextLimit)
+            .toFuture()
+        }.flatMap { documents =>
+          withFailureLogging("ID extraction", batch, total) {
+            Future {
+              documents.map { document =>
+                val id = document.getObjectId("_id")
+                require(id != null, "Selected document has no ObjectId _id")
+                id
               }
+            }
+          }.flatMap { ids =>
+            if (ids.isEmpty) {
+              logger.warn(s"[MongoRemoveInvalidCreatedTimeData] No more stale legacy documents found. Total deleted: $total")
+              Future.successful(None)
+            } else {
+              withFailureLogging("Mongo delete", batch, total) {
+                collection.deleteMany(Filters.and(Filters.in("_id", ids: _*), filter)).toFuture()
+              }.map { result =>
+                val cumulative = total + result.getDeletedCount
+                logger.warn(s"[MongoRemoveInvalidCreatedTimeData] Batch $batch selected ${ids.size}, " +
+                  s"deleted ${result.getDeletedCount} stale documents. Total deleted: $cumulative / $nLimitForDeletion")
+                Some(cumulative)
+              }
+            }
           }
         }
+      }
+
+      def processBatches(filter: Bson, batch: Int, total: Long): Future[Long] =
+        if (total >= nLimitForDeletion) {
+          Future.successful(total)
+        } else {
+          processBatch(filter, batch, total).flatMap {
+            case Some(cumulative) => processBatches(filter, batch + 1, cumulative)
+            case None => Future.successful(total)
+          }
+        }
+
+      withFailureLogging("Cleanup setup", 1, 0L) {
+        Future(staleLegacyCreatedTimeFilter)
+      }.flatMap(filter => processBatches(filter, 1, 0L)).map { total =>
+        logger.warn(s"[MongoRemoveInvalidCreatedTimeData] Cleanup completed. " +
+          s"Total deleted: $total, configured limit: $nLimitForDeletion")
+        DeleteResult.acknowledged(total)
+      }
     }
 
   def deleteAllStaleLegacyCreatedTimeData(): Future[Long] =

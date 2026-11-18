@@ -38,15 +38,16 @@ import test.itutil.ItTestConstants.CorporationTaxRegistration.corpTaxRegModel
 import test.itutil.ItTestConstants.TakeoverDetails.{testTakeoverDetails, testTakeoverDetailsModel}
 import test.itutil.{IntegrationSpecBase, MongoIntegrationSpec}
 import org.bson.{BsonType, Document}
+import utils.LogCapturingHelper
 
 import java.time.temporal.ChronoUnit
 import java.time.{Instant, LocalDate, LocalDateTime, ZoneOffset}
-import java.util.UUID
+import java.util.{Date, UUID}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class CorporationTaxRegistrationMongoRepositoryISpec
-  extends IntegrationSpecBase with MongoIntegrationSpec {
+  extends IntegrationSpecBase with MongoIntegrationSpec with LogCapturingHelper {
 
   val additionalConfiguration: Map[String, String] = Map(
     "schedules.missing-incorporation-job.enabled" -> "false",
@@ -1854,6 +1855,49 @@ class CorporationTaxRegistrationMongoRepositoryISpec
 
       await(repository.deleteNStaleLegacyCreatedTimeData(0)).getDeletedCount mustBe 0L
       await(repository.deleteNStaleLegacyCreatedTimeData(-1)).getDeletedCount mustBe 0L
+      count mustBe 1
+    }
+
+    "process sequential batches up to the overall limit and retain non-target records" in new Setup {
+      val staleTs = Instant.now().minus(181, ChronoUnit.DAYS).toEpochMilli
+      val freshTs = Instant.now().minus(10, ChronoUnit.DAYS).toEpochMilli
+      val documents = (1 to 15003).map { _ =>
+        new Document("createdTime", java.lang.Long.valueOf(staleTs))
+      } ++ Seq(
+        new Document("createdTime", java.lang.Long.valueOf(freshTs)),
+        new Document("createdTime", Date.from(Instant.now()))
+      )
+      await(repository.collection.withDocumentClass[Document]().insertMany(documents).toFuture())
+
+      withCaptureOfLoggingFrom(repository.logger) { logs =>
+        await(repository.deleteNStaleLegacyCreatedTimeData(15001)).getDeletedCount mustBe 15001L
+        logs.exists(_.getFormattedMessage.contains("Batch 1 selected 10000, deleted 10000")) mustBe true
+        logs.exists(_.getFormattedMessage.contains("Batch 2 selected 5001, deleted 5001")) mustBe true
+        logs.exists(_.getFormattedMessage.contains("Total deleted: 15001 / 15001")) mustBe true
+      }
+      count mustBe 4
+      await(repository.deleteNStaleLegacyCreatedTimeData(100)).getDeletedCount mustBe 2L
+      await(repository.deleteNStaleLegacyCreatedTimeData(100)).getDeletedCount mustBe 0L
+      count mustBe 2
+      val remaining = await(repository.collection.withDocumentClass[Document]().find().toFuture())
+      remaining.exists(_.get("createdTime") == java.lang.Long.valueOf(freshTs)) mustBe true
+      remaining.exists(_.get("createdTime").isInstanceOf[Date]) mustBe true
+    }
+
+    "log and propagate an invalid selected ID" in new Setup {
+      val staleTs = Instant.now().minus(181, ChronoUnit.DAYS).toEpochMilli
+      await(repository.collection.withDocumentClass[Document]()
+        .insertOne(new Document("_id", "not-an-object-id").append("createdTime", java.lang.Long.valueOf(staleTs)))
+        .toFuture())
+
+      withCaptureOfLoggingFrom(repository.logger) { logs =>
+        intercept[ClassCastException] {
+          await(repository.deleteNStaleLegacyCreatedTimeData(1))
+        }
+        logs.count(_.getFormattedMessage.contains("ID extraction failed in batch 1")) mustBe 1
+        logs.exists(_.getFormattedMessage.contains("Batch processing failed in batch 1")) mustBe false
+      }
+      count mustBe 1
     }
 
     "delete all stale legacy INT64 records in batches and keep non-target records" in new Setup {
