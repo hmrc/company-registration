@@ -21,18 +21,24 @@ import com.typesafe.config.ConfigFactory
 import org.apache.pekko.actor.ActorSystem
 import org.mockito.ArgumentMatchers.anyInt
 import org.mockito.Mockito._
-import org.scalatest.BeforeAndAfterEach
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+import org.scalatest.concurrent.Eventually
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import repositories.CorporationTaxRegistrationMongoRepository
+import utils.LogCapturingHelper
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future, Promise}
+import scala.concurrent.duration._
 
 class MongoRemoveInvalidCreatedTimeDataOnStartUpSpec
   extends PlaySpec
     with MockitoSugar
-    with BeforeAndAfterEach {
+    with BeforeAndAfterEach
+    with BeforeAndAfterAll
+    with Eventually
+    with LogCapturingHelper {
 
   private val mockCtrRepository: CorporationTaxRegistrationMongoRepository =
     mock[CorporationTaxRegistrationMongoRepository]
@@ -45,11 +51,18 @@ class MongoRemoveInvalidCreatedTimeDataOnStartUpSpec
       testActorSystem,
       mockCtrRepository,
       mockCleanupConfig
-    )
+    ) {
+    override protected def jitterDelay: FiniteDuration = 1.hour
+  }
 
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockCtrRepository, mockCleanupConfig)
+  }
+
+  override def afterAll(): Unit = {
+    Await.result(testActorSystem.terminate(), 10.seconds)
+    super.afterAll()
   }
 
   "deleteInvalidData" should {
@@ -93,13 +106,40 @@ class MongoRemoveInvalidCreatedTimeDataOnStartUpSpec
         when(mockCleanupConfig.deleteAllInvalidCreatedTimeData).thenReturn(false)
         when(mockCleanupConfig.deleteNInvalidCreatedTimeData).thenReturn(true)
         when(mockCleanupConfig.limitForDeletingInvalidCreatedTimeData).thenReturn(100)
-        when(mockCtrRepository.deleteNStaleLegacyCreatedTimeData(100))
-          .thenReturn(Future.successful(DeleteResult.acknowledged(50)))
+        val result = Promise[DeleteResult]()
+        when(mockCtrRepository.deleteNStaleLegacyCreatedTimeData(100)).thenReturn(result.future)
 
-        new TestStartUpJob().deleteInvalidData()
+        val job = new TestStartUpJob()
+        withCaptureOfLoggingFrom(job.logger) { logs =>
+          job.deleteInvalidData()
+          result.success(DeleteResult.acknowledged(50))
+          eventually {
+            logs.exists(_.getFormattedMessage.contains("Startup cleanup succeeded. Total deleted: 50, configured limit: 100")) mustBe true
+          }
+        }
 
         verify(mockCtrRepository, times(1)).deleteNStaleLegacyCreatedTimeData(100)
         verify(mockCtrRepository, never()).deleteAllStaleLegacyCreatedTimeData()
+      }
+    }
+
+    "the repository Future fails" in {
+      when(mockCleanupConfig.deleteAllInvalidCreatedTimeData).thenReturn(false)
+      when(mockCleanupConfig.deleteNInvalidCreatedTimeData).thenReturn(true)
+      when(mockCleanupConfig.limitForDeletingInvalidCreatedTimeData).thenReturn(100)
+      val result = Promise[DeleteResult]()
+      val failure = new RuntimeException("cleanup failed")
+      when(mockCtrRepository.deleteNStaleLegacyCreatedTimeData(100)).thenReturn(result.future)
+
+      val job = new TestStartUpJob()
+      withCaptureOfLoggingFrom(job.logger) { logs =>
+        job.deleteInvalidData()
+        result.failure(failure)
+        eventually {
+          val error = logs.find(_.getFormattedMessage.contains("Startup cleanup failed. Configured limit: 100"))
+          error mustBe defined
+          error.get.getThrowableProxy.getMessage mustBe "cleanup failed"
+        }
       }
     }
 

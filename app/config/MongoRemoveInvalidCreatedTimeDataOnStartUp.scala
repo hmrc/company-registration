@@ -19,17 +19,18 @@ package config
 import org.apache.pekko.actor.ActorSystem
 import repositories.CorporationTaxRegistrationMongoRepository
 import utils.Logging
+import scala.util.{Failure, Success}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
 @Singleton
-class MongoRemoveInvalidCreatedTimeDataOnStartUp @Inject() (
-                                                             actorSystem: ActorSystem,
-                                                             ctrRepository: CorporationTaxRegistrationMongoRepository,
-                                                             cleanupConfig: CreatedTimeDataCleanupConfig
-                                                           )(implicit ec: ExecutionContext)
+class MongoRemoveInvalidCreatedTimeDataOnStartUp @Inject()(
+                                                            actorSystem: ActorSystem,
+                                                            ctrRepository: CorporationTaxRegistrationMongoRepository,
+                                                            cleanupConfig: CreatedTimeDataCleanupConfig
+                                                          )(implicit ec: ExecutionContext)
   extends Logging {
 
   protected def jitterDelay: FiniteDuration = (10 + scala.util.Random.nextInt(5)).seconds
@@ -40,16 +41,22 @@ class MongoRemoveInvalidCreatedTimeDataOnStartUp @Inject() (
   }
 
   def deleteInvalidData(): Unit = {
-    val deleteAllDocuments: Boolean      = cleanupConfig.deleteAllInvalidCreatedTimeData
-    val deleteNDocuments: Boolean        = cleanupConfig.deleteNInvalidCreatedTimeData
-    val deleteDocumentLimit: Int         = cleanupConfig.limitForDeletingInvalidCreatedTimeData
+    val deleteAllDocuments: Boolean = cleanupConfig.deleteAllInvalidCreatedTimeData
+    val deleteNDocuments: Boolean = cleanupConfig.deleteNInvalidCreatedTimeData
+    val deleteDocumentLimit: Int = cleanupConfig.limitForDeletingInvalidCreatedTimeData
 
     (deleteNDocuments, deleteDocumentLimit, deleteAllDocuments) match {
       case (true, limit, false) if limit > 0 =>
         logger.warn(
           s"[MongoRemoveInvalidCreatedTimeData] 'deleteNInvalidCreatedTimeData' config is set to true - starting deletion of stale legacy createdTime data."
         )
-        ctrRepository.deleteNStaleLegacyCreatedTimeData(limit)
+        ctrRepository.deleteNStaleLegacyCreatedTimeData(limit).onComplete {
+          case Success(result) =>
+            logger.warn(s"[MongoRemoveInvalidCreatedTimeData] Startup cleanup succeeded. " +
+              s"Total deleted: ${result.getDeletedCount}, configured limit: $limit")
+          case Failure(e) =>
+            logger.error(s"[MongoRemoveInvalidCreatedTimeData] Startup cleanup failed. Configured limit: $limit", e)
+        }
       case (false, _, true) =>
         logger.warn(
           s"[MongoRemoveInvalidCreatedTimeData] 'deleteAllInvalidCreatedTimeData' config is set to true - starting deletion of all stale legacy createdTime data."
